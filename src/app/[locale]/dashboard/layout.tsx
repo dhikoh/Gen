@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/authOptions";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import LogoutButton from "@/components/auth/LogoutButton";
+import { getTranslations } from "next-intl/server";
 
 export default async function DashboardLayout({
   children,
@@ -18,6 +19,7 @@ export default async function DashboardLayout({
   }
 
   const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'Dashboard' });
 
   return (
     <div className="flex h-screen bg-zinc-50 dark:bg-zinc-950">
@@ -33,38 +35,44 @@ export default async function DashboardLayout({
             href={`/${locale}/dashboard`}
             className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
           >
-            Ikhtisar
+            {t('overview')}
           </Link>
           <Link 
             href={`/${locale}/dashboard/generator`}
             className="flex items-center px-3 py-2 text-sm font-medium rounded-md bg-blue-50 text-blue-700 dark:bg-blue-900/50 dark:text-blue-200"
           >
-            Studio Generator
+            {t('generator')}
           </Link>
           <Link 
             href={`/${locale}/dashboard/drafts`}
             className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
           >
-            Riwayat Prompt
+            {t('drafts')}
           </Link>
           <Link 
             href={`/${locale}/dashboard/channels`}
             className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
           >
-            Pengaturan Channel
+            {t('channels')}
           </Link>
           <Link 
             href={`/${locale}/dashboard/billing`}
             className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
           >
-            Tagihan & Paket
+            {t('billing')}
+          </Link>
+          <Link 
+            href={`/${locale}/dashboard/affiliate`}
+            className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          >
+            {t('affiliate')}
           </Link>
           {session.user.role === "SUPERADMIN" && (
             <Link 
               href={`/${locale}/admin`}
               className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
             >
-              Admin Panel
+              {t('admin')}
             </Link>
           )}
         </nav>

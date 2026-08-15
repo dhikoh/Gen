@@ -1,15 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 export default function AuthForm() {
   const router = useRouter();
+  const t = useTranslations("Auth");
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [referralCode, setReferralCode] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    setReferralCode(urlParams.get("ref") || undefined);
+  }, []);
 
   // Form State
   const [identifier, setIdentifier] = useState("");
@@ -45,6 +53,9 @@ export default function AuthForm() {
         }
       } else {
         // Register flow
+        const urlParams = new URLSearchParams(window.location.search);
+        const referralCode = urlParams.get("ref") || undefined;
+
         const res = await fetch("/api/auth/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -55,6 +66,7 @@ export default function AuthForm() {
             phoneNumber,
             password,
             channelName,
+            referralCode,
           }),
         });
 
@@ -93,13 +105,13 @@ export default function AuthForm() {
             onClick={() => { setIsLogin(true); setError(null); }}
             className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${isLogin ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
           >
-            Masuk
+            {t('login')}
           </button>
           <button
             onClick={() => { setIsLogin(false); setError(null); }}
             className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${!isLogin ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
           >
-            Daftar
+            {t('register')}
           </button>
         </div>
       </div>
@@ -117,7 +129,7 @@ export default function AuthForm() {
             <>
               <div>
                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                  Email / Username / No. HP
+                  {t('emailLabel')}
                 </label>
                 <input
                   type="text"
@@ -134,7 +146,7 @@ export default function AuthForm() {
             // REGISTER FIELDS
             <>
               <div>
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Nama Lengkap</label>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('fullName')}</label>
                 <input
                   type="text"
                   value={name}
@@ -145,7 +157,7 @@ export default function AuthForm() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Username</label>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('username')}</label>
                 <input
                   type="text"
                   value={username}
@@ -156,7 +168,7 @@ export default function AuthForm() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Email</label>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('email')}</label>
                 <input
                   type="email"
                   value={email}
@@ -167,7 +179,7 @@ export default function AuthForm() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Nomor HP (Opsional)</label>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('phone')}</label>
                 <input
                   type="tel"
                   value={phoneNumber}
@@ -177,7 +189,7 @@ export default function AuthForm() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Nama Channel Profile</label>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('channelName')}</label>
                 <input
                   type="text"
                   value={channelName}
@@ -193,7 +205,7 @@ export default function AuthForm() {
           {/* COMMON PASSWORD FIELD */}
           <div>
             <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-              Password
+              {t('password')}
             </label>
             <div className="relative">
               <input
@@ -223,14 +235,14 @@ export default function AuthForm() {
                   onChange={(e) => setRememberMe(e.target.checked)}
                   className="rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
                 />
-                <span className="text-zinc-600 dark:text-zinc-400">Ingat Saya</span>
+                <span className="text-zinc-600 dark:text-zinc-400">{t('rememberMe')}</span>
               </label>
               <button
                 type="button"
                 onClick={() => router.push("/id/auth/forgot-password")}
                 className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
               >
-                Lupa Password?
+                {t('forgotPassword')}
               </button>
             </div>
           )}
@@ -242,7 +254,7 @@ export default function AuthForm() {
             {loading ? (
               <span className="inline-block animate-spin mr-2 border-2 border-white/20 border-t-white rounded-full w-5 h-5" />
             ) : null}
-            {isLogin ? "Masuk ke Dashboard" : "Daftar Akun Baru"}
+            {isLogin ? t('submitLogin') : t('submitRegister')}
           </button>
         </fieldset>
       </form>

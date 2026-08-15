@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 export default function AdminPaymentsClient({ invoices }: { invoices: any[] }) {
   const router = useRouter();
+  const t = useTranslations("AdminPayments");
   const [loading, setLoading] = useState<string | null>(null);
 
   const handleApprove = async (invoiceId: string) => {
@@ -17,13 +19,13 @@ export default function AdminPaymentsClient({ invoices }: { invoices: any[] }) {
       });
       const data = await res.json();
       if (res.ok) {
-        alert("Tagihan disetujui! Status langganan user telah diperbarui.");
+        alert(t('approveSuccess'));
         router.refresh();
       } else {
-        alert(data.error || "Gagal menyetujui tagihan");
+        alert(data.error || t('approveFail'));
       }
     } catch (e) {
-      alert("Network error");
+      alert(t('networkError'));
     } finally {
       setLoading(null);
     }
@@ -39,13 +41,13 @@ export default function AdminPaymentsClient({ invoices }: { invoices: any[] }) {
       });
       const data = await res.json();
       if (res.ok) {
-        alert("Tagihan ditolak.");
+        alert(t('rejectSuccess'));
         router.refresh();
       } else {
-        alert(data.error || "Gagal menolak tagihan");
+        alert(data.error || t('rejectFail'));
       }
     } catch (e) {
-      alert("Network error");
+      alert(t('networkError'));
     } finally {
       setLoading(null);
     }
@@ -57,19 +59,19 @@ export default function AdminPaymentsClient({ invoices }: { invoices: any[] }) {
         <table className="w-full text-left text-sm whitespace-nowrap">
           <thead className="bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400 uppercase">
             <tr>
-              <th className="px-6 py-4 font-medium">Tagihan ID</th>
-              <th className="px-6 py-4 font-medium">User</th>
-              <th className="px-6 py-4 font-medium">Paket</th>
-              <th className="px-6 py-4 font-medium">Total</th>
-              <th className="px-6 py-4 font-medium">Status</th>
-              <th className="px-6 py-4 font-medium">Aksi</th>
+              <th className="px-6 py-4 font-medium">{t('invoiceId')}</th>
+              <th className="px-6 py-4 font-medium">{t('user')}</th>
+              <th className="px-6 py-4 font-medium">{t('plan')}</th>
+              <th className="px-6 py-4 font-medium">{t('total')}</th>
+              <th className="px-6 py-4 font-medium">{t('status')}</th>
+              <th className="px-6 py-4 font-medium">{t('action')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
             {invoices.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-6 py-8 text-center text-zinc-500">
-                  Tidak ada tagihan yang butuh persetujuan.
+                  {t('noPendingInvoices')}
                 </td>
               </tr>
             ) : invoices.map((inv) => (
@@ -85,21 +87,27 @@ export default function AdminPaymentsClient({ invoices }: { invoices: any[] }) {
                   <span className="inline-flex px-2 py-1 bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 text-xs font-semibold rounded">
                     {inv.status}
                   </span>
+                  {inv.proofUrl && (
+                    <a href={inv.proofUrl} target="_blank" rel="noreferrer" className="block mt-2 text-xs text-blue-600 hover:underline">
+                      {t('viewProof')}
+                    </a>
+                  )}
                 </td>
-                <td className="px-6 py-4 flex space-x-2">
+                <td className="px-6 py-4 flex flex-col space-y-2">
                   <button 
                     onClick={() => handleApprove(inv.id)}
-                    disabled={loading !== null}
-                    className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-medium"
+                    disabled={loading !== null || (!inv.proofUrl && inv.method === 'MANUAL_TRANSFER')}
+                    className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={!inv.proofUrl && inv.method === 'MANUAL_TRANSFER' ? t('waitProof') : ""}
                   >
-                    {loading === inv.id ? "Proses..." : "Setujui"}
+                    {loading === inv.id ? t('processing') : t('approveBtn')}
                   </button>
                   <button 
                     onClick={() => handleReject(inv.id)}
                     disabled={loading !== null}
                     className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium"
                   >
-                    {loading === inv.id ? "Proses..." : "Tolak"}
+                    {loading === inv.id ? t('processing') : t('rejectBtn')}
                   </button>
                 </td>
               </tr>

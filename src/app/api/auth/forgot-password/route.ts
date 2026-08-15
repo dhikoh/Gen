@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { z } from "zod";
 import { applyRateLimit } from "@/lib/rateLimit";
 import crypto from "crypto";
-// import { sendEmail } from "@/lib/email"; // To be implemented or mocked for now
+import { sendEmail } from "@/lib/email";
 
 const forgotPasswordSchema = z.object({
   identifier: z.string().min(1, "Identifier is required"),
@@ -49,9 +49,22 @@ export async function POST(req: Request) {
       });
 
       // TODO: Send real email with token
-      // e.g. sendEmail(user.email, `Reset Password`, `Link: ${process.env.NEXTAUTH_URL}/id/auth/reset-password?token=${token}`);
-      console.log(`[Email Mock] Reset link for ${user.email}: ${process.env.NEXTAUTH_URL}/id/auth/reset-password?token=${token}`);
-    }
+      const resetUrl = `${process.env.NEXTAUTH_URL}/id/auth/reset-password?token=${token}`;
+      
+      await sendEmail({
+        to: user.email,
+        subject: "Reset Password - Prompt Gen",
+        html: `
+          <div style="font-family: sans-serif; max-w: 600px; margin: 0 auto;">
+            <h2>Reset Password</h2>
+            <p>Anda menerima email ini karena ada permintaan untuk mereset kata sandi akun Prompt Gen Anda.</p>
+            <p>Klik tombol di bawah ini untuk mereset kata sandi Anda:</p>
+            <a href="${resetUrl}" style="display: inline-block; padding: 10px 20px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 5px; margin: 16px 0;">Reset Password</a>
+            <p>Jika Anda tidak meminta ini, abaikan saja email ini.</p>
+            <p>Tautan ini akan kedaluwarsa dalam 1 jam.</p>
+          </div>
+        `
+      });    }
 
     // Always return success
     return NextResponse.json({ success: true, message: "Jika akun terdaftar, tautan reset telah dikirim ke email." }, { status: 200 });

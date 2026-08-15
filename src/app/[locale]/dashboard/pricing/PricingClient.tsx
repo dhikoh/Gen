@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 export default function PricingClient({ plans, locale }: { plans: any[], locale: string }) {
   const router = useRouter();
+  const t = useTranslations("Pricing");
   const [loading, setLoading] = useState<string | null>(null);
 
   const handleSubscribe = async (planId: string) => {
@@ -23,11 +25,11 @@ export default function PricingClient({ plans, locale }: { plans: any[], locale:
         router.push(`/${locale}/dashboard/billing`);
         router.refresh();
       } else {
-        alert(data.error || "Terjadi kesalahan sistem.");
+        alert(data.error || t('systemError'));
         setLoading(null);
       }
     } catch (error) {
-      alert("Kesalahan jaringan.");
+      alert(t('networkError'));
       setLoading(null);
     }
   };
@@ -43,7 +45,7 @@ export default function PricingClient({ plans, locale }: { plans: any[], locale:
             <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">{plan.name}</h3>
             <div className="flex items-baseline mb-6">
               <span className="text-3xl font-extrabold text-zinc-900 dark:text-white">Rp {plan.priceMonthly.toLocaleString('id-ID')}</span>
-              <span className="text-zinc-500 dark:text-zinc-400 ml-1">/bulan</span>
+              <span className="text-zinc-500 dark:text-zinc-400 ml-1">{t('perMonth')}</span>
             </div>
             
             <ul className="space-y-4 mb-8 text-sm text-zinc-600 dark:text-zinc-300">
@@ -51,20 +53,20 @@ export default function PricingClient({ plans, locale }: { plans: any[], locale:
                 <svg className="flex-shrink-0 h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
-                <span className="ml-3">Maksimal {plan.maxChannels} Channel</span>
+                <span className="ml-3">{t('max')} {plan.maxChannels} {t('channels')}</span>
               </li>
               <li className="flex items-start">
                 <svg className="flex-shrink-0 h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
-                <span className="ml-3">Prioritas Generator AI</span>
+                <span className="ml-3">{t('aiPriority')}</span>
               </li>
               {plan.features?.imagePromptStudio && (
                 <li className="flex items-start">
                   <svg className="flex-shrink-0 h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
-                  <span className="ml-3">Image Prompt Studio</span>
+                  <span className="ml-3">{t('imagePrompt')}</span>
                 </li>
               )}
             </ul>
@@ -82,7 +84,7 @@ export default function PricingClient({ plans, locale }: { plans: any[], locale:
               {loading === plan.id ? (
                 <span className="inline-block animate-spin mr-2 border-2 border-current border-t-transparent rounded-full w-4 h-4" />
               ) : (
-                "Pilih Paket"
+                t('choosePlan')
               )}
             </button>
           </div>

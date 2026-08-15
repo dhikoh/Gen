@@ -1,0 +1,51 @@
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/authOptions";
+import { prisma } from "@/lib/db";
+import { z } from "zod";
+
+const updateDraftSchema = z.object({
+  isTemplate: z.boolean().optional(),
+});
+
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id } = await params;
+    const body = await req.json();
+    const parsedData = updateDraftSchema.safeParse(body);
+
+    if (!parsedData.success) {
+      return NextResponse.json({ error: "Invalid data", details: parsedData.error.flatten() }, { status: 400 });
+    }
+
+    const existingDraft = await prisma.draft.findUnique({
+      where: { id }
+    });
+
+    if (!existingDraft) {
+      return NextResponse.json({ error: "Draft not found" }, { status: 404 });
+    }
+
+    if (existingDraft.userId !== session.user.id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const updatedDraft = await prisma.draft.update({
+      where: { id },
+      data: {
+        isTemplate: parsedData.data.isTemplate,
+      }
+    });
+
+    return NextResponse.json({ success: true, draft: updatedDraft }, { status: 200 });
+
+  } catch (error) {
+    console.error("Draft update error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}

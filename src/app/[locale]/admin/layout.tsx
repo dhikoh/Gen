@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/authOptions";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import LogoutButton from "@/components/auth/LogoutButton";
+import { getTranslations } from "next-intl/server";
 
 export default async function AdminLayout({
   children,
@@ -18,6 +19,7 @@ export default async function AdminLayout({
   }
 
   const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'Admin' });
 
   return (
     <div className="flex h-screen bg-zinc-50 dark:bg-zinc-950">
@@ -33,30 +35,42 @@ export default async function AdminLayout({
             href={`/${locale}/dashboard`}
             className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-white"
           >
-            &larr; Kembali ke User App
+            &larr; {t('backToUserApp')}
           </Link>
           <div className="pt-4 pb-2">
             <p className="px-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-              Manajemen Sistem
+              {t('systemManagement')}
             </p>
           </div>
           <Link 
             href={`/${locale}/admin`}
             className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-white"
           >
-            Pengguna
+            {t('users')}
           </Link>
           <Link 
             href={`/${locale}/admin/payments`}
             className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-white"
           >
-            Persetujuan Tagihan
+            {t('paymentApproval')}
+          </Link>
+          <Link 
+            href={`/${locale}/admin/plans`}
+            className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-white"
+          >
+            {t('subscriptionPlans')}
+          </Link>
+          <Link 
+            href={`/${locale}/admin/commissions`}
+            className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-white"
+          >
+            {t('affiliateCommission')}
           </Link>
           <Link 
             href={`/${locale}/admin/settings`}
             className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-white"
           >
-            Pengaturan Sistem
+            {t('systemSettings')}
           </Link>
         </nav>
         <div className="p-4 border-t border-zinc-800 bg-zinc-950">

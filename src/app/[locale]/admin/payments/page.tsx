@@ -3,10 +3,13 @@ import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
 import AdminPaymentsClient from "./AdminPaymentsClient";
+import { getTranslations } from "next-intl/server";
 
-export const metadata = {
-  title: "Persetujuan Tagihan - Admin",
-};
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'AdminPayments' });
+  return { title: t('pageTitleTab') };
+}
 
 export default async function AdminPaymentsPage({ params }: { params: Promise<{ locale: string }> }) {
   const session = await getServerSession(authOptions);
@@ -14,6 +17,9 @@ export default async function AdminPaymentsPage({ params }: { params: Promise<{ 
   if (!session || session.user.role !== "SUPERADMIN") {
     redirect("/");
   }
+
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'AdminPayments' });
 
   const pendingInvoices = await prisma.invoice.findMany({
     where: { status: "PENDING" },
@@ -27,8 +33,8 @@ export default async function AdminPaymentsPage({ params }: { params: Promise<{ 
   return (
     <div className="p-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Persetujuan Tagihan</h1>
-        <p className="text-zinc-500 dark:text-zinc-400">Verifikasi dan setujui pembayaran langganan manual.</p>
+        <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">{t('title')}</h1>
+        <p className="text-zinc-500 dark:text-zinc-400">{t('description')}</p>
       </div>
 
       <AdminPaymentsClient invoices={pendingInvoices} />

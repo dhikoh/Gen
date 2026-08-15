@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
+import { enforceChannelLimits } from "@/lib/channelLockLogic";
 
 const channelSchema = z.object({
   channelName: z.string().min(1, "Nama channel harus diisi"),
@@ -11,10 +12,35 @@ const channelSchema = z.object({
   visualAesthetic: z.string().optional(),
 });
 
-export async function PUT(req: Request) {
+export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const channels = await prisma.profileChannel.findMany({
+      where: { userId: session.user.id },
+      orderBy: { createdAt: "asc" }
+    });
     
+    // Also return maxChannels from the user's plan to help UI
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: { currentPlan: true }
+    });
+
+    const maxChannels = user?.currentPlan?.maxChannels || 1;
+
+    return NextResponse.json({ channels, maxChannels }, { status: 200 });
+  } catch (error) {
+    return NextResponse.json({ error: "Terjadi kesalahan sistem" }, { status: 500 });
+  }
+}
+
+export async function POST(req: Request) {
+  try {
+    const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -26,18 +52,23 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "Data tidak valid" }, { status: 400 });
     }
 
-    // Get the first channel (MVP assumes 1 primary channel per user)
-    const channel = await prisma.profileChannel.findFirst({
+    // Check limits
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: { currentPlan: true }
+    });
+    const maxChannels = user?.currentPlan?.maxChannels || 1;
+    const currentChannelsCount = await prisma.profileChannel.count({
       where: { userId: session.user.id }
     });
 
-    if (!channel) {
-      return NextResponse.json({ error: "Channel tidak ditemukan" }, { status: 404 });
+    if (currentChannelsCount >= maxChannels) {
+      return NextResponse.json({ error: `Batas maksimal channel Anda adalah ${maxChannels}. Silakan upgrade paket.` }, { status: 403 });
     }
 
-    const updated = await prisma.profileChannel.update({
-      where: { id: channel.id },
+    const channel = await prisma.profileChannel.create({
       data: {
+        userId: session.user.id,
         channelName: parsedData.data.channelName,
         niche: parsedData.data.niche,
         description: parsedData.data.description,
@@ -45,10 +76,12 @@ export async function PUT(req: Request) {
       }
     });
 
-    return NextResponse.json({ success: true, channel: updated }, { status: 200 });
+    await enforceChannelLimits(session.user.id);
+
+    return NextResponse.json({ success: true, channel }, { status: 201 });
 
   } catch (error) {
-    console.error("Channel Update API error:", error);
+    console.error("Channel Create API error:", error);
     return NextResponse.json({ error: "Terjadi kesalahan pada server" }, { status: 500 });
   }
 }

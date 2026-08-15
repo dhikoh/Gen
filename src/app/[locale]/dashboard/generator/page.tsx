@@ -1,20 +1,38 @@
 import GeneratorForm from "@/components/generator/GeneratorForm";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/authOptions";
+import { prisma } from "@/lib/db";
+import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
-export const metadata = {
-  title: "Generator Prompt - Prompt Gen",
-};
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'Dashboard' });
+  return { title: `${t('studio')} - Prompt Gen` };
+}
 
-export default function GeneratorPage() {
+export default async function GeneratorPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  const session = await getServerSession(authOptions);
+  if (!session) redirect(`/${locale}/auth`);
+
+  const t = await getTranslations({ locale, namespace: 'Generator' });
+
+  const channels = await prisma.profileChannel.findMany({
+    where: { userId: session.user.id, isLocked: false },
+    orderBy: { createdAt: "asc" }
+  });
+
   return (
     <div className="max-w-6xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Studio Generator</h1>
+        <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">{t('pageTitle')}</h1>
         <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-          Pilih tipe konten dan masukkan parameter. AI akan menyusun Master Prompt dan instruksi sistem untuk Anda.
+          {t('pageDesc')}
         </p>
       </div>
 
-      <GeneratorForm />
+      <GeneratorForm channels={channels} />
     </div>
   );
 }

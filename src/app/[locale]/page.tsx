@@ -2,15 +2,24 @@ import { prisma } from "@/lib/db";
 import Link from "next/link";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
+import { getTranslations } from "next-intl/server";
 
-export const metadata = {
-  title: "Prompt Gen - Solusi AI Kreator Konten",
-  description: "Buat prompt berkualitas tinggi untuk Video TikTok, Reels, dan Gambar AI dalam hitungan detik.",
-};
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'Landing' });
+  
+  return {
+    title: `${t('heroTitle')} - SaaS Platform`,
+    description: t('heroSubtitle'),
+  };
+}
 
 export default async function LandingPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   const session = await getServerSession(authOptions);
+  
+  const tNav = await getTranslations({ locale, namespace: 'Navigation' });
+  const tLanding = await getTranslations({ locale, namespace: 'Landing' });
 
   // Fetch settings and plans concurrently
   const [settings, plans] = await Promise.all([
@@ -18,8 +27,8 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
     prisma.plan.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" } })
   ]);
 
-  const heroTitle = settings?.heroTitle || "Maksimalkan Kreativitas Konten Anda dengan AI";
-  const heroSubtitle = settings?.heroSubtitle || "Hasilkan Master Prompt untuk Video TikTok, Instagram Reels, dan Generator Gambar AI dalam hitungan detik.";
+  const heroTitle = settings?.heroTitle || tLanding("heroTitle");
+  const heroSubtitle = settings?.heroSubtitle || tLanding("heroSubtitle");
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 font-sans selection:bg-blue-200 dark:selection:bg-blue-900/50">
@@ -41,15 +50,15 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
                   href={`/${locale}/dashboard`} 
                   className="text-sm font-medium text-zinc-700 dark:text-zinc-200 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                 >
-                  Ke Dasbor &rarr;
+                  {tNav("dashboard")} &rarr;
                 </Link>
               ) : (
                 <>
                   <Link href={`/${locale}/auth`} className="text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-colors">
-                    Masuk
+                    {tNav("login")}
                   </Link>
                   <Link href={`/${locale}/auth`} className="text-sm font-medium bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 px-4 py-2 rounded-full hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors shadow-sm">
-                    Daftar Gratis
+                    {tNav("register")}
                   </Link>
                 </>
               )}
@@ -73,7 +82,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
               href={session ? `/${locale}/dashboard` : `/${locale}/auth`}
               className="w-full sm:w-auto px-8 py-3.5 text-base font-bold text-white bg-blue-600 rounded-full shadow-lg shadow-blue-600/30 hover:bg-blue-700 hover:shadow-blue-600/40 focus:ring-4 focus:ring-blue-500/30 transition-all active:scale-95"
             >
-              Mulai Sekarang — Gratis
+              {tLanding("cta")}
             </Link>
             <a 
               href="#pricing"

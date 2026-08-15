@@ -3,10 +3,14 @@ import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import TemplateToggle from "./TemplateToggle";
+import { getTranslations } from "next-intl/server";
 
-export const metadata = {
-  title: "Detail Prompt - Prompt Gen",
-};
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'Drafts' });
+  return { title: `${t('detailPageTitleTab')} - Prompt Gen` };
+}
 
 export default async function DraftDetailPage({ 
   params 
@@ -19,6 +23,8 @@ export default async function DraftDetailPage({
   if (!session) {
     redirect(`/${locale}/auth`);
   }
+
+  const t = await getTranslations({ locale, namespace: 'Drafts' });
 
   const draft = await prisma.draft.findUnique({
     where: { id },
@@ -38,7 +44,7 @@ export default async function DraftDetailPage({
       {/* Header */}
       <div className="mb-6">
         <Link href={`/${locale}/dashboard/drafts`} className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 mb-4 inline-block">
-          &larr; Kembali ke Riwayat
+          &larr; {t('backToHistory')}
         </Link>
         <div className="flex justify-between items-start">
           <div>
@@ -54,35 +60,38 @@ export default async function DraftDetailPage({
               <span>•</span>
               <span>{new Date(draft.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
               <span>•</span>
-              <span>Channel: {draft.channel?.channelName || "-"}</span>
+              <span>{t('channel')}: {draft.channel?.channelName || "-"}</span>
             </div>
           </div>
-          <button className="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-md hover:bg-zinc-50 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 dark:hover:bg-zinc-700 shadow-sm transition-colors">
-            Salin Raw JSON
-          </button>
+          <div className="flex space-x-3">
+            <TemplateToggle draftId={draft.id} initialIsTemplate={draft.isTemplate} />
+            <button className="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-md hover:bg-zinc-50 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 dark:hover:bg-zinc-700 shadow-sm transition-colors">
+              {t('copyRawJson')}
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Output Visualisasi */}
       <div className="space-y-6">
         <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-6">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-4">Master Prompt</h2>
+          <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-4">{t('masterPrompt')}</h2>
           <p className="text-zinc-900 dark:text-zinc-200 text-lg leading-relaxed bg-zinc-50 dark:bg-zinc-950 p-4 rounded-lg border border-zinc-100 dark:border-zinc-800">
-            {parsedData?.master_prompt || "Tidak ada Master Prompt"}
+            {parsedData?.master_prompt || t('noMasterPrompt')}
           </p>
         </div>
 
         <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-6">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-4">System Instruction</h2>
+          <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-4">{t('systemInstruction')}</h2>
           <div className="bg-zinc-900 dark:bg-black text-green-400 font-mono text-sm p-4 rounded-lg overflow-x-auto">
-            {parsedData?.system_instruction || "Tidak ada System Instruction"}
+            {parsedData?.system_instruction || t('noSystemInstruction')}
           </div>
         </div>
 
         {parsedData?.segments && parsedData.segments.length > 0 && (
           <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-0 overflow-hidden">
             <div className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Segments (Scenes)</h2>
+              <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{t('segments')}</h2>
             </div>
             <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
               {parsedData.segments.map((segment: any, idx: number) => (
@@ -93,27 +102,27 @@ export default async function DraftDetailPage({
                     </span>
                     {segment.duration_estimation && (
                       <span className="text-xs text-zinc-500 font-medium">
-                        Durasi: {segment.duration_estimation} detik
+                        {t('durationLabel')} {segment.duration_estimation} {t('seconds')}
                       </span>
                     )}
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {segment.visual && (
                       <div className="bg-zinc-50 dark:bg-zinc-950 p-3 rounded border border-zinc-100 dark:border-zinc-800">
-                        <p className="text-xs font-bold text-zinc-500 mb-1">Visual</p>
+                        <p className="text-xs font-bold text-zinc-500 mb-1">{t('visual')}</p>
                         <p className="text-sm text-zinc-800 dark:text-zinc-200">{segment.visual}</p>
                       </div>
                     )}
                     {segment.audio && (
                       <div className="bg-zinc-50 dark:bg-zinc-950 p-3 rounded border border-zinc-100 dark:border-zinc-800">
-                        <p className="text-xs font-bold text-zinc-500 mb-1">Audio</p>
+                        <p className="text-xs font-bold text-zinc-500 mb-1">{t('audio')}</p>
                         <p className="text-sm text-zinc-800 dark:text-zinc-200">{segment.audio}</p>
                       </div>
                     )}
                   </div>
                   {segment.caption && (
                     <div className="mt-4 bg-yellow-50 dark:bg-yellow-900/10 p-3 rounded border border-yellow-100 dark:border-yellow-900/30">
-                      <p className="text-xs font-bold text-yellow-800 dark:text-yellow-600 mb-1">Caption / Teks</p>
+                      <p className="text-xs font-bold text-yellow-800 dark:text-yellow-600 mb-1">{t('captionText')}</p>
                       <p className="text-sm text-yellow-900 dark:text-yellow-500 italic">"{segment.caption}"</p>
                     </div>
                   )}

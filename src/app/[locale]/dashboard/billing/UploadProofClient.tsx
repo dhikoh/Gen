@@ -1,0 +1,91 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+
+export default function UploadProofClient({ invoiceId, currentProof }: { invoiceId: string, currentProof?: string | null }) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [preview, setPreview] = useState<string | null>(currentProof || null);
+  const [error, setError] = useState<string | null>(null);
+  const t = useTranslations("Billing");
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setError(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setError(t('uploadImageError'));
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError(t('uploadSizeError'));
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setPreview(event.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleUpload = async () => {
+    if (!preview || preview === currentProof) return;
+    
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch("/api/invoice/upload", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invoiceId, proofBase64: preview })
+      });
+      
+      const data = await res.json();
+      if (res.ok) {
+        alert(t('uploadSuccess'));
+        router.refresh();
+      } else {
+        setError(data.error || t('uploadFail'));
+      }
+    } catch (err) {
+      setError(t('networkError'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="mt-4 border-t border-zinc-200 dark:border-zinc-800 pt-4">
+      <h3 className="text-sm font-semibold mb-2 text-zinc-900 dark:text-white">{t('uploadProof')}</h3>
+      
+      {error && <p className="text-red-500 text-xs mb-2">{error}</p>}
+      
+      <div className="flex flex-col space-y-3">
+        {preview && (
+          <img src={preview} alt="Bukti Transfer" className="w-32 h-32 object-cover rounded border border-zinc-300 dark:border-zinc-700" />
+        )}
+        
+        <input 
+          type="file" 
+          accept="image/*"
+          onChange={handleFileChange}
+          className="text-xs text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-zinc-800 dark:file:text-zinc-300"
+        />
+        
+        <button 
+          onClick={handleUpload}
+          disabled={loading || !preview || preview === currentProof}
+          className="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 text-xs font-medium rounded shadow-sm disabled:opacity-50"
+        >
+          {loading ? t('uploading') : currentProof ? t('changeProof') : t('sendProof')}
+        </button>
+      </div>
+    </div>
+  );
+}

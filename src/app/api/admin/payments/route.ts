@@ -36,35 +36,26 @@ export async function POST(req: Request) {
     }
 
     if (action === "REJECT") {
-      await prisma.invoice.update({
-        where: { id: invoiceId },
-        data: { status: "REJECTED" }
+      await prisma.invoice.updateMany({
+        where: { id: invoiceId, status: "PENDING" },
+        data: { 
+          status: "REJECTED",
+          reviewedById: session.user.id,
+          reviewedAt: new Date()
+        }
       });
       return NextResponse.json({ success: true });
     }
 
-    // APPROVE logic
-    await prisma.$transaction(async (tx) => {
-      await tx.invoice.update({
-        where: { id: invoiceId },
-        data: { status: "PAID" }
-      });
+    if (action === "APPROVE") {
+      const { activateSubscription } = await import("@/lib/payments/manualTransferProvider");
+      await activateSubscription(invoiceId, session.user.id);
+      
+      const { enforceChannelLimits } = await import("@/lib/channelLockLogic");
+      await enforceChannelLimits(invoice.userId);
 
-      // Update user subscription
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + invoice.periodDays);
-
-      await tx.user.update({
-        where: { id: invoice.userId },
-        data: {
-          subscriptionStatus: "ACTIVE",
-          currentPlanId: invoice.planId,
-          subscriptionExpiresAt: expiresAt
-        }
-      });
-    });
-
-    return NextResponse.json({ success: true }, { status: 200 });
+      return NextResponse.json({ success: true }, { status: 200 });
+    }
 
   } catch (error) {
     console.error("Admin Payments API error:", error);

@@ -7,6 +7,9 @@ import { z } from "zod";
 const settingsSchema = z.object({
   heroTitle: z.string().min(1),
   heroSubtitle: z.string().min(1),
+  bankName: z.string().optional(),
+  bankAccountNo: z.string().optional(),
+  bankAccountName: z.string().optional(),
 });
 
 export async function PUT(req: Request) {
@@ -29,11 +32,17 @@ export async function PUT(req: Request) {
       update: {
         heroTitle: parsedData.data.heroTitle,
         heroSubtitle: parsedData.data.heroSubtitle,
+        bankName: parsedData.data.bankName,
+        bankAccountNo: parsedData.data.bankAccountNo,
+        bankAccountName: parsedData.data.bankAccountName,
       },
       create: {
         id: "singleton",
         heroTitle: parsedData.data.heroTitle,
         heroSubtitle: parsedData.data.heroSubtitle,
+        bankName: parsedData.data.bankName,
+        bankAccountNo: parsedData.data.bankAccountNo,
+        bankAccountName: parsedData.data.bankAccountName,
       }
     });
 
