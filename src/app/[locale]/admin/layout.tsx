@@ -52,6 +52,12 @@ export default async function AdminLayout({
           >
             Persetujuan Tagihan
           </Link>
+          <Link 
+            href={`/${locale}/admin/settings`}
+            className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-white"
+          >
+            Pengaturan Sistem
+          </Link>
         </nav>
         <div className="p-4 border-t border-zinc-800 bg-zinc-950">
           <div className="flex items-center space-x-3 mb-4">

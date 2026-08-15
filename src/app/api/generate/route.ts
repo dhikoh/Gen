@@ -37,6 +37,22 @@ export async function POST(req: Request) {
     // Simulate LLM Processing Delay (2 seconds)
     await new Promise(resolve => setTimeout(resolve, 2000));
 
+    // Get user and check subscription
+    const dbUser = await prisma.user.findUnique({ where: { id: session.user.id } });
+    if (!dbUser) {
+      return NextResponse.json({ error: "User tidak ditemukan." }, { status: 404 });
+    }
+
+    if (dbUser.role !== "SUPERADMIN") {
+      const now = new Date();
+      if (dbUser.subscriptionStatus !== "ACTIVE" || (dbUser.subscriptionExpiresAt && dbUser.subscriptionExpiresAt < now)) {
+        if (dbUser.subscriptionStatus === "ACTIVE" && dbUser.subscriptionExpiresAt && dbUser.subscriptionExpiresAt < now) {
+          await prisma.user.update({ where: { id: dbUser.id }, data: { subscriptionStatus: "EXPIRED" } });
+        }
+        return NextResponse.json({ error: "Langganan Anda tidak aktif. Silakan beli paket PRO di menu Tagihan." }, { status: 403 });
+      }
+    }
+
     // Get user's primary channel
     const channel = await prisma.profileChannel.findFirst({
       where: { userId: session.user.id }
