@@ -1,0 +1,80 @@
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/authOptions";
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import LogoutButton from "@/components/auth/LogoutButton";
+
+export default async function AdminLayout({
+  children,
+  params
+}: {
+  children: React.ReactNode;
+  params: Promise<{ locale: string }>;
+}) {
+  const session = await getServerSession(authOptions);
+  
+  if (!session || session.user.role !== "SUPERADMIN") {
+    redirect("/id/dashboard");
+  }
+
+  const { locale } = await params;
+
+  return (
+    <div className="flex h-screen bg-zinc-50 dark:bg-zinc-950">
+      {/* Sidebar */}
+      <aside className="w-64 bg-zinc-900 border-r border-zinc-800 flex flex-col text-white">
+        <div className="h-16 flex items-center px-6 border-b border-zinc-800">
+          <Link href={`/${locale}/admin`} className="font-bold text-lg text-purple-400">
+            Admin Gen
+          </Link>
+        </div>
+        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+          <Link 
+            href={`/${locale}/dashboard`}
+            className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-white"
+          >
+            &larr; Kembali ke User App
+          </Link>
+          <div className="pt-4 pb-2">
+            <p className="px-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+              Manajemen Sistem
+            </p>
+          </div>
+          <Link 
+            href={`/${locale}/admin`}
+            className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-white"
+          >
+            Pengguna
+          </Link>
+          <Link 
+            href={`/${locale}/admin/payments`}
+            className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-white"
+          >
+            Persetujuan Tagihan
+          </Link>
+        </nav>
+        <div className="p-4 border-t border-zinc-800 bg-zinc-950">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-8 h-8 rounded-full bg-purple-900 flex items-center justify-center text-purple-300 font-bold">
+              A
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-white truncate">
+                {session.user.name}
+              </p>
+              <p className="text-xs text-purple-400 truncate">
+                {session.user.role}
+              </p>
+            </div>
+          </div>
+          <LogoutButton />
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 overflow-y-auto focus:outline-none">
+        {children}
+      </main>
+    </div>
+  );
+}

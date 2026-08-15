@@ -1,0 +1,220 @@
+import { prisma } from "@/lib/db";
+import Link from "next/link";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/authOptions";
+
+export const metadata = {
+  title: "Prompt Gen - Solusi AI Kreator Konten",
+  description: "Buat prompt berkualitas tinggi untuk Video TikTok, Reels, dan Gambar AI dalam hitungan detik.",
+};
+
+export default async function LandingPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  const session = await getServerSession(authOptions);
+
+  // Fetch settings and plans concurrently
+  const [settings, plans] = await Promise.all([
+    prisma.appSettings.findUnique({ where: { id: "singleton" } }),
+    prisma.plan.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" } })
+  ]);
+
+  const heroTitle = settings?.heroTitle || "Maksimalkan Kreativitas Konten Anda dengan AI";
+  const heroSubtitle = settings?.heroSubtitle || "Hasilkan Master Prompt untuk Video TikTok, Instagram Reels, dan Generator Gambar AI dalam hitungan detik.";
+
+  return (
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 font-sans selection:bg-blue-200 dark:selection:bg-blue-900/50">
+      {/* Navigation Bar */}
+      <nav className="sticky top-0 z-50 w-full border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <span className="font-extrabold text-xl tracking-tight text-zinc-900 dark:text-white">Prompt Gen</span>
+            </div>
+            <div className="flex items-center space-x-4">
+              {session ? (
+                <Link 
+                  href={`/${locale}/dashboard`} 
+                  className="text-sm font-medium text-zinc-700 dark:text-zinc-200 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  Ke Dasbor &rarr;
+                </Link>
+              ) : (
+                <>
+                  <Link href={`/${locale}/auth`} className="text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-colors">
+                    Masuk
+                  </Link>
+                  <Link href={`/${locale}/auth`} className="text-sm font-medium bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 px-4 py-2 rounded-full hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors shadow-sm">
+                    Daftar Gratis
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <section className="relative pt-24 pb-32 overflow-hidden">
+        <div className="absolute inset-0 bg-blue-50/50 dark:bg-blue-900/10 -skew-y-3 transform origin-top-left -z-10"></div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h1 className="text-4xl md:text-6xl font-extrabold text-zinc-900 dark:text-white tracking-tight max-w-4xl mx-auto leading-tight">
+            {heroTitle}
+          </h1>
+          <p className="mt-6 text-lg md:text-xl text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto leading-relaxed">
+            {heroSubtitle}
+          </p>
+          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link 
+              href={session ? `/${locale}/dashboard` : `/${locale}/auth`}
+              className="w-full sm:w-auto px-8 py-3.5 text-base font-bold text-white bg-blue-600 rounded-full shadow-lg shadow-blue-600/30 hover:bg-blue-700 hover:shadow-blue-600/40 focus:ring-4 focus:ring-blue-500/30 transition-all active:scale-95"
+            >
+              Mulai Sekarang — Gratis
+            </Link>
+            <a 
+              href="#pricing"
+              className="w-full sm:w-auto px-8 py-3.5 text-base font-medium text-zinc-700 dark:text-zinc-200 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-full hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-all active:scale-95"
+            >
+              Lihat Harga
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-24 bg-white dark:bg-zinc-950">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-sm font-bold text-blue-600 tracking-wide uppercase">Fitur Unggulan</h2>
+            <p className="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-zinc-900 dark:text-white sm:text-4xl">
+              Didesain untuk Kreator Profesional
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+            {/* Feature 1 */}
+            <div className="bg-zinc-50 dark:bg-zinc-900/50 p-8 rounded-2xl border border-zinc-100 dark:border-zinc-800/80 text-left">
+              <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-6">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-3">Struktur Video Akurat</h3>
+              <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed text-sm">
+                Sistem memecah ide Anda menjadi segmen visual, panduan audio, dan caption teks per scene lengkap dengan estimasi durasi.
+              </p>
+            </div>
+            {/* Feature 2 */}
+            <div className="bg-zinc-50 dark:bg-zinc-900/50 p-8 rounded-2xl border border-zinc-100 dark:border-zinc-800/80 text-left">
+              <div className="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-6">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-3">Generator Gambar</h3>
+              <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed text-sm">
+                Hasilkan prompt spesifik bergaya sinematik, fotorealistik, atau ilustratif untuk di-render di Midjourney maupun DALL-E.
+              </p>
+            </div>
+            {/* Feature 3 */}
+            <div className="bg-zinc-50 dark:bg-zinc-900/50 p-8 rounded-2xl border border-zinc-100 dark:border-zinc-800/80 text-left">
+              <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400 flex items-center justify-center mb-6">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-3">Manajemen Arsip</h3>
+              <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed text-sm">
+                Semua generasi prompt tersimpan rapi dalam *draft*. Anda dapat mengatur dan membuka kembali ide konten kapan saja dibutuhkan.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section id="pricing" className="py-24 bg-zinc-50 dark:bg-zinc-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-sm font-bold text-blue-600 tracking-wide uppercase">Paket Langganan</h2>
+            <p className="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-zinc-900 dark:text-white sm:text-4xl">
+              Harga Sederhana & Transparan
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {plans.map((plan) => (
+              <div key={plan.id} className="bg-white dark:bg-zinc-950 rounded-3xl shadow-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden flex flex-col hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative group">
+                {plan.code === "PRO" && (
+                  <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-blue-500 to-blue-700"></div>
+                )}
+                <div className="p-8 flex-1">
+                  <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">{plan.name}</h3>
+                  <div className="flex items-baseline mb-6">
+                    <span className="text-4xl font-extrabold text-zinc-900 dark:text-white tracking-tight">
+                      Rp {plan.priceMonthly.toLocaleString('id-ID')}
+                    </span>
+                    <span className="text-zinc-500 dark:text-zinc-400 ml-1 font-medium">/bln</span>
+                  </div>
+                  
+                  <ul className="space-y-4 mb-8 text-sm text-zinc-600 dark:text-zinc-300">
+                    <li className="flex items-start">
+                      <svg className="flex-shrink-0 h-5 w-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <span className="ml-3 font-medium">Manajemen hingga {plan.maxChannels} Channel</span>
+                    </li>
+                    <li className="flex items-start">
+                      <svg className="flex-shrink-0 h-5 w-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <span className="ml-3 font-medium">Akses Engine Prompt Gen AI</span>
+                    </li>
+                    {(plan.features as any)?.imagePromptStudio && (
+                      <li className="flex items-start">
+                        <svg className="flex-shrink-0 h-5 w-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        <span className="ml-3 font-medium">Studio Gambar Midjourney/DALL-E</span>
+                      </li>
+                    )}
+                  </ul>
+                </div>
+                <div className="p-8 pt-0 mt-auto">
+                  <Link
+                    href={`/${locale}/auth`}
+                    className={`block w-full py-3.5 px-4 font-bold text-center rounded-xl transition-all ${
+                      plan.code === "PRO"
+                        ? "bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 shadow-lg shadow-zinc-900/20"
+                        : "bg-zinc-100 hover:bg-zinc-200 text-zinc-900 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-white"
+                    }`}
+                  >
+                    Mulai Berlangganan
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-white dark:bg-zinc-950 py-12 border-t border-zinc-200 dark:border-zinc-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center">
+          <div className="flex items-center space-x-2 mb-4 md:mb-0">
+            <div className="w-6 h-6 rounded bg-zinc-900 dark:bg-white flex items-center justify-center">
+              <span className="text-white dark:text-zinc-900 font-bold text-[10px]">PG</span>
+            </div>
+            <span className="font-semibold text-zinc-900 dark:text-white">Prompt Gen</span>
+          </div>
+          <p className="text-zinc-500 dark:text-zinc-400 text-sm">
+            &copy; {new Date().getFullYear()} Prompt Gen. Hak cipta dilindungi undang-undang.
+          </p>
+        </div>
+      </footer>
+    </div>
+  );
+}

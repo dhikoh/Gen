@@ -1,0 +1,113 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
+import bcrypt from "bcrypt";
+import { z } from "zod";
+import { applyRateLimit } from "@/lib/rateLimit";
+
+const registerSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  username: z.string().min(3, "Username must be at least 3 characters").regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores"),
+  email: z.string().email("Invalid email address"),
+  phoneNumber: z.string().min(8, "Phone number is too short").optional().or(z.literal("")),
+  dateOfBirth: z.string().optional().or(z.literal("")),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  // Step 2 Data
+  channelName: z.string().min(1, "Channel name is required"),
+  niche: z.string().optional(),
+  description: z.string().optional(),
+  cta1: z.string().optional(),
+  cta2: z.string().optional(),
+  visualAesthetic: z.string().optional(),
+  audioBGM: z.boolean().default(true),
+  audioSFX: z.boolean().default(true),
+  audioVO: z.boolean().default(true),
+  socialLinks: z.any().optional(), // For simplicity, keep it any/json here, should be strictly validated in production
+});
+
+export async function POST(req: Request) {
+  try {
+    const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
+    const isAllowed = await applyRateLimit(`register_${ip}`, 5, 60 * 60); // 5 registers per hour per IP
+    if (!isAllowed) {
+      return NextResponse.json({ error: "Terlalu banyak permintaan registrasi. Coba lagi nanti." }, { status: 429 });
+    }
+
+    const body = await req.json();
+    const parsedData = registerSchema.safeParse(body);
+
+    if (!parsedData.success) {
+      return NextResponse.json({ error: parsedData.error.issues[0].message }, { status: 400 });
+    }
+
+    const {
+      name, username, email, phoneNumber, dateOfBirth, password,
+      channelName, niche, description, cta1, cta2, visualAesthetic,
+      audioBGM, audioSFX, audioVO, socialLinks
+    } = parsedData.data;
+
+    // Case-insensitive check
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: { equals: email, mode: "insensitive" } },
+          { username: { equals: username, mode: "insensitive" } },
+          ...(phoneNumber ? [{ phoneNumber }] : [])
+        ]
+      }
+    });
+
+    if (existingUser) {
+      if (existingUser.email.toLowerCase() === email.toLowerCase()) {
+        return NextResponse.json({ error: "Email sudah digunakan" }, { status: 409 });
+      }
+      if (existingUser.username.toLowerCase() === username.toLowerCase()) {
+        return NextResponse.json({ error: "Username sudah digunakan" }, { status: 409 });
+      }
+      return NextResponse.json({ error: "Nomor HP sudah digunakan" }, { status: 409 });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    // Atomic transaction
+    const newUser = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: {
+          name,
+          username,
+          email,
+          phoneNumber: phoneNumber || null,
+          passwordHash,
+          dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+          role: "USER",
+          subscriptionStatus: "INACTIVE",
+          currentPlanId: null,
+        }
+      });
+
+      await tx.profileChannel.create({
+        data: {
+          userId: user.id,
+          channelName,
+          niche,
+          description,
+          cta1,
+          cta2,
+          visualAesthetic,
+          audioBGM,
+          audioSFX,
+          audioVO,
+          socialLinks: socialLinks || {},
+          isLocked: false // Initially not locked, but depends on limits checking
+        }
+      });
+
+      return user;
+    });
+
+    return NextResponse.json({ success: true, message: "Akun berhasil dibuat. Silakan pilih paket langganan." }, { status: 201 });
+
+  } catch (error) {
+    console.error("Register error:", error);
+    return NextResponse.json({ error: "Terjadi kesalahan pada server" }, { status: 500 });
+  }
+}

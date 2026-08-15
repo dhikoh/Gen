@@ -1,0 +1,177 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPERADMIN
+  USER
+}
+
+enum PlanCode {
+  STANDARD
+  PRO
+  ULTRA
+}
+
+enum SubscriptionStatus {
+  INACTIVE
+  ACTIVE
+  EXPIRED
+}
+
+enum PaymentMethod {
+  MANUAL_TRANSFER
+  AUTOMATIC_GATEWAY
+}
+
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PAID
+  FAILED
+}
+
+enum DraftType {
+  VIDEO
+  IMAGE
+}
+
+model User {
+  id                    String              @id @default(cuid())
+  name                  String
+  username              String              @unique
+  email                 String              @unique
+  phoneNumber           String?
+  passwordHash          String
+  dateOfBirth           DateTime?
+  role                  Role                @default(USER)
+
+  currentPlanId         String?
+  currentPlan           Plan?               @relation(fields: [currentPlanId], references: [id])
+  subscriptionStatus    SubscriptionStatus  @default(INACTIVE)
+  subscriptionExpiresAt DateTime?
+
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  channels              ProfileChannel[]
+  invoices              Invoice[]
+  drafts                Draft[]
+  resetTokens           PasswordResetToken[]
+}
+
+model Plan {
+  id           String   @id @default(cuid())
+  code         PlanCode @unique
+  name         String
+  priceMonthly Int      // dalam Rupiah utuh, tanpa desimal
+  currency     String   @default("IDR")
+  maxChannels  Int
+  features     Json?    // contoh: { "imagePromptStudio": true, "htmlBlogExport": true }
+  isActive     Boolean  @default(true)
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  users        User[]
+  invoices     Invoice[]
+}
+
+model ProfileChannel {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channelName     String
+  niche           String?
+  description     String?
+  cta1            String?
+  cta2            String?
+  visualAesthetic String?
+  audioBGM        Boolean  @default(true)
+  audioSFX        Boolean  @default(true)
+  audioVO         Boolean  @default(true)
+  socialLinks     Json?
+  usageCount      Int      @default(0) // statistik saja, TIDAK memengaruhi akses/kredit
+  lastUsedAt      DateTime @default(now())
+  isLocked        Boolean  @default(false)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  products        Product[]
+  drafts          Draft[]
+}
+
+model Product {
+  id          String         @id @default(cuid())
+  channelId   String
+  channel     ProfileChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  price       Int
+  link        String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+model Invoice {
+  id           String        @id @default(cuid())
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId       String
+  plan         Plan          @relation(fields: [planId], references: [id])
+  amount       Int
+  currency     String        @default("IDR")
+  method       PaymentMethod @default(MANUAL_TRANSFER)
+  status       PaymentStatus @default(PENDING)
+  proofUrl     String?       // khusus MANUAL_TRANSFER
+  externalRef  String?       // cadangan untuk gateway otomatis di masa depan
+  periodDays   Int           @default(30)
+  reviewedById String?
+  reviewedAt   DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Draft {
+  id                   String    @id @default(cuid())
+  userId               String
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channelId            String?
+  channel              ProfileChannel? @relation(fields: [channelId], references: [id], onDelete: SetNull)
+  type                 DraftType
+  title                String?
+  rawJson              String    @db.Text
+  parsedData           Json?
+  targetDurationSec    Int?
+  wordCount            Int?
+  estimatedDurationSec Int?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model AppSettings {
+  id              String   @id @default("singleton")
+  bankName        String?
+  bankAccountNo   String?
+  bankAccountName String?
+  heroTitle       String?
+  heroSubtitle    String?
+  updatedAt       DateTime @updatedAt
+}
