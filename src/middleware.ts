@@ -20,6 +20,11 @@ export default async function middleware(req: NextRequest) {
       const signInUrl = new URL(`/${validLocale}/auth`, req.url);
       return NextResponse.redirect(signInUrl);
     }
+    // Opsi A: Blokir Superadmin dari dashboard user
+    if (token.role === 'SUPERADMIN') {
+      const adminUrl = new URL(`/${validLocale}/admin`, req.url);
+      return NextResponse.redirect(adminUrl);
+    }
   }
 
   // Protect /admin
