@@ -48,7 +48,7 @@ export async function POST(req: Request) {
         }
       });
 
-      // TODO: Send real email with token
+      // Send real email with token
       const resetUrl = `${process.env.NEXTAUTH_URL}/id/auth/reset-password?token=${token}`;
       
       await sendEmail({

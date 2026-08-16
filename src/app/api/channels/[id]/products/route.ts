@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
+import { applyRateLimit } from "@/lib/rateLimit";
 
 const productSchema = z.object({
   name: z.string().min(1, "Nama produk harus diisi"),
@@ -38,6 +39,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
+    const isAllowed = await applyRateLimit(`create_product_${session.user.id}_${ip}`, 15, 60 * 15); // 15 products per 15 minutes
+    if (!isAllowed) {
+      return NextResponse.json({ error: "Terlalu banyak permintaan pembuatan produk. Coba lagi nanti." }, { status: 429 });
+    }
 
     const channel = await prisma.profileChannel.findUnique({ where: { id } });
     if (!channel || channel.userId !== session.user.id) {

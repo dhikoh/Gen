@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
 import { enforceChannelLimits } from "@/lib/channelLockLogic";
+import { applyRateLimit } from "@/lib/rateLimit";
 
 const channelSchema = z.object({
   channelName: z.string().min(1, "Nama channel harus diisi"),
@@ -43,6 +44,12 @@ export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
+    const isAllowed = await applyRateLimit(`create_channel_${session.user.id}_${ip}`, 10, 60 * 15); // 10 per 15 minutes
+    if (!isAllowed) {
+      return NextResponse.json({ error: "Terlalu banyak permintaan pembuatan channel. Coba lagi nanti." }, { status: 429 });
     }
 
     const body = await req.json();

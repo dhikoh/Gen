@@ -67,13 +67,12 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = user.role;
-        // set token expiry based on rememberMe
+        // set token expiry based on rememberMe explicitly as requested
+        const now = Math.floor(Date.now() / 1000);
         if (user.rememberMe) {
-           // Default JWT exp is 30 days, we don't strictly modify here unless needed.
-           // NextAuth maxAge configures the cookie duration. We can set it in cookies config, 
-           // but NextAuth doesn't allow dynamic maxAge per session easily.
-           // A common workaround is passing rememberMe in token and updating session.
-           token.rememberMe = true;
+          token.exp = now + (30 * 24 * 60 * 60); // 30 days
+        } else {
+          token.exp = now + (24 * 60 * 60); // 1 day
         }
       }
       return token;

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
+import { applyRateLimit } from "@/lib/rateLimit";
 
 const invoiceSchema = z.object({
   planId: z.string().min(1, "Plan ID harus diisi"),
@@ -14,6 +15,12 @@ export async function POST(req: Request) {
     
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
+    const isAllowed = await applyRateLimit(`create_invoice_${session.user.id}_${ip}`, 5, 60 * 15); // 5 request / 15 menit
+    if (!isAllowed) {
+      return NextResponse.json({ error: "Terlalu banyak permintaan pembuatan tagihan. Coba lagi nanti." }, { status: 429 });
     }
 
     const body = await req.json();
