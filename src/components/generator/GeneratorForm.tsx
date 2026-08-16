@@ -15,6 +15,11 @@ export default function GeneratorForm({ channels }: { channels: any[] }) {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<string>("");
 
+  const [step, setStep] = useState<1 | 2>(1);
+  const [generatedPrompt, setGeneratedPrompt] = useState<string>("");
+  const [aiResultJson, setAiResultJson] = useState<string>("");
+  const [saving, setSaving] = useState(false);
+
   // Video specific fields
   const [videoConfig, setVideoConfig] = useState({
     pov: "",
@@ -99,13 +104,52 @@ export default function GeneratorForm({ channels }: { channels: any[] }) {
       if (!res.ok) {
         setError(data.error || t('generateError'));
       } else {
-        setResult(JSON.stringify(data.data, null, 2));
-        router.refresh();
+        const fullText = `${data.data.system_instruction}\n\n${data.data.master_prompt}`;
+        setGeneratedPrompt(fullText);
+        setStep(2);
       }
     } catch (err) {
       setError(t('networkError'));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveDraft = async () => {
+    if (!aiResultJson.trim()) {
+      setError("Silakan tempelkan hasil JSON dari AI terlebih dahulu.");
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      const payload = {
+        channelId,
+        type,
+        topic,
+        rawJson: aiResultJson
+      };
+
+      const res = await fetch("/api/drafts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Gagal menyimpan draft.");
+      } else {
+        setResult("Tersimpan di Drafts!");
+        router.refresh();
+      }
+    } catch (err) {
+      setError("Gagal menghubungi server.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -124,7 +168,7 @@ export default function GeneratorForm({ channels }: { channels: any[] }) {
         )}
 
         <form onSubmit={handleGenerate}>
-          <fieldset disabled={loading} className="space-y-6">
+          <fieldset disabled={loading || step === 2} className="space-y-6">
             
             {/* General Settings */}
             <div className="space-y-4">
@@ -343,19 +387,35 @@ export default function GeneratorForm({ channels }: { channels: any[] }) {
               </div>
             )}
 
-            <button
-              type="submit"
-              className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-all focus:ring-4 focus:ring-blue-500/20 disabled:opacity-50 disabled:cursor-wait flex items-center justify-center mt-6"
-            >
-              {loading ? (
-                <>
-                  <span className="inline-block animate-spin mr-2 border-2 border-white/20 border-t-white rounded-full w-5 h-5" />
-                  {t('processing')}
-                </>
-              ) : (
-                t('generateBtn')
-              )}
-            </button>
+            {step === 1 && (
+              <button
+                type="submit"
+                className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-all focus:ring-4 focus:ring-blue-500/20 disabled:opacity-50 disabled:cursor-wait flex items-center justify-center mt-6"
+              >
+                {loading ? (
+                  <>
+                    <span className="inline-block animate-spin mr-2 border-2 border-white/20 border-t-white rounded-full w-5 h-5" />
+                    {t('processing')}
+                  </>
+                ) : (
+                  t('generateBtn')
+                )}
+              </button>
+            )}
+            
+            {step === 2 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setStep(1);
+                  setGeneratedPrompt("");
+                  setAiResultJson("");
+                }}
+                className="w-full py-3 px-4 bg-zinc-200 hover:bg-zinc-300 text-zinc-800 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700 font-medium rounded-lg shadow-sm transition-all mt-6"
+              >
+                Kembali Edit Konfigurasi
+              </button>
+            )}
           </fieldset>
         </form>
       </div>
@@ -363,46 +423,74 @@ export default function GeneratorForm({ channels }: { channels: any[] }) {
       {/* Kolom Hasil */}
       <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-6 flex flex-col h-[85vh]">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-zinc-900 dark:text-white">{t('resultTitle')}</h2>
+          <h2 className="text-xl font-bold text-zinc-900 dark:text-white">{step === 1 ? t('resultTitle') : "Hasil & Simpan Draft"}</h2>
           {result && (
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-              {t('savedInDrafts')}
+              {result}
             </span>
           )}
         </div>
         
-        <div className="flex-1 relative border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden bg-zinc-50 dark:bg-zinc-950">
+        <div className="flex-1 flex flex-col space-y-4">
           {loading ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-zinc-500">
+            <div className="flex-1 flex flex-col items-center justify-center text-zinc-500 border border-zinc-200 dark:border-zinc-800 rounded-lg bg-zinc-50 dark:bg-zinc-950">
               <div className="w-10 h-10 border-4 border-zinc-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
               <p className="animate-pulse">{t('loadingMsg')}</p>
             </div>
-          ) : result ? (
-            <textarea
-              readOnly
-              value={result}
-              className="w-full h-full p-4 bg-transparent text-sm font-mono text-zinc-800 dark:text-zinc-200 outline-none resize-none custom-scrollbar"
-            />
+          ) : step === 1 ? (
+             <div className="flex-1 flex items-center justify-center text-zinc-400 dark:text-zinc-600 text-sm p-8 text-center border border-zinc-200 dark:border-zinc-800 rounded-lg bg-zinc-50 dark:bg-zinc-950">
+               {t('emptyResult')}
+             </div>
           ) : (
-            <div className="absolute inset-0 flex items-center justify-center text-zinc-400 dark:text-zinc-600 text-sm p-8 text-center">
-              {t('emptyResult')}
-            </div>
+            <>
+              {/* Step 2: Show Prompt, ask for JSON */}
+              <div className="flex flex-col h-1/2 border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden bg-zinc-50 dark:bg-zinc-950">
+                <div className="p-3 bg-zinc-100 dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center">
+                  <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">1. Copy Prompt Ini</span>
+                  <button 
+                    onClick={() => navigator.clipboard.writeText(generatedPrompt)}
+                    className="px-3 py-1 text-xs font-medium text-zinc-700 bg-white border border-zinc-300 rounded hover:bg-zinc-50 dark:bg-zinc-700 dark:text-zinc-300 dark:border-zinc-600 dark:hover:bg-zinc-600 transition-colors"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <textarea
+                  readOnly
+                  value={generatedPrompt}
+                  className="w-full h-full p-4 bg-transparent text-sm font-mono text-zinc-800 dark:text-zinc-200 outline-none resize-none custom-scrollbar"
+                />
+              </div>
+
+              <div className="flex flex-col h-1/2 border border-blue-200 dark:border-blue-900 rounded-lg overflow-hidden bg-blue-50/30 dark:bg-blue-900/10">
+                <div className="p-3 bg-blue-100 dark:bg-blue-900 border-b border-blue-200 dark:border-blue-800">
+                  <span className="text-xs font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wider">2. Paste Output JSON di Sini</span>
+                </div>
+                <textarea
+                  value={aiResultJson}
+                  onChange={(e) => setAiResultJson(e.target.value)}
+                  placeholder={`Tempel hasil balasan dari ChatGPT/Claude di sini...\nPastikan Anda menyalin SELURUH balasan JSON-nya.`}
+                  className="w-full h-full p-4 bg-transparent text-sm font-mono text-zinc-800 dark:text-zinc-200 outline-none resize-none custom-scrollbar"
+                />
+              </div>
+            </>
           )}
         </div>
 
-        {result && (
-          <div className="mt-4 flex justify-end space-x-3">
-            <button 
-              onClick={() => navigator.clipboard.writeText(result)}
-              className="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-md hover:bg-zinc-50 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 dark:hover:bg-zinc-700 transition-colors"
-            >
-              {t('copyJson')}
-            </button>
+        {step === 2 && (
+          <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-800 flex justify-end space-x-3">
             <button 
               onClick={() => router.push(`/${document.documentElement.lang || 'id'}/dashboard/drafts`)}
-              className="px-4 py-2 text-sm font-medium text-white bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-md transition-colors"
+              className="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-md hover:bg-zinc-50 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 dark:hover:bg-zinc-700 transition-colors"
             >
-              {t('viewDrafts')}
+              Lihat Drafts
+            </button>
+            <button 
+              onClick={handleSaveDraft}
+              disabled={saving}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-md transition-colors flex items-center"
+            >
+              {saving ? <span className="inline-block animate-spin mr-2 border-2 border-white/20 border-t-white rounded-full w-4 h-4" /> : null}
+              Simpan Draft (Hitung Durasi)
             </button>
           </div>
         )}

@@ -36,7 +36,10 @@ export async function POST(req: Request) {
 
     const { type, channelId, topic, additionalContext, videoConfig, imageConfig } = parsedData.data;
 
-    const dbUser = await prisma.user.findUnique({ where: { id: session.user.id } });
+    const dbUser = await prisma.user.findUnique({ 
+      where: { id: session.user.id },
+      include: { currentPlan: true }
+    });
     if (!dbUser) return NextResponse.json({ error: "User tidak ditemukan." }, { status: 404 });
 
     if (dbUser.role !== "SUPERADMIN") {
@@ -46,6 +49,14 @@ export async function POST(req: Request) {
           await prisma.user.update({ where: { id: dbUser.id }, data: { subscriptionStatus: "EXPIRED" } });
         }
         return NextResponse.json({ error: "Langganan Anda tidak aktif. Silakan beli paket PRO di menu Tagihan." }, { status: 403 });
+      }
+
+      // Validasi fitur Image Prompt Studio (Bagian 5.5.B)
+      if (type === "IMAGE") {
+        const features = dbUser.currentPlan?.features as any;
+        if (!features || features.imagePromptStudio !== true) {
+          return NextResponse.json({ error: "Fitur Image Prompt Studio tidak tersedia di paket Anda. Silakan upgrade paket." }, { status: 403 });
+        }
       }
     }
 
@@ -78,6 +89,17 @@ Gaya Visual: ${channel.visualAesthetic || "-"}
       });
     }
 
+    // Fetch previous titles to exclude
+    const previousDrafts = await prisma.draft.findMany({
+      where: { channelId, type },
+      select: { title: true }
+    });
+    const previousTitles = previousDrafts.map(d => d.title).filter(Boolean);
+    let titleContext = "";
+    if (previousTitles.length > 0) {
+      titleContext = `\n[JUDUL YANG SUDAH PERNAH DIPAKAI (HINDARI)]\n${previousTitles.join(", ")}\n`;
+    }
+
     let masterPrompt = "";
     let systemInstruction = "";
 
@@ -100,7 +122,7 @@ Konteks Tambahan: ${additionalContext || "-"}
 
 [PROFIL CHANNEL KREATOR]
 ${channelContext}
-${productContext}
+${productContext}${titleContext}
 
 [PARAMETER VIDEO]
 Target Platform: ${videoConfig.targetPlatform}
@@ -114,8 +136,10 @@ Hook Style: ${videoConfig.hookStyle} ${videoConfig.includeHook ? "(WAJIB ada di 
 Ending Style: ${videoConfig.endingStyle} ${videoConfig.includeCTA ? "(Sertakan Call to Action yang kuat)" : ""}
 
 [INSTRUKSI OUTPUT]
+Berikan 10 opsi judul menarik, lalu pilih satu sebagai judul_konten utama.
 Berikan output HANYA dalam format JSON yang valid tanpa markdown block (\`\`\`). Struktur JSON wajib mengikuti skema berikut:
 {
+  "opsi_judul": ["string", "string", "..."],
   ${jsonFields.join(",\n  ")}
 }`;
 
@@ -128,7 +152,7 @@ Topik: "${topic}"
 Konteks Tambahan: ${additionalContext || "-"}
 
 [PROFIL KREATOR]
-${channelContext}
+${channelContext}${titleContext}
 
 [PARAMETER VISUAL GAMBAR]
 Camera & Lens: ${imageConfig.cameraType}
@@ -160,31 +184,9 @@ Berikan output HANYA dalam format JSON yang valid. Struktur JSON wajib mengikuti
       system_instruction: systemInstruction,
     };
 
-    const draft = await prisma.$transaction(async (tx) => {
-      await tx.profileChannel.update({
-        where: { id: channel.id },
-        data: { usageCount: { increment: 1 }, lastUsedAt: new Date() }
-      });
-
-      return tx.draft.create({
-        data: {
-          userId: session.user.id,
-          channelId: channel.id,
-          type: type,
-          title: `Prompt ${type}: ${topic.substring(0, 30)}`,
-          rawJson: JSON.stringify(outputData),
-          parsedData: outputData as any,
-          targetDurationSec: type === "VIDEO" ? (videoConfig?.duration === "Short (< 30s)" ? 30 : 60) : 0,
-          wordCount: masterPrompt.split(" ").length,
-          estimatedDurationSec: 0
-        }
-      });
-    });
-
     return NextResponse.json({ 
       success: true, 
-      data: outputData,
-      draftId: draft.id
+      data: outputData
     }, { status: 200 });
 
   } catch (error) {

@@ -46,19 +46,6 @@ export async function activateSubscription(invoiceId: string, reviewedById: stri
       }
     });
 
-    // Affiliate Commission Logic
-    if (user.referredById && invoice.amount > 0) {
-      const commissionAmount = Math.floor(invoice.amount * 0.20); // 20% commission
-      await tx.commission.create({
-        data: {
-          affiliateId: user.referredById,
-          invoiceId: invoice.id,
-          amount: commissionAmount,
-          status: "PENDING"
-        }
-      });
-    }
-
     return invoice;
   });
 }

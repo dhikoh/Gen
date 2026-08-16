@@ -42,12 +42,7 @@ enum DraftType {
   IMAGE
 }
 
-enum CommissionStatus {
-  PENDING
-  APPROVED
-  PAID
-  REJECTED
-}
+
 
 model User {
   id                    String              @id @default(cuid())
@@ -67,16 +62,10 @@ model User {
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
 
-  referralCode          String?             @unique
-  referredById          String?
-  referredBy            User?               @relation("UserReferrals", fields: [referredById], references: [id])
-  referrals             User[]              @relation("UserReferrals")
-
   channels              ProfileChannel[]
   invoices              Invoice[]
   drafts                Draft[]
   resetTokens           PasswordResetToken[]
-  commissions           Commission[]        @relation("AffiliateCommissions")
 }
 
 model Plan {
@@ -190,13 +179,3 @@ model AppSettings {
   updatedAt       DateTime @updatedAt
 }
 
-model Commission {
-  id           String           @id @default(cuid())
-  affiliateId  String
-  affiliate    User             @relation("AffiliateCommissions", fields: [affiliateId], references: [id], onDelete: Cascade)
-  invoiceId    String           @unique
-  amount       Int
-  status       CommissionStatus @default(PENDING)
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
-}

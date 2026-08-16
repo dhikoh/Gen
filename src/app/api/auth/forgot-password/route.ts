@@ -61,7 +61,7 @@ export async function POST(req: Request) {
             <p>Klik tombol di bawah ini untuk mereset kata sandi Anda:</p>
             <a href="${resetUrl}" style="display: inline-block; padding: 10px 20px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 5px; margin: 16px 0;">Reset Password</a>
             <p>Jika Anda tidak meminta ini, abaikan saja email ini.</p>
-            <p>Tautan ini akan kedaluwarsa dalam 1 jam.</p>
+            <p>Tautan ini akan kedaluwarsa dalam 15 menit.</p>
           </div>
         `
       });    }

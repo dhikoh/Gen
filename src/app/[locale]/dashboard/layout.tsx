@@ -14,11 +14,11 @@ export default async function DashboardLayout({
 }) {
   const session = await getServerSession(authOptions);
   
-  if (!session) {
-    redirect("/id/auth");
-  }
-
   const { locale } = await params;
+
+  if (!session) {
+    redirect(`/${locale}/auth`);
+  }
   const t = await getTranslations({ locale, namespace: 'Dashboard' });
 
   return (
@@ -61,12 +61,7 @@ export default async function DashboardLayout({
           >
             {t('billing')}
           </Link>
-          <Link 
-            href={`/${locale}/dashboard/affiliate`}
-            className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
-          >
-            {t('affiliate')}
-          </Link>
+
           {session.user.role === "SUPERADMIN" && (
             <Link 
               href={`/${locale}/admin`}

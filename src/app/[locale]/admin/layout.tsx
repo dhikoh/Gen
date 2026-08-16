@@ -14,11 +14,11 @@ export default async function AdminLayout({
 }) {
   const session = await getServerSession(authOptions);
   
-  if (!session || session.user.role !== "SUPERADMIN") {
-    redirect("/id/dashboard");
-  }
-
   const { locale } = await params;
+
+  if (!session || session.user.role !== "SUPERADMIN") {
+    redirect(`/${locale}/dashboard`);
+  }
   const t = await getTranslations({ locale, namespace: 'Admin' });
 
   return (
@@ -60,12 +60,7 @@ export default async function AdminLayout({
           >
             {t('subscriptionPlans')}
           </Link>
-          <Link 
-            href={`/${locale}/admin/commissions`}
-            className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-white"
-          >
-            {t('affiliateCommission')}
-          </Link>
+
           <Link 
             href={`/${locale}/admin/settings`}
             className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-white"

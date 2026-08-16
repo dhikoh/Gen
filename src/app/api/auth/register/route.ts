@@ -21,8 +21,7 @@ const registerSchema = z.object({
   audioBGM: z.boolean().default(true),
   audioSFX: z.boolean().default(true),
   audioVO: z.boolean().default(true),
-  socialLinks: z.any().optional(), // For simplicity, keep it any/json here, should be strictly validated in production
-  referralCode: z.string().optional(),
+  socialLinks: z.any().optional(),
 });
 
 export async function POST(req: Request) {
@@ -43,7 +42,7 @@ export async function POST(req: Request) {
     const {
       name, username, email, phoneNumber, dateOfBirth, password,
       channelName, niche, description, cta1, cta2, visualAesthetic,
-      audioBGM, audioSFX, audioVO, socialLinks, referralCode
+      audioBGM, audioSFX, audioVO, socialLinks
     } = parsedData.data;
 
     // Case-insensitive check
@@ -67,19 +66,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Nomor HP sudah digunakan" }, { status: 409 });
     }
 
-    let referredById = null;
-    if (referralCode) {
-      const referrer = await prisma.user.findUnique({
-        where: { referralCode }
-      });
-      if (referrer) {
-        referredById = referrer.id;
-      }
-    }
-
     const passwordHash = await bcrypt.hash(password, 10);
-    // Generate a unique referral code for the new user
-    const newReferralCode = Math.random().toString(36).substring(2, 8).toUpperCase() + Math.random().toString(36).substring(2, 4).toUpperCase();
 
     // Atomic transaction
     const newUser = await prisma.$transaction(async (tx) => {
@@ -93,9 +80,7 @@ export async function POST(req: Request) {
           dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
           role: "USER",
           subscriptionStatus: "INACTIVE",
-          currentPlanId: null,
-          referralCode: newReferralCode,
-          referredById
+          currentPlanId: null
         }
       });
 
