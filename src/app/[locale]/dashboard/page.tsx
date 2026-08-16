@@ -53,6 +53,11 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
               {user.currentPlan?.name || t('notSubscribed')}
             </span>
           </div>
+          {user.subscriptionExpiresAt && (
+             <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
+               Aktif hingga: {user.subscriptionExpiresAt.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+             </p>
+          )}
           <Link href={`/${locale}/dashboard/billing`} className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium">
             <span dangerouslySetInnerHTML={{ __html: t('upgradePlan') }} />
           </Link>

@@ -11,6 +11,7 @@ const saveDraftSchema = z.object({
   rawJson: z.string(),
   speechRate: z.number().default(130),
   title: z.string().optional(),
+  targetDurationSec: z.number().optional(),
 });
 
 export async function POST(req: Request) {
@@ -27,7 +28,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Data tidak valid" }, { status: 400 });
     }
 
-    const { channelId, type, topic, rawJson, speechRate, title: manualTitle } = parsedInput.data;
+    const { channelId, type, topic, rawJson, speechRate, title: manualTitle, targetDurationSec } = parsedInput.data;
 
     // Parse the pasted JSON to validate it and extract data
     let parsedData: any;
@@ -87,7 +88,7 @@ export async function POST(req: Request) {
           parsedData: parsedData,
           wordCount: wordCount,
           estimatedDurationSec: estimatedDurationSec,
-          targetDurationSec: 0, // Not strictly needed anymore since we estimate from actual content
+          targetDurationSec: targetDurationSec || 0,
           isTemplate: false
         }
       });

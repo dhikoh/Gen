@@ -27,6 +27,7 @@ export default function GeneratorForm({ channels }: { channels: any[] }) {
     targetPlatform: "TikTok",
     aspectRatio: "9:16",
     duration: "Short (< 30s)",
+    targetDurationSec: 60,
     speechRate: "Sedang",
     hookStyle: "Pertanyaan Provokatif",
     endingStyle: "Pertanyaan Terbuka",
@@ -54,7 +55,7 @@ export default function GeneratorForm({ channels }: { channels: any[] }) {
 
   const handleVideoConfigChange = (e: any) => {
     const { name, value, type, checked } = e.target;
-    setVideoConfig(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    setVideoConfig(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : type === 'number' ? (Number(value) || 0) : value }));
   };
 
   const handleImageConfigChange = (e: any) => {
@@ -118,7 +119,7 @@ export default function GeneratorForm({ channels }: { channels: any[] }) {
 
   const handleSaveDraft = async () => {
     if (!aiResultJson.trim()) {
-      setError("Silakan tempelkan hasil JSON dari AI terlebih dahulu.");
+      setError(t('pasteJsonFirst'));
       return;
     }
 
@@ -135,7 +136,8 @@ export default function GeneratorForm({ channels }: { channels: any[] }) {
         type,
         topic,
         rawJson: aiResultJson,
-        speechRate: rateValue
+        speechRate: rateValue,
+        targetDurationSec: type === "VIDEO" ? Number(videoConfig.targetDurationSec) : undefined
       };
       if (manualTitle.trim()) {
         payload.title = manualTitle;
@@ -150,13 +152,13 @@ export default function GeneratorForm({ channels }: { channels: any[] }) {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "Gagal menyimpan draft.");
+        setError(data.error || t('saveDraftError'));
       } else {
-        setResult("Tersimpan di Drafts!");
+        setResult(t('savedInDraftsSuccess'));
         router.refresh();
       }
     } catch (err) {
-      setError("Gagal menghubungi server.");
+      setError(t('serverError'));
     } finally {
       setSaving(false);
     }
@@ -254,18 +256,20 @@ export default function GeneratorForm({ channels }: { channels: any[] }) {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('duration')}</label>
-                    <select name="duration" value={videoConfig.duration} onChange={handleVideoConfigChange} className="w-full px-3 py-1.5 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white">
-                      <option value="Short (< 30s)">Pendek ({"<"} 30s)</option>
-                      <option value="Medium (30s - 60s)">Sedang (30s - 60s)</option>
-                      <option value="Long (> 60s)">Panjang ({">"} 60s)</option>
+                    <select name="duration" value={videoConfig.duration} onChange={handleVideoConfigChange} className="w-full px-3 py-1.5 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white mb-2">
+                      <option value="Short (< 30s)">{t('durationShort')}</option>
+                      <option value="Medium (30s - 60s)">{t('durationMedium')}</option>
+                      <option value="Long (> 60s)">{t('durationLong')}</option>
                     </select>
+                    <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('targetDurationSec')}</label>
+                    <input type="number" name="targetDurationSec" value={videoConfig.targetDurationSec} onChange={handleVideoConfigChange} min="1" className="w-full px-3 py-1.5 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('speechRate')}</label>
                     <select name="speechRate" value={videoConfig.speechRate} onChange={handleVideoConfigChange} className="w-full px-3 py-1.5 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white">
-                      <option value="Lambat">Lambat (Jelas & Tenang)</option>
-                      <option value="Sedang">Sedang (Natural)</option>
-                      <option value="Cepat">Cepat (Energik)</option>
+                      <option value="Lambat">{t('slowPace')}</option>
+                      <option value="Sedang">{t('mediumPace')}</option>
+                      <option value="Cepat">{t('fastPace')}</option>
                     </select>
                   </div>
                 </div>
@@ -274,18 +278,18 @@ export default function GeneratorForm({ channels }: { channels: any[] }) {
                   <div>
                     <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('hookStyle')}</label>
                     <select name="hookStyle" value={videoConfig.hookStyle} onChange={handleVideoConfigChange} className="w-full px-3 py-1.5 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white">
-                      <option value="Pertanyaan Provokatif">Pertanyaan Provokatif</option>
-                      <option value="Fakta Mengejutkan">Fakta Mengejutkan</option>
-                      <option value="Tantangan">Tantangan</option>
-                      <option value="Negative Hook">Negative Hook</option>
+                      <option value="Pertanyaan Provokatif">{t('hookProvocative')}</option>
+                      <option value="Fakta Mengejutkan">{t('hookSurprising')}</option>
+                      <option value="Tantangan">{t('hookChallenge')}</option>
+                      <option value="Negative Hook">{t('hookNegative')}</option>
                     </select>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('endingStyle')}</label>
                     <select name="endingStyle" value={videoConfig.endingStyle} onChange={handleVideoConfigChange} className="w-full px-3 py-1.5 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white">
-                      <option value="Pertanyaan Terbuka">Pertanyaan Terbuka</option>
-                      <option value="Hard Sell CTA">Hard Sell CTA</option>
-                      <option value="Ajakan Simpan/Share">Ajakan Simpan/Share</option>
+                      <option value="Pertanyaan Terbuka">{t('endingOpen')}</option>
+                      <option value="Hard Sell CTA">{t('endingHardSell')}</option>
+                      <option value="Ajakan Simpan/Share">{t('endingShare')}</option>
                     </select>
                   </div>
                 </div>
@@ -422,7 +426,7 @@ export default function GeneratorForm({ channels }: { channels: any[] }) {
                 }}
                 className="w-full py-3 px-4 bg-zinc-200 hover:bg-zinc-300 text-zinc-800 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700 font-medium rounded-lg shadow-sm transition-all mt-6"
               >
-                Kembali Edit Konfigurasi
+                {t('backToEdit')}
               </button>
             )}
           </fieldset>
@@ -432,7 +436,7 @@ export default function GeneratorForm({ channels }: { channels: any[] }) {
       {/* Kolom Hasil */}
       <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-6 flex flex-col h-[85vh]">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-zinc-900 dark:text-white">{step === 1 ? t('resultTitle') : "Hasil & Simpan Draft"}</h2>
+          <h2 className="text-xl font-bold text-zinc-900 dark:text-white">{step === 1 ? t('resultTitle') : t('resultAndSave')}</h2>
           {result && (
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
               {result}
@@ -455,12 +459,12 @@ export default function GeneratorForm({ channels }: { channels: any[] }) {
               {/* Step 2: Show Prompt, ask for JSON */}
               <div className="flex flex-col h-1/2 border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden bg-zinc-50 dark:bg-zinc-950">
                 <div className="p-3 bg-zinc-100 dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center">
-                  <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">1. Copy Prompt Ini</span>
+                  <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">{t('copyPromptStep')}</span>
                   <button 
                     onClick={() => navigator.clipboard.writeText(generatedPrompt)}
                     className="px-3 py-1 text-xs font-medium text-zinc-700 bg-white border border-zinc-300 rounded hover:bg-zinc-50 dark:bg-zinc-700 dark:text-zinc-300 dark:border-zinc-600 dark:hover:bg-zinc-600 transition-colors"
                   >
-                    Copy
+                    {t('copy')}
                   </button>
                 </div>
                 <textarea
@@ -472,22 +476,22 @@ export default function GeneratorForm({ channels }: { channels: any[] }) {
 
               <div className="flex flex-col h-1/2 border border-blue-200 dark:border-blue-900 rounded-lg overflow-hidden bg-blue-50/30 dark:bg-blue-900/10">
                 <div className="p-3 bg-blue-100 dark:bg-blue-900 border-b border-blue-200 dark:border-blue-800">
-                  <span className="text-xs font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wider">2. Paste Output JSON di Sini</span>
+                  <span className="text-xs font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wider">{t('pasteJsonStep')}</span>
                 </div>
                 <div className="px-4 py-2 border-b border-blue-200/50 dark:border-blue-800/50">
-                  <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">Judul Spesifik (Opsional)</label>
+                  <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('optionalTitle')}</label>
                   <input
                     type="text"
                     value={manualTitle}
                     onChange={(e) => setManualTitle(e.target.value)}
-                    placeholder="Judul draft akan diambil dari JSON jika ini dikosongkan"
+                    placeholder={t('optionalTitlePlaceholder')}
                     className="w-full px-3 py-1.5 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none dark:text-white"
                   />
                 </div>
                 <textarea
                   value={aiResultJson}
                   onChange={(e) => setAiResultJson(e.target.value)}
-                  placeholder={`Tempel hasil balasan dari ChatGPT/Claude di sini...\nPastikan Anda menyalin SELURUH balasan JSON-nya.`}
+                  placeholder={t('jsonPlaceholder')}
                   className="w-full h-full p-4 bg-transparent text-sm font-mono text-zinc-800 dark:text-zinc-200 outline-none resize-none custom-scrollbar"
                 />
               </div>
@@ -501,7 +505,7 @@ export default function GeneratorForm({ channels }: { channels: any[] }) {
               onClick={() => router.push(`/${document.documentElement.lang || 'id'}/dashboard/drafts`)}
               className="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-md hover:bg-zinc-50 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 dark:hover:bg-zinc-700 transition-colors"
             >
-              Lihat Drafts
+              {t('viewDraftsBtn')}
             </button>
             <button 
               onClick={handleSaveDraft}
@@ -509,7 +513,7 @@ export default function GeneratorForm({ channels }: { channels: any[] }) {
               className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-md transition-colors flex items-center"
             >
               {saving ? <span className="inline-block animate-spin mr-2 border-2 border-white/20 border-t-white rounded-full w-4 h-4" /> : null}
-              Simpan Draft (Hitung Durasi)
+              {t('saveDraftBtn')}
             </button>
           </div>
         )}

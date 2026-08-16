@@ -12,13 +12,13 @@ const resetPasswordSchema = z.object({
 
 export async function POST(req: Request) {
   try {
+    const body = await req.json();
+    const tokenStr = typeof body.token === 'string' ? body.token.substring(0, 15) : 'unknown';
     const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
-    const isAllowed = await applyRateLimit(`reset_pw_${ip}`, 5, 60 * 15);
+    const isAllowed = await applyRateLimit(`reset_pw_${ip}_${tokenStr}`, 5, 60 * 15);
     if (!isAllowed) {
       return NextResponse.json({ error: "Terlalu banyak permintaan. Coba lagi nanti." }, { status: 429 });
     }
-
-    const body = await req.json();
     const parsedData = resetPasswordSchema.safeParse(body);
 
     if (!parsedData.success) {

@@ -23,6 +23,7 @@ interface Plan {
 
 export default function UserManagement({ initialPlans }: { initialPlans: Plan[] }) {
   const t = useTranslations("Admin");
+  const tu = useTranslations("AdminUsers");
   const router = useRouter();
   
   const [users, setUsers] = useState<User[]>([]);
@@ -75,7 +76,7 @@ export default function UserManagement({ initialPlans }: { initialPlans: Plan[] 
           closeModal();
         } else {
           const data = await res.json();
-          toast.error(data.error || "Gagal menghapus user");
+          toast.error(data.error || tu('failDelete'));
         }
       } else {
         const payload: any = { action: "" };
@@ -102,14 +103,14 @@ export default function UserManagement({ initialPlans }: { initialPlans: Plan[] 
         if (res.ok) {
           fetchUsers(search);
           closeModal();
-          toast.success("Aksi berhasil!");
+          toast.success(tu('successAction'));
         } else {
           const data = await res.json();
-          toast.error(data.error || "Aksi gagal");
+          toast.error(data.error || tu('failAction'));
         }
       }
     } catch (error) {
-      toast.error("Terjadi kesalahan sistem.");
+      toast.error(tu('systemError'));
     }
     setActionLoading(false);
   };
@@ -134,32 +135,32 @@ export default function UserManagement({ initialPlans }: { initialPlans: Plan[] 
     const exp = new Date(expiresAt);
     const diffTime = exp.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    if (diffDays > 0) return `${diffDays} hari tersisa`;
-    if (diffDays === 0) return "Hari ini terakhir";
-    return "Kedaluwarsa";
+    if (diffDays > 0) return `${diffDays} ${tu('daysLeft')}`;
+    if (diffDays === 0) return tu('lastDay');
+    return tu('expired');
   };
 
   return (
     <div className="bg-white dark:bg-zinc-900 shadow-sm rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
       <div className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">{t('users')} Management</h2>
+        <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">{tu('usersManagement')}</h2>
         <form onSubmit={handleSearch} className="flex w-full sm:w-auto">
           <input
             type="text"
-            placeholder="Search email / name..."
+            placeholder={tu('searchPlaceholder')}
             className="px-3 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-l-md text-sm w-full sm:w-64 focus:outline-none focus:ring-1 focus:ring-purple-500"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
           <button type="submit" className="px-4 py-2 bg-zinc-100 dark:bg-zinc-800 border border-l-0 border-zinc-300 dark:border-zinc-800 rounded-r-md text-sm hover:bg-zinc-200 dark:hover:bg-zinc-700">
-            Search
+            {tu('search')}
           </button>
         </form>
       </div>
 
       <div className="overflow-x-auto min-h-[400px]">
         {loading ? (
-          <div className="p-8 text-center text-zinc-500">Loading users...</div>
+          <div className="p-8 text-center text-zinc-500">{tu('loading')}</div>
         ) : (
           <table className="w-full text-sm text-left">
             <thead className="text-xs text-zinc-500 dark:text-zinc-400 uppercase bg-zinc-50 dark:bg-zinc-800/50">
@@ -167,7 +168,7 @@ export default function UserManagement({ initialPlans }: { initialPlans: Plan[] 
                 <th className="px-6 py-3 font-medium">{t('nameEmail')}</th>
                 <th className="px-6 py-3 font-medium">{t('role')}</th>
                 <th className="px-6 py-3 font-medium">{t('subStatus')}</th>
-                <th className="px-6 py-3 font-medium text-right">Actions</th>
+                <th className="px-6 py-3 font-medium text-right">{tu('actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
@@ -197,22 +198,22 @@ export default function UserManagement({ initialPlans }: { initialPlans: Plan[] 
                     <div className="text-xs text-zinc-500 mt-1">{u.currentPlan?.name || t('free')}</div>
                     {u.subscriptionExpiresAt && (
                       <div className="text-xs font-medium mt-0.5 text-orange-600 dark:text-orange-400">
-                        Sisa: {getRemainingDays(u.subscriptionExpiresAt)}
+                        {getRemainingDays(u.subscriptionExpiresAt)}
                       </div>
                     )}
                   </td>
                   <td className="px-6 py-4 text-right space-x-2">
-                    <button onClick={() => openModal(u, "ROLE")} className="text-xs px-2 py-1 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded text-zinc-700 dark:text-zinc-300">Role</button>
-                    <button onClick={() => openModal(u, "DAYS")} className="text-xs px-2 py-1 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded text-zinc-700 dark:text-zinc-300">+ Days</button>
-                    <button onClick={() => openModal(u, "PLAN")} className="text-xs px-2 py-1 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded text-zinc-700 dark:text-zinc-300">Plan</button>
-                    <button onClick={() => openModal(u, "PASSWORD")} className="text-xs px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-200 dark:hover:bg-yellow-900/50 rounded text-yellow-800 dark:text-yellow-500">Pass</button>
-                    <button onClick={() => openModal(u, "DELETE")} className="text-xs px-2 py-1 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 rounded text-red-800 dark:text-red-500">Del</button>
+                    <button onClick={() => openModal(u, "ROLE")} className="text-xs px-2 py-1 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded text-zinc-700 dark:text-zinc-300">{tu('role')}</button>
+                    <button onClick={() => openModal(u, "DAYS")} className="text-xs px-2 py-1 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded text-zinc-700 dark:text-zinc-300">{tu('addDays')}</button>
+                    <button onClick={() => openModal(u, "PLAN")} className="text-xs px-2 py-1 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded text-zinc-700 dark:text-zinc-300">{tu('plan')}</button>
+                    <button onClick={() => openModal(u, "PASSWORD")} className="text-xs px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-200 dark:hover:bg-yellow-900/50 rounded text-yellow-800 dark:text-yellow-500">{tu('pass')}</button>
+                    <button onClick={() => openModal(u, "DELETE")} className="text-xs px-2 py-1 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 rounded text-red-800 dark:text-red-500">{tu('del')}</button>
                   </td>
                 </tr>
               ))}
               {users.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={4} className="px-6 py-8 text-center text-zinc-500">Tidak ada user ditemukan.</td>
+                  <td colSpan={4} className="px-6 py-8 text-center text-zinc-500">{tu('noUsers')}</td>
                 </tr>
               )}
             </tbody>
@@ -226,17 +227,17 @@ export default function UserManagement({ initialPlans }: { initialPlans: Plan[] 
           <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-xl w-full max-w-md overflow-hidden border border-zinc-200 dark:border-zinc-800">
             <div className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center">
               <h3 className="font-semibold text-zinc-900 dark:text-white">
-                {modalAction === "ROLE" && "Ubah Role"}
-                {modalAction === "DAYS" && "Tambah Masa Aktif (Hari)"}
-                {modalAction === "PLAN" && "Ubah Paket"}
-                {modalAction === "PASSWORD" && "Reset Password"}
-                {modalAction === "DELETE" && "Hapus Pengguna"}
+                {modalAction === "ROLE" && tu('changeRole')}
+                {modalAction === "DAYS" && tu('addActiveDays')}
+                {modalAction === "PLAN" && tu('changePlan')}
+                {modalAction === "PASSWORD" && tu('resetPassword')}
+                {modalAction === "DELETE" && tu('deleteUser')}
               </h3>
               <button onClick={closeModal} className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300">&times;</button>
             </div>
             
             <div className="p-6">
-              <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">Target: <strong className="text-zinc-900 dark:text-white">{selectedUser.email}</strong></p>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">{tu('target')} <strong className="text-zinc-900 dark:text-white">{selectedUser.email}</strong></p>
               
               {modalAction === "ROLE" && (
                 <select value={newRole} onChange={e => setNewRole(e.target.value)} className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md">
@@ -251,7 +252,7 @@ export default function UserManagement({ initialPlans }: { initialPlans: Plan[] 
 
               {modalAction === "PLAN" && (
                 <select value={newPlanId} onChange={e => setNewPlanId(e.target.value)} className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md">
-                  <option value="">Pilih Paket...</option>
+                  <option value="">{tu('choosePlan')}</option>
                   {initialPlans.map(p => (
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
@@ -260,24 +261,24 @@ export default function UserManagement({ initialPlans }: { initialPlans: Plan[] 
 
               {modalAction === "PASSWORD" && (
                 <div>
-                  <p className="text-xs text-yellow-600 dark:text-yellow-400 mb-2">Simpan password ini dan berikan ke user, password lama tidak bisa dikembalikan.</p>
+                  <p className="text-xs text-yellow-600 dark:text-yellow-400 mb-2">{tu('savePasswordInfo')}</p>
                   <input type="text" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md" />
                 </div>
               )}
 
               {modalAction === "DELETE" && (
-                <p className="text-red-600 dark:text-red-400 text-sm">Peringatan: Tindakan ini permanen dan akan menghapus semua data terkait user ini (channel, draft, dll).</p>
+                <p className="text-red-600 dark:text-red-400 text-sm">{tu('deleteWarning')}</p>
               )}
             </div>
 
             <div className="px-6 py-4 bg-zinc-50 dark:bg-zinc-800/50 border-t border-zinc-200 dark:border-zinc-800 flex justify-end gap-3">
-              <button onClick={closeModal} className="px-4 py-2 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-md">Batal</button>
+              <button onClick={closeModal} className="px-4 py-2 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-md">{tu('cancel')}</button>
               <button 
                 onClick={executeAction}
                 disabled={actionLoading}
                 className={`px-4 py-2 text-sm font-medium rounded-md text-white ${modalAction === "DELETE" ? "bg-red-600 hover:bg-red-700" : "bg-purple-600 hover:bg-purple-700"} disabled:opacity-50`}
               >
-                {actionLoading ? "Memproses..." : "Konfirmasi"}
+                {actionLoading ? tu('processing') : tu('confirm')}
               </button>
             </div>
           </div>

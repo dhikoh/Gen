@@ -108,7 +108,7 @@ export default function EditChannelClient({ channel, isNew = false, onSuccess }:
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Call to Action 1</label>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('cta1')}</label>
             <input 
               type="text"
               name="cta1"
@@ -118,7 +118,7 @@ export default function EditChannelClient({ channel, isNew = false, onSuccess }:
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Call to Action 2</label>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('cta2')}</label>
             <input 
               type="text"
               name="cta2"
@@ -142,29 +142,29 @@ export default function EditChannelClient({ channel, isNew = false, onSuccess }:
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Pengaturan Audio (Bawaan)</label>
+          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">{t('audioSettingsLabel')}</label>
           <div className="flex space-x-6 bg-zinc-50 dark:bg-zinc-950 p-4 rounded-lg border border-zinc-200 dark:border-zinc-800">
             <label className="flex items-center space-x-2">
               <input type="checkbox" name="audioBGM" checked={formData.audioBGM} onChange={handleCheckboxChange} className="rounded text-blue-600" />
-              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Background Music (BGM)</span>
+              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{t('audioBGM')}</span>
             </label>
             <label className="flex items-center space-x-2">
               <input type="checkbox" name="audioSFX" checked={formData.audioSFX} onChange={handleCheckboxChange} className="rounded text-blue-600" />
-              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Sound Effects (SFX)</span>
+              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{t('audioSFX')}</span>
             </label>
             <label className="flex items-center space-x-2">
               <input type="checkbox" name="audioVO" checked={formData.audioVO} onChange={handleCheckboxChange} className="rounded text-blue-600" />
-              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Voice Over (VO)</span>
+              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{t('audioVO')}</span>
             </label>
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Social Media Links</label>
+          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('socialMediaLabel')}</label>
           <input 
             type="text"
             name="socialLinks"
-            placeholder="Tiktok: @akun, Instagram: @akun"
+            placeholder={t('socialMediaPlaceholder2')}
             value={formData.socialLinks}
             onChange={handleChange}
             className="w-full px-4 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-zinc-900 dark:text-white neu-flat"

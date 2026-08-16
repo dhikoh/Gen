@@ -28,6 +28,9 @@ export const sendEmail = async (data: EmailPayload) => {
     // If SMTP is not fully configured, log instead of failing in dev/test,
     // but in production, we should enforce it.
     if (!process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('SMTP_USER and SMTP_PASSWORD are required in production');
+      }
       console.warn("[Email Mock - SMTP Not Configured]", mailOptions);
       return { success: true, message: "Mocked (SMTP Not Configured)" };
     }

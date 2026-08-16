@@ -32,14 +32,14 @@ export async function PUT(req: Request) {
 
     const { invoiceId, proofBase64 } = parsedData.data;
 
-    // Validate size (e.g. max 5MB ~ approx 6.6MB base64)
-    if (proofBase64.length > 7000000) {
-      return NextResponse.json({ error: "Ukuran file terlalu besar. Maksimal 5MB." }, { status: 400 });
+    // Validate size (max 2MB ~ approx 2.8MB base64)
+    if (proofBase64.length > 2800000) {
+      return NextResponse.json({ error: "Ukuran file terlalu besar. Maksimal 2MB." }, { status: 400 });
     }
     
-    // Simple MIME validation
-    if (!proofBase64.startsWith("data:image/")) {
-       return NextResponse.json({ error: "Hanya format gambar yang diperbolehkan." }, { status: 400 });
+    // Exact MIME validation (only JPEG/PNG)
+    if (!proofBase64.startsWith("data:image/jpeg;base64,") && !proofBase64.startsWith("data:image/png;base64,")) {
+       return NextResponse.json({ error: "Hanya format gambar JPG/PNG yang diperbolehkan." }, { status: 400 });
     }
 
     const invoice = await prisma.invoice.findUnique({

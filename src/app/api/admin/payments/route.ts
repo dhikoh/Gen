@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
+import { sendEmail } from "@/lib/email";
 
 const actionSchema = z.object({
   invoiceId: z.string().min(1),
@@ -28,7 +29,7 @@ export async function POST(req: Request) {
 
     const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
-      include: { plan: true }
+      include: { plan: true, user: true }
     });
 
     if (!invoice || invoice.status !== "PENDING") {
@@ -44,6 +45,20 @@ export async function POST(req: Request) {
           reviewedAt: new Date()
         }
       });
+      
+      await sendEmail({
+        to: invoice.user.email,
+        subject: "Tagihan Ditolak - Prompt Gen",
+        html: `
+          <div style="font-family: sans-serif; max-w: 600px; margin: 0 auto;">
+            <h2>Tagihan Ditolak</h2>
+            <p>Halo ${invoice.user.name},</p>
+            <p>Tagihan Anda untuk paket <strong>${invoice.plan.name}</strong> dengan jumlah Rp ${invoice.amount.toLocaleString('id-ID')} telah ditolak.</p>
+            <p>Silakan periksa kembali bukti pembayaran yang Anda unggah dan buat tagihan baru.</p>
+          </div>
+        `
+      });
+
       return NextResponse.json({ success: true });
     }
 
@@ -53,6 +68,20 @@ export async function POST(req: Request) {
       
       const { enforceChannelLimits } = await import("@/lib/channelLockLogic");
       await enforceChannelLimits(invoice.userId);
+
+      await sendEmail({
+        to: invoice.user.email,
+        subject: "Pembayaran Berhasil - Prompt Gen",
+        html: `
+          <div style="font-family: sans-serif; max-w: 600px; margin: 0 auto;">
+            <h2>Pembayaran Berhasil</h2>
+            <p>Halo ${invoice.user.name},</p>
+            <p>Tagihan Anda untuk paket <strong>${invoice.plan.name}</strong> telah berhasil diverifikasi.</p>
+            <p>Akun Anda kini telah aktif dan batas channel Anda telah disesuaikan.</p>
+            <p>Terima kasih telah menggunakan Prompt Gen!</p>
+          </div>
+        `
+      });
 
       return NextResponse.json({ success: true }, { status: 200 });
     }

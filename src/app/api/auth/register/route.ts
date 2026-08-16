@@ -26,13 +26,13 @@ const registerSchema = z.object({
 
 export async function POST(req: Request) {
   try {
+    const body = await req.json();
+    const emailStr = typeof body.email === 'string' ? body.email.toLowerCase() : 'unknown';
     const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
-    const isAllowed = await applyRateLimit(`register_${ip}`, 5, 60 * 60); // 5 registers per hour per IP
+    const isAllowed = await applyRateLimit(`register_${ip}_${emailStr}`, 5, 60 * 60); // 5 registers per hour per IP+email
     if (!isAllowed) {
       return NextResponse.json({ error: "Terlalu banyak permintaan registrasi. Coba lagi nanti." }, { status: 429 });
     }
-
-    const body = await req.json();
     const parsedData = registerSchema.safeParse(body);
 
     if (!parsedData.success) {

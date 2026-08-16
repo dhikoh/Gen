@@ -41,11 +41,11 @@ export default function AuthForm() {
 
   const handleNextStep = () => {
     if (password !== confirmPassword) {
-      setError("Konfirmasi password tidak cocok!");
+      setError(t('passNotMatch'));
       return;
     }
     if (password.length < 8) {
-      setError("Password minimal 8 karakter!");
+      setError(t('passMinLen'));
       return;
     }
     setError(null);
@@ -104,7 +104,7 @@ export default function AuthForm() {
 
         const data = await res.json();
         if (!res.ok) {
-          setError(data.error || "Gagal mendaftar");
+          setError(data.error || t('regFailed'));
           setRegisterStep(1); // Go back if error is in basic fields
         } else {
           // Auto login after register
@@ -124,7 +124,7 @@ export default function AuthForm() {
         }
       }
     } catch (err) {
-      setError("Terjadi kesalahan sistem");
+      setError(t('sysError'));
     } finally {
       setLoading(false);
     }
@@ -171,7 +171,7 @@ export default function AuthForm() {
                   autoComplete="username"
                   required
                   className="w-full px-4 py-2 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all dark:text-white neu-flat"
-                  placeholder="Masukkan identitas Anda"
+                  placeholder={t('identifierPlaceholder')}
                 />
               </div>
               
@@ -193,7 +193,7 @@ export default function AuthForm() {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
                   >
-                    {showPassword ? "Sembunyikan" : "Lihat"}
+                    {showPassword ? t('hide') : t('show')}
                   </button>
                 </div>
               </div>
@@ -250,7 +250,7 @@ export default function AuthForm() {
                   <input type="tel" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">Tanggal Lahir</label>
+                  <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('dob')}</label>
                   <input type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
                 </div>
               </div>
@@ -261,19 +261,19 @@ export default function AuthForm() {
                   <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">Konfirmasi Pass</label>
+                  <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('confirmPass')}</label>
                   <input type={showPassword ? "text" : "password"} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
                 </div>
               </div>
 
               <button type="submit" className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-all mt-4 neu-flat">
-                Lanjut ke Tahap 2 &rarr;
+                <span dangerouslySetInnerHTML={{__html: t('continueStep2')}} />
               </button>
             </>
           ) : (
             // REGISTER STEP 2 (Channel Profile)
             <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
-              <h3 className="font-semibold text-zinc-800 dark:text-zinc-200 text-sm border-b pb-2 mb-2">Setup Profil Channel Utama</h3>
+              <h3 className="font-semibold text-zinc-800 dark:text-zinc-200 text-sm border-b pb-2 mb-2">{t('setupProfile')}</h3>
               
               <div>
                 <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('channelName')}*</label>
@@ -281,33 +281,33 @@ export default function AuthForm() {
               </div>
               
               <div>
-                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">Niche Topik</label>
-                <input type="text" value={niche} onChange={(e) => setNiche(e.target.value)} placeholder="Misal: Review Gadget, Kuliner" className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
+                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('channelNiche')}</label>
+                <input type="text" value={niche} onChange={(e) => setNiche(e.target.value)} placeholder={t('channelNichePlaceholder')} className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
               </div>
               
               <div>
-                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">Deskripsi / Ciri Khas</label>
+                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('channelDesc')}</label>
                 <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">Call to Action 1</label>
+                  <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('cta1')}</label>
                   <input type="text" value={cta1} onChange={(e) => setCta1(e.target.value)} className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">Call to Action 2</label>
+                  <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('cta2')}</label>
                   <input type="text" value={cta2} onChange={(e) => setCta2(e.target.value)} className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
                 </div>
               </div>
               
               <div>
-                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">Visual Aesthetic</label>
+                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('visualAesthetic')}</label>
                 <input type="text" value={visualAesthetic} onChange={(e) => setVisualAesthetic(e.target.value)} className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
               </div>
               
               <div>
-                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-2">Penggunaan Audio (Default)</label>
+                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-2">{t('audioUsage')}</label>
                 <div className="flex space-x-4">
                   <label className="flex items-center space-x-2"><input type="checkbox" checked={audioBGM} onChange={(e) => setAudioBGM(e.target.checked)} /> <span className="text-xs">BGM</span></label>
                   <label className="flex items-center space-x-2"><input type="checkbox" checked={audioSFX} onChange={(e) => setAudioSFX(e.target.checked)} /> <span className="text-xs">SFX</span></label>
@@ -316,12 +316,12 @@ export default function AuthForm() {
               </div>
               
               <div>
-                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">Social Media / Links</label>
-                <input type="text" value={socialLinks} onChange={(e) => setSocialLinks(e.target.value)} placeholder="Tiktok: @akun, IG: @akun" className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
+                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('socialMedia')}</label>
+                <input type="text" value={socialLinks} onChange={(e) => setSocialLinks(e.target.value)} placeholder={t('socialMediaPlaceholder')} className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
               </div>
 
               <div className="flex space-x-2 pt-4">
-                <button type="button" onClick={() => setRegisterStep(1)} className="px-4 py-2 bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-lg text-sm neu-flat">Kembali</button>
+                <button type="button" onClick={() => setRegisterStep(1)} className="px-4 py-2 bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-lg text-sm neu-flat">{t('back')}</button>
                 <button type="submit" className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm flex items-center justify-center text-sm neu-flat">
                   {loading ? <span className="inline-block animate-spin mr-2 border-2 border-white/20 border-t-white rounded-full w-4 h-4" /> : null}
                   {t('submitRegister')}

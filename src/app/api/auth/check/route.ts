@@ -11,13 +11,13 @@ const checkSchema = z.object({
 
 export async function POST(req: Request) {
   try {
+    const body = await req.json();
+    const identifierStr = (typeof body.email === 'string' ? body.email : typeof body.username === 'string' ? body.username : 'unknown').toLowerCase();
     const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
-    const isAllowed = await applyRateLimit(`check_${ip}`, 20, 60);
+    const isAllowed = await applyRateLimit(`check_${ip}_${identifierStr}`, 20, 60);
     if (!isAllowed) {
       return NextResponse.json({ error: "Terlalu banyak permintaan. Coba lagi nanti." }, { status: 429 });
     }
-
-    const body = await req.json();
     const parsedData = checkSchema.safeParse(body);
 
     if (!parsedData.success) {

@@ -12,6 +12,12 @@ const channelSchema = z.object({
   niche: z.string().optional(),
   description: z.string().optional(),
   visualAesthetic: z.string().optional(),
+  cta1: z.string().optional(),
+  cta2: z.string().optional(),
+  audioBGM: z.boolean().optional(),
+  audioSFX: z.boolean().optional(),
+  audioVO: z.boolean().optional(),
+  socialLinks: z.string().optional(),
 });
 
 export async function GET(req: Request) {
@@ -88,6 +94,12 @@ export async function POST(req: Request) {
         niche: parsedData.data.niche,
         description: parsedData.data.description,
         visualAesthetic: parsedData.data.visualAesthetic,
+        cta1: parsedData.data.cta1,
+        cta2: parsedData.data.cta2,
+        audioBGM: parsedData.data.audioBGM ?? true,
+        audioSFX: parsedData.data.audioSFX ?? true,
+        audioVO: parsedData.data.audioVO ?? true,
+        socialLinks: parsedData.data.socialLinks ? parsedData.data.socialLinks : undefined,
       }
     });
 

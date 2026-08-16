@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
 import { applyRateLimit } from "@/lib/rateLimit";
+import { requireActiveSubscription } from "@/lib/subscription";
 
 const generateSchema = z.object({
   type: z.enum(["VIDEO", "IMAGE"]),
@@ -36,24 +37,22 @@ export async function POST(req: Request) {
 
     const { type, channelId, topic, additionalContext, videoConfig, imageConfig } = parsedData.data;
 
-    const dbUser = await prisma.user.findUnique({ 
-      where: { id: session.user.id },
-      include: { currentPlan: true }
-    });
-    if (!dbUser) return NextResponse.json({ error: "User tidak ditemukan." }, { status: 404 });
+    let dbUser, plan;
+    try {
+      const result = await requireActiveSubscription(session.user.id);
+      dbUser = result.user;
+      plan = result.plan;
+    } catch (err: any) {
+      if (err.message === "User not found") {
+        return NextResponse.json({ error: "User tidak ditemukan." }, { status: 404 });
+      }
+      return NextResponse.json({ error: "Langganan Anda tidak aktif. Silakan beli paket PRO di menu Tagihan." }, { status: 403 });
+    }
 
     if (dbUser.role !== "SUPERADMIN") {
-      const now = new Date();
-      if (dbUser.subscriptionStatus !== "ACTIVE" || (dbUser.subscriptionExpiresAt && dbUser.subscriptionExpiresAt < now)) {
-        if (dbUser.subscriptionStatus === "ACTIVE" && dbUser.subscriptionExpiresAt && dbUser.subscriptionExpiresAt < now) {
-          await prisma.user.update({ where: { id: dbUser.id }, data: { subscriptionStatus: "EXPIRED" } });
-        }
-        return NextResponse.json({ error: "Langganan Anda tidak aktif. Silakan beli paket PRO di menu Tagihan." }, { status: 403 });
-      }
-
       // Validasi fitur Image Prompt Studio (Bagian 5.5.B)
       if (type === "IMAGE") {
-        const features = dbUser.currentPlan?.features as any;
+        const features = plan?.features as any;
         if (!features || features.imagePromptStudio !== true) {
           return NextResponse.json({ error: "Fitur Image Prompt Studio tidak tersedia di paket Anda. Silakan upgrade paket." }, { status: 403 });
         }
@@ -79,6 +78,11 @@ Nama Channel/Akun: ${channel.channelName}
 Niche: ${channel.niche || "-"}
 Deskripsi/Ciri Khas: ${channel.description || "-"}
 Gaya Visual: ${channel.visualAesthetic || "-"}
+Call to Action 1: ${channel.cta1 || "-"}
+Call to Action 2: ${channel.cta2 || "-"}
+Gunakan Audio BGM: ${channel.audioBGM ? "Ya" : "Tidak"}
+Gunakan Audio SFX: ${channel.audioSFX ? "Ya" : "Tidak"}
+Gunakan Audio VO: ${channel.audioVO ? "Ya" : "Tidak"}
 `.trim();
 
     let productContext = "";
@@ -113,7 +117,7 @@ Gaya Visual: ${channel.visualAesthetic || "-"}
       if (videoConfig.includeThumbnail) jsonFields.push(`"ide_thumbnail": "string (Ide visual thumbnail yang clickbait namun relevan)"`);
       if (videoConfig.includeHtmlBlog) jsonFields.push(`"html_blog": "string (Artikel blog format HTML SEO-friendly berdasarkan skrip video)"`);
       
-      jsonFields.push(`"segments": [\n    {\n      "order": number,\n      "visual": "string (Instruksi visual/kamera/B-roll)",\n      "audio": "string (Musik/Sound Effect)",\n      "caption": "string (Teks yang diucapkan/Voice Over)",\n      "duration_estimation": number (Estimasi detik)\n    }\n  ]`);
+      jsonFields.push(`"segments": [\n    {\n      "order": number,\n      "type": "string (Tipe scene: A-roll, B-roll, Text, dsb)",\n      "visual": "string (Instruksi visual/kamera/B-roll)",\n      "audio": "string (Musik/Sound Effect)",\n      "caption": "string (Teks yang diucapkan/Voice Over)",\n      "duration_estimation": number (Estimasi detik)\n    }\n  ]`);
 
       masterPrompt = `Buatkan skrip video secara mendetail berdasarkan parameter berikut:
 
@@ -127,7 +131,7 @@ ${productContext}${titleContext}
 [PARAMETER VIDEO]
 Target Platform: ${videoConfig.targetPlatform}
 Aspect Ratio: ${videoConfig.aspectRatio}
-Target Durasi: ${videoConfig.duration}
+Target Durasi: ${videoConfig.duration} (PENTING: Harus tepat di sekitar ${videoConfig.targetDurationSec} detik, sesuaikan panjang naskah)
 Laju Bicara: ${videoConfig.speechRate}
 
 [STRUKTUR & GAYA KONTEN]

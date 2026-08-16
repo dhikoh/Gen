@@ -11,13 +11,13 @@ const forgotPasswordSchema = z.object({
 
 export async function POST(req: Request) {
   try {
+    const body = await req.json();
+    const identifierStr = typeof body.identifier === 'string' ? body.identifier.toLowerCase() : 'unknown';
     const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
-    const isAllowed = await applyRateLimit(`forgot_pw_${ip}`, 3, 60 * 15); // 3 requests per 15 minutes
+    const isAllowed = await applyRateLimit(`forgot_pw_${ip}_${identifierStr}`, 3, 60 * 15); // 3 requests per 15 minutes
     if (!isAllowed) {
       return NextResponse.json({ error: "Terlalu banyak permintaan. Coba lagi nanti." }, { status: 429 });
     }
-
-    const body = await req.json();
     const parsedData = forgotPasswordSchema.safeParse(body);
 
     if (!parsedData.success) {

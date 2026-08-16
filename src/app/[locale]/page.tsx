@@ -166,7 +166,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
                     <span className="text-4xl font-extrabold text-zinc-900 dark:text-white tracking-tight">
                       Rp {plan.priceMonthly.toLocaleString('id-ID')}
                     </span>
-                    <span className="text-zinc-500 dark:text-zinc-400 ml-1 font-medium">/bln</span>
+                    <span className="text-zinc-500 dark:text-zinc-400 ml-1 font-medium">{tLanding("monthSuffix")}</span>
                   </div>
                   
                   <ul className="space-y-4 mb-8 text-sm text-zinc-600 dark:text-zinc-300">
@@ -220,7 +220,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
             <span className="font-semibold text-zinc-900 dark:text-white">Prompt Gen</span>
           </div>
           <p className="text-zinc-500 dark:text-zinc-400 text-sm">
-            &copy; {new Date().getFullYear()} Prompt Gen. Hak cipta dilindungi undang-undang.
+            {tLanding("copyright", { year: new Date().getFullYear() })}
           </p>
         </div>
       </footer>
