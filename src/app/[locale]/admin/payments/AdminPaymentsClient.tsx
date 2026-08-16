@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -19,13 +20,13 @@ export default function AdminPaymentsClient({ invoices }: { invoices: any[] }) {
       });
       const data = await res.json();
       if (res.ok) {
-        alert(t('approveSuccess'));
+        toast.success(t('approveSuccess'));
         router.refresh();
       } else {
-        alert(data.error || t('approveFail'));
+        toast.error(data.error || t('approveFail'));
       }
     } catch (e) {
-      alert(t('networkError'));
+      toast.error(t('networkError'));
     } finally {
       setLoading(null);
     }
@@ -41,13 +42,13 @@ export default function AdminPaymentsClient({ invoices }: { invoices: any[] }) {
       });
       const data = await res.json();
       if (res.ok) {
-        alert(t('rejectSuccess'));
+        toast.success(t('rejectSuccess'));
         router.refresh();
       } else {
-        alert(data.error || t('rejectFail'));
+        toast.error(data.error || t('rejectFail'));
       }
     } catch (e) {
-      alert(t('networkError'));
+      toast.error(t('networkError'));
     } finally {
       setLoading(null);
     }

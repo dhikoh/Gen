@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -31,7 +32,7 @@ export default function DraftActions({ draftId, rawJson, locale }: { draftId: st
       router.push(`/${locale}/dashboard/drafts`);
       router.refresh();
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Terjadi kesalahan");
+      toast.error(error instanceof Error ? error.message : "Terjadi kesalahan");
       setDeleting(false);
     }
   };

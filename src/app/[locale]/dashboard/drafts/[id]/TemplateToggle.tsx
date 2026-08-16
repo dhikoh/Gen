@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -23,10 +24,10 @@ export default function TemplateToggle({ draftId, initialIsTemplate }: { draftId
         setIsTemplate(!isTemplate);
         router.refresh();
       } else {
-        alert(t('updateError'));
+        toast.error(t('updateError'));
       }
     } catch (err) {
-      alert(t('generalError'));
+      toast.error(t('generalError'));
     } finally {
       setLoading(false);
     }

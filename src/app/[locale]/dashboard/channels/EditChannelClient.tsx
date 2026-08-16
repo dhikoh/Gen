@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -53,14 +54,14 @@ export default function EditChannelClient({ channel, isNew = false, onSuccess }:
       const data = await res.json();
       
       if (res.ok) {
-        alert(isNew ? t('saveSuccessNew') : t('saveSuccessUpdate'));
+        toast.success(isNew ? t('saveSuccessNew') : t('saveSuccessUpdate'));
         if (onSuccess) onSuccess();
         router.refresh();
       } else {
-        alert(data.error || t('saveFail'));
+        toast.error(data.error || t('saveFail'));
       }
     } catch (err) {
-      alert(t('networkError'));
+      toast.error(t('networkError'));
     } finally {
       setLoading(false);
     }

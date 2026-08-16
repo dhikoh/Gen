@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -28,14 +29,14 @@ export default function AdminPlansClient({ initialPlans }: { initialPlans: any[]
       });
 
       if (res.ok) {
-        alert(t('updateSuccess'));
+        toast.success(t('updateSuccess'));
         router.refresh();
       } else {
         const data = await res.json();
-        alert(data.error || t('updateFail'));
+        toast.error(data.error || t('updateFail'));
       }
     } catch (err) {
-      alert(t('networkError'));
+      toast.error(t('networkError'));
     } finally {
       setLoading(null);
     }

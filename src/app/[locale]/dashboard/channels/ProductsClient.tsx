@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
@@ -71,10 +72,10 @@ export default function ProductsClient({ channelId }: { channelId: string }) {
         fetchProducts();
       } else {
         const data = await res.json();
-        alert(data.error || t('saveProductFail'));
+        toast.error(data.error || t('saveProductFail'));
       }
     } catch (err) {
-      alert(t('networkError'));
+      toast.error(t('networkError'));
     } finally {
       setSubmitLoading(false);
     }
@@ -88,7 +89,7 @@ export default function ProductsClient({ channelId }: { channelId: string }) {
         fetchProducts();
       }
     } catch (err) {
-      alert(t('networkError'));
+      toast.error(t('networkError'));
     }
   };
 

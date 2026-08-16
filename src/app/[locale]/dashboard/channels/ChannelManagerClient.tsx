@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -18,14 +19,14 @@ export default function ChannelManagerClient({ channels, maxChannels }: { channe
     try {
       const res = await fetch(`/api/channels/${id}`, { method: "DELETE" });
       if (res.ok) {
-        alert(t('deleteSuccess'));
+        toast.success(t('deleteSuccess'));
         router.refresh();
       } else {
         const data = await res.json();
-        alert(data.error || t('deleteFail'));
+        toast.error(data.error || t('deleteFail'));
       }
     } catch (err) {
-      alert(t('networkError'));
+      toast.error(t('networkError'));
     }
   };
 

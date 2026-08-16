@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -48,7 +49,7 @@ export default function UploadProofClient({ invoiceId, currentProof }: { invoice
       
       const data = await res.json();
       if (res.ok) {
-        alert(t('uploadSuccess'));
+        toast.success(t('uploadSuccess'));
         router.refresh();
       } else {
         setError(data.error || t('uploadFail'));

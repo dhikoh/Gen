@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -25,11 +26,11 @@ export default function PricingClient({ plans, locale }: { plans: any[], locale:
         router.push(`/${locale}/dashboard/billing`);
         router.refresh();
       } else {
-        alert(data.error || t('systemError'));
+        toast.error(data.error || t('systemError'));
         setLoading(null);
       }
     } catch (error) {
-      alert(t('networkError'));
+      toast.error(t('networkError'));
       setLoading(null);
     }
   };

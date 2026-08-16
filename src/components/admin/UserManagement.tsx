@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 
 interface User {
   id: string;
@@ -74,7 +75,7 @@ export default function UserManagement({ initialPlans }: { initialPlans: Plan[] 
           closeModal();
         } else {
           const data = await res.json();
-          alert(data.error || "Gagal menghapus user");
+          toast.error(data.error || "Gagal menghapus user");
         }
       } else {
         const payload: any = { action: "" };
@@ -101,13 +102,14 @@ export default function UserManagement({ initialPlans }: { initialPlans: Plan[] 
         if (res.ok) {
           fetchUsers(search);
           closeModal();
+          toast.success("Aksi berhasil!");
         } else {
           const data = await res.json();
-          alert(data.error || "Aksi gagal");
+          toast.error(data.error || "Aksi gagal");
         }
       }
     } catch (error) {
-      alert("Terjadi kesalahan sistem.");
+      toast.error("Terjadi kesalahan sistem.");
     }
     setActionLoading(false);
   };
@@ -124,6 +126,17 @@ export default function UserManagement({ initialPlans }: { initialPlans: Plan[] 
     setNewRole(user.role);
     setNewPlanId(user.currentPlan?.id || "");
     if (action === "PASSWORD") setNewPassword(Math.random().toString(36).slice(-8));
+  };
+
+  const getRemainingDays = (expiresAt: string | null) => {
+    if (!expiresAt) return null;
+    const now = new Date();
+    const exp = new Date(expiresAt);
+    const diffTime = exp.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    if (diffDays > 0) return `${diffDays} hari tersisa`;
+    if (diffDays === 0) return "Hari ini terakhir";
+    return "Kedaluwarsa";
   };
 
   return (
@@ -183,7 +196,9 @@ export default function UserManagement({ initialPlans }: { initialPlans: Plan[] 
                     </span>
                     <div className="text-xs text-zinc-500 mt-1">{u.currentPlan?.name || t('free')}</div>
                     {u.subscriptionExpiresAt && (
-                      <div className="text-xs text-zinc-400 mt-0.5">Exp: {new Date(u.subscriptionExpiresAt).toLocaleDateString()}</div>
+                      <div className="text-xs font-medium mt-0.5 text-orange-600 dark:text-orange-400">
+                        Sisa: {getRemainingDays(u.subscriptionExpiresAt)}
+                      </div>
                     )}
                   </td>
                   <td className="px-6 py-4 text-right space-x-2">
