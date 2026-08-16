@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
 import { applyRateLimit } from "@/lib/rateLimit";
+import { requireActiveSubscription } from "@/lib/subscription";
 
 const productSchema = z.object({
   name: z.string().min(1, "Nama produk harus diisi"),
@@ -39,6 +40,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    try {
+      await requireActiveSubscription(session.user.id);
+    } catch (e: any) {
+      return NextResponse.json({ error: e.message || "Langganan tidak aktif" }, { status: 403 });
+    }
 
     const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
     const isAllowed = await applyRateLimit(`create_product_${session.user.id}_${ip}`, 15, 60 * 15); // 15 products per 15 minutes

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { z } from "zod";
 import { enforceChannelLimits } from "@/lib/channelLockLogic";
 import { applyRateLimit } from "@/lib/rateLimit";
+import { requireActiveSubscription } from "@/lib/subscription";
 
 const channelSchema = z.object({
   channelName: z.string().min(1, "Nama channel harus diisi"),
@@ -44,6 +45,13 @@ export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Require active subscription
+    try {
+      await requireActiveSubscription(session.user.id);
+    } catch (e: any) {
+      return NextResponse.json({ error: e.message || "Langganan tidak aktif" }, { status: 403 });
     }
 
     const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
