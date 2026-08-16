@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import Link from "next/link";
 import { DraftType } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
+import DraftFilter from "@/components/dashboard/DraftFilter";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -11,21 +12,37 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   return { title: `${t('pageTitleTab')} - Prompt Gen` };
 }
 
-export default async function DraftsPage({ params }: { params: Promise<{ locale: string }> }) {
+export default async function DraftsPage({ 
+  params, 
+  searchParams 
+}: { 
+  params: Promise<{ locale: string }>,
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
   const { locale } = await params;
+  const { channelId, type } = await searchParams;
   const session = await getServerSession(authOptions);
   
   if (!session) return null;
 
   const t = await getTranslations({ locale, namespace: 'Drafts' });
 
+  const whereClause: any = { userId: session.user.id };
+  if (channelId && typeof channelId === 'string') whereClause.channelId = channelId;
+  if (type && typeof type === 'string') whereClause.type = type as DraftType;
+
   // Fetch drafts history for the current user
   const drafts = await prisma.draft.findMany({
-    where: { userId: session.user.id },
+    where: whereClause,
     orderBy: { createdAt: "desc" },
     include: {
       channel: true,
     }
+  });
+
+  const channels = await prisma.profileChannel.findMany({
+    where: { userId: session.user.id },
+    select: { id: true, channelName: true }
   });
 
   const templates = drafts.filter(d => d.isTemplate);
@@ -46,6 +63,12 @@ export default async function DraftsPage({ params }: { params: Promise<{ locale:
           {t('createNew')}
         </Link>
       </div>
+
+      <DraftFilter 
+        channels={channels} 
+        defaultChannelId={typeof channelId === 'string' ? channelId : undefined} 
+        defaultType={typeof type === 'string' ? type : undefined} 
+      />
 
       {drafts.length === 0 ? (
         <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-12 flex flex-col items-center justify-center text-center">

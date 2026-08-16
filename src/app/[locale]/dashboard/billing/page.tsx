@@ -123,7 +123,7 @@ export default async function BillingPage({ params }: { params: Promise<{ locale
                             </span>
                           </div>
                           <div className="text-zinc-500">
-                            {new Date(inv.createdAt).toLocaleDateString('id-ID')}
+                            {new Date(inv.createdAt).toLocaleDateString(locale === 'en' ? 'en-US' : 'id-ID')}
                           </div>
                         </div>
                         {inv.status === "PENDING" && inv.method === "MANUAL_TRANSFER" && (
@@ -132,9 +132,9 @@ export default async function BillingPage({ params }: { params: Promise<{ locale
                               <p className="font-semibold mb-1">{t('paymentInstruction')}</p>
                               <p>{t('transferDesc')} <strong>Rp {inv.amount.toLocaleString('id-ID')}</strong> {t('toAccount')}</p>
                               <div className="mt-2 p-3 bg-white dark:bg-zinc-900 rounded border border-blue-200 dark:border-blue-800 font-mono text-xs">
-                                <p>Bank: {settings?.bankName || "-"}</p>
-                                <p>No. Rekening: <strong>{settings?.bankAccountNo || "-"}</strong></p>
-                                <p>A.N: {settings?.bankAccountName || "-"}</p>
+                                <p>{t('bank')} {settings?.bankName || "-"}</p>
+                                <p>{t('accountNo')} <strong>{settings?.bankAccountNo || "-"}</strong></p>
+                                <p>{t('accountName')} {settings?.bankAccountName || "-"}</p>
                               </div>
                             </div>
                             <UploadProofClient invoiceId={inv.id} currentProof={inv.proofUrl} />

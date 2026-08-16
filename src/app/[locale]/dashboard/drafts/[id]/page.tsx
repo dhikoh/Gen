@@ -5,6 +5,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import TemplateToggle from "./TemplateToggle";
 import DraftActions from "./DraftActions";
+import DraftTitle from "./DraftTitle";
 import { getTranslations } from "next-intl/server";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
@@ -49,7 +50,7 @@ export default async function DraftDetailPage({
         </Link>
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">{draft.title}</h1>
+            <DraftTitle draftId={draft.id} initialTitle={draft.title || ""} />
             <div className="flex items-center space-x-3 text-sm text-zinc-500 dark:text-zinc-400">
               <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
                 draft.type === "VIDEO"
@@ -73,23 +74,23 @@ export default async function DraftDetailPage({
 
       {draft.type === "VIDEO" && draft.targetDurationSec ? (
         <div className={`p-4 rounded-xl shadow-sm border mb-6 ${Math.abs(draft.targetDurationSec - (draft.estimatedDurationSec || 0)) / draft.targetDurationSec > 0.2 ? 'bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800' : 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800'}`}>
-          <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-2">Analisis Durasi</h2>
+          <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-2">{t('durationAnalysis')}</h2>
           <div className="flex space-x-8">
             <div>
-              <p className="text-xs text-zinc-500">Target Durasi</p>
-              <p className="text-lg font-bold text-zinc-800 dark:text-zinc-200">{draft.targetDurationSec} detik</p>
+              <p className="text-xs text-zinc-500">{t('targetDuration')}</p>
+              <p className="text-lg font-bold text-zinc-800 dark:text-zinc-200">{draft.targetDurationSec} {t('seconds')}</p>
             </div>
             <div>
-              <p className="text-xs text-zinc-500">Estimasi Hasil</p>
-              <p className={`text-lg font-bold ${Math.abs(draft.targetDurationSec - (draft.estimatedDurationSec || 0)) / draft.targetDurationSec > 0.2 ? 'text-amber-600 dark:text-amber-400' : 'text-green-600 dark:text-green-400'}`}>{draft.estimatedDurationSec} detik</p>
+              <p className="text-xs text-zinc-500">{t('estResult')}</p>
+              <p className={`text-lg font-bold ${Math.abs(draft.targetDurationSec - (draft.estimatedDurationSec || 0)) / draft.targetDurationSec > 0.2 ? 'text-amber-600 dark:text-amber-400' : 'text-green-600 dark:text-green-400'}`}>{draft.estimatedDurationSec} {t('seconds')}</p>
             </div>
             <div>
-              <p className="text-xs text-zinc-500">Jumlah Kata</p>
-              <p className="text-lg font-bold text-zinc-800 dark:text-zinc-200">{draft.wordCount} kata</p>
+              <p className="text-xs text-zinc-500">{t('wordCount')}</p>
+              <p className="text-lg font-bold text-zinc-800 dark:text-zinc-200">{draft.wordCount} {t('words')}</p>
             </div>
           </div>
           {Math.abs(draft.targetDurationSec - (draft.estimatedDurationSec || 0)) / draft.targetDurationSec > 0.2 && (
-             <p className="mt-2 text-sm text-amber-600 dark:text-amber-400 font-medium">⚠️ Peringatan: Selisih durasi melebihi 20%. Narasi mungkin terlalu panjang atau terlalu pendek.</p>
+             <p className="mt-2 text-sm text-amber-600 dark:text-amber-400 font-medium">{t('durationWarning')}</p>
           )}
         </div>
       ) : null}

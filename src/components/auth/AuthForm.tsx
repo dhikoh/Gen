@@ -37,7 +37,11 @@ export default function AuthForm() {
   const [audioBGM, setAudioBGM] = useState(true);
   const [audioSFX, setAudioSFX] = useState(true);
   const [audioVO, setAudioVO] = useState(true);
-  const [socialLinks, setSocialLinks] = useState(""); // Simplified to string for now or parsed to JSON later
+  const [socialTiktok, setSocialTiktok] = useState("");
+  const [socialInstagram, setSocialInstagram] = useState("");
+  const [socialYoutube, setSocialYoutube] = useState("");
+  const [socialFacebook, setSocialFacebook] = useState("");
+  const [socialWebsite, setSocialWebsite] = useState("");
 
   const handleNextStep = () => {
     if (password !== confirmPassword) {
@@ -74,10 +78,13 @@ export default function AuthForm() {
         }
       } else {
         // Register flow
-        let parsedSocial = {};
-        try {
-          if (socialLinks) parsedSocial = { url: socialLinks };
-        } catch(e) {}
+        const parsedSocial = {
+          tiktok: socialTiktok,
+          instagram: socialInstagram,
+          youtube: socialYoutube,
+          facebook: socialFacebook,
+          website: socialWebsite
+        };
 
         const res = await fetch("/api/auth/register", {
           method: "POST",
@@ -135,12 +142,14 @@ export default function AuthForm() {
       <div className="flex justify-center mb-8">
         <div className="bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg inline-flex neu-pressed">
           <button
+            type="button"
             onClick={() => { setIsLogin(true); setError(null); setRegisterStep(1); }}
             className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${isLogin ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
           >
             {t('login')}
           </button>
           <button
+            type="button"
             onClick={() => { setIsLogin(false); setError(null); }}
             className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${!isLogin ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
           >
@@ -231,48 +240,48 @@ export default function AuthForm() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('fullName')}</label>
-                  <input type="text" value={name} onChange={(e) => setName(e.target.value)} required className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
+                  <input type="text" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} required className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('username')}</label>
-                  <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} required className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
+                  <input type="text" autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} required className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
                 </div>
               </div>
               
               <div>
                 <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('email')}</label>
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
+                <input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('phone')}</label>
-                  <input type="tel" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
+                  <input type="tel" autoComplete="tel" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('dob')}</label>
-                  <input type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
+                  <input type="date" autoComplete="bday" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('password')}</label>
-                  <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
+                  <input type={showPassword ? "text" : "password"} autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('confirmPass')}</label>
-                  <input type={showPassword ? "text" : "password"} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
+                  <input type={showPassword ? "text" : "password"} autoComplete="new-password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
                 </div>
               </div>
 
               <button type="submit" className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-all mt-4 neu-flat">
-                <span dangerouslySetInnerHTML={{__html: t('continueStep2')}} />
+                <span>{t('continueStep2').replace('&rarr;', '→')}</span>
               </button>
             </>
           ) : (
             // REGISTER STEP 2 (Channel Profile)
-            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
               <h3 className="font-semibold text-zinc-800 dark:text-zinc-200 text-sm border-b pb-2 mb-2">{t('setupProfile')}</h3>
               
               <div>
@@ -315,9 +324,15 @@ export default function AuthForm() {
                 </div>
               </div>
               
-              <div>
-                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('socialMedia')}</label>
-                <input type="text" value={socialLinks} onChange={(e) => setSocialLinks(e.target.value)} placeholder={t('socialMediaPlaceholder')} className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
+              <div className="pt-2 border-t border-zinc-200 dark:border-zinc-800">
+                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-2">{t('socialMedia')} (Opsional)</label>
+                <div className="space-y-2">
+                  <input type="text" value={socialTiktok} onChange={(e) => setSocialTiktok(e.target.value)} placeholder="TikTok Username/URL" className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
+                  <input type="text" value={socialInstagram} onChange={(e) => setSocialInstagram(e.target.value)} placeholder="Instagram Username/URL" className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
+                  <input type="text" value={socialYoutube} onChange={(e) => setSocialYoutube(e.target.value)} placeholder="YouTube Channel URL" className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
+                  <input type="text" value={socialFacebook} onChange={(e) => setSocialFacebook(e.target.value)} placeholder="Facebook Page URL" className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
+                  <input type="text" value={socialWebsite} onChange={(e) => setSocialWebsite(e.target.value)} placeholder="Website URL" className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
+                </div>
               </div>
 
               <div className="flex space-x-2 pt-4">

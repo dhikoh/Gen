@@ -109,8 +109,16 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { searchParams } = new URL(req.url);
+    const channelId = searchParams.get('channelId');
+    const type = searchParams.get('type');
+
+    const whereClause: any = { userId: session.user.id };
+    if (channelId) whereClause.channelId = channelId;
+    if (type) whereClause.type = type;
+
     const drafts = await prisma.draft.findMany({
-      where: { userId: session.user.id },
+      where: whereClause,
       orderBy: { createdAt: "desc" },
     });
 

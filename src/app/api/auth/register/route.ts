@@ -21,7 +21,13 @@ const registerSchema = z.object({
   audioBGM: z.boolean().default(true),
   audioSFX: z.boolean().default(true),
   audioVO: z.boolean().default(true),
-  socialLinks: z.any().optional(),
+  socialLinks: z.object({
+    tiktok: z.string().optional(),
+    instagram: z.string().optional(),
+    youtube: z.string().optional(),
+    facebook: z.string().optional(),
+    website: z.string().optional()
+  }).optional(),
 });
 
 export async function POST(req: Request) {

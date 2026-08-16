@@ -33,7 +33,8 @@
     "channels": "Channel Settings",
     "billing": "Billing & Plans",
     "admin": "Admin Panel",
-    "logout": "Logout"
+    "logout": "Logout",
+    "studio": "Generator Studio"
   },
   "Auth": {
     "login": "Login",
@@ -105,11 +106,14 @@
     "method": "Method",
     "status": "Status",
     "date": "Date",
-    "manualTransfer": "Bank Transfer",
+    "manualTransfer": "Manual Transfer",
     "paymentGateway": "Payment Gateway",
-    "paymentInstruction": "Payment Instruction:",
-    "transferDesc": "Please transfer",
+    "paymentInstruction": "Payment Instructions",
+    "transferDesc": "Please transfer exactly",
     "toAccount": "to the following account:",
+    "bank": "Bank:",
+    "accountNo": "Account No.:",
+    "accountName": "A.N:",
     "uploadImageError": "Please upload an image file (JPG, PNG).",
     "uploadSizeError": "Image size maximum 2MB.",
     "uploadSuccess": "Transfer proof uploaded successfully! Awaiting admin verification.",
@@ -118,7 +122,10 @@
     "uploadProof": "Upload Transfer Proof",
     "uploading": "Uploading...",
     "changeProof": "Change Proof",
-    "sendProof": "Send Proof"
+    "sendProof": "Send Proof",
+    "bank": "Bank:",
+    "accountNo": "Account No.:",
+    "accountName": "A/N:"
   },
   "Channels": {
     "title": "Channel Settings",
@@ -287,7 +294,16 @@
     "generalError": "An error occurred",
     "saving": "Saving...",
     "templateSaved": "★ Saved Template",
-    "saveAsTemplate": "☆ Save as Template"
+    "saveAsTemplate": "☆ Save as Template",
+    "confirmDelete": "Are you sure you want to delete this draft?",
+    "copied": "Copied!",
+    "deleting": "Deleting...",
+    "durationAnalysis": "Duration Analysis",
+    "targetDuration": "Target Duration",
+    "estResult": "Estimated Result",
+    "wordCount": "Word Count",
+    "durationWarning": "⚠️ Warning: Duration difference exceeds 20%. Narrative may be too long or too short.",
+    "delete": "Delete"
   },
   "Pricing": {
     "pageTitleTab": "Choose Plan",
@@ -317,7 +333,10 @@
     "role": "Role",
     "subStatus": "Subscription Status",
     "joinedSince": "Joined Since",
-    "free": "Free"
+    "free": "Free",
+    "totalActiveUsers": "Total Active Users",
+    "monthlyRevenue": "Monthly Revenue",
+    "pendingInvoices": "Pending Invoices"
   },
   "AdminUsers": {
     "usersManagement": "Users Management",

@@ -6,6 +6,7 @@ import { z } from "zod";
 
 const updateDraftSchema = z.object({
   isTemplate: z.boolean().optional(),
+  title: z.string().min(1, "Title cannot be empty").optional(),
 });
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -62,11 +63,13 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const updatePayload: any = {};
+    if (parsedData.data.isTemplate !== undefined) updatePayload.isTemplate = parsedData.data.isTemplate;
+    if (parsedData.data.title !== undefined) updatePayload.title = parsedData.data.title;
+
     const updatedDraft = await prisma.draft.update({
       where: { id },
-      data: {
-        isTemplate: parsedData.data.isTemplate,
-      }
+      data: updatePayload
     });
 
     return NextResponse.json({ success: true, draft: updatedDraft }, { status: 200 });

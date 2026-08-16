@@ -5,14 +5,56 @@ import { prisma } from "@/lib/db";
 import { z } from "zod";
 import { applyRateLimit } from "@/lib/rateLimit";
 import { requireActiveSubscription } from "@/lib/subscription";
+import { generateMasterPrompt } from "@/lib/promptGenerator";
+import { generateImagePrompt } from "@/lib/imagePromptGenerator";
+
+const videoConfigSchema = z.object({
+  targetPlatform: z.string().optional(),
+  targetDurationSec: z.number().optional(),
+  pov: z.string().optional(),
+  speechRate: z.string().optional(),
+  hookStyle: z.string().optional(),
+  endingStyle: z.string().optional(),
+  composition: z.object({
+    education: z.number(),
+    entertainment: z.number(),
+    marketing: z.number()
+  }).optional(),
+  includeHook: z.boolean().optional(),
+  includeCTA: z.boolean().optional(),
+  socialCaption: z.boolean().optional(),
+  thumbnailIdea: z.boolean().optional(),
+  htmlBlog: z.boolean().optional(),
+});
+
+const imageConfigSchema = z.object({
+  cameraType: z.string().optional(),
+  shotType: z.string().optional(),
+  lighting: z.string().optional(),
+  mood: z.string().optional(),
+  colorGrading: z.string().optional(),
+  visualStyle: z.string().optional(),
+  negativePrompt: z.string().optional(),
+  variations: z.number().optional(),
+  aspectRatio: z.string().optional()
+});
 
 const generateSchema = z.object({
   type: z.enum(["VIDEO", "IMAGE"]),
   channelId: z.string(),
   topic: z.string().min(1, "Topik tidak boleh kosong"),
   additionalContext: z.string().optional(),
-  videoConfig: z.any().optional(),
-  imageConfig: z.any().optional(),
+  videoConfig: videoConfigSchema.optional(),
+  imageConfig: imageConfigSchema.optional(),
+}).refine(data => {
+  if (data.type === "VIDEO" && data.videoConfig?.composition) {
+    const { education, entertainment, marketing } = data.videoConfig.composition;
+    return education + entertainment + marketing === 100;
+  }
+  return true;
+}, {
+  message: "Total composition of Education, Entertainment, and Marketing must be exactly 100%.",
+  path: ["videoConfig", "composition"]
 });
 
 export async function POST(req: Request) {
@@ -32,7 +74,7 @@ export async function POST(req: Request) {
     const parsedData = generateSchema.safeParse(body);
 
     if (!parsedData.success) {
-      return NextResponse.json({ error: "Data tidak valid" }, { status: 400 });
+      return NextResponse.json({ error: "Data tidak valid", details: parsedData.error.flatten() }, { status: 400 });
     }
 
     const { type, channelId, topic, additionalContext, videoConfig, imageConfig } = parsedData.data;
@@ -72,27 +114,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Channel terkunci. Silakan upgrade paket." }, { status: 403 });
     }
 
-    // Build context strings
-    const channelContext = `
-Nama Channel/Akun: ${channel.channelName}
-Niche: ${channel.niche || "-"}
-Deskripsi/Ciri Khas: ${channel.description || "-"}
-Gaya Visual: ${channel.visualAesthetic || "-"}
-Call to Action 1: ${channel.cta1 || "-"}
-Call to Action 2: ${channel.cta2 || "-"}
-Gunakan Audio BGM: ${channel.audioBGM ? "Ya" : "Tidak"}
-Gunakan Audio SFX: ${channel.audioSFX ? "Ya" : "Tidak"}
-Gunakan Audio VO: ${channel.audioVO ? "Ya" : "Tidak"}
-`.trim();
-
-    let productContext = "";
-    if (channel.products && channel.products.length > 0) {
-      productContext = "Produk/Layanan yang ditawarkan (selipkan secara soft-selling jika memungkinkan):\n";
-      channel.products.forEach(p => {
-        productContext += `- ${p.name} (Rp ${p.price}): ${p.description || ""} [Link: ${p.link || "-"}]\n`;
-      });
-    }
-
     // Fetch previous titles to exclude
     const previousDrafts = await prisma.draft.findMany({
       where: { channelId, type },
@@ -108,79 +129,13 @@ Gunakan Audio VO: ${channel.audioVO ? "Ya" : "Tidak"}
     let systemInstruction = "";
 
     if (type === "VIDEO" && videoConfig) {
-      systemInstruction = `Kamu adalah asisten ahli kreator konten dan scriptwriter profesional. Bertindaklah sebagai ${videoConfig.pov || "Ahli di bidang ini"}.`;
-      
-      let jsonFields = [
-        `"judul_konten": "string (Judul menarik untuk video)"`
-      ];
-      if (videoConfig.includeCaption) jsonFields.push(`"caption_medsos": "string (Caption lengkap dengan hashtag)"`);
-      if (videoConfig.includeThumbnail) jsonFields.push(`"ide_thumbnail": "string (Ide visual thumbnail yang clickbait namun relevan)"`);
-      if (videoConfig.includeHtmlBlog) jsonFields.push(`"html_blog": "string (Artikel blog format HTML SEO-friendly berdasarkan skrip video)"`);
-      
-      jsonFields.push(`"segments": [\n    {\n      "order": number,\n      "type": "string (Tipe scene: A-roll, B-roll, Text, dsb)",\n      "visual": "string (Instruksi visual/kamera/B-roll)",\n      "audio": "string (Musik/Sound Effect)",\n      "caption": "string (Teks yang diucapkan/Voice Over)",\n      "duration_estimation": number (Estimasi detik)\n    }\n  ]`);
-
-      masterPrompt = `Buatkan skrip video secara mendetail berdasarkan parameter berikut:
-
-Topik: "${topic}"
-Konteks Tambahan: ${additionalContext || "-"}
-
-[PROFIL CHANNEL KREATOR]
-${channelContext}
-${productContext}${titleContext}
-
-[PARAMETER VIDEO]
-Target Platform: ${videoConfig.targetPlatform}
-Aspect Ratio: ${videoConfig.aspectRatio}
-Target Durasi: ${videoConfig.duration} (PENTING: Harus tepat di sekitar ${videoConfig.targetDurationSec} detik, sesuaikan panjang naskah)
-Laju Bicara: ${videoConfig.speechRate}
-
-[STRUKTUR & GAYA KONTEN]
-Komposisi: Edukasi ${videoConfig.compEdukasi}%, Hiburan ${videoConfig.compHiburan}%, Marketing ${videoConfig.compMarketing}%
-Hook Style: ${videoConfig.hookStyle} ${videoConfig.includeHook ? "(WAJIB ada di detik awal)" : ""}
-Ending Style: ${videoConfig.endingStyle} ${videoConfig.includeCTA ? "(Sertakan Call to Action yang kuat)" : ""}
-
-[INSTRUKSI OUTPUT]
-Berikan 10 opsi judul menarik, lalu pilih satu sebagai judul_konten utama.
-Berikan output HANYA dalam format JSON yang valid tanpa markdown block (\`\`\`). Struktur JSON wajib mengikuti skema berikut:
-{
-  "opsi_judul": ["string", "string", "..."],
-  ${jsonFields.join(",\n  ")}
-}`;
-
+      const result = generateMasterPrompt(channel, topic, additionalContext || "", videoConfig);
+      masterPrompt = result.masterPrompt + titleContext;
+      systemInstruction = result.systemInstruction;
     } else if (type === "IMAGE" && imageConfig) {
-      systemInstruction = `Kamu adalah asisten ahli pembuat prompt untuk AI Image Generator (seperti Midjourney, DALL-E, Stable Diffusion).`;
-      
-      masterPrompt = `Buatkan ${imageConfig.variations} variasi prompt gambar berkualitas tinggi berbahasa Inggris (Master Prompt) berdasarkan parameter berikut:
-
-Topik: "${topic}"
-Konteks Tambahan: ${additionalContext || "-"}
-
-[PROFIL KREATOR]
-${channelContext}${titleContext}
-
-[PARAMETER VISUAL GAMBAR]
-Camera & Lens: ${imageConfig.cameraType}
-Shot Type: ${imageConfig.shotType}
-Lighting: ${imageConfig.lighting}
-Mood/Atmosphere: ${imageConfig.mood}
-Color Grading: ${imageConfig.colorGrading}
-Visual Style: ${imageConfig.visualStyle}
-
-[NEGATIVE PROMPT (HINDARI)]
-${imageConfig.negativePrompt}
-
-[INSTRUKSI OUTPUT]
-Berikan output HANYA dalam format JSON yang valid. Struktur JSON wajib mengikuti skema berikut:
-{
-  "variations": [
-    {
-      "id": number,
-      "prompt_text": "string (Prompt lengkap dalam bahasa Inggris, menggabungkan topik dan semua parameter visual secara natural)",
-      "negative_prompt": "string (Berdasarkan referensi di atas)",
-      "aspect_ratio": "string (Rekomendasi rasio seperti --ar 16:9)"
-    }
-  ]
-}`;
+      const result = generateImagePrompt(channel, topic, additionalContext || "", imageConfig);
+      masterPrompt = result.masterPrompt + titleContext;
+      systemInstruction = result.systemInstruction;
     }
 
     const outputData = {

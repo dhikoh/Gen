@@ -50,7 +50,8 @@ export default function GeneratorForm({ channels }: { channels: any[] }) {
     colorGrading: "Teal and Orange",
     visualStyle: "Photorealistic",
     negativePrompt: "ugly, blurry, deformed, watermark",
-    variations: 4
+    variations: 4,
+    aspectRatio: "16:9"
   });
 
   const handleVideoConfigChange = (e: any) => {
@@ -391,6 +392,14 @@ export default function GeneratorForm({ channels }: { channels: any[] }) {
                   <div className="col-span-2">
                     <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('negativePrompt')}</label>
                     <input type="text" name="negativePrompt" value={imageConfig.negativePrompt} onChange={handleImageConfigChange} className="w-full px-3 py-1.5 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white" />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">Aspect Ratio</label>
+                    <select name="aspectRatio" value={imageConfig.aspectRatio} onChange={handleImageConfigChange} className="w-full px-3 py-1.5 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white mb-2">
+                      <option value="16:9">16:9 (Landscape)</option>
+                      <option value="9:16">9:16 (Portrait / Story)</option>
+                      <option value="1:1">1:1 (Square)</option>
+                    </select>
                   </div>
                   <div className="col-span-2">
                     <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('variations')}</label>
