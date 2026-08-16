@@ -52,6 +52,15 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Invalid credentials");
         }
 
+        // Self-healing subscription logic
+        if (user.subscriptionStatus === "ACTIVE" && user.subscriptionExpiresAt && user.subscriptionExpiresAt < new Date()) {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { subscriptionStatus: "EXPIRED" }
+          });
+          user.subscriptionStatus = "EXPIRED";
+        }
+
         return {
           id: user.id,
           name: user.name,

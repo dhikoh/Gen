@@ -12,7 +12,10 @@ export async function enforceChannelLimits(userId: string) {
 
   const channels = await prisma.profileChannel.findMany({
     where: { userId },
-    orderBy: { createdAt: "asc" }
+    orderBy: [
+      { lastUsedAt: "desc" },
+      { createdAt: "desc" }
+    ]
   });
 
   for (let i = 0; i < channels.length; i++) {

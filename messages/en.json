@@ -6,8 +6,23 @@
   },
   "Landing": {
     "heroTitle": "Prompt Gen",
-    "heroSubtitle": "SaaS platform for content creators",
-    "cta": "Start Free Now"
+    "heroSubtitle": "SaaS Platform for content creators",
+    "cta": "Start for Free",
+    "viewPricing": "View Pricing",
+    "featuresTitle": "Top Features",
+    "featuresSubtitle": "Designed for Professional Creators",
+    "feature1Title": "Accurate Video Structure",
+    "feature1Desc": "The system breaks down your ideas into visual segments, audio guides, and text captions per scene complete with duration estimation.",
+    "feature2Title": "Image Generator",
+    "feature2Desc": "Generate specific prompts with cinematic, photorealistic, or illustrative styles to render in Midjourney or DALL-E.",
+    "feature3Title": "Archive Management",
+    "feature3Desc": "All prompt generations are neatly saved in *drafts*. You can organize and reopen content ideas whenever needed.",
+    "pricingTitle": "Subscription Plans",
+    "pricingSubtitle": "Simple & Transparent Pricing",
+    "pricingManage": "Manage up to {max} Channels",
+    "pricingAI": "Access to AI Prompt Engine",
+    "pricingImage": "Midjourney/DALL-E Image Studio",
+    "subscribe": "Subscribe Now"
   },
   "Dashboard": {
     "overview": "Overview",
@@ -15,7 +30,6 @@
     "drafts": "Prompt History",
     "channels": "Channel Settings",
     "billing": "Billing & Plans",
-    "affiliate": "Affiliate",
     "admin": "Admin Panel",
     "logout": "Logout"
   },
@@ -52,21 +66,6 @@
     "startCreating": "Start Creating Prompts",
     "startCreatingDesc": "Prompt Gen platform is ready to help you generate prompts for various content creation needs.",
     "openGenerator": "Open Generator"
-  },
-  "Affiliate": {
-    "title": "Affiliate System",
-    "description": "Invite friends and earn a 20% commission from every plan they purchase.",
-    "totalReferral": "Total Referrals",
-    "totalCommissionPending": "Total Commission (Pending)",
-    "commissionPaid": "Commission Paid",
-    "referralLink": "Your Referral Link",
-    "shareLink": "Share this link. Anyone who registers through this link will be registered as your referral.",
-    "noReferralCode": "Referral Code not generated yet",
-    "commissionHistory": "Commission History",
-    "noCommission": "No commission recorded yet.",
-    "date": "Date",
-    "amount": "Amount",
-    "status": "Status"
   },
   "Billing": {
     "title": "Billing & Plans",
@@ -244,21 +243,6 @@
     "imagePrompt": "Image Prompt Studio",
     "choosePlan": "Choose Plan"
   },
-  "Affiliate": {
-    "title": "Affiliate Dashboard",
-    "description": "Share your referral link and earn a 20% commission from your friends' payments forever.",
-    "totalReferral": "Total Referrals",
-    "totalCommissionPending": "Pending Commission",
-    "commissionPaid": "Paid Commission",
-    "referralLink": "Your Referral Link",
-    "shareLink": "Share the link above. Cookies are valid for 30 days.",
-    "commissionHistory": "Commission History",
-    "noCommission": "No commission history yet.",
-    "date": "Date",
-    "amount": "Amount",
-    "status": "Status",
-    "noReferralCode": "No referral code yet"
-  },
   "Admin": {
     "pageTitleTab": "Admin Panel",
     "title": "Admin Panel",
@@ -268,7 +252,6 @@
     "users": "Users",
     "paymentApproval": "Payment Approvals",
     "subscriptionPlans": "Subscription Plans",
-    "affiliateCommission": "Affiliate Commissions",
     "systemSettings": "System Settings",
     "recentUsers": "Recent Users",
     "nameEmail": "Name / Email",
@@ -310,24 +293,6 @@
     "maxChannels": "Maximum Channels",
     "saving": "Saving...",
     "saveChanges": "Save Changes"
-  },
-  "AdminCommissions": {
-    "pageTitleTab": "Affiliate Commission - Admin Gen",
-    "title": "Commission Approval",
-    "description": "Manage affiliate commission payouts for users.",
-    "noData": "No commission data yet.",
-    "affiliate": "Affiliator",
-    "contact": "Contact",
-    "amount": "Amount",
-    "date": "Date",
-    "status": "Status",
-    "action": "Action",
-    "waitingTransfer": "Waiting for Transfer",
-    "confirmAction": "Mark this commission as {action}?",
-    "processFail": "Failed to process commission",
-    "systemError": "A system error occurred",
-    "markPaid": "Mark as Paid",
-    "reject": "Reject"
   },
   "AdminSettings": {
     "pageTitleTab": "System Settings - Admin",

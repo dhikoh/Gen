@@ -63,4 +63,24 @@ body {
     background: #0a0a0a;
     box-shadow: 20px 20px 60px #040404, -20px -20px 60px #101010;
   }
+
+  .neu-flat {
+    background: #f4f4f5;
+    box-shadow: 4px 4px 10px #d4d4d8, -4px -4px 10px #ffffff;
+  }
+  
+  .dark .neu-flat {
+    background: #18181b;
+    box-shadow: 4px 4px 10px #0a0a0a, -4px -4px 10px #27272a;
+  }
+
+  .neu-pressed {
+    background: #f4f4f5;
+    box-shadow: inset 4px 4px 10px #d4d4d8, inset -4px -4px 10px #ffffff;
+  }
+  
+  .dark .neu-pressed {
+    background: #18181b;
+    box-shadow: inset 4px 4px 10px #0a0a0a, inset -4px -4px 10px #27272a;
+  }
 }

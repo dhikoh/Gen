@@ -39,7 +39,7 @@ export default function ForgotPasswordForm() {
     <div className="w-full max-w-md mx-auto p-6 bg-white dark:bg-zinc-900 rounded-xl shadow-xl border border-zinc-200 dark:border-zinc-800">
       <div className="mb-6">
         <button
-          onClick={() => router.push("/id/auth")}
+          onClick={() => router.push(`/${document.documentElement.lang || 'id'}/auth`)}
           className="text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 flex items-center"
         >
           <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

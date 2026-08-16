@@ -49,3 +49,36 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
+
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id } = await params;
+
+    const existingDraft = await prisma.draft.findUnique({
+      where: { id }
+    });
+
+    if (!existingDraft) {
+      return NextResponse.json({ error: "Draft not found" }, { status: 404 });
+    }
+
+    if (existingDraft.userId !== session.user.id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    await prisma.draft.delete({
+      where: { id }
+    });
+
+    return NextResponse.json({ success: true, message: "Draft deleted" }, { status: 200 });
+
+  } catch (error) {
+    console.error("Draft delete error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}

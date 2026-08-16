@@ -46,7 +46,7 @@ export default function ResetPasswordForm() {
       } else {
         setMessage({ type: "success", text: data.message });
         setTimeout(() => {
-          router.push("/id/auth");
+          router.push(`/${document.documentElement.lang || 'id'}/auth`);
         }, 2000);
       }
     } catch (err) {
@@ -61,7 +61,7 @@ export default function ResetPasswordForm() {
       <div className="w-full max-w-md mx-auto p-6 bg-white dark:bg-zinc-900 rounded-xl shadow-xl border border-zinc-200 dark:border-zinc-800 text-center">
         <p className="text-red-600 dark:text-red-400 mb-4">{message?.text}</p>
         <button
-          onClick={() => router.push("/id/auth")}
+          onClick={() => router.push(`/${document.documentElement.lang || 'id'}/auth`)}
           className="text-blue-600 hover:underline"
         >
           Kembali ke Login

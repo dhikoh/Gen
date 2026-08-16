@@ -88,7 +88,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
               href="#pricing"
               className="w-full sm:w-auto px-8 py-3.5 text-base font-medium text-zinc-700 dark:text-zinc-200 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-full hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-all active:scale-95"
             >
-              Lihat Harga
+              {tLanding("viewPricing")}
             </a>
           </div>
         </div>
@@ -98,9 +98,9 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
       <section className="py-24 bg-white dark:bg-zinc-950">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-sm font-bold text-blue-600 tracking-wide uppercase">Fitur Unggulan</h2>
+            <h2 className="text-sm font-bold text-blue-600 tracking-wide uppercase">{tLanding("featuresTitle")}</h2>
             <p className="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-zinc-900 dark:text-white sm:text-4xl">
-              Didesain untuk Kreator Profesional
+              {tLanding("featuresSubtitle")}
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
@@ -111,9 +111,9 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-3">Struktur Video Akurat</h3>
+              <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-3">{tLanding("feature1Title")}</h3>
               <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed text-sm">
-                Sistem memecah ide Anda menjadi segmen visual, panduan audio, dan caption teks per scene lengkap dengan estimasi durasi.
+                {tLanding("feature1Desc")}
               </p>
             </div>
             {/* Feature 2 */}
@@ -123,9 +123,9 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-3">Generator Gambar</h3>
+              <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-3">{tLanding("feature2Title")}</h3>
               <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed text-sm">
-                Hasilkan prompt spesifik bergaya sinematik, fotorealistik, atau ilustratif untuk di-render di Midjourney maupun DALL-E.
+                {tLanding("feature2Desc")}
               </p>
             </div>
             {/* Feature 3 */}
@@ -135,9 +135,9 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-3">Manajemen Arsip</h3>
+              <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-3">{tLanding("feature3Title")}</h3>
               <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed text-sm">
-                Semua generasi prompt tersimpan rapi dalam *draft*. Anda dapat mengatur dan membuka kembali ide konten kapan saja dibutuhkan.
+                {tLanding("feature3Desc")}
               </p>
             </div>
           </div>
@@ -148,9 +148,9 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
       <section id="pricing" className="py-24 bg-zinc-50 dark:bg-zinc-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-sm font-bold text-blue-600 tracking-wide uppercase">Paket Langganan</h2>
+            <h2 className="text-sm font-bold text-blue-600 tracking-wide uppercase">{tLanding("pricingTitle")}</h2>
             <p className="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-zinc-900 dark:text-white sm:text-4xl">
-              Harga Sederhana & Transparan
+              {tLanding("pricingSubtitle")}
             </p>
           </div>
 
@@ -174,20 +174,20 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
                       <svg className="flex-shrink-0 h-5 w-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
-                      <span className="ml-3 font-medium">Manajemen hingga {plan.maxChannels} Channel</span>
+                      <span className="ml-3 font-medium">{tLanding("pricingManage", { max: plan.maxChannels })}</span>
                     </li>
                     <li className="flex items-start">
                       <svg className="flex-shrink-0 h-5 w-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
-                      <span className="ml-3 font-medium">Akses Engine Prompt Gen AI</span>
+                      <span className="ml-3 font-medium">{tLanding("pricingAI")}</span>
                     </li>
                     {(plan.features as any)?.imagePromptStudio && (
                       <li className="flex items-start">
                         <svg className="flex-shrink-0 h-5 w-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                         </svg>
-                        <span className="ml-3 font-medium">Studio Gambar Midjourney/DALL-E</span>
+                        <span className="ml-3 font-medium">{tLanding("pricingImage")}</span>
                       </li>
                     )}
                   </ul>
@@ -201,7 +201,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
                         : "bg-zinc-100 hover:bg-zinc-200 text-zinc-900 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-white"
                     }`}
                   >
-                    Mulai Berlangganan
+                    {tLanding("subscribe")}
                   </Link>
                 </div>
               </div>

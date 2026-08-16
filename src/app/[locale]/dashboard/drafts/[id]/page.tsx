@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import TemplateToggle from "./TemplateToggle";
+import DraftActions from "./DraftActions";
 import { getTranslations } from "next-intl/server";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
@@ -65,9 +66,7 @@ export default async function DraftDetailPage({
           </div>
           <div className="flex space-x-3">
             <TemplateToggle draftId={draft.id} initialIsTemplate={draft.isTemplate} />
-            <button className="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-md hover:bg-zinc-50 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 dark:hover:bg-zinc-700 shadow-sm transition-colors">
-              {t('copyRawJson')}
-            </button>
+            <DraftActions draftId={draft.id} rawJson={draft.rawJson} locale={locale} />
           </div>
         </div>
       </div>

@@ -7,7 +7,22 @@
   "Landing": {
     "heroTitle": "Prompt Gen",
     "heroSubtitle": "Platform SaaS untuk kreator konten",
-    "cta": "Mulai Gratis Sekarang"
+    "cta": "Mulai Gratis Sekarang",
+    "viewPricing": "Lihat Harga",
+    "featuresTitle": "Fitur Unggulan",
+    "featuresSubtitle": "Didesain untuk Kreator Profesional",
+    "feature1Title": "Struktur Video Akurat",
+    "feature1Desc": "Sistem memecah ide Anda menjadi segmen visual, panduan audio, dan caption teks per scene lengkap dengan estimasi durasi.",
+    "feature2Title": "Generator Gambar",
+    "feature2Desc": "Hasilkan prompt spesifik bergaya sinematik, fotorealistik, atau ilustratif untuk di-render di Midjourney maupun DALL-E.",
+    "feature3Title": "Manajemen Arsip",
+    "feature3Desc": "Semua generasi prompt tersimpan rapi dalam *draft*. Anda dapat mengatur dan membuka kembali ide konten kapan saja dibutuhkan.",
+    "pricingTitle": "Paket Langganan",
+    "pricingSubtitle": "Harga Sederhana & Transparan",
+    "pricingManage": "Manajemen hingga {max} Channel",
+    "pricingAI": "Akses Engine Prompt Gen AI",
+    "pricingImage": "Studio Gambar Midjourney/DALL-E",
+    "subscribe": "Mulai Berlangganan"
   },
   "Dashboard": {
     "overview": "Ikhtisar",
@@ -15,7 +30,6 @@
     "drafts": "Riwayat Prompt",
     "channels": "Pengaturan Channel",
     "billing": "Tagihan & Paket",
-    "affiliate": "Afiliasi",
     "admin": "Admin Panel",
     "logout": "Keluar"
   },
@@ -52,21 +66,6 @@
     "startCreating": "Mulai Membuat Prompt",
     "startCreatingDesc": "Platform Prompt Gen siap membantu Anda menyusun prompt untuk berbagai kebutuhan pembuatan konten.",
     "openGenerator": "Buka Generator"
-  },
-  "Affiliate": {
-    "title": "Sistem Afiliasi",
-    "description": "Undang teman dan dapatkan komisi 20% dari setiap paket yang mereka beli.",
-    "totalReferral": "Total Referral",
-    "totalCommissionPending": "Total Komisi (Pending)",
-    "commissionPaid": "Komisi Dicairkan",
-    "referralLink": "Link Referral Anda",
-    "shareLink": "Bagikan link ini. Siapapun yang mendaftar melalui link ini akan terdaftar sebagai referral Anda.",
-    "noReferralCode": "Kode Referral belum dibuat",
-    "commissionHistory": "Riwayat Komisi",
-    "noCommission": "Belum ada komisi tercatat.",
-    "date": "Tanggal",
-    "amount": "Jumlah",
-    "status": "Status"
   },
   "Billing": {
     "title": "Tagihan & Paket",
@@ -244,21 +243,6 @@
     "imagePrompt": "Image Prompt Studio",
     "choosePlan": "Pilih Paket"
   },
-  "Affiliate": {
-    "title": "Dashboard Afiliasi",
-    "description": "Bagikan link referral Anda dan dapatkan komisi 20% dari setiap pembayaran teman Anda selamanya.",
-    "totalReferral": "Total Referral",
-    "totalCommissionPending": "Komisi Pending",
-    "commissionPaid": "Komisi Dibayar",
-    "referralLink": "Link Referral Anda",
-    "shareLink": "Bagikan link di atas. Cookie berlaku selama 30 hari.",
-    "commissionHistory": "Riwayat Komisi",
-    "noCommission": "Belum ada riwayat komisi.",
-    "date": "Tanggal",
-    "amount": "Jumlah",
-    "status": "Status",
-    "noReferralCode": "Belum ada kode referral"
-  },
   "Admin": {
     "pageTitleTab": "Admin Panel",
     "title": "Admin Panel",
@@ -268,7 +252,6 @@
     "users": "Pengguna",
     "paymentApproval": "Persetujuan Tagihan",
     "subscriptionPlans": "Paket Langganan",
-    "affiliateCommission": "Komisi Afiliasi",
     "systemSettings": "Pengaturan Sistem",
     "recentUsers": "Pengguna Terbaru",
     "nameEmail": "Nama / Email",
@@ -310,24 +293,6 @@
     "maxChannels": "Maksimal Channel",
     "saving": "Menyimpan...",
     "saveChanges": "Simpan Perubahan"
-  },
-  "AdminCommissions": {
-    "pageTitleTab": "Komisi Afiliasi - Admin Gen",
-    "title": "Persetujuan Komisi",
-    "description": "Kelola pencairan komisi afiliasi untuk pengguna.",
-    "noData": "Belum ada data komisi.",
-    "affiliate": "Afiliator",
-    "contact": "Kontak",
-    "amount": "Jumlah (Rp)",
-    "date": "Tanggal",
-    "status": "Status",
-    "action": "Aksi",
-    "waitingTransfer": "Menunggu Transfer",
-    "confirmAction": "Tandai komisi ini sebagai {action}?",
-    "processFail": "Gagal memproses komisi",
-    "systemError": "Terjadi kesalahan sistem",
-    "markPaid": "Tandai Cair",
-    "reject": "Tolak"
   },
   "AdminSettings": {
     "pageTitleTab": "Pengaturan Sistem - Admin",

@@ -18,6 +18,7 @@ export default function GeneratorForm({ channels }: { channels: any[] }) {
   const [step, setStep] = useState<1 | 2>(1);
   const [generatedPrompt, setGeneratedPrompt] = useState<string>("");
   const [aiResultJson, setAiResultJson] = useState<string>("");
+  const [manualTitle, setManualTitle] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
   // Video specific fields
@@ -125,12 +126,20 @@ export default function GeneratorForm({ channels }: { channels: any[] }) {
     setError(null);
 
     try {
-      const payload = {
+      let rateValue = 130;
+      if (videoConfig.speechRate === "Lambat") rateValue = 110;
+      if (videoConfig.speechRate === "Cepat") rateValue = 160;
+
+      const payload: any = {
         channelId,
         type,
         topic,
-        rawJson: aiResultJson
+        rawJson: aiResultJson,
+        speechRate: rateValue
       };
+      if (manualTitle.trim()) {
+        payload.title = manualTitle;
+      }
 
       const res = await fetch("/api/drafts", {
         method: "POST",
@@ -464,6 +473,16 @@ export default function GeneratorForm({ channels }: { channels: any[] }) {
               <div className="flex flex-col h-1/2 border border-blue-200 dark:border-blue-900 rounded-lg overflow-hidden bg-blue-50/30 dark:bg-blue-900/10">
                 <div className="p-3 bg-blue-100 dark:bg-blue-900 border-b border-blue-200 dark:border-blue-800">
                   <span className="text-xs font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wider">2. Paste Output JSON di Sini</span>
+                </div>
+                <div className="px-4 py-2 border-b border-blue-200/50 dark:border-blue-800/50">
+                  <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">Judul Spesifik (Opsional)</label>
+                  <input
+                    type="text"
+                    value={manualTitle}
+                    onChange={(e) => setManualTitle(e.target.value)}
+                    placeholder="Judul draft akan diambil dari JSON jika ini dikosongkan"
+                    className="w-full px-3 py-1.5 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none dark:text-white"
+                  />
                 </div>
                 <textarea
                   value={aiResultJson}

@@ -12,13 +12,12 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 }
 
 export default async function AdminPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
   const session = await getServerSession(authOptions);
   
   if (!session || session.user.role !== "SUPERADMIN") {
-    redirect("/id/dashboard");
+    redirect(`/${locale}/dashboard`);
   }
-
-  const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'Admin' });
 
   // Dashboard Stats Queries

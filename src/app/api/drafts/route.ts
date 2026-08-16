@@ -8,7 +8,9 @@ const saveDraftSchema = z.object({
   channelId: z.string(),
   type: z.enum(["VIDEO", "IMAGE"]),
   topic: z.string(),
-  rawJson: z.string(), // This is the JSON string pasted by the user
+  rawJson: z.string(),
+  speechRate: z.number().default(130),
+  title: z.string().optional(),
 });
 
 export async function POST(req: Request) {
@@ -25,7 +27,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Data tidak valid" }, { status: 400 });
     }
 
-    const { channelId, type, topic, rawJson } = parsedInput.data;
+    const { channelId, type, topic, rawJson, speechRate, title: manualTitle } = parsedInput.data;
 
     // Parse the pasted JSON to validate it and extract data
     let parsedData: any;
@@ -46,7 +48,7 @@ export async function POST(req: Request) {
     // Calculate word count and estimated duration
     let wordCount = 0;
     let estimatedDurationSec = 0;
-    let title = parsedData.judul_konten || `Draft ${type}: ${topic.substring(0, 30)}`;
+    let title = manualTitle || parsedData.judul_konten || `Draft ${type}: ${topic.substring(0, 30)}`;
 
     if (type === "VIDEO" && parsedData.segments && Array.isArray(parsedData.segments)) {
       let totalWords = 0;
@@ -56,8 +58,9 @@ export async function POST(req: Request) {
         }
       });
       wordCount = totalWords;
-      // Assuming 130 words per minute (average speaking rate) -> ~2.16 words per second
-      estimatedDurationSec = Math.round(totalWords / 2.16);
+      // Calculate duration using exact words per second derived from speechRate (words per minute)
+      const wordsPerSecond = speechRate / 60;
+      estimatedDurationSec = Math.round(totalWords / wordsPerSecond);
     } else if (type === "IMAGE" && parsedData.variations && Array.isArray(parsedData.variations)) {
       let totalWords = 0;
       parsedData.variations.forEach((v: any) => {
