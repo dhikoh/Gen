@@ -420,5 +420,31 @@
     "bankAccountName": "Account Owner Name",
     "saving": "Saving...",
     "saveSettings": "Save Settings"
+  },
+  "API": {
+    "unauthorized": "Unauthorized",
+    "invalidData": "Invalid data",
+    "systemError": "System error occurred",
+    "serverError": "Internal server error",
+    "notFound": "Not found",
+    "channelNotFound": "Channel not found",
+    "userNotFound": "User not found.",
+    "rateLimit": "Too many requests. Please wait.",
+    "inactiveSub": "Your subscription is inactive. Please upgrade to PRO.",
+    "imageStudioLocked": "Image Prompt Studio is not available on your plan. Please upgrade.",
+    "invalidChannel": "Invalid Profile Channel.",
+    "channelLocked": "Channel is locked. Please upgrade your plan.",
+    "draftNotFound": "Draft not found",
+    "forbidden": "Forbidden",
+    "invalidJson": "Invalid JSON format. Make sure you copied the entire AI output.",
+    "draftSaveError": "Failed to save draft.",
+    "generateError": "An error occurred while generating prompt.",
+    "rateLimitProduct": "Too many product creation requests. Try again later.",
+    "invoiceNotFound": "Invoice not found",
+    "proofRequired": "Transfer proof is required",
+    "invalidProofUrl": "Invalid transfer proof URL",
+    "invoiceNotPending": "Invoice is not in PENDING state",
+    "uploadProofFail": "Failed to upload transfer proof",
+    "noPrimaryChannel": "No primary channel to set."
   }
 }

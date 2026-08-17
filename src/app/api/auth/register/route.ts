@@ -1,3 +1,4 @@
+import { getApiTranslator } from "@/lib/apiI18n";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcrypt";
@@ -32,6 +33,7 @@ const registerSchema = z.object({
 
 export async function POST(req: Request) {
   try {
+    const t = await getApiTranslator();
     const body = await req.json();
     const emailStr = typeof body.email === 'string' ? body.email.toLowerCase() : 'unknown';
     const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
@@ -114,6 +116,6 @@ export async function POST(req: Request) {
 
   } catch (error) {
     console.error("Register error:", error);
-    return NextResponse.json({ error: "Terjadi kesalahan pada server" }, { status: 500 });
+    return NextResponse.json({ error: t("serverError") }, { status: 500 });
   }
 }

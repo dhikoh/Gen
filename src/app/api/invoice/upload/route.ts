@@ -1,3 +1,4 @@
+import { getApiTranslator } from "@/lib/apiI18n";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
@@ -12,9 +13,10 @@ const uploadSchema = z.object({
 
 export async function PUT(req: Request) {
   try {
+    const t = await getApiTranslator();
     const session = await getServerSession(authOptions);
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
     }
 
     const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
@@ -27,7 +29,7 @@ export async function PUT(req: Request) {
     const parsedData = uploadSchema.safeParse(body);
 
     if (!parsedData.success) {
-      return NextResponse.json({ error: "Data tidak valid" }, { status: 400 });
+      return NextResponse.json({ error: t("invalidData") }, { status: 400 });
     }
 
     const { invoiceId, proofBase64 } = parsedData.data;

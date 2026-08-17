@@ -1,3 +1,4 @@
+import { getApiTranslator } from "@/lib/apiI18n";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
@@ -20,22 +21,27 @@ const channelSchema = z.object({
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const t = await getApiTranslator();
     const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
     }
 
     const body = await req.json();
     const parsedData = channelSchema.safeParse(body);
 
     if (!parsedData.success) {
-      return NextResponse.json({ error: "Data tidak valid" }, { status: 400 });
+      return NextResponse.json({ error: t("invalidData") }, { status: 400 });
     }
 
     const channel = await prisma.profileChannel.findUnique({ where: { id } });
     if (!channel || channel.userId !== session.user.id) {
-      return NextResponse.json({ error: "Channel tidak ditemukan" }, { status: 404 });
+      return NextResponse.json({ error: t("channelNotFound") }, { status: 404 });
+    }
+
+    if (channel.isLocked) {
+      return NextResponse.json({ error: t("channelLocked") }, { status: 403 });
     }
 
     const updated = await prisma.profileChannel.update({
@@ -57,21 +63,22 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     return NextResponse.json({ success: true, channel: updated }, { status: 200 });
 
   } catch (error) {
-    return NextResponse.json({ error: "Terjadi kesalahan pada server" }, { status: 500 });
+    return NextResponse.json({ error: t("serverError") }, { status: 500 });
   }
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const t = await getApiTranslator();
     const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
     }
 
     const channel = await prisma.profileChannel.findUnique({ where: { id } });
     if (!channel || channel.userId !== session.user.id) {
-      return NextResponse.json({ error: "Channel tidak ditemukan" }, { status: 404 });
+      return NextResponse.json({ error: t("channelNotFound") }, { status: 404 });
     }
 
     // We can't delete the only channel if we want to enforce at least 1 channel, 
@@ -83,6 +90,6 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     return NextResponse.json({ success: true }, { status: 200 });
 
   } catch (error) {
-    return NextResponse.json({ error: "Terjadi kesalahan pada server" }, { status: 500 });
+    return NextResponse.json({ error: t("serverError") }, { status: 500 });
   }
 }

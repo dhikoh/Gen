@@ -1,3 +1,4 @@
+import { getApiTranslator } from "@/lib/apiI18n";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
@@ -12,17 +13,18 @@ const actionSchema = z.object({
 
 export async function POST(req: Request) {
   try {
+    const t = await getApiTranslator();
     const session = await getServerSession(authOptions);
     
     if (!session || session.user.role !== "SUPERADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
     }
 
     const body = await req.json();
     const parsedData = actionSchema.safeParse(body);
 
     if (!parsedData.success) {
-      return NextResponse.json({ error: "Data tidak valid" }, { status: 400 });
+      return NextResponse.json({ error: t("invalidData") }, { status: 400 });
     }
 
     const { invoiceId, action } = parsedData.data;

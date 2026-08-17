@@ -1,3 +1,4 @@
+import { getApiTranslator } from "@/lib/apiI18n";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
@@ -15,8 +16,9 @@ const updateUserSchema = z.object({
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const t = await getApiTranslator();
     const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== "SUPERADMIN") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session || session.user.role !== "SUPERADMIN") return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
 
     const { id } = await params;
     if (session.user.id === id) {
@@ -33,15 +35,16 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const t = await getApiTranslator();
     const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== "SUPERADMIN") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session || session.user.role !== "SUPERADMIN") return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
 
     const { id } = await params;
     const body = await req.json();
     const parsedData = updateUserSchema.safeParse(body);
 
     if (!parsedData.success) {
-      return NextResponse.json({ error: "Data tidak valid" }, { status: 400 });
+      return NextResponse.json({ error: t("invalidData") }, { status: 400 });
     }
 
     const { action, role, daysToAdd, planId, newPassword } = parsedData.data;

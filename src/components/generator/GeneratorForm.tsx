@@ -107,9 +107,15 @@ export default function GeneratorForm({ channels }: { channels: any[] }) {
       if (!res.ok) {
         setError(data.error || t('generateError'));
       } else {
-        const fullText = `${data.data.system_instruction}\n\n${data.data.master_prompt}`;
-        setGeneratedPrompt(fullText);
-        setStep(2);
+        if (type === "IMAGE" && data.data.finalJson) {
+           setGeneratedPrompt(data.data.master_prompt);
+           setAiResultJson(data.data.finalJson);
+           setStep(2);
+        } else {
+           const fullText = `${data.data.system_instruction}\n\n${data.data.master_prompt}`;
+           setGeneratedPrompt(fullText);
+           setStep(2);
+        }
       }
     } catch (err) {
       setError(t('networkError'));
@@ -168,7 +174,7 @@ export default function GeneratorForm({ channels }: { channels: any[] }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
       {/* Kolom Form Input */}
-      <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-6 max-h-[85vh] overflow-y-auto custom-scrollbar">
+      <div className="glass-panel shadow-lg rounded-xl p-6 max-h-[85vh] overflow-y-auto custom-scrollbar">
         <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-6 sticky top-0 bg-white dark:bg-zinc-900 z-10 py-2 border-b border-zinc-100 dark:border-zinc-800">
           {t('paramTitle')}
         </h2>
@@ -443,7 +449,7 @@ export default function GeneratorForm({ channels }: { channels: any[] }) {
       </div>
 
       {/* Kolom Hasil */}
-      <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-6 flex flex-col h-[85vh]">
+      <div className="glass-panel shadow-lg rounded-xl p-6 flex flex-col h-[85vh]">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-zinc-900 dark:text-white">{step === 1 ? t('resultTitle') : t('resultAndSave')}</h2>
           {result && (

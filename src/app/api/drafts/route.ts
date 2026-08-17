@@ -1,3 +1,4 @@
+import { getApiTranslator } from "@/lib/apiI18n";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
@@ -16,16 +17,17 @@ const saveDraftSchema = z.object({
 
 export async function POST(req: Request) {
   try {
+    const t = await getApiTranslator();
     const session = await getServerSession(authOptions);
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
     }
 
     const body = await req.json();
     const parsedInput = saveDraftSchema.safeParse(body);
 
     if (!parsedInput.success) {
-      return NextResponse.json({ error: "Data tidak valid" }, { status: 400 });
+      return NextResponse.json({ error: t("invalidData") }, { status: 400 });
     }
 
     const { channelId, type, topic, rawJson, speechRate, title: manualTitle, targetDurationSec } = parsedInput.data;
@@ -35,7 +37,7 @@ export async function POST(req: Request) {
     try {
       parsedData = JSON.parse(rawJson);
     } catch (e) {
-      return NextResponse.json({ error: "Format JSON tidak valid. Pastikan Anda menyalin seluruh output AI." }, { status: 400 });
+      return NextResponse.json({ error: t("invalidJson") }, { status: 400 });
     }
 
     const channel = await prisma.profileChannel.findUnique({
@@ -43,7 +45,7 @@ export async function POST(req: Request) {
     });
 
     if (!channel || channel.userId !== session.user.id) {
-      return NextResponse.json({ error: "Profile Channel tidak valid." }, { status: 400 });
+      return NextResponse.json({ error: t("invalidChannel") }, { status: 400 });
     }
 
     // Calculate word count and estimated duration
@@ -98,15 +100,16 @@ export async function POST(req: Request) {
 
   } catch (error) {
     console.error("Save Draft API error:", error);
-    return NextResponse.json({ error: "Terjadi kesalahan saat menyimpan draft." }, { status: 500 });
+    return NextResponse.json({ error: t("draftSaveError") }, { status: 500 });
   }
 }
 
 export async function GET(req: Request) {
   try {
+    const t = await getApiTranslator();
     const session = await getServerSession(authOptions);
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
     }
 
     const { searchParams } = new URL(req.url);
@@ -124,6 +127,6 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ drafts }, { status: 200 });
   } catch (error) {
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    return NextResponse.json({ error: t("serverError") }, { status: 500 });
   }
 }

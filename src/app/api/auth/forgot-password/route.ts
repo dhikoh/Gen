@@ -1,3 +1,4 @@
+import { getApiTranslator } from "@/lib/apiI18n";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
@@ -11,6 +12,7 @@ const forgotPasswordSchema = z.object({
 
 export async function POST(req: Request) {
   try {
+    const t = await getApiTranslator();
     const body = await req.json();
     const identifierStr = typeof body.identifier === 'string' ? body.identifier.toLowerCase() : 'unknown';
     const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
@@ -71,6 +73,6 @@ export async function POST(req: Request) {
 
   } catch (error) {
     console.error("Forgot password error:", error);
-    return NextResponse.json({ error: "Terjadi kesalahan pada server" }, { status: 500 });
+    return NextResponse.json({ error: t("serverError") }, { status: 500 });
   }
 }

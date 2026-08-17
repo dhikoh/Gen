@@ -71,7 +71,7 @@ export default async function DraftsPage({
       />
 
       {drafts.length === 0 ? (
-        <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-12 flex flex-col items-center justify-center text-center">
+        <div className="glass-panel shadow-lg rounded-xl p-12 flex flex-col items-center justify-center text-center">
           <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center mb-4">
             <svg className="w-8 h-8 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
@@ -128,7 +128,7 @@ export default async function DraftsPage({
             <h2 className="text-lg font-bold text-zinc-900 dark:text-white mb-4">{t('allHistory')}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {drafts.filter(d => !d.isTemplate).map((draft) => (
-            <div key={draft.id} className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 flex flex-col overflow-hidden hover:shadow-md transition-shadow">
+            <div key={draft.id} className="glass-panel shadow-lg rounded-xl flex flex-col overflow-hidden hover:shadow-md transition-shadow">
               <div className="p-5 border-b border-zinc-100 dark:border-zinc-800/50 flex-1">
                 <div className="flex justify-between items-start mb-3">
                   <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${

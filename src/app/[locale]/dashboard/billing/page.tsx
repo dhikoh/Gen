@@ -50,7 +50,7 @@ export default async function BillingPage({ params }: { params: Promise<{ locale
         </Link>
       </div>
 
-      <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-6">
+      <div className="glass-panel shadow-lg rounded-xl p-6">
         <h2 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-2">{t('currentPlan')}</h2>
         <div className="flex items-center space-x-4">
           <div className="text-2xl font-bold text-zinc-900 dark:text-white">
@@ -71,7 +71,7 @@ export default async function BillingPage({ params }: { params: Promise<{ locale
         )}
       </div>
 
-      <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+      <div className="glass-panel shadow-lg rounded-xl overflow-hidden">
         <div className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950">
           <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{t('transactionHistory')}</h2>
         </div>

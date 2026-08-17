@@ -420,5 +420,31 @@
     "bankAccountName": "Nama Pemilik Rekening",
     "saving": "Menyimpan...",
     "saveSettings": "Simpan Pengaturan"
+  },
+  "API": {
+    "unauthorized": "Unauthorized",
+    "invalidData": "Data tidak valid",
+    "systemError": "Terjadi kesalahan sistem",
+    "serverError": "Terjadi kesalahan pada server",
+    "notFound": "Tidak ditemukan",
+    "channelNotFound": "Channel tidak ditemukan",
+    "userNotFound": "User tidak ditemukan.",
+    "rateLimit": "Terlalu banyak request. Harap tunggu sebentar.",
+    "inactiveSub": "Langganan Anda tidak aktif. Silakan beli paket PRO di menu Tagihan.",
+    "imageStudioLocked": "Fitur Image Prompt Studio tidak tersedia di paket Anda. Silakan upgrade paket.",
+    "invalidChannel": "Profile Channel tidak valid.",
+    "channelLocked": "Channel terkunci. Silakan upgrade paket untuk membuka akses.",
+    "draftNotFound": "Draft tidak ditemukan",
+    "forbidden": "Dilarang mengakses",
+    "invalidJson": "Format JSON tidak valid. Pastikan Anda menyalin seluruh output AI.",
+    "draftSaveError": "Terjadi kesalahan saat menyimpan draft.",
+    "generateError": "Terjadi kesalahan pada server saat memproses prompt.",
+    "rateLimitProduct": "Terlalu banyak permintaan pembuatan produk. Coba lagi nanti.",
+    "invoiceNotFound": "Invoice tidak ditemukan",
+    "proofRequired": "Bukti transfer wajib diunggah",
+    "invalidProofUrl": "URL bukti transfer tidak valid",
+    "invoiceNotPending": "Invoice tidak dalam status PENDING",
+    "uploadProofFail": "Gagal mengunggah bukti transfer",
+    "noPrimaryChannel": "Belum ada channel utama untuk diset."
   }
 }

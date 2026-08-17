@@ -141,7 +141,7 @@ export default function UserManagement({ initialPlans }: { initialPlans: Plan[] 
   };
 
   return (
-    <div className="bg-white dark:bg-zinc-900 shadow-sm rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+    <div className="glass-panel shadow-lg rounded-xl overflow-hidden">
       <div className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">{tu('usersManagement')}</h2>
         <form onSubmit={handleSearch} className="flex w-full sm:w-auto">
@@ -224,7 +224,7 @@ export default function UserManagement({ initialPlans }: { initialPlans: Plan[] 
       {/* Action Modal */}
       {modalAction && selectedUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-xl w-full max-w-md overflow-hidden border border-zinc-200 dark:border-zinc-800">
+          <div className="glass-panel rounded-xl shadow-xl w-full max-w-md overflow-hidden">
             <div className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center">
               <h3 className="font-semibold text-zinc-900 dark:text-white">
                 {modalAction === "ROLE" && tu('changeRole')}

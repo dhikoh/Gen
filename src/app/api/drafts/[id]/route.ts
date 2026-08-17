@@ -1,3 +1,4 @@
+import { getApiTranslator } from "@/lib/apiI18n";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
@@ -11,9 +12,10 @@ const updateDraftSchema = z.object({
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const t = await getApiTranslator();
     const session = await getServerSession(authOptions);
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
     }
 
     const { id } = await params;
@@ -22,25 +24,26 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     });
 
     if (!existingDraft) {
-      return NextResponse.json({ error: "Draft not found" }, { status: 404 });
+      return NextResponse.json({ error: t("draftNotFound") }, { status: 404 });
     }
 
     if (existingDraft.userId !== session.user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return NextResponse.json({ error: t("forbidden") }, { status: 403 });
     }
 
     return NextResponse.json({ success: true, data: existingDraft }, { status: 200 });
   } catch (error) {
     console.error("Draft get error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: t("serverError") }, { status: 500 });
   }
 }
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const t = await getApiTranslator();
     const session = await getServerSession(authOptions);
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
     }
 
     const { id } = await params;
@@ -56,11 +59,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     });
 
     if (!existingDraft) {
-      return NextResponse.json({ error: "Draft not found" }, { status: 404 });
+      return NextResponse.json({ error: t("draftNotFound") }, { status: 404 });
     }
 
     if (existingDraft.userId !== session.user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return NextResponse.json({ error: t("forbidden") }, { status: 403 });
     }
 
     const updatePayload: any = {};
@@ -76,15 +79,16 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
   } catch (error) {
     console.error("Draft update error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: t("serverError") }, { status: 500 });
   }
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const t = await getApiTranslator();
     const session = await getServerSession(authOptions);
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
     }
 
     const { id } = await params;
@@ -94,11 +98,11 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     });
 
     if (!existingDraft) {
-      return NextResponse.json({ error: "Draft not found" }, { status: 404 });
+      return NextResponse.json({ error: t("draftNotFound") }, { status: 404 });
     }
 
     if (existingDraft.userId !== session.user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return NextResponse.json({ error: t("forbidden") }, { status: 403 });
     }
 
     await prisma.draft.delete({
@@ -109,6 +113,6 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
   } catch (error) {
     console.error("Draft delete error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: t("serverError") }, { status: 500 });
   }
 }

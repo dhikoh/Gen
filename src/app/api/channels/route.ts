@@ -1,3 +1,4 @@
+import { getApiTranslator } from "@/lib/apiI18n";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
@@ -22,9 +23,10 @@ const channelSchema = z.object({
 
 export async function GET(req: Request) {
   try {
+    const t = await getApiTranslator();
     const session = await getServerSession(authOptions);
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
     }
 
     const channels = await prisma.profileChannel.findMany({
@@ -42,15 +44,16 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ channels, maxChannels }, { status: 200 });
   } catch (error) {
-    return NextResponse.json({ error: "Terjadi kesalahan sistem" }, { status: 500 });
+    return NextResponse.json({ error: t("systemError") }, { status: 500 });
   }
 }
 
 export async function POST(req: Request) {
   try {
+    const t = await getApiTranslator();
     const session = await getServerSession(authOptions);
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
     }
 
     // Require active subscription
@@ -70,7 +73,7 @@ export async function POST(req: Request) {
     const parsedData = channelSchema.safeParse(body);
 
     if (!parsedData.success) {
-      return NextResponse.json({ error: "Data tidak valid" }, { status: 400 });
+      return NextResponse.json({ error: t("invalidData") }, { status: 400 });
     }
 
     // Check limits
@@ -109,6 +112,6 @@ export async function POST(req: Request) {
 
   } catch (error) {
     console.error("Channel Create API error:", error);
-    return NextResponse.json({ error: "Terjadi kesalahan pada server" }, { status: 500 });
+    return NextResponse.json({ error: t("serverError") }, { status: 500 });
   }
 }

@@ -1,3 +1,4 @@
+import { getApiTranslator } from "@/lib/apiI18n";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
@@ -15,13 +16,14 @@ const productSchema = z.object({
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const t = await getApiTranslator();
     const { id } = await params;
     const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session) return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
 
     const channel = await prisma.profileChannel.findUnique({ where: { id } });
     if (!channel || channel.userId !== session.user.id) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return NextResponse.json({ error: t("notFound") }, { status: 404 });
     }
 
     const products = await prisma.product.findMany({
@@ -31,15 +33,16 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
     return NextResponse.json({ products }, { status: 200 });
   } catch (err) {
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    return NextResponse.json({ error: t("serverError") }, { status: 500 });
   }
 }
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const t = await getApiTranslator();
     const { id } = await params;
     const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session) return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
 
     try {
       await requireActiveSubscription(session.user.id);
@@ -50,12 +53,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
     const isAllowed = await applyRateLimit(`create_product_${session.user.id}_${ip}`, 15, 60 * 15); // 15 products per 15 minutes
     if (!isAllowed) {
-      return NextResponse.json({ error: "Terlalu banyak permintaan pembuatan produk. Coba lagi nanti." }, { status: 429 });
+      return NextResponse.json({ error: t("rateLimitProduct") }, { status: 429 });
     }
 
     const channel = await prisma.profileChannel.findUnique({ where: { id } });
     if (!channel || channel.userId !== session.user.id) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return NextResponse.json({ error: t("notFound") }, { status: 404 });
     }
 
     const body = await req.json();
@@ -74,6 +77,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     return NextResponse.json({ success: true, product }, { status: 201 });
   } catch (err) {
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    return NextResponse.json({ error: t("serverError") }, { status: 500 });
   }
 }

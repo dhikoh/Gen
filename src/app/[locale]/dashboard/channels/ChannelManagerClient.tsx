@@ -74,7 +74,7 @@ export default function ChannelManagerClient({ channels, maxChannels }: { channe
               </div>
             )}
             
-            <div className={`bg-white dark:bg-zinc-900 shadow-sm border ${channel.isLocked ? 'border-red-200 dark:border-red-900/30' : 'border-zinc-200 dark:border-zinc-800'} rounded-xl p-6`}>
+            <div className={`glass-panel shadow-lg border ${channel.isLocked ? 'border-red-200 dark:border-red-900/30' : 'border-zinc-200 dark:border-zinc-800'} rounded-xl p-6`}>
               <div className="flex justify-between items-start mb-6 border-b border-zinc-100 dark:border-zinc-800 pb-4">
                 <div>
                   <h3 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center">

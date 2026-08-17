@@ -1,3 +1,4 @@
+import { getApiTranslator } from "@/lib/apiI18n";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
@@ -59,22 +60,23 @@ const generateSchema = z.object({
 
 export async function POST(req: Request) {
   try {
+    const t = await getApiTranslator();
     const session = await getServerSession(authOptions);
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
     }
 
     const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
     const isAllowed = await applyRateLimit(`generate_${session.user.id}_${ip}`, 10, 60); 
     if (!isAllowed) {
-      return NextResponse.json({ error: "Terlalu banyak request. Harap tunggu sebentar." }, { status: 429 });
+      return NextResponse.json({ error: t("rateLimit") }, { status: 429 });
     }
 
     const body = await req.json();
     const parsedData = generateSchema.safeParse(body);
 
     if (!parsedData.success) {
-      return NextResponse.json({ error: "Data tidak valid", details: parsedData.error.flatten() }, { status: 400 });
+      return NextResponse.json({ error: t("invalidData"), details: parsedData.error.flatten() }, { status: 400 });
     }
 
     const { type, channelId, topic, additionalContext, videoConfig, imageConfig } = parsedData.data;
@@ -86,9 +88,9 @@ export async function POST(req: Request) {
       plan = result.plan;
     } catch (err: any) {
       if (err.message === "User not found") {
-        return NextResponse.json({ error: "User tidak ditemukan." }, { status: 404 });
+        return NextResponse.json({ error: t("userNotFound") }, { status: 404 });
       }
-      return NextResponse.json({ error: "Langganan Anda tidak aktif. Silakan beli paket PRO di menu Tagihan." }, { status: 403 });
+      return NextResponse.json({ error: t("inactiveSub") }, { status: 403 });
     }
 
     if (dbUser.role !== "SUPERADMIN") {
@@ -96,7 +98,7 @@ export async function POST(req: Request) {
       if (type === "IMAGE") {
         const features = plan?.features as any;
         if (!features || features.imagePromptStudio !== true) {
-          return NextResponse.json({ error: "Fitur Image Prompt Studio tidak tersedia di paket Anda. Silakan upgrade paket." }, { status: 403 });
+          return NextResponse.json({ error: t("imageStudioLocked") }, { status: 403 });
         }
       }
     }
@@ -107,11 +109,11 @@ export async function POST(req: Request) {
     });
 
     if (!channel || channel.userId !== session.user.id) {
-      return NextResponse.json({ error: "Profile Channel tidak valid." }, { status: 400 });
+      return NextResponse.json({ error: t("invalidChannel") }, { status: 400 });
     }
 
     if (channel.isLocked) {
-      return NextResponse.json({ error: "Channel terkunci. Silakan upgrade paket." }, { status: 403 });
+      return NextResponse.json({ error: t("channelLocked") }, { status: 403 });
     }
 
     // Fetch previous titles to exclude
@@ -127,6 +129,7 @@ export async function POST(req: Request) {
 
     let masterPrompt = "";
     let systemInstruction = "";
+    let finalJson: string | undefined = undefined;
 
     if (type === "VIDEO" && videoConfig) {
       const result = generateMasterPrompt(channel, topic, additionalContext || "", videoConfig);
@@ -136,12 +139,14 @@ export async function POST(req: Request) {
       const result = generateImagePrompt(channel, topic, additionalContext || "", imageConfig);
       masterPrompt = result.masterPrompt + titleContext;
       systemInstruction = result.systemInstruction;
+      finalJson = result.finalJson;
     }
 
-    const outputData = {
+    const outputData: any = {
       master_prompt: masterPrompt,
       system_instruction: systemInstruction,
     };
+    if (finalJson) outputData.finalJson = finalJson;
 
     return NextResponse.json({ 
       success: true, 
@@ -150,6 +155,6 @@ export async function POST(req: Request) {
 
   } catch (error) {
     console.error("Generate API error:", error);
-    return NextResponse.json({ error: "Terjadi kesalahan pada server saat memproses prompt." }, { status: 500 });
+    return NextResponse.json({ error: t("generateError") }, { status: 500 });
   }
 }

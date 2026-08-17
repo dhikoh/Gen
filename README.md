@@ -11,6 +11,11 @@ SaaS untuk Content Creator yang membantu menyusun Master Prompt AI secara terstr
    - `NEXTAUTH_SECRET`: String acak untuk enkripsi sesi (wajib).
    - `NEXTAUTH_URL`: URL utama aplikasi (misal: `http://localhost:3000`).
    - `STITCH_API_KEY`: API Key untuk Stitch Design System.
+   - `SMTP_HOST`: Host SMTP (misal: `smtp.resend.com`).
+   - `SMTP_PORT`: Port SMTP (misal: `465`).
+   - `SMTP_USER`: Username SMTP.
+   - `SMTP_PASS`: Password SMTP.
+   - `SMTP_FROM`: Alamat email pengirim (misal: `noreply@promptgen.com`).
 
 ## Database & Migrasi
 

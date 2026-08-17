@@ -97,14 +97,14 @@ export default async function DraftDetailPage({
 
       {/* Output Visualisasi */}
       <div className="space-y-6">
-        <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-6">
+        <div className="glass-panel shadow-lg rounded-xl p-6">
           <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-4">{t('masterPrompt')}</h2>
           <p className="text-zinc-900 dark:text-zinc-200 text-lg leading-relaxed bg-zinc-50 dark:bg-zinc-950 p-4 rounded-lg border border-zinc-100 dark:border-zinc-800">
             {parsedData?.master_prompt || t('noMasterPrompt')}
           </p>
         </div>
 
-        <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-6">
+        <div className="glass-panel shadow-lg rounded-xl p-6">
           <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-4">{t('systemInstruction')}</h2>
           <div className="bg-zinc-900 dark:bg-black text-green-400 font-mono text-sm p-4 rounded-lg overflow-x-auto">
             {parsedData?.system_instruction || t('noSystemInstruction')}
@@ -112,7 +112,7 @@ export default async function DraftDetailPage({
         </div>
 
         {parsedData?.segments && parsedData.segments.length > 0 && (
-          <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-0 overflow-hidden">
+          <div className="glass-panel shadow-lg rounded-xl p-0 overflow-hidden">
             <div className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950">
               <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{t('segments')}</h2>
             </div>
@@ -154,6 +154,41 @@ export default async function DraftDetailPage({
                       <p className="text-sm text-yellow-900 dark:text-yellow-500 italic">"{segment.caption}"</p>
                     </div>
                   )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {parsedData?.variations && parsedData.variations.length > 0 && (
+          <div className="glass-panel shadow-lg rounded-xl p-0 overflow-hidden mt-6">
+            <div className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Image Variations</h2>
+            </div>
+            <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
+              {parsedData.variations.map((variation: any, idx: number) => (
+                <div key={idx} className="p-6 hover:bg-zinc-50/50 dark:hover:bg-zinc-900/50 transition-colors">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 text-xs font-bold">
+                      {variation.id || idx + 1}
+                    </span>
+                    {variation.aspect_ratio && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">
+                        {variation.aspect_ratio}
+                      </span>
+                    )}
+                  </div>
+                  <div className="space-y-4">
+                    <div className="bg-zinc-50 dark:bg-zinc-950 p-3 rounded border border-zinc-100 dark:border-zinc-800">
+                      <p className="text-xs font-bold text-zinc-500 mb-1">Prompt</p>
+                      <p className="text-sm text-zinc-800 dark:text-zinc-200">{variation.prompt_text}</p>
+                    </div>
+                    {variation.negative_prompt && variation.negative_prompt !== "None" && (
+                      <div className="bg-red-50 dark:bg-red-900/10 p-3 rounded border border-red-100 dark:border-red-900/30">
+                        <p className="text-xs font-bold text-red-800 dark:text-red-600 mb-1">Negative Prompt</p>
+                        <p className="text-sm text-red-900 dark:text-red-500">{variation.negative_prompt}</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

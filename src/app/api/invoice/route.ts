@@ -1,3 +1,4 @@
+import { getApiTranslator } from "@/lib/apiI18n";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
@@ -11,10 +12,11 @@ const invoiceSchema = z.object({
 
 export async function POST(req: Request) {
   try {
+    const t = await getApiTranslator();
     const session = await getServerSession(authOptions);
     
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
     }
 
     const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
@@ -27,7 +29,7 @@ export async function POST(req: Request) {
     const parsedData = invoiceSchema.safeParse(body);
 
     if (!parsedData.success) {
-      return NextResponse.json({ error: "Data tidak valid" }, { status: 400 });
+      return NextResponse.json({ error: t("invalidData") }, { status: 400 });
     }
 
     const { planId } = parsedData.data;
@@ -54,18 +56,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Anda sudah memiliki tagihan pending untuk paket ini. Silakan lunasi terlebih dahulu." }, { status: 400 });
     }
 
-    // Buat invoice baru
-    const invoice = await prisma.invoice.create({
-      data: {
-        userId: session.user.id,
-        planId: planId,
-        amount: plan.priceMonthly,
-        currency: plan.currency,
-        method: "MANUAL_TRANSFER",
-        status: "PENDING",
-        periodDays: 30
-      }
-    });
+    // Buat invoice baru via Provider
+    const { ManualTransferProvider } = await import("@/lib/payments/manualTransferProvider");
+    const provider = new ManualTransferProvider();
+    const invoice = await provider.createInvoice(session.user.id, planId, plan.priceMonthly);
 
     return NextResponse.json({ success: true, invoiceId: invoice.id }, { status: 200 });
 

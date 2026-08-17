@@ -39,7 +39,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         {/* Status Langganan */}
-        <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-6">
+        <div className="glass-panel shadow-lg rounded-xl p-6">
           <h2 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-2">{t('subscriptionStatus')}</h2>
           <div className="flex items-center space-x-2 mb-4">
             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -64,7 +64,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
         </div>
 
         {/* Profil Channel Utama */}
-        <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-6">
+        <div className="glass-panel shadow-lg rounded-xl p-6">
           <h2 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-2">{t('mainChannel')}</h2>
           {currentChannel ? (
             <div>
@@ -84,7 +84,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
         </div>
       </div>
 
-      <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-6">
+      <div className="glass-panel shadow-lg rounded-xl p-6">
         <h2 className="text-lg font-bold text-zinc-900 dark:text-white mb-4">{t('startCreating')}</h2>
         <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-6">
           {t('startCreatingDesc')}

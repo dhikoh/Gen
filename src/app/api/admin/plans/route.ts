@@ -1,3 +1,4 @@
+import { getApiTranslator } from "@/lib/apiI18n";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
@@ -8,14 +9,16 @@ const planUpdateSchema = z.object({
   id: z.string(),
   priceMonthly: z.number().min(0),
   maxChannels: z.number().min(1),
-  isActive: z.boolean()
+  isActive: z.boolean(),
+  features: z.any().optional()
 });
 
 export async function GET() {
   try {
+    const t = await getApiTranslator();
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== "SUPERADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
     }
 
     const plans = await prisma.plan.findMany({
@@ -24,38 +27,44 @@ export async function GET() {
 
     return NextResponse.json({ plans }, { status: 200 });
   } catch (error) {
-    return NextResponse.json({ error: "Terjadi kesalahan sistem" }, { status: 500 });
+    return NextResponse.json({ error: t("systemError") }, { status: 500 });
   }
 }
 
 export async function PUT(req: Request) {
   try {
+    const t = await getApiTranslator();
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== "SUPERADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
     }
 
     const body = await req.json();
     const parsedData = planUpdateSchema.safeParse(body);
 
     if (!parsedData.success) {
-      return NextResponse.json({ error: "Data tidak valid" }, { status: 400 });
+      return NextResponse.json({ error: t("invalidData") }, { status: 400 });
     }
 
-    const { id, priceMonthly, maxChannels, isActive } = parsedData.data;
+    const { id, priceMonthly, maxChannels, isActive, features } = parsedData.data;
+
+    const dataToUpdate: any = {
+      priceMonthly,
+      maxChannels,
+      isActive
+    };
+    if (features !== undefined) {
+      dataToUpdate.features = features;
+    }
 
     const updated = await prisma.plan.update({
       where: { id },
-      data: {
-        priceMonthly,
-        maxChannels,
-        isActive
-      }
+      data: dataToUpdate
     });
 
     return NextResponse.json({ success: true, plan: updated }, { status: 200 });
   } catch (error) {
     console.error("Admin Plans API error:", error);
-    return NextResponse.json({ error: "Terjadi kesalahan sistem" }, { status: 500 });
+    return NextResponse.json({ error: t("systemError") }, { status: 500 });
   }
 }
