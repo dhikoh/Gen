@@ -32,9 +32,22 @@ export function generateImagePrompt(
       promptText += ` --no ${imageConfig.negativePrompt}`;
     }
 
+    // Create a narrative version
+    let narrative = `Generate an image about ${topic}. `;
+    if (additionalContext) narrative += `${additionalContext}. `;
+    if (channel.channelName) narrative += `The aesthetic should match the brand identity of ${channel.channelName}. `;
+    if (channel.visualAesthetic) narrative += `Visually, it must embody ${channel.visualAesthetic}. `;
+    if (imageConfig?.cameraType && imageConfig.cameraType !== "Default") narrative += `Imagine this captured on a ${imageConfig.cameraType}. `;
+    if (imageConfig?.shotType) narrative += `The framing is a ${imageConfig.shotType}. `;
+    if (imageConfig?.lighting) narrative += `It is illuminated by ${imageConfig.lighting}. `;
+    if (imageConfig?.mood) narrative += `The overall atmosphere conveys a ${imageConfig.mood} mood. `;
+    if (imageConfig?.colorGrading) narrative += `Apply a ${imageConfig.colorGrading} color grading. `;
+    if (imageConfig?.visualStyle) narrative += `The visual style is distinctly ${imageConfig.visualStyle}. `;
+
     variations.push({
       id: i,
       prompt_text: promptText,
+      narrative_prompt: narrative.trim(),
       negative_prompt: imageConfig?.negativePrompt || "",
       aspect_ratio: `--ar ${ar}`
     });

@@ -34,6 +34,6 @@ export async function GET(req: Request) {
     return NextResponse.json({ users }, { status: 200 });
   } catch (error) {
     console.error("Admin Users GET API error:", error);
-    return NextResponse.json({ error: "Terjadi kesalahan sistem." }, { status: 500 });
+    return NextResponse.json({ error: t("serverError") }, { status: 500 });
   }
 }

@@ -7,6 +7,7 @@ import TemplateToggle from "./TemplateToggle";
 import DraftActions from "./DraftActions";
 import DraftTitle from "./DraftTitle";
 import { getTranslations } from "next-intl/server";
+import CopyButton from "@/components/dashboard/CopyButton";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -97,19 +98,44 @@ export default async function DraftDetailPage({
 
       {/* Output Visualisasi */}
       <div className="space-y-6">
-        <div className="glass-panel shadow-lg rounded-xl p-6">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-4">{t('masterPrompt')}</h2>
-          <p className="text-zinc-900 dark:text-zinc-200 text-lg leading-relaxed bg-zinc-50 dark:bg-zinc-950 p-4 rounded-lg border border-zinc-100 dark:border-zinc-800">
-            {parsedData?.master_prompt || t('noMasterPrompt')}
-          </p>
-        </div>
-
-        <div className="glass-panel shadow-lg rounded-xl p-6">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-4">{t('systemInstruction')}</h2>
-          <div className="bg-zinc-900 dark:bg-black text-green-400 font-mono text-sm p-4 rounded-lg overflow-x-auto">
-            {parsedData?.system_instruction || t('noSystemInstruction')}
+        {parsedData?.caption_medsos && (
+          <div className="glass-panel shadow-lg rounded-xl p-6">
+            <div className="flex justify-between items-start mb-4">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Caption Medsos</h2>
+              <CopyButton textToCopy={parsedData.caption_medsos} />
+            </div>
+            <p className="text-zinc-900 dark:text-zinc-200 whitespace-pre-wrap bg-zinc-50 dark:bg-zinc-950 p-4 rounded-lg border border-zinc-100 dark:border-zinc-800">
+              {parsedData.caption_medsos}
+            </p>
           </div>
-        </div>
+        )}
+
+        {parsedData?.ide_thumbnail && (
+          <div className="glass-panel shadow-lg rounded-xl p-6">
+            <div className="flex justify-between items-start mb-4">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Ide Thumbnail</h2>
+              <CopyButton textToCopy={parsedData.ide_thumbnail} />
+            </div>
+            <p className="text-zinc-900 dark:text-zinc-200 bg-zinc-50 dark:bg-zinc-950 p-4 rounded-lg border border-zinc-100 dark:border-zinc-800">
+              {parsedData.ide_thumbnail}
+            </p>
+          </div>
+        )}
+
+        {parsedData?.html_blog && (
+          <div className="glass-panel shadow-lg rounded-xl p-6">
+            <div className="flex justify-between items-start mb-4">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">HTML Blog</h2>
+              <CopyButton textToCopy={parsedData.html_blog} />
+            </div>
+            <div className="bg-zinc-50 dark:bg-zinc-950 p-4 rounded-lg border border-zinc-100 dark:border-zinc-800 overflow-x-auto">
+              <div 
+                className="prose dark:prose-invert max-w-none text-sm"
+                dangerouslySetInnerHTML={{ __html: parsedData.html_blog }}
+              />
+            </div>
+          </div>
+        )}
 
         {parsedData?.segments && parsedData.segments.length > 0 && (
           <div className="glass-panel shadow-lg rounded-xl p-0 overflow-hidden">
@@ -179,9 +205,15 @@ export default async function DraftDetailPage({
                   </div>
                   <div className="space-y-4">
                     <div className="bg-zinc-50 dark:bg-zinc-950 p-3 rounded border border-zinc-100 dark:border-zinc-800">
-                      <p className="text-xs font-bold text-zinc-500 mb-1">{t('promptText')}</p>
+                      <p className="text-xs font-bold text-zinc-500 mb-1">{t('promptText')} (Tag)</p>
                       <p className="text-sm text-zinc-800 dark:text-zinc-200">{variation.prompt_text}</p>
                     </div>
+                    {variation.narrative_prompt && (
+                      <div className="bg-zinc-50 dark:bg-zinc-950 p-3 rounded border border-zinc-100 dark:border-zinc-800">
+                        <p className="text-xs font-bold text-zinc-500 mb-1">{t('promptText')} (Naratif)</p>
+                        <p className="text-sm text-zinc-800 dark:text-zinc-200">{variation.narrative_prompt}</p>
+                      </div>
+                    )}
                     {variation.negative_prompt && variation.negative_prompt !== "None" && (
                       <div className="bg-red-50 dark:bg-red-900/10 p-3 rounded border border-red-100 dark:border-red-900/30">
                         <p className="text-xs font-bold text-red-800 dark:text-red-600 mb-1">{t('negativePrompt')}</p>

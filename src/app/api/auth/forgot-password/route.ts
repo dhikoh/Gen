@@ -52,7 +52,10 @@ export async function POST(req: Request) {
       });
 
       // Send real email with token
-      const resetUrl = `${process.env.NEXTAUTH_URL}/id/auth/reset-password?token=${token}`;
+      const { cookies } = await import("next/headers");
+      const cookieStore = await cookies();
+      const locale = cookieStore.get('NEXT_LOCALE')?.value || 'id';
+      const resetUrl = `${process.env.NEXTAUTH_URL}/${locale}/auth/reset-password?token=${token}`;
       
       await sendEmail({
         to: user.email,

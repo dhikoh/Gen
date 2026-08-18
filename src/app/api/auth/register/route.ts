@@ -115,8 +115,11 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, message: t("accountCreated") }, { status: 201 });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Register error:", error);
+    if (error.code === 'P2002') {
+      return NextResponse.json({ error: t("emailUsed") + " / " + t("usernameUsed") }, { status: 409 });
+    }
     return NextResponse.json({ error: t("serverError") }, { status: 500 });
   }
 }

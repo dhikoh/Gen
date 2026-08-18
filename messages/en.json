@@ -113,7 +113,7 @@
     "toAccount": "to the following account:",
     "bank": "Bank:",
     "accountNo": "Account No.:",
-    "accountName": "A.N:",
+    "accountName": "A/N:",
     "uploadImageError": "Please upload an image file (JPG, PNG).",
     "uploadSizeError": "Image size maximum 2MB.",
     "uploadSuccess": "Transfer proof uploaded successfully! Awaiting admin verification.",
@@ -122,10 +122,7 @@
     "uploadProof": "Upload Transfer Proof",
     "uploading": "Uploading...",
     "changeProof": "Change Proof",
-    "sendProof": "Send Proof",
-    "bank": "Bank:",
-    "accountNo": "Account No.:",
-    "accountName": "A/N:"
+    "sendProof": "Send Proof"
   },
   "Channels": {
     "title": "Channel Settings",
@@ -480,6 +477,16 @@
     "invalidInput": "Invalid input",
     "resetLinkSent": "If the account is registered, a reset link has been sent to the email.",
     "invalidToken": "Token is invalid or has expired",
-    "passwordChanged": "Password successfully changed. Please login."
+    "passwordChanged": "Password successfully changed. Please login.",
+    "missingParams": "At least one parameter is required",
+    "emailTaken": "Email is already taken",
+    "usernameTaken": "Username is already taken",
+    "phoneTaken": "Phone number is already taken",
+    "available": "Available",
+    "fileTooLarge": "File size too large. Max 2MB.",
+    "invalidImageFormat": "Only JPG/PNG image formats are allowed.",
+    "invalidInvoice": "Invalid invoice or already processed.",
+    "tooManyChannels": "Too many channel creation requests. Try again later.",
+    "tooManyUploads": "Too many upload requests. Try again later."
   }
 }

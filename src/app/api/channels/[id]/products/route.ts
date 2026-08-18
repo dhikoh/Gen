@@ -65,7 +65,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     const body = await req.json();
     const parsed = productSchema.safeParse(body);
-    if (!parsed.success) return NextResponse.json({ error: "Invalid data" }, { status: 400 });
+    if (!parsed.success) return NextResponse.json({ error: t("invalidData") }, { status: 400 });
 
     const product = await prisma.product.create({
       data: {

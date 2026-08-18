@@ -30,7 +30,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     const body = await req.json();
     const parsed = productSchema.safeParse(body);
-    if (!parsed.success) return NextResponse.json({ error: "Invalid data" }, { status: 400 });
+    if (!parsed.success) return NextResponse.json({ error: t("invalidData") }, { status: 400 });
 
     const updated = await prisma.product.update({
       where: { id },

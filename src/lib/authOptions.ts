@@ -1,4 +1,5 @@
 import { NextAuthOptions } from "next-auth";
+import { encode as defaultEncode, decode as defaultDecode } from "next-auth/jwt";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcrypt";
 import { prisma } from "@/lib/db";
@@ -76,13 +77,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = user.role;
-        // set token expiry based on rememberMe explicitly as requested
-        const now = Math.floor(Date.now() / 1000);
-        if (user.rememberMe) {
-          token.exp = now + (30 * 24 * 60 * 60); // 30 days
-        } else {
-          token.exp = now + (24 * 60 * 60); // 1 day
-        }
+        token.rememberMe = user.rememberMe;
       }
       return token;
     },
@@ -92,6 +87,18 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role as string;
       }
       return session;
+    }
+  },
+  jwt: {
+    async encode(params) {
+      const token = params.token;
+      if (token && token.rememberMe === false) {
+        return defaultEncode({ ...params, maxAge: 24 * 60 * 60 }); // 1 day
+      }
+      return defaultEncode({ ...params, maxAge: 30 * 24 * 60 * 60 }); // 30 days
+    },
+    async decode(params) {
+      return defaultDecode(params);
     }
   }
 };

@@ -18,7 +18,7 @@ Gunakan Audio VO: ${channel.audioVO ? "Ya" : "Tidak"}
 
   const activeProducts = channel.products || [];
   const productContext = activeProducts.length > 0 
-    ? `Produk untuk Soft-selling:\n${activeProducts.map((p: any) => `- ${p.name} (Rp ${p.price}): ${p.shortDesc}`).join('\n')}`
+    ? `Produk untuk Soft-selling:\n${activeProducts.map((p: any) => `- ${p.name} (Rp ${p.price}): ${p.description}`).join('\n')}`
     : "Tidak ada produk khusus untuk disisipkan.";
 
   const systemInstruction = `Kamu adalah asisten ahli kreator konten dan scriptwriter profesional. Bertindaklah sebagai ${videoConfig?.pov || "Ahli di bidang ini"}.`;

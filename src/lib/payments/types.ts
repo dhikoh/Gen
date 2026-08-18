@@ -1,6 +1,13 @@
+export interface CreateInvoiceInput {
+  userId: string;
+  planId: string;
+  amount: number;
+}
+
 export interface PaymentProvider {
   name: string;
-  createInvoice(userId: string, planId: string, amount: number): Promise<any>;
-  verifyPayment(invoiceId: string, proofData?: any): Promise<boolean>;
+  method: "MANUAL_TRANSFER" | "AUTOMATIC_GATEWAY";
+  createInvoice(input: CreateInvoiceInput): Promise<{ invoiceId: string; paymentUrl?: string }>;
+  verifyPayment(invoiceId: string, proofData?: string): Promise<boolean>;
   getPaymentInstructions(): string;
 }

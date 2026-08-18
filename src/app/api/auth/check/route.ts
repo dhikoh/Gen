@@ -19,18 +19,18 @@ export async function POST(req: Request) {
     const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
     const isAllowed = await applyRateLimit(`check_${ip}_${identifierStr}`, 20, 60);
     if (!isAllowed) {
-      return NextResponse.json({ error: "Terlalu banyak permintaan. Coba lagi nanti." }, { status: 429 });
+      return NextResponse.json({ error: t("rateLimit") }, { status: 429 });
     }
     const parsedData = checkSchema.safeParse(body);
 
     if (!parsedData.success) {
-      return NextResponse.json({ error: "Input tidak valid" }, { status: 400 });
+      return NextResponse.json({ error: t("invalidData") }, { status: 400 });
     }
 
     const { email, username, phoneNumber } = parsedData.data;
 
     if (!email && !username && !phoneNumber) {
-      return NextResponse.json({ error: "Minimal satu parameter (email/username/phoneNumber) harus diisi" }, { status: 400 });
+      return NextResponse.json({ error: t("missingParams") }, { status: 400 });
     }
 
     const conditions = [];
@@ -46,17 +46,17 @@ export async function POST(req: Request) {
 
     if (existingUser) {
       if (email && existingUser.email.toLowerCase() === email.toLowerCase()) {
-        return NextResponse.json({ error: "Email sudah digunakan", field: "email" }, { status: 409 });
+        return NextResponse.json({ error: t("emailTaken"), field: "email" }, { status: 409 });
       }
       if (username && existingUser.username.toLowerCase() === username.toLowerCase()) {
-        return NextResponse.json({ error: "Username sudah digunakan", field: "username" }, { status: 409 });
+        return NextResponse.json({ error: t("usernameTaken"), field: "username" }, { status: 409 });
       }
       if (phoneNumber && existingUser.phoneNumber === phoneNumber) {
-        return NextResponse.json({ error: "Nomor HP sudah digunakan", field: "phoneNumber" }, { status: 409 });
+        return NextResponse.json({ error: t("phoneTaken"), field: "phoneNumber" }, { status: 409 });
       }
     }
 
-    return NextResponse.json({ success: true, message: "Tersedia" }, { status: 200 });
+    return NextResponse.json({ success: true, message: t("available") }, { status: 200 });
 
   } catch (error) {
     console.error("Check error:", error);

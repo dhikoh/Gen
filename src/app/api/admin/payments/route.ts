@@ -40,7 +40,7 @@ export async function POST(req: Request) {
     }
 
     if (action === "REJECT") {
-      await prisma.invoice.updateMany({
+      const updateResult = await prisma.invoice.updateMany({
         where: { id: invoiceId, status: "PENDING" },
         data: { 
           status: "REJECTED",
@@ -48,6 +48,10 @@ export async function POST(req: Request) {
           reviewedAt: new Date()
         }
       });
+      
+      if (updateResult.count === 0) {
+        return NextResponse.json({ error: t("invalidInvoice") }, { status: 400 });
+      }
       
       await sendEmail({
         to: invoice.user.email,

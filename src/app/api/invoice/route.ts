@@ -60,9 +60,13 @@ export async function POST(req: Request) {
     // Buat invoice baru via Provider
     const { ManualTransferProvider } = await import("@/lib/payments/manualTransferProvider");
     const provider = new ManualTransferProvider();
-    const invoice = await provider.createInvoice(session.user.id, planId, plan.priceMonthly);
+    const { invoiceId } = await provider.createInvoice({
+      userId: session.user.id, 
+      planId, 
+      amount: plan.priceMonthly
+    });
 
-    return NextResponse.json({ success: true, invoiceId: invoice.id }, { status: 200 });
+    return NextResponse.json({ success: true, invoiceId }, { status: 200 });
 
   } catch (error) {
     console.error("Create Invoice API error:", error);

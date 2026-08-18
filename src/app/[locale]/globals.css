@@ -3,6 +3,17 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-panel-bg: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.4);
+  --glass-panel-border: rgba(255, 255, 255, 0.5);
+  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+  
+  --neu-bg: #ffffff;
+  --neu-shadow: 20px 20px 60px #d9d9d9, -20px -20px 60px #ffffff;
+  --neu-flat-bg: #f4f4f5;
+  --neu-flat-shadow: 4px 4px 10px #d4d4d8, -4px -4px 10px #ffffff;
+  --neu-pressed-shadow: inset 4px 4px 10px #d4d4d8, inset -4px -4px 10px #ffffff;
 }
 
 @theme inline {
@@ -16,6 +27,17 @@
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --glass-bg: rgba(24, 24, 27, 0.7);
+    --glass-panel-bg: rgba(24, 24, 27, 0.85);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-panel-border: rgba(255, 255, 255, 0.1);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    
+    --neu-bg: #0a0a0a;
+    --neu-shadow: 20px 20px 60px #040404, -20px -20px 60px #101010;
+    --neu-flat-bg: #18181b;
+    --neu-flat-shadow: 4px 4px 10px #0a0a0a, -4px -4px 10px #27272a;
+    --neu-pressed-shadow: inset 4px 4px 10px #0a0a0a, inset -4px -4px 10px #27272a;
   }
 }
 
@@ -29,58 +51,58 @@ body {
 /* Glassmorphism / Neumorphism Stitch Utilities */
 @layer utilities {
   .glass {
-    background: rgba(255, 255, 255, 0.7);
+    background: var(--glass-bg);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
   }
   
   .dark .glass {
-    background: rgba(24, 24, 27, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
   }
 
   .glass-panel {
-    background: rgba(255, 255, 255, 0.85);
+    background: var(--glass-panel-bg);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.5);
+    border: 1px solid var(--glass-panel-border);
   }
 
   .dark .glass-panel {
-    background: rgba(24, 24, 27, 0.85);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--glass-panel-bg);
+    border: 1px solid var(--glass-panel-border);
   }
 
   .neumorphic {
-    background: #ffffff;
-    box-shadow: 20px 20px 60px #d9d9d9, -20px -20px 60px #ffffff;
+    background: var(--neu-bg);
+    box-shadow: var(--neu-shadow);
   }
   
   .dark .neumorphic {
-    background: #0a0a0a;
-    box-shadow: 20px 20px 60px #040404, -20px -20px 60px #101010;
+    background: var(--neu-bg);
+    box-shadow: var(--neu-shadow);
   }
 
   .neu-flat {
-    background: #f4f4f5;
-    box-shadow: 4px 4px 10px #d4d4d8, -4px -4px 10px #ffffff;
+    background: var(--neu-flat-bg);
+    box-shadow: var(--neu-flat-shadow);
   }
   
   .dark .neu-flat {
-    background: #18181b;
-    box-shadow: 4px 4px 10px #0a0a0a, -4px -4px 10px #27272a;
+    background: var(--neu-flat-bg);
+    box-shadow: var(--neu-flat-shadow);
   }
 
   .neu-pressed {
-    background: #f4f4f5;
-    box-shadow: inset 4px 4px 10px #d4d4d8, inset -4px -4px 10px #ffffff;
+    background: var(--neu-flat-bg);
+    box-shadow: var(--neu-pressed-shadow);
   }
   
   .dark .neu-pressed {
-    background: #18181b;
-    box-shadow: inset 4px 4px 10px #0a0a0a, inset -4px -4px 10px #27272a;
+    background: var(--neu-flat-bg);
+    box-shadow: var(--neu-pressed-shadow);
   }
 }

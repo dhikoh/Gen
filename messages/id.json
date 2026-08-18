@@ -122,10 +122,7 @@
     "uploadProof": "Upload Bukti Transfer",
     "uploading": "Mengunggah...",
     "changeProof": "Ganti Bukti",
-    "sendProof": "Kirim Bukti",
-    "bank": "Bank:",
-    "accountNo": "No. Rekening:",
-    "accountName": "A.N:"
+    "sendProof": "Kirim Bukti"
   },
   "Channels": {
     "title": "Pengaturan Channel",
@@ -480,6 +477,16 @@
     "invalidInput": "Input tidak valid",
     "resetLinkSent": "Jika akun terdaftar, tautan reset telah dikirim ke email.",
     "invalidToken": "Token tidak valid atau sudah kedaluwarsa",
-    "passwordChanged": "Password berhasil diubah. Silakan login."
+    "passwordChanged": "Password berhasil diubah. Silakan login.",
+    "missingParams": "Minimal satu parameter (email/username/phoneNumber) harus diisi",
+    "emailTaken": "Email sudah digunakan",
+    "usernameTaken": "Username sudah digunakan",
+    "phoneTaken": "Nomor HP sudah digunakan",
+    "available": "Tersedia",
+    "fileTooLarge": "Ukuran file terlalu besar. Maksimal 2MB.",
+    "invalidImageFormat": "Hanya format gambar JPG/PNG yang diperbolehkan.",
+    "invalidInvoice": "Tagihan tidak valid atau sudah diproses.",
+    "tooManyChannels": "Terlalu banyak permintaan pembuatan channel. Coba lagi nanti.",
+    "tooManyUploads": "Terlalu banyak permintaan upload. Coba lagi nanti."
   }
 }

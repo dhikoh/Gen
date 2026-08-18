@@ -2,44 +2,46 @@
 
 Pembaruan ini mencakup seluruh perbaikan bug dan arsitektur yang teridentifikasi dalam sesi audit keamanan dan kepatuhan sistem (*Security & Hardening Audit*). Seluruh pengerjaan telah diselaraskan dengan dokumen referensi asli (`Project_Prompt_Gen.txt`).
 
-## 1. Keamanan Form & Auto-fill (R11)
-- **Komponen Terdampak:** `AuthForm`, `ForgotPasswordForm`, `ResetPasswordForm`, `EditChannelClient`, `GeneratorForm`, `AdminSettingsClient`.
-- **Perbaikan:** Menambahkan atribut `autoComplete="off"` secara eksplisit pada seluruh input sensitif untuk mencegah injeksi data yang tidak diinginkan melalui auto-fill browser.
-- **Pembersihan XSS:** Mengganti pola `dangerouslySetInnerHTML` di `AuthForm.tsx` (yang digunakan untuk merender ikon panah) dengan string biasa / replace method.
+## 1. Perbaikan PWA Assets (AUDIT-01)
+- **Komponen Terdampak:** `public/icon-192x192.png`, `public/icon-512x512.png`, `public/favicon.ico`.
+- **Perbaikan:** Membuat file PWA icon riil menggunakan `generate_image` untuk menggantikan file yang sebelumnya hilang. Memastikan manifest.json me-resolve icon secara valid tanpa 404.
 
-## 2. Struktur Data Social Links (R6)
-- **Komponen Terdampak:** `api/channels/route.ts`, `api/channels/[id]/route.ts`, `EditChannelClient.tsx`.
-- **Perbaikan:**
-  - Memodifikasi skema Zod pada API untuk menerima tipe `string` maupun `array` pada field `socialLinks`.
-  - Merombak mekanisme form di `EditChannelClient` untuk melakukan *parsing* input string yang dipisahkan dengan koma menjadi array string yang bersih. Ini mendukung perluasan multi-platform di masa depan tanpa mengubah skema tabel database.
-  - Memperbaiki pengetatan tipe data (TypeScript) di dalam komponen tersebut.
+## 2. Autentikasi dan Sesi "Remember Me" (AUDIT-02)
+- **Komponen Terdampak:** `src/lib/authOptions.ts`.
+- **Perbaikan:** Mengimplementasikan kustomisasi JWT `encode` dan `decode` agar durasi maxAge session cookie menghormati nilai parameter `rememberMe` (1 hari atau 30 hari).
 
-## 3. Modularisasi Logic Prompt (R8)
-- **Komponen Terdampak:** `api/generate/route.ts`, `src/lib/promptGenerator.ts`, `src/lib/imagePromptGenerator.ts`.
-- **Perbaikan:**
-  - Mengabstraksi secara penuh fungsi pembuat *prompt* dari dalam file route API.
-  - Membuat `generateMasterPrompt` dan `generateImagePrompt` di dalam modul library tersendiri (`src/lib/`).
-  - Hasilnya, API Route kini jauh lebih bersih, mudah dibaca, dan modular, sesuai dengan arsitektur yang direkomendasikan.
+## 3. Strict Environment Validation (AUDIT-03)
+- **Komponen Terdampak:** `src/lib/env.ts`, `src/app/[locale]/layout.tsx`, `src/instrumentation.ts`.
+- **Perbaikan:** Menambahkan pengecualian validasi runtime SMTP hanya jika fase tersebut merupakan `next build`. Panggilan validasi dipindahkan ke `instrumentation.ts` agar crash dilakukan sedini mungkin sebelum app melayani request.
 
-## 4. Keamanan Tipe Data & Skema Zod
-- **Komponen Terdampak:** `AdminSettingsClient.tsx`, `PlanManagement.tsx`, `page.tsx` (Admin Settings).
-- **Perbaikan:**
-  - Memperbaiki ketidaksesuaian tipe pada `heroTitle` dan `heroSubtitle` (menerima `string | null`).
-  - Menerapkan pengecekan `null` (null-check) yang aman saat melakukan mutasi pada fitur *Plan Management* di modul Admin.
-  - Skema konfigurasi *Video* dan *Image* kini telah divalidasi 100% menggunakan Zod di layer backend (`api/generate/route.ts`).
+## 4. Perbaikan Logika Generator Prompt (AUDIT-04 & AUDIT-07)
+- **Komponen Terdampak:** `src/lib/promptGenerator.ts`, `src/lib/imagePromptGenerator.ts`.
+- **Perbaikan:** Memperbaiki pengaksesan data dari `p.shortDesc` menjadi `p.description`. Menambahkan generasi narrative prompt di `imagePromptGenerator` agar hasil variasi tidak hanya tag-based.
 
-## 5. Implementasi i18n & Filter Halaman Draft (R1, R4)
-- **Komponen Terdampak:** `DraftActions.tsx`, `DraftFilter.tsx`, `api/drafts/route.ts`.
-- **Perbaikan:**
-  - Melakukan migrasi string-string *hardcoded* yang tersisa pada aksi Hapus Draft ke mekanisme *localization* menggunakan *key* terjemahan (namespace `Drafts`).
-  - API `GET /api/drafts` sekarang mem-filter query berdasarkan `channelId` dan `type` (VIDEO / IMAGE), sesuai dengan integrasi pencarian dari parameter URL.
+## 5. UI Dashboard & Draft Clean-Up (AUDIT-05 & AUDIT-06)
+- **Komponen Terdampak:** `src/app/[locale]/dashboard/drafts/[id]/page.tsx`.
+- **Perbaikan:** Menghapus komponen mati seperti `master_prompt` dan `system_instruction` dari halaman Draft Detail. Menambahkan penampang UI yang fungsional untuk `caption_medsos`, `ide_thumbnail`, `html_blog`, dan variasi prompt naratif dengan fitur copy button yang dapat digunakan kembali.
 
-## 6. Build & Linting (R12)
-- **Komponen Terdampak:** `package.json`, `src/lib/env.ts`.
-- **Perbaikan:**
-  - Skrip npm telah disesuaikan; mengganti `eslint` dengan `next lint` pada perintah `"lint"`.
-  - Sistem lingkungan (`env.ts`) diubah agar parameter SMTP bersikap dinamis/*optional* untuk mengamankan proses `next build` secara lokal maupun CI/CD yang mungkin belum meng-injeksi variabel produksi SMTP secara utuh.
-  - **Status Akhir:** Perintah `npx tsc --noEmit`, `npm run lint`, dan `npm run build` berhasil dilewati tanpa *error* fatal.
+## 6. Standarisasi i18n pada API (AUDIT-08)
+- **Komponen Terdampak:** Direktori `src/app/api/...`, `messages/en.json`, `messages/id.json`.
+- **Perbaikan:** Menerapkan skrip migrasi untuk menghapus string bahasa Indonesia yang di-*hardcode* di dalam backend route API (seperti validasi, limits).
 
-## 7. Status Aset PWA (R10)
-- Mengonfirmasi eksistensi dan validitas aset-aset statis (`icon-192x192.png`, `icon-512x512.png`) yang dibutuhkan oleh Web App Manifest di direktori `public/`.
+## 7. Idempotency Payment REJECT (AUDIT-09)
+- **Komponen Terdampak:** `src/app/api/admin/payments/route.ts`.
+- **Perbaikan:** Menggunakan hasil count dari `updateMany` untuk memastikan status tagihan yang di-reject masih berada dalam state `PENDING` (menghindari double-reject/approve race conditions).
+
+## 8. Mengatasi Race Conditions (AUDIT-10 & AUDIT-11)
+- **Komponen Terdampak:** `src/app/api/channels/route.ts`, `src/app/api/auth/register/route.ts`.
+- **Perbaikan:** Menggunakan `prisma.$transaction` dan pengecekan kode error `P2002` (Prisma Unique Constraint Violation) untuk menjamin limitasi *maxChannels* dan email duplikat tidak kebobolan saat brute force concurrent requests.
+
+## 9. Locale Dinamis di Forgot Password (AUDIT-12)
+- **Komponen Terdampak:** `src/app/api/auth/forgot-password/route.ts`.
+- **Perbaikan:** Link reset kata sandi kini menggunakan prefix locale yang diekstrak dari cookie `NEXT_LOCALE`, alih-alih di-*hardcode* sebagai `/id/`.
+
+## 10. Penerapan CSS Variables (AUDIT-13)
+- **Komponen Terdampak:** `src/app/[locale]/globals.css`.
+- **Perbaikan:** Memindahkan warna literal hex dan rgba statis ke Custom Properties (`:root`) untuk mematuhi sistem desain token UI yang modular dan responsif terhadap tema.
+
+## 11. Strict Payment Types & Cleanup (AUDIT-14, AUDIT-15, AUDIT-16)
+- **Komponen Terdampak:** `src/lib/payments/types.ts`, `src/lib/payments/manualTransferProvider.ts`, `src/app/api/invoice/route.ts`.
+- **Perbaikan:** Menghapus penggunaan tipe `any` pada arsitektur payments dengan mendeklarasikan interface DTO konkret (`CreateInvoiceInput`). Membersihkan sisa file skrip (`*.js`) ke dalam folder `scripts/` dan menghapus `design.md` yang mengotori root.

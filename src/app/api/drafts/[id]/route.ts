@@ -53,7 +53,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const parsedData = updateDraftSchema.safeParse(body);
 
     if (!parsedData.success) {
-      return NextResponse.json({ error: "Invalid data", details: parsedData.error.flatten() }, { status: 400 });
+      return NextResponse.json({ error: t("invalidData"), details: parsedData.error.flatten() }, { status: 400 });
     }
 
     const existingDraft = await prisma.draft.findUnique({
