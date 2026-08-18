@@ -85,12 +85,12 @@ export default function PlanManagement({ initialPlans }: { initialPlans: Plan[] 
         <table className="w-full text-sm text-left">
           <thead className="text-xs text-zinc-500 dark:text-zinc-400 uppercase bg-zinc-50 dark:bg-zinc-800/50">
             <tr>
-              <th className="px-6 py-3 font-medium">Name</th>
+              <th className="px-6 py-3 font-medium">{t("name")}</th>
               <th className="px-6 py-3 font-medium">{t("monthlyPrice")}</th>
               <th className="px-6 py-3 font-medium">{t("maxChannels")}</th>
-              <th className="px-6 py-3 font-medium">Features</th>
-              <th className="px-6 py-3 font-medium">Active</th>
-              <th className="px-6 py-3 font-medium text-right">Actions</th>
+              <th className="px-6 py-3 font-medium">{t("features")}</th>
+              <th className="px-6 py-3 font-medium">{t("active")}</th>
+              <th className="px-6 py-3 font-medium text-right">{t("actions")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
@@ -101,16 +101,16 @@ export default function PlanManagement({ initialPlans }: { initialPlans: Plan[] 
                 <td className="px-6 py-4">{p.maxChannels}</td>
                 <td className="px-6 py-4">
                   <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${p.features?.imagePromptStudio ? 'bg-purple-100 text-purple-800' : 'bg-zinc-100 text-zinc-500'}`}>
-                    Image Studio: {p.features?.imagePromptStudio ? "Yes" : "No"}
+                    {t("imageStudio")}: {p.features?.imagePromptStudio ? t("yes") : t("no")}
                   </span>
                 </td>
                 <td className="px-6 py-4">
                   <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${p.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                    {p.isActive ? "Active" : "Inactive"}
+                    {p.isActive ? t("active") : t("inactive")}
                   </span>
                 </td>
                 <td className="px-6 py-4 text-right">
-                  <button onClick={() => startEdit(p)} className="text-xs px-3 py-1 bg-blue-100 hover:bg-blue-200 rounded text-blue-800">Edit</button>
+                  <button onClick={() => startEdit(p)} className="text-xs px-3 py-1 bg-blue-100 hover:bg-blue-200 rounded text-blue-800">{t("editPlan")}</button>
                 </td>
               </tr>
             ))}
@@ -122,7 +122,7 @@ export default function PlanManagement({ initialPlans }: { initialPlans: Plan[] 
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <form onSubmit={handleSave} className="glass-panel rounded-xl shadow-xl w-full max-w-md overflow-hidden">
             <div className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center">
-              <h3 className="font-semibold text-zinc-900 dark:text-white">Edit Plan: {editingPlan.name}</h3>
+              <h3 className="font-semibold text-zinc-900 dark:text-white">{t("editPlan")}: {editingPlan.name}</h3>
               <button type="button" onClick={() => setEditingPlan(null)} className="text-zinc-400 hover:text-zinc-600">&times;</button>
             </div>
             
@@ -139,17 +139,17 @@ export default function PlanManagement({ initialPlans }: { initialPlans: Plan[] 
 
               <div className="flex items-center space-x-2">
                 <input type="checkbox" checked={imagePromptStudio} onChange={e => setImagePromptStudio(e.target.checked)} id="ips" className="rounded" />
-                <label htmlFor="ips" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Enable Image Prompt Studio</label>
+                <label htmlFor="ips" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("enableImageStudio")}</label>
               </div>
 
               <div className="flex items-center space-x-2">
                 <input type="checkbox" checked={isActive} onChange={e => setIsActive(e.target.checked)} id="act" className="rounded" />
-                <label htmlFor="act" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Plan is Active</label>
+                <label htmlFor="act" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("planIsActive")}</label>
               </div>
             </div>
 
             <div className="px-6 py-4 bg-zinc-50 dark:bg-zinc-800/50 border-t border-zinc-200 flex justify-end gap-3">
-              <button type="button" onClick={() => setEditingPlan(null)} className="px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-200 rounded-md">Cancel</button>
+              <button type="button" onClick={() => setEditingPlan(null)} className="px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-200 rounded-md">{t("cancel")}</button>
               <button type="submit" disabled={loading} className="px-4 py-2 text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50">
                 {loading ? t("saving") : t("saveChanges")}
               </button>

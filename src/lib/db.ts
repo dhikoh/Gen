@@ -10,3 +10,18 @@ export const prisma =
   });
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+
+export const SAFE_USER_SELECT = {
+  id: true,
+  name: true,
+  username: true,
+  email: true,
+  phoneNumber: true,
+  dateOfBirth: true,
+  role: true,
+  subscriptionStatus: true,
+  subscriptionExpiresAt: true,
+  currentPlanId: true,
+  createdAt: true,
+  updatedAt: true,
+};

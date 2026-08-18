@@ -80,6 +80,8 @@ export async function activateSubscription(invoiceId: string, reviewedById: stri
       }
     });
 
+    await enforceChannelLimits(invoice.userId, tx);
+
     return invoice;
   });
 }

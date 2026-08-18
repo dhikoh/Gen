@@ -39,6 +39,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: t("invoiceInvalid") }, { status: 400 });
     }
 
+    const { getTranslations } = await import("next-intl/server");
+    const locale = 'id'; // Or add a field to User model later if needed
+    const tEmail = await getTranslations({ locale, namespace: 'Emails' });
+
     if (action === "REJECT") {
       const updateResult = await prisma.invoice.updateMany({
         where: { id: invoiceId, status: "PENDING" },
@@ -55,13 +59,13 @@ export async function POST(req: Request) {
       
       await sendEmail({
         to: invoice.user.email,
-        subject: "Tagihan Ditolak - Prompt Gen",
+        subject: tEmail('rejectSubject'),
         html: `
           <div style="font-family: sans-serif; max-w: 600px; margin: 0 auto;">
-            <h2>Tagihan Ditolak</h2>
-            <p>Halo ${invoice.user.name},</p>
-            <p>Tagihan Anda untuk paket <strong>${invoice.plan.name}</strong> dengan jumlah Rp ${invoice.amount.toLocaleString('id-ID')} telah ditolak.</p>
-            <p>Silakan periksa kembali bukti pembayaran yang Anda unggah dan buat tagihan baru.</p>
+            <h2>${tEmail('rejectSubject')}</h2>
+            <p>${tEmail('rejectGreeting', { name: invoice.user.name })}</p>
+            <p>${tEmail.raw('rejectBody').replace('{plan}', invoice.plan.name).replace('{amount}', invoice.amount.toLocaleString('id-ID'))}</p>
+            <p>${tEmail('rejectInstruction')}</p>
           </div>
         `
       });
@@ -72,20 +76,17 @@ export async function POST(req: Request) {
     if (action === "APPROVE") {
       const { activateSubscription } = await import("@/lib/payments/manualTransferProvider");
       await activateSubscription(invoiceId, session.user.id);
-      
-      const { enforceChannelLimits } = await import("@/lib/channelLockLogic");
-      await enforceChannelLimits(invoice.userId);
 
       await sendEmail({
         to: invoice.user.email,
-        subject: "Pembayaran Berhasil - Prompt Gen",
+        subject: tEmail('approveSubject'),
         html: `
           <div style="font-family: sans-serif; max-w: 600px; margin: 0 auto;">
-            <h2>Pembayaran Berhasil</h2>
-            <p>Halo ${invoice.user.name},</p>
-            <p>Tagihan Anda untuk paket <strong>${invoice.plan.name}</strong> telah berhasil diverifikasi.</p>
-            <p>Akun Anda kini telah aktif dan batas channel Anda telah disesuaikan.</p>
-            <p>Terima kasih telah menggunakan Prompt Gen!</p>
+            <h2>${tEmail('approveSubject')}</h2>
+            <p>${tEmail('approveGreeting', { name: invoice.user.name })}</p>
+            <p>${tEmail.raw('approveBody').replace('{plan}', invoice.plan.name)}</p>
+            <p>${tEmail('approveInstruction')}</p>
+            <p>${tEmail('thankYou')}</p>
           </div>
         `
       });

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import ProductsClient from "./ProductsClient";
+import UsedTitlesDirectory from "@/components/dashboard/UsedTitlesDirectory";
 
 export default function EditChannelClient({ channel, isNew = false, onSuccess }: { channel: any, isNew?: boolean, onSuccess?: () => void }) {
   const router = useRouter();
@@ -183,7 +184,8 @@ export default function EditChannelClient({ channel, isNew = false, onSuccess }:
       </form>
 
       {!isNew && channel?.id && (
-        <div className="mt-8">
+        <div className="mt-8 space-y-8">
+          <UsedTitlesDirectory channelId={channel.id} />
           <ProductsClient channelId={channel.id} />
         </div>
       )}

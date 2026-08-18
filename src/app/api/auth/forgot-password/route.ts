@@ -51,26 +51,29 @@ export async function POST(req: Request) {
         }
       });
 
-      // Send real email with token
       const { cookies } = await import("next/headers");
       const cookieStore = await cookies();
       const locale = cookieStore.get('NEXT_LOCALE')?.value || 'id';
       const resetUrl = `${process.env.NEXTAUTH_URL}/${locale}/auth/reset-password?token=${token}`;
       
+      const { getTranslations } = await import("next-intl/server");
+      const tEmail = await getTranslations({ locale, namespace: 'Emails' });
+
       await sendEmail({
         to: user.email,
-        subject: "Reset Password - Prompt Gen",
+        subject: tEmail('resetSubject'),
         html: `
           <div style="font-family: sans-serif; max-w: 600px; margin: 0 auto;">
-            <h2>Reset Password</h2>
-            <p>Anda menerima email ini karena ada permintaan untuk mereset kata sandi akun Prompt Gen Anda.</p>
-            <p>Klik tombol di bawah ini untuk mereset kata sandi Anda:</p>
-            <a href="${resetUrl}" style="display: inline-block; padding: 10px 20px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 5px; margin: 16px 0;">Reset Password</a>
-            <p>Jika Anda tidak meminta ini, abaikan saja email ini.</p>
-            <p>Tautan ini akan kedaluwarsa dalam 15 menit.</p>
+            <h2>${tEmail('resetSubject')}</h2>
+            <p>${tEmail('resetGreeting')}</p>
+            <p>${tEmail('resetInstruction')}</p>
+            <a href="${resetUrl}" style="display: inline-block; padding: 10px 20px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 5px; margin: 16px 0;">${tEmail('resetButton')}</a>
+            <p>${tEmail('resetIgnore')}</p>
+            <p>${tEmail('resetExpiry')}</p>
           </div>
         `
-      });    }
+      });
+    }
 
     // Always return success
     return NextResponse.json({ success: true, message: t("resetLinkSent") }, { status: 200 });

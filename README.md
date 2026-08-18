@@ -14,7 +14,7 @@ SaaS untuk Content Creator yang membantu menyusun Master Prompt AI secara terstr
    - `SMTP_HOST`: Host SMTP (misal: `smtp.resend.com`).
    - `SMTP_PORT`: Port SMTP (misal: `465`).
    - `SMTP_USER`: Username SMTP.
-   - `SMTP_PASS`: Password SMTP.
+   - `SMTP_PASSWORD`: Password SMTP.
    - `SMTP_FROM`: Alamat email pengirim (misal: `noreply@promptgen.com`).
 
 ## Database & Migrasi

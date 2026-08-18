@@ -19,6 +19,10 @@ export default async function DashboardLayout({
   if (!session) {
     redirect(`/${locale}/auth`);
   }
+  
+  if (session.user.role === 'SUPERADMIN') {
+    redirect(`/${locale}/admin`);
+  }
   const t = await getTranslations({ locale, namespace: 'Dashboard' });
 
   return (

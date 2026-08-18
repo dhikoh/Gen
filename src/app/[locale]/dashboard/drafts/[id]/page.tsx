@@ -8,7 +8,7 @@ import DraftActions from "./DraftActions";
 import DraftTitle from "./DraftTitle";
 import { getTranslations } from "next-intl/server";
 import CopyButton from "@/components/dashboard/CopyButton";
-
+import DOMPurify from "isomorphic-dompurify";
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'Drafts' });
@@ -131,7 +131,7 @@ export default async function DraftDetailPage({
             <div className="bg-zinc-50 dark:bg-zinc-950 p-4 rounded-lg border border-zinc-100 dark:border-zinc-800 overflow-x-auto">
               <div 
                 className="prose dark:prose-invert max-w-none text-sm"
-                dangerouslySetInnerHTML={{ __html: parsedData.html_blog }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parsedData.html_blog, { ALLOWED_TAGS: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'ul', 'ol', 'li', 'strong', 'em', 'b', 'i', 'a', 'br', 'hr', 'blockquote'], ALLOWED_ATTR: ['href', 'target', 'rel'] }) }}
               />
             </div>
           </div>

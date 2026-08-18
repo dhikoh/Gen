@@ -16,7 +16,11 @@ export default async function AdminLayout({
   
   const { locale } = await params;
 
-  if (!session || session.user.role !== "SUPERADMIN") {
+  if (!session) {
+    redirect(`/${locale}/auth`);
+  }
+
+  if (session.user.role !== "SUPERADMIN") {
     redirect(`/${locale}/dashboard`);
   }
   const t = await getTranslations({ locale, namespace: 'Admin' });

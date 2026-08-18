@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
+import DOMPurify from "isomorphic-dompurify";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
@@ -59,7 +60,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
              </p>
           )}
           <Link href={`/${locale}/dashboard/billing`} className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium">
-            <span dangerouslySetInnerHTML={{ __html: t('upgradePlan') }} />
+            <span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(t('upgradePlan')) }} />
           </Link>
         </div>
 
