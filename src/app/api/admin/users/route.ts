@@ -5,8 +5,9 @@ import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 
 export async function GET(req: Request) {
+  const t = await getApiTranslator();
   try {
-    const t = await getApiTranslator();
+    
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== "SUPERADMIN") {
       return NextResponse.json({ error: t("unauthorized") }, { status: 401 });

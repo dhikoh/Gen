@@ -14,8 +14,9 @@ const settingsSchema = z.object({
 });
 
 export async function PUT(req: Request) {
+  const t = await getApiTranslator();
   try {
-    const t = await getApiTranslator();
+    
     const session = await getServerSession(authOptions);
     
     if (!session || session.user.role !== "SUPERADMIN") {
@@ -52,6 +53,6 @@ export async function PUT(req: Request) {
 
   } catch (error) {
     console.error("Admin Settings API error:", error);
-    return NextResponse.json({ error: "Terjadi kesalahan sistem." }, { status: 500 });
+    return NextResponse.json({ error: t("systemError") }, { status: 500 });
   }
 }

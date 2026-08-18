@@ -92,7 +92,17 @@ export default function GeneratorForm({ channels }: { channels: any[] }) {
         channelId,
         topic,
         additionalContext,
-        videoConfig: type === "VIDEO" ? videoConfig : undefined,
+        videoConfig: type === "VIDEO" ? {
+          ...videoConfig,
+          composition: {
+            education: Number(videoConfig.compEdukasi) || 0,
+            entertainment: Number(videoConfig.compHiburan) || 0,
+            marketing: Number(videoConfig.compMarketing) || 0
+          },
+          socialCaption: videoConfig.includeCaption,
+          thumbnailIdea: videoConfig.includeThumbnail,
+          htmlBlog: videoConfig.includeHtmlBlog
+        } : undefined,
         imageConfig: type === "IMAGE" ? imageConfig : undefined
       };
 
@@ -185,7 +195,7 @@ export default function GeneratorForm({ channels }: { channels: any[] }) {
           </div>
         )}
 
-        <form onSubmit={handleGenerate}>
+        <form autoComplete="off" onSubmit={handleGenerate}>
           <fieldset disabled={loading || step === 2} className="space-y-6">
             
             {/* General Settings */}
@@ -356,7 +366,15 @@ export default function GeneratorForm({ channels }: { channels: any[] }) {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('cameraType')}</label>
-                    <input type="text" name="cameraType" value={imageConfig.cameraType} onChange={handleImageConfigChange} placeholder="E.g., DSLR 50mm, Drone" className="w-full px-3 py-1.5 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white" />
+                    <select name="cameraType" value={imageConfig.cameraType} onChange={handleImageConfigChange} className="w-full px-3 py-1.5 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white">
+                      <option value="DSLR">DSLR</option>
+                      <option value="Mirrorless">Mirrorless</option>
+                      <option value="Drone">Drone</option>
+                      <option value="Action Camera">Action Camera</option>
+                      <option value="Smartphone">Smartphone</option>
+                      <option value="Film Camera">Film Camera</option>
+                      <option value="Polaroid">Polaroid</option>
+                    </select>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('shotType')}</label>

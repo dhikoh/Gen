@@ -83,7 +83,7 @@ export default function ResetPasswordForm() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit}>
+      <form autoComplete="off" onSubmit={handleSubmit}>
         <fieldset disabled={loading || message?.type === "success"} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">

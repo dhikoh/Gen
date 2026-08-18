@@ -32,14 +32,15 @@ const registerSchema = z.object({
 });
 
 export async function POST(req: Request) {
+  const t = await getApiTranslator();
   try {
-    const t = await getApiTranslator();
+    
     const body = await req.json();
     const emailStr = typeof body.email === 'string' ? body.email.toLowerCase() : 'unknown';
     const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
     const isAllowed = await applyRateLimit(`register_${ip}_${emailStr}`, 5, 60 * 60); // 5 registers per hour per IP+email
     if (!isAllowed) {
-      return NextResponse.json({ error: "Terlalu banyak permintaan registrasi. Coba lagi nanti." }, { status: 429 });
+      return NextResponse.json({ error: t("registerRateLimit") }, { status: 429 });
     }
     const parsedData = registerSchema.safeParse(body);
 
@@ -66,12 +67,12 @@ export async function POST(req: Request) {
 
     if (existingUser) {
       if (existingUser.email.toLowerCase() === email.toLowerCase()) {
-        return NextResponse.json({ error: "Email sudah digunakan" }, { status: 409 });
+        return NextResponse.json({ error: t("emailUsed") }, { status: 409 });
       }
       if (existingUser.username.toLowerCase() === username.toLowerCase()) {
-        return NextResponse.json({ error: "Username sudah digunakan" }, { status: 409 });
+        return NextResponse.json({ error: t("usernameUsed") }, { status: 409 });
       }
-      return NextResponse.json({ error: "Nomor HP sudah digunakan" }, { status: 409 });
+      return NextResponse.json({ error: t("phoneUsed") }, { status: 409 });
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
@@ -112,7 +113,7 @@ export async function POST(req: Request) {
       return user;
     });
 
-    return NextResponse.json({ success: true, message: "Akun berhasil dibuat. Silakan pilih paket langganan." }, { status: 201 });
+    return NextResponse.json({ success: true, message: t("accountCreated") }, { status: 201 });
 
   } catch (error) {
     console.error("Register error:", error);

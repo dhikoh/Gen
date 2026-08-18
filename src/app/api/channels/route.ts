@@ -18,12 +18,13 @@ const channelSchema = z.object({
   audioBGM: z.boolean().optional(),
   audioSFX: z.boolean().optional(),
   audioVO: z.boolean().optional(),
-  socialLinks: z.string().optional(),
+  socialLinks: z.union([z.string(), z.array(z.string())]).optional(),
 });
 
 export async function GET(req: Request) {
+  const t = await getApiTranslator();
   try {
-    const t = await getApiTranslator();
+    
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
@@ -49,8 +50,9 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const t = await getApiTranslator();
   try {
-    const t = await getApiTranslator();
+    
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: t("unauthorized") }, { status: 401 });

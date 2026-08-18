@@ -12,14 +12,15 @@ const resetPasswordSchema = z.object({
 });
 
 export async function POST(req: Request) {
+  const t = await getApiTranslator();
   try {
-    const t = await getApiTranslator();
+    
     const body = await req.json();
     const tokenStr = typeof body.token === 'string' ? body.token.substring(0, 15) : 'unknown';
     const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
     const isAllowed = await applyRateLimit(`reset_pw_${ip}_${tokenStr}`, 5, 60 * 15);
     if (!isAllowed) {
-      return NextResponse.json({ error: "Terlalu banyak permintaan. Coba lagi nanti." }, { status: 429 });
+      return NextResponse.json({ error: t("authRateLimit") }, { status: 429 });
     }
     const parsedData = resetPasswordSchema.safeParse(body);
 
@@ -35,7 +36,7 @@ export async function POST(req: Request) {
     });
 
     if (!resetToken || resetToken.usedAt || resetToken.expiresAt < new Date()) {
-      return NextResponse.json({ error: "Token tidak valid atau sudah kedaluwarsa" }, { status: 400 });
+      return NextResponse.json({ error: t("invalidToken") }, { status: 400 });
     }
 
     const passwordHash = await bcrypt.hash(newPassword, 10);
@@ -64,7 +65,7 @@ export async function POST(req: Request) {
       });
     });
 
-    return NextResponse.json({ success: true, message: "Password berhasil diubah. Silakan login." }, { status: 200 });
+    return NextResponse.json({ success: true, message: t("passwordChanged") }, { status: 200 });
 
   } catch (error) {
     console.error("Reset password error:", error);

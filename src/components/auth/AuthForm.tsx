@@ -164,7 +164,7 @@ export default function AuthForm() {
         </div>
       )}
 
-      <form onSubmit={isLogin || registerStep === 2 ? handleSubmit : (e) => { e.preventDefault(); handleNextStep(); }}>
+      <form autoComplete="off" onSubmit={isLogin || registerStep === 2 ? handleSubmit : (e) => { e.preventDefault(); handleNextStep(); }}>
         <fieldset disabled={loading} className="space-y-4">
           {isLogin ? (
             // LOGIN FIELDS

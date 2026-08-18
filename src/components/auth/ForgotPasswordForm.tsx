@@ -60,7 +60,7 @@ export default function ForgotPasswordForm() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit}>
+      <form autoComplete="off" onSubmit={handleSubmit}>
         <fieldset disabled={loading} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">

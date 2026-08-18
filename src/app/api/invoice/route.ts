@@ -11,8 +11,9 @@ const invoiceSchema = z.object({
 });
 
 export async function POST(req: Request) {
+  const t = await getApiTranslator();
   try {
-    const t = await getApiTranslator();
+    
     const session = await getServerSession(authOptions);
     
     if (!session) {
@@ -22,7 +23,7 @@ export async function POST(req: Request) {
     const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
     const isAllowed = await applyRateLimit(`create_invoice_${session.user.id}_${ip}`, 5, 60 * 15); // 5 request / 15 menit
     if (!isAllowed) {
-      return NextResponse.json({ error: "Terlalu banyak permintaan pembuatan tagihan. Coba lagi nanti." }, { status: 429 });
+      return NextResponse.json({ error: t("invoiceRateLimit") }, { status: 429 });
     }
 
     const body = await req.json();
@@ -40,7 +41,7 @@ export async function POST(req: Request) {
     });
 
     if (!plan || !plan.isActive) {
-      return NextResponse.json({ error: "Paket langganan tidak tersedia" }, { status: 400 });
+      return NextResponse.json({ error: t("planNotAvailable") }, { status: 400 });
     }
 
     // Pastikan user tidak memiliki invoice PENDING untuk paket ini
@@ -53,7 +54,7 @@ export async function POST(req: Request) {
     });
 
     if (existingPending) {
-      return NextResponse.json({ error: "Anda sudah memiliki tagihan pending untuk paket ini. Silakan lunasi terlebih dahulu." }, { status: 400 });
+      return NextResponse.json({ error: t("pendingInvoiceExists") }, { status: 400 });
     }
 
     // Buat invoice baru via Provider
@@ -65,6 +66,6 @@ export async function POST(req: Request) {
 
   } catch (error) {
     console.error("Create Invoice API error:", error);
-    return NextResponse.json({ error: "Terjadi kesalahan pada server saat membuat tagihan." }, { status: 500 });
+    return NextResponse.json({ error: t("invoiceError") }, { status: 500 });
   }
 }

@@ -15,27 +15,29 @@ const updateUserSchema = z.object({
 });
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const t = await getApiTranslator();
   try {
-    const t = await getApiTranslator();
+    
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== "SUPERADMIN") return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
 
     const { id } = await params;
     if (session.user.id === id) {
-      return NextResponse.json({ error: "Tidak bisa menghapus akun sendiri." }, { status: 400 });
+      return NextResponse.json({ error: t("cantDeleteSelf") }, { status: 400 });
     }
 
     await prisma.user.delete({ where: { id } });
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
     console.error("Delete user error:", error);
-    return NextResponse.json({ error: "Gagal menghapus pengguna." }, { status: 500 });
+    return NextResponse.json({ error: t("failDeleteUser") }, { status: 500 });
   }
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const t = await getApiTranslator();
   try {
-    const t = await getApiTranslator();
+    
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== "SUPERADMIN") return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
 
@@ -50,14 +52,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const { action, role, daysToAdd, planId, newPassword } = parsedData.data;
 
     const targetUser = await prisma.user.findUnique({ where: { id } });
-    if (!targetUser) return NextResponse.json({ error: "User tidak ditemukan" }, { status: 404 });
+    if (!targetUser) return NextResponse.json({ error: t("userNotFound") }, { status: 404 });
 
     if (action === "UPDATE_ROLE" && role) {
       if (session.user.id === id && role === "USER") {
-         return NextResponse.json({ error: "Tidak bisa mencabut role admin sendiri." }, { status: 400 });
+         return NextResponse.json({ error: t("cantRevokeSelf") }, { status: 400 });
       }
       await prisma.user.update({ where: { id }, data: { role } });
-      return NextResponse.json({ success: true, message: "Role berhasil diubah" });
+      return NextResponse.json({ success: true, message: t("roleUpdated") });
     }
 
     if (action === "ADD_DAYS" && daysToAdd) {
@@ -82,7 +84,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       const { enforceChannelLimits } = await import("@/lib/channelLockLogic");
       await enforceChannelLimits(id);
       
-      return NextResponse.json({ success: true, message: `Berhasil menambah ${daysToAdd} hari` });
+      return NextResponse.json({ success: true, message: t("daysAdded").replace("{days}", daysToAdd.toString()) });
     }
 
     if (action === "UPDATE_PLAN" && planId) {
@@ -105,19 +107,19 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       const { enforceChannelLimits } = await import("@/lib/channelLockLogic");
       await enforceChannelLimits(id);
       
-      return NextResponse.json({ success: true, message: "Paket berhasil diubah" });
+      return NextResponse.json({ success: true, message: t("planUpdated") });
     }
 
     if (action === "RESET_PASSWORD" && newPassword) {
       const passwordHash = await bcrypt.hash(newPassword, 10);
       await prisma.user.update({ where: { id }, data: { passwordHash } });
-      return NextResponse.json({ success: true, message: "Password berhasil direset" });
+      return NextResponse.json({ success: true, message: t("passwordReset") });
     }
 
-    return NextResponse.json({ error: "Aksi tidak dikenali atau parameter kurang" }, { status: 400 });
+    return NextResponse.json({ error: t("unknownAction") }, { status: 400 });
 
   } catch (error) {
     console.error("Update user error:", error);
-    return NextResponse.json({ error: "Gagal memproses aksi pengguna." }, { status: 500 });
+    return NextResponse.json({ error: t("failProcessUserAction") }, { status: 500 });
   }
 }

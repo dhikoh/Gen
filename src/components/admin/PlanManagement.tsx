@@ -2,10 +2,26 @@
 
 import { useState } from "react";
 import toast from "react-hot-toast";
+import { useTranslations } from "next-intl";
 
-export default function PlanManagement({ initialPlans }: { initialPlans: any[] }) {
-  const [plans, setPlans] = useState(initialPlans);
-  const [editingPlan, setEditingPlan] = useState<any>(null);
+export interface PlanFeature {
+  imagePromptStudio?: boolean;
+  [key: string]: any; // Allow other features dynamically
+}
+
+export interface Plan {
+  id: string;
+  name: string;
+  priceMonthly: number;
+  maxChannels: number;
+  isActive: boolean;
+  features?: PlanFeature | null;
+}
+
+export default function PlanManagement({ initialPlans }: { initialPlans: Plan[] }) {
+  const t = useTranslations("AdminPlans");
+  const [plans, setPlans] = useState<Plan[]>(initialPlans);
+  const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
   const [loading, setLoading] = useState(false);
 
   // Form State
@@ -14,7 +30,7 @@ export default function PlanManagement({ initialPlans }: { initialPlans: any[] }
   const [isActive, setIsActive] = useState(true);
   const [imagePromptStudio, setImagePromptStudio] = useState(false);
 
-  const startEdit = (plan: any) => {
+  const startEdit = (plan: Plan) => {
     setEditingPlan(plan);
     setPriceMonthly(plan.priceMonthly);
     setMaxChannels(plan.maxChannels);
@@ -26,13 +42,14 @@ export default function PlanManagement({ initialPlans }: { initialPlans: any[] }
     e.preventDefault();
     setLoading(true);
     try {
+      if (!editingPlan) return;
       const payload = {
         id: editingPlan.id,
         priceMonthly,
         maxChannels,
         isActive,
         features: {
-          ...editingPlan.features,
+          ...(editingPlan.features || {}),
           imagePromptStudio,
         }
       };
@@ -46,14 +63,14 @@ export default function PlanManagement({ initialPlans }: { initialPlans: any[] }
       if (res.ok) {
         const { plan: updatedPlan } = await res.json();
         setPlans(plans.map(p => p.id === updatedPlan.id ? updatedPlan : p));
-        toast.success("Plan updated successfully");
+        toast.success(t("updateSuccess"));
         setEditingPlan(null);
       } else {
         const data = await res.json();
-        toast.error(data.error || "Failed to update plan");
+        toast.error(data.error || t("updateFail"));
       }
     } catch (e) {
-      toast.error("System error");
+      toast.error(t("networkError"));
     }
     setLoading(false);
   };
@@ -61,7 +78,7 @@ export default function PlanManagement({ initialPlans }: { initialPlans: any[] }
   return (
     <div className="glass-panel shadow-lg rounded-xl overflow-hidden">
       <div className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center">
-        <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">Plan Management</h2>
+        <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">{t("title")}</h2>
       </div>
 
       <div className="overflow-x-auto min-h-[200px]">
@@ -69,8 +86,8 @@ export default function PlanManagement({ initialPlans }: { initialPlans: any[] }
           <thead className="text-xs text-zinc-500 dark:text-zinc-400 uppercase bg-zinc-50 dark:bg-zinc-800/50">
             <tr>
               <th className="px-6 py-3 font-medium">Name</th>
-              <th className="px-6 py-3 font-medium">Price</th>
-              <th className="px-6 py-3 font-medium">Channels</th>
+              <th className="px-6 py-3 font-medium">{t("monthlyPrice")}</th>
+              <th className="px-6 py-3 font-medium">{t("maxChannels")}</th>
               <th className="px-6 py-3 font-medium">Features</th>
               <th className="px-6 py-3 font-medium">Active</th>
               <th className="px-6 py-3 font-medium text-right">Actions</th>
@@ -83,12 +100,12 @@ export default function PlanManagement({ initialPlans }: { initialPlans: any[] }
                 <td className="px-6 py-4">Rp {p.priceMonthly.toLocaleString('id-ID')}</td>
                 <td className="px-6 py-4">{p.maxChannels}</td>
                 <td className="px-6 py-4">
-                  <span className={\`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium \${p.features?.imagePromptStudio ? 'bg-purple-100 text-purple-800' : 'bg-zinc-100 text-zinc-500'}\`}>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${p.features?.imagePromptStudio ? 'bg-purple-100 text-purple-800' : 'bg-zinc-100 text-zinc-500'}`}>
                     Image Studio: {p.features?.imagePromptStudio ? "Yes" : "No"}
                   </span>
                 </td>
                 <td className="px-6 py-4">
-                  <span className={\`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium \${p.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}\`}>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${p.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                     {p.isActive ? "Active" : "Inactive"}
                   </span>
                 </td>
@@ -111,12 +128,12 @@ export default function PlanManagement({ initialPlans }: { initialPlans: any[] }
             
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">Monthly Price (Rp)</label>
+                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t("monthlyPrice")} (Rp)</label>
                 <input type="number" value={priceMonthly} onChange={e => setPriceMonthly(parseInt(e.target.value) || 0)} className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 rounded-md" />
               </div>
               
               <div>
-                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">Max Channels</label>
+                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t("maxChannels")}</label>
                 <input type="number" value={maxChannels} onChange={e => setMaxChannels(parseInt(e.target.value) || 1)} className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 rounded-md" />
               </div>
 
@@ -134,7 +151,7 @@ export default function PlanManagement({ initialPlans }: { initialPlans: any[] }
             <div className="px-6 py-4 bg-zinc-50 dark:bg-zinc-800/50 border-t border-zinc-200 flex justify-end gap-3">
               <button type="button" onClick={() => setEditingPlan(null)} className="px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-200 rounded-md">Cancel</button>
               <button type="submit" disabled={loading} className="px-4 py-2 text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50">
-                {loading ? "Saving..." : "Save Changes"}
+                {loading ? t("saving") : t("saveChanges")}
               </button>
             </div>
           </form>

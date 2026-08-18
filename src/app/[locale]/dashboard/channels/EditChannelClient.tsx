@@ -20,7 +20,7 @@ export default function EditChannelClient({ channel, isNew = false, onSuccess }:
     audioBGM: channel?.audioBGM ?? true,
     audioSFX: channel?.audioSFX ?? true,
     audioVO: channel?.audioVO ?? true,
-    socialLinks: channel?.socialLinks?.url || "", // Store as string for easy editing
+    socialLinks: Array.isArray(channel?.socialLinks) ? channel.socialLinks.join(", ") : (channel?.socialLinks?.url || ""), // Store as string for easy editing
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -38,9 +38,9 @@ export default function EditChannelClient({ channel, isNew = false, onSuccess }:
       const url = isNew ? "/api/channels" : `/api/channels/${channel.id}`;
       const method = isNew ? "POST" : "PUT";
       
-      let parsedSocial = {};
+      let parsedSocial: string[] = [];
       if (formData.socialLinks) {
-        parsedSocial = { url: formData.socialLinks };
+        parsedSocial = formData.socialLinks.split(',').map((s: string) => s.trim()).filter(Boolean);
       }
 
       const res = await fetch(url, {
@@ -69,7 +69,7 @@ export default function EditChannelClient({ channel, isNew = false, onSuccess }:
 
   return (
     <div className="w-full">
-      <form onSubmit={handleSubmit} className="space-y-6 bg-white dark:bg-zinc-900 p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 glass-panel">
+      <form autoComplete="off" onSubmit={handleSubmit} className="space-y-6 bg-white dark:bg-zinc-900 p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 glass-panel">
         <div>
           <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('channelName')}</label>
           <input 

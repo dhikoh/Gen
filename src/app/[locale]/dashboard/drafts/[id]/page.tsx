@@ -162,7 +162,7 @@ export default async function DraftDetailPage({
         {parsedData?.variations && parsedData.variations.length > 0 && (
           <div className="glass-panel shadow-lg rounded-xl p-0 overflow-hidden mt-6">
             <div className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Image Variations</h2>
+              <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{t('imageVariations')}</h2>
             </div>
             <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
               {parsedData.variations.map((variation: any, idx: number) => (
@@ -179,12 +179,12 @@ export default async function DraftDetailPage({
                   </div>
                   <div className="space-y-4">
                     <div className="bg-zinc-50 dark:bg-zinc-950 p-3 rounded border border-zinc-100 dark:border-zinc-800">
-                      <p className="text-xs font-bold text-zinc-500 mb-1">Prompt</p>
+                      <p className="text-xs font-bold text-zinc-500 mb-1">{t('promptText')}</p>
                       <p className="text-sm text-zinc-800 dark:text-zinc-200">{variation.prompt_text}</p>
                     </div>
                     {variation.negative_prompt && variation.negative_prompt !== "None" && (
                       <div className="bg-red-50 dark:bg-red-900/10 p-3 rounded border border-red-100 dark:border-red-900/30">
-                        <p className="text-xs font-bold text-red-800 dark:text-red-600 mb-1">Negative Prompt</p>
+                        <p className="text-xs font-bold text-red-800 dark:text-red-600 mb-1">{t('negativePrompt')}</p>
                         <p className="text-sm text-red-900 dark:text-red-500">{variation.negative_prompt}</p>
                       </div>
                     )}

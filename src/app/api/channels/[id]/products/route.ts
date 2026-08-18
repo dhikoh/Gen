@@ -15,8 +15,9 @@ const productSchema = z.object({
 });
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const t = await getApiTranslator();
   try {
-    const t = await getApiTranslator();
+    
     const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
@@ -38,8 +39,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 }
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const t = await getApiTranslator();
   try {
-    const t = await getApiTranslator();
+    
     const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: t("unauthorized") }, { status: 401 });

@@ -11,19 +11,20 @@ const forgotPasswordSchema = z.object({
 });
 
 export async function POST(req: Request) {
+  const t = await getApiTranslator();
   try {
-    const t = await getApiTranslator();
+    
     const body = await req.json();
     const identifierStr = typeof body.identifier === 'string' ? body.identifier.toLowerCase() : 'unknown';
     const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
     const isAllowed = await applyRateLimit(`forgot_pw_${ip}_${identifierStr}`, 3, 60 * 15); // 3 requests per 15 minutes
     if (!isAllowed) {
-      return NextResponse.json({ error: "Terlalu banyak permintaan. Coba lagi nanti." }, { status: 429 });
+      return NextResponse.json({ error: t("authRateLimit") }, { status: 429 });
     }
     const parsedData = forgotPasswordSchema.safeParse(body);
 
     if (!parsedData.success) {
-      return NextResponse.json({ error: "Input tidak valid" }, { status: 400 });
+      return NextResponse.json({ error: t("invalidInput") }, { status: 400 });
     }
 
     const { identifier } = parsedData.data;
@@ -69,7 +70,7 @@ export async function POST(req: Request) {
       });    }
 
     // Always return success
-    return NextResponse.json({ success: true, message: "Jika akun terdaftar, tautan reset telah dikirim ke email." }, { status: 200 });
+    return NextResponse.json({ success: true, message: t("resetLinkSent") }, { status: 200 });
 
   } catch (error) {
     console.error("Forgot password error:", error);

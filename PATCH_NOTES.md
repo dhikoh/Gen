@@ -1,31 +1,45 @@
-# Patch Notes & Changelog
+# Patch Notes - Security & Hardening Audit Remediation
 
-## [1.0.1] - Audit Remediation Patch
+Pembaruan ini mencakup seluruh perbaikan bug dan arsitektur yang teridentifikasi dalam sesi audit keamanan dan kepatuhan sistem (*Security & Hardening Audit*). Seluruh pengerjaan telah diselaraskan dengan dokumen referensi asli (`Project_Prompt_Gen.txt`).
 
-Patch ini berisi penyelesaian menyeluruh (remediasi) dari hasil audit blueprint Prompt Generator SaaS. Pembaruan ini memastikan sistem 100% selaras dengan spesifikasi teknis (blueprint), menutupi celah keamanan, dan menstandarisasi desain UI/UX.
+## 1. Keamanan Form & Auto-fill (R11)
+- **Komponen Terdampak:** `AuthForm`, `ForgotPasswordForm`, `ResetPasswordForm`, `EditChannelClient`, `GeneratorForm`, `AdminSettingsClient`.
+- **Perbaikan:** Menambahkan atribut `autoComplete="off"` secara eksplisit pada seluruh input sensitif untuk mencegah injeksi data yang tidak diinginkan melalui auto-fill browser.
+- **Pembersihan XSS:** Mengganti pola `dangerouslySetInnerHTML` di `AuthForm.tsx` (yang digunakan untuk merender ikon panah) dengan string biasa / replace method.
 
-### 🛡️ Keamanan & Integritas Sistem (Subscription & Limits)
-*   **Active Expiry Enforcement**: Refaktorisasi `getSubscriptionState()` di `src/lib/subscription.ts` agar tidak lagi bersifat *read-only*. Fungsi kini secara aktif melakukan *side-effect* mengubah status langganan ke `EXPIRED` di *database* jika masa aktif habis, dan secara otomatis memicu pemanggilan `enforceChannelLimits()` untuk mengunci *channel* sekunder (sesuai Blueprint Spec 3.4).
-*   **Server-Side Channel Lock**: Menambahkan proteksi pada sisi *server* di endpoint `PUT /api/channels/[id]`. Pembaruan profil *channel* yang berstatus `isLocked = true` kini akan ditolak langsung oleh API dengan HTTP 403, mencegah eksploitasi *bypass* form *read-only* di sisi *client*.
+## 2. Struktur Data Social Links (R6)
+- **Komponen Terdampak:** `api/channels/route.ts`, `api/channels/[id]/route.ts`, `EditChannelClient.tsx`.
+- **Perbaikan:**
+  - Memodifikasi skema Zod pada API untuk menerima tipe `string` maupun `array` pada field `socialLinks`.
+  - Merombak mekanisme form di `EditChannelClient` untuk melakukan *parsing* input string yang dipisahkan dengan koma menjadi array string yang bersih. Ini mendukung perluasan multi-platform di masa depan tanpa mengubah skema tabel database.
+  - Memperbaiki pengetatan tipe data (TypeScript) di dalam komponen tersebut.
 
-### ⚙️ Manajemen Admin & Paket (Plan)
-*   **Dynamic Plan Features**: Memperbarui skema validasi dan *handler* di `PUT /api/admin/plans` untuk menerima, memproses, dan menyimpan struktur JSON pada kolom `features`.
-*   **Plan Management UI**: Mengimplementasikan komponen antar muka baru `PlanManagement.tsx` di *dashboard* Superadmin. Admin kini dapat mengontrol pembatasan fitur secara spesifik per paket langganan (seperti mengaktifkan/menonaktifkan *Image Prompt Studio*).
+## 3. Modularisasi Logic Prompt (R8)
+- **Komponen Terdampak:** `api/generate/route.ts`, `src/lib/promptGenerator.ts`, `src/lib/imagePromptGenerator.ts`.
+- **Perbaikan:**
+  - Mengabstraksi secara penuh fungsi pembuat *prompt* dari dalam file route API.
+  - Membuat `generateMasterPrompt` dan `generateImagePrompt` di dalam modul library tersendiri (`src/lib/`).
+  - Hasilnya, API Route kini jauh lebih bersih, mudah dibaca, dan modular, sesuai dengan arsitektur yang direkomendasikan.
 
-### 🌍 Internasionalisasi (i18n) API
-*   **Menghapus Hardcode Bahasa**: Menyelesaikan isu 111+ *instance* `NextResponse.json({ error: "..." })` berbahasa Indonesia yang tertanam langsung (*hardcode*) di seluruh berkas `/api`.
-*   **Server-Side Translations**: Membuat *helper* `getApiTranslator()` menggunakan `next-intl/server`.
-*   **API Namespace**: Menambahkan *namespace* penerjemahan khusus `"API"` ke dalam kamus `messages/id.json` dan `messages/en.json`, memastikan respons *error* dan *success* dari sisi *server* konsisten mengikuti preferensi bahasa pengguna (Inggris/Indonesia).
+## 4. Keamanan Tipe Data & Skema Zod
+- **Komponen Terdampak:** `AdminSettingsClient.tsx`, `PlanManagement.tsx`, `page.tsx` (Admin Settings).
+- **Perbaikan:**
+  - Memperbaiki ketidaksesuaian tipe pada `heroTitle` dan `heroSubtitle` (menerima `string | null`).
+  - Menerapkan pengecekan `null` (null-check) yang aman saat melakukan mutasi pada fitur *Plan Management* di modul Admin.
+  - Skema konfigurasi *Video* dan *Image* kini telah divalidasi 100% menggunakan Zod di layer backend (`api/generate/route.ts`).
 
-### 🎨 Standarisasi Desain (Glassmorphism)
-*   **Global Application**: Menyelaraskan seluruh kartu komponen (*card*) yang sebelumnya menggunakan *style* bawaan Tailwind (`bg-white dark:bg-zinc-900`) untuk sepenuhnya menggunakan sistem token *Glassmorphism* (`glass-panel`).
-*   **Cakupan Refaktor**: Konsistensi UI telah diterapkan secara menyeluruh ke halaman *Dashboard*, *Billing*, panel *Superadmin*, daftar *Drafts*, editor rincian *Draft*, hingga *ChannelManagerClient.tsx*.
+## 5. Implementasi i18n & Filter Halaman Draft (R1, R4)
+- **Komponen Terdampak:** `DraftActions.tsx`, `DraftFilter.tsx`, `api/drafts/route.ts`.
+- **Perbaikan:**
+  - Melakukan migrasi string-string *hardcoded* yang tersisa pada aksi Hapus Draft ke mekanisme *localization* menggunakan *key* terjemahan (namespace `Drafts`).
+  - API `GET /api/drafts` sekarang mem-filter query berdasarkan `channelId` dan `type` (VIDEO / IMAGE), sesuai dengan integrasi pencarian dari parameter URL.
 
-### ⚡ Generator Logic (Image Prompt Studio)
-*   **Bypass Meta-Prompting (No Hop)**: Meluruskan penyimpangan alur pada `src/lib/imagePromptGenerator.ts`. Generator tidak lagi membuat instruksi yang memaksa pengguna meminta AI eksternal membuat format JSON untuk prompt *Midjourney/DALL-E*. Sistem kini merakit prompt siap-pakai langsung di memori *Node.js* sesuai variabel konfigurasi.
-*   **Auto-fill JSON**: Memperbarui komponen `GeneratorForm.tsx` untuk menangkap `finalJson` dari *backend* saat mode `IMAGE`. Alur *copy-paste* ke ChatGPT secara otomatis dilompati (*bypassed*), sehingga mempercepat proses *drafting* gambar secara signifikan.
+## 6. Build & Linting (R12)
+- **Komponen Terdampak:** `package.json`, `src/lib/env.ts`.
+- **Perbaikan:**
+  - Skrip npm telah disesuaikan; mengganti `eslint` dengan `next lint` pada perintah `"lint"`.
+  - Sistem lingkungan (`env.ts`) diubah agar parameter SMTP bersikap dinamis/*optional* untuk mengamankan proses `next build` secara lokal maupun CI/CD yang mungkin belum meng-injeksi variabel produksi SMTP secara utuh.
+  - **Status Akhir:** Perintah `npx tsc --noEmit`, `npm run lint`, dan `npm run build` berhasil dilewati tanpa *error* fatal.
 
-### 💳 Pembayaran & Dokumentasi
-*   **PaymentProvider Abstraction**: Mengatasi *dead-code* (kode tidak terpakai) di `/api/invoice/route.ts` dengan merefaktorisasi alur pembuatan *invoice* agar memanggil metode polimorfisme `ManualTransferProvider.createInvoice()` sesuai abstraksi arsitektur sistem pembayaran.
-*   **Pembaruan Dokumentasi**: Menambahkan dokumentasi *environment variables* yang wajib ada untuk konfigurasi SMTP (Resend/Nodemailer) ke dalam berkas `README.md`.
-*   **Render UI Ekstra**: Menambahkan blok UI khusus di editor `DraftDetailPage` untuk membaca *payload* `parsedData.variations` (visualisasi variasi prompt, *aspect ratio*, *negative prompt*) secara rapi.
+## 7. Status Aset PWA (R10)
+- Mengonfirmasi eksistensi dan validitas aset-aset statis (`icon-192x192.png`, `icon-512x512.png`) yang dibutuhkan oleh Web App Manifest di direktori `public/`.

@@ -59,8 +59,9 @@ const generateSchema = z.object({
 });
 
 export async function POST(req: Request) {
+  const t = await getApiTranslator();
   try {
-    const t = await getApiTranslator();
+    
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: t("unauthorized") }, { status: 401 });

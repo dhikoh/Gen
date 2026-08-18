@@ -28,11 +28,11 @@ export default function DraftActions({ draftId, rawJson, locale }: { draftId: st
       const res = await fetch(`/api/drafts/${draftId}`, {
         method: "DELETE",
       });
-      if (!res.ok) throw new Error("Gagal menghapus draft");
+      if (!res.ok) throw new Error(t('deleteFail'));
       router.push(`/${locale}/dashboard/drafts`);
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Terjadi kesalahan");
+      toast.error(error instanceof Error ? error.message : t('systemError'));
       setDeleting(false);
     }
   };

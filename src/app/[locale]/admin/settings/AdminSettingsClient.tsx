@@ -5,7 +5,15 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 
-export default function AdminSettingsClient({ settings }: { settings: any }) {
+interface AppSettings {
+  heroTitle: string | null;
+  heroSubtitle: string | null;
+  bankName?: string | null;
+  bankAccountNo?: string | null;
+  bankAccountName?: string | null;
+}
+
+export default function AdminSettingsClient({ settings }: { settings: AppSettings | null }) {
   const router = useRouter();
   const t = useTranslations("AdminSettings");
   const [loading, setLoading] = useState(false);
@@ -46,7 +54,7 @@ export default function AdminSettingsClient({ settings }: { settings: any }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white dark:bg-zinc-900 shadow rounded-lg p-6 space-y-6 max-w-2xl border border-zinc-200 dark:border-zinc-800">
+    <form autoComplete="off" onSubmit={handleSubmit} className="bg-white dark:bg-zinc-900 shadow rounded-lg p-6 space-y-6 max-w-2xl border border-zinc-200 dark:border-zinc-800">
       
       <div className="border-b border-zinc-200 dark:border-zinc-800 pb-4">
         <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-4">{t('landingContent')}</h3>

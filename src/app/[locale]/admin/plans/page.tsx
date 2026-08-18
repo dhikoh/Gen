@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
-import AdminPlansClient from "./AdminPlansClient";
+import PlanManagement from "@/components/admin/PlanManagement";
 import { getTranslations } from "next-intl/server";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
@@ -34,7 +34,7 @@ export default async function AdminPlansPage({ params }: { params: Promise<{ loc
         </p>
       </div>
 
-      <AdminPlansClient initialPlans={plans} />
+      <PlanManagement initialPlans={plans as any} />
     </div>
   );
 }

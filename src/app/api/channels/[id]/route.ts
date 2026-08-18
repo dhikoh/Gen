@@ -16,12 +16,13 @@ const channelSchema = z.object({
   audioBGM: z.boolean().optional(),
   audioSFX: z.boolean().optional(),
   audioVO: z.boolean().optional(),
-  socialLinks: z.string().optional(),
+  socialLinks: z.union([z.string(), z.array(z.string())]).optional(),
 });
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const t = await getApiTranslator();
   try {
-    const t = await getApiTranslator();
+    
     const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session) {
@@ -68,8 +69,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const t = await getApiTranslator();
   try {
-    const t = await getApiTranslator();
+    
     const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session) {

@@ -11,8 +11,9 @@ const checkSchema = z.object({
 });
 
 export async function POST(req: Request) {
+  const t = await getApiTranslator();
   try {
-    const t = await getApiTranslator();
+    
     const body = await req.json();
     const identifierStr = (typeof body.email === 'string' ? body.email : typeof body.username === 'string' ? body.username : 'unknown').toLowerCase();
     const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";

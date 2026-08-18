@@ -12,8 +12,9 @@ const actionSchema = z.object({
 });
 
 export async function POST(req: Request) {
+  const t = await getApiTranslator();
   try {
-    const t = await getApiTranslator();
+    
     const session = await getServerSession(authOptions);
     
     if (!session || session.user.role !== "SUPERADMIN") {
@@ -35,7 +36,7 @@ export async function POST(req: Request) {
     });
 
     if (!invoice || invoice.status !== "PENDING") {
-      return NextResponse.json({ error: "Tagihan tidak valid atau sudah diproses." }, { status: 400 });
+      return NextResponse.json({ error: t("invoiceInvalid") }, { status: 400 });
     }
 
     if (action === "REJECT") {
@@ -90,6 +91,6 @@ export async function POST(req: Request) {
 
   } catch (error) {
     console.error("Admin Payments API error:", error);
-    return NextResponse.json({ error: "Terjadi kesalahan sistem." }, { status: 500 });
+    return NextResponse.json({ error: t("systemError") }, { status: 500 });
   }
 }

@@ -14,8 +14,9 @@ const planUpdateSchema = z.object({
 });
 
 export async function GET() {
+  const t = await getApiTranslator();
   try {
-    const t = await getApiTranslator();
+    
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== "SUPERADMIN") {
       return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
@@ -32,8 +33,9 @@ export async function GET() {
 }
 
 export async function PUT(req: Request) {
+  const t = await getApiTranslator();
   try {
-    const t = await getApiTranslator();
+    
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== "SUPERADMIN") {
       return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
