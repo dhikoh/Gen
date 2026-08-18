@@ -1,6 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import { prisma } from "@/lib/db";
-import { SAFE_USER_SELECT } from "@/lib/safeUserSelect";
+import { prisma, SAFE_USER_SELECT } from "@/lib/db";
 import AdminRegistrationsClient from "./AdminRegistrationsClient";
 
 export async function generateMetadata() {

@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
-import { prisma } from "@/lib/db";
-import { SAFE_USER_SELECT } from "@/lib/safeUserSelect";
+import { prisma, SAFE_USER_SELECT } from "@/lib/db";
 import { getApiTranslator } from "@/lib/apiI18n";
 import { sendEmail } from "@/lib/email";
 
