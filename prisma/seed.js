@@ -64,7 +64,19 @@ async function main() {
   }
   console.log('Created Plans')
 
-  // 3. Create Superadmin User
+  // 3. Create Default PromptSettings (singleton)
+  await prisma.promptSettings.upsert({
+    where: { id: 'singleton' },
+    update: {},
+    create: {
+      id: 'singleton',
+      defaultSpeechRate: 'medium',
+      bannedWords: [],
+    },
+  })
+  console.log('Created PromptSettings')
+
+  // 4. Create Superadmin User
   const superadminEmail = 'admin@promptgen.com'
   const passwordHash = await bcrypt.hash('superadmin123', 10)
 
@@ -73,6 +85,8 @@ async function main() {
     update: {
       passwordHash, // Reset password on seed just in case
       role: 'SUPERADMIN',
+      registrationStatus: 'APPROVED',
+      approvedAt: new Date(),
     },
     create: {
       name: 'Super Admin',
@@ -80,6 +94,8 @@ async function main() {
       email: superadminEmail,
       passwordHash,
       role: 'SUPERADMIN',
+      registrationStatus: 'APPROVED',
+      approvedAt: new Date(),
     },
   })
   console.log('Created Superadmin')

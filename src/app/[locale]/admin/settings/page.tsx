@@ -25,6 +25,10 @@ export default async function AdminSettingsPage({ params }: { params: Promise<{ 
     where: { id: "singleton" }
   });
 
+  const promptSettings = await prisma.promptSettings.findUnique({
+    where: { id: "singleton" }
+  });
+
   return (
     <div className="p-8">
       <div className="mb-8">
@@ -32,7 +36,7 @@ export default async function AdminSettingsPage({ params }: { params: Promise<{ 
         <p className="text-zinc-500 dark:text-zinc-400">{t('description')}</p>
       </div>
 
-      <AdminSettingsClient settings={settings} />
+      <AdminSettingsClient settings={settings} promptSettings={promptSettings} />
     </div>
   );
 }

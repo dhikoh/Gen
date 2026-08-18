@@ -23,6 +23,10 @@ export default async function GeneratorPage({ params }: { params: Promise<{ loca
     orderBy: { createdAt: "asc" }
   });
 
+  const promptSettings = await prisma.promptSettings.findUnique({
+    where: { id: "singleton" }
+  });
+
   return (
     <div className="max-w-6xl mx-auto">
       <div className="mb-8">
@@ -32,7 +36,7 @@ export default async function GeneratorPage({ params }: { params: Promise<{ loca
         </p>
       </div>
 
-      <GeneratorForm channels={channels} />
+      <GeneratorForm channels={channels} promptSettings={promptSettings} />
     </div>
   );
 }

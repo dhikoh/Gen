@@ -53,6 +53,14 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Invalid credentials");
         }
 
+        if (user.role !== "SUPERADMIN" && user.registrationStatus === "PENDING_APPROVAL") {
+          throw new Error("Akun Anda sedang menunggu persetujuan superadmin.");
+        }
+
+        if (user.role !== "SUPERADMIN" && user.registrationStatus === "REJECTED") {
+          throw new Error("Pendaftaran akun Anda ditolak oleh admin.");
+        }
+
         // Self-healing subscription logic
         if (user.subscriptionStatus === "ACTIVE" && user.subscriptionExpiresAt && user.subscriptionExpiresAt < new Date()) {
           await prisma.user.update({

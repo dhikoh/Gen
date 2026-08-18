@@ -37,12 +37,16 @@ enum PaymentStatus {
   FAILED
 }
 
+enum RegistrationStatus {
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+}
+
 enum DraftType {
   VIDEO
   IMAGE
 }
-
-
 
 model User {
   id                    String              @id @default(cuid())
@@ -53,6 +57,8 @@ model User {
   passwordHash          String
   dateOfBirth           DateTime?
   role                  Role                @default(USER)
+  registrationStatus    RegistrationStatus  @default(APPROVED)
+  approvedAt            DateTime?
 
   currentPlanId         String?
   currentPlan           Plan?               @relation(fields: [currentPlanId], references: [id])
@@ -177,5 +183,15 @@ model AppSettings {
   heroTitle       String?
   heroSubtitle    String?
   updatedAt       DateTime @updatedAt
+}
+
+model PromptSettings {
+  id                     String   @id @default("singleton")
+  videoSystemInstruction String?  @db.Text
+  imageSystemInstruction String?  @db.Text
+  defaultSpeechRate      String?  @default("medium")
+  defaultNegativePrompt  String?  @db.Text
+  bannedWords            Json?
+  updatedAt              DateTime @updatedAt
 }
 

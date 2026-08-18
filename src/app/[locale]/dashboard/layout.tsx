@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import LogoutButton from "@/components/auth/LogoutButton";
 import { getTranslations } from "next-intl/server";
+import { headers } from "next/headers";
 
 export default async function DashboardLayout({
   children,
@@ -17,7 +18,9 @@ export default async function DashboardLayout({
   const { locale } = await params;
 
   if (!session) {
-    redirect(`/${locale}/auth`);
+    const headerList = await headers();
+    const rawPath = headerList.get("x-pathname") || headerList.get("x-invoke-path") || headerList.get("next-url") || `/${locale}/dashboard`;
+    redirect(`/${locale}/auth?callbackUrl=${encodeURIComponent(rawPath)}`);
   }
   
   if (session.user.role === 'SUPERADMIN') {

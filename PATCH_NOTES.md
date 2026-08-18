@@ -74,7 +74,12 @@ Pembaruan ini mencakup seluruh perbaikan bug dan arsitektur yang teridentifikasi
 - **Komponen Terdampak:** `README.md`, `src/lib/authOptions.ts`, `src/app/auth/page.tsx`.
 - **Perbaikan:** Memperbaiki dokumentasi variabel lingkungan `SMTP_PASS` menjadi `SMTP_PASSWORD`. Membuat rute netral `/auth` untuk menangani pengalihan login NextAuth berbasis cookie `NEXT_LOCALE`. Mengonfirmasi keselarasan nama field skema JSON (`segments`, `caption`, `duration_estimation`) pada seluruh komponen generator dan UI.
 
-## 19. Migrasi Sanitasi HTML Server-Safe (AUDIT-24)
-- **Komponen Terdampak:** `package.json`, `src/app/[locale]/dashboard/page.tsx`, `src/app/[locale]/dashboard/drafts/[id]/page.tsx`.
-- **Perbaikan:** Mengganti dependensi `isomorphic-dompurify` dengan `sanitize-html`. Membuang dependensi berat `jsdom`, `html-encoding-sniffer`, dan `@exodus/bytes` yang memicu kegagalan build/ESM require mismatch pada Node 22 / Nixpacks Docker environment. Sanitisasi HTML kini berjalan cepat, aman, dan kompatibel 100% di Server Component.
+
+## 20. Multi-Stage Registration Approval & Access Hardening (AUDIT-25)
+- **Komponen Terdampak:** `prisma/schema.prisma`, `src/lib/authOptions.ts`, `src/app/api/auth/register/route.ts`, `src/app/api/admin/registrations/route.ts`, `src/app/[locale]/admin/registrations/page.tsx`, `src/app/[locale]/admin/registrations/AdminRegistrationsClient.tsx`, `src/app/[locale]/admin/layout.tsx`.
+- **Perbaikan:** Mengimplementasikan `RegistrationStatus` enum (`PENDING_APPROVAL`, `APPROVED`, `REJECTED`) pada model `User`. Menambahkan proteksi autentikasi runtime di level `authOptions.authorize` untuk memblokir login pengguna dengan status `PENDING_APPROVAL` atau `REJECTED`. Membangun API atomik dan antarmuka GUI Admin Approval dengan badge hitung pendaftaran pending real-time serta notifikasi email otomatis saat status pendaftaran disetujui atau ditolak.
+
+## 21. System Prompt Settings & Banned Content Moderation (AUDIT-26)
+- **Komponen Terdampak:** `prisma/schema.prisma`, `src/app/api/admin/prompt-settings/route.ts`, `src/app/[locale]/admin/settings/AdminSettingsClient.tsx`, `src/app/[locale]/admin/settings/page.tsx`, `src/app/api/generate/route.ts`, `src/lib/promptGenerator.ts`, `src/lib/imagePromptGenerator.ts`, `src/components/generator/GeneratorForm.tsx`, `messages/id.json`, `messages/en.json`.
+- **Perbaikan:** Membuat model singleton `PromptSettings` untuk menyimpan instruksi sistem AI global, kecepatan bicara (*speech rate*) default, *negative prompt* default, dan daftar kata terlarang (*banned words*). Menambahkan filter moderasi konten otomatis pada API `/api/generate` yang memblokir request jika memuat kata terlarang, serta menyuntikkan instruksi khusus superadmin secara transparan ke dalam Video Master Prompt dan Image Prompt Studio.
 

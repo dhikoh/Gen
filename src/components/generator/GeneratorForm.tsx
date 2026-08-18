@@ -4,7 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 
-export default function GeneratorForm({ channels }: { channels: any[] }) {
+export default function GeneratorForm({
+  channels,
+  promptSettings
+}: {
+  channels: any[];
+  promptSettings?: any;
+}) {
   const router = useRouter();
   const t = useTranslations("Generator");
   const [type, setType] = useState<"VIDEO" | "IMAGE">("VIDEO");
@@ -21,6 +27,11 @@ export default function GeneratorForm({ channels }: { channels: any[] }) {
   const [manualTitle, setManualTitle] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
+  // Map speech rate default
+  let initialSpeechRate = "Sedang";
+  if (promptSettings?.defaultSpeechRate === "slow") initialSpeechRate = "Lambat";
+  if (promptSettings?.defaultSpeechRate === "fast") initialSpeechRate = "Cepat";
+
   // Video specific fields
   const [videoConfig, setVideoConfig] = useState({
     pov: "",
@@ -28,7 +39,7 @@ export default function GeneratorForm({ channels }: { channels: any[] }) {
     aspectRatio: "9:16",
     duration: "Short (< 30s)",
     targetDurationSec: 60,
-    speechRate: "Sedang",
+    speechRate: initialSpeechRate,
     hookStyle: "Pertanyaan Provokatif",
     endingStyle: "Pertanyaan Terbuka",
     includeHook: true,
@@ -49,7 +60,7 @@ export default function GeneratorForm({ channels }: { channels: any[] }) {
     mood: "Cinematic",
     colorGrading: "Teal and Orange",
     visualStyle: "Photorealistic",
-    negativePrompt: "ugly, blurry, deformed, watermark",
+    negativePrompt: promptSettings?.defaultNegativePrompt || "ugly, blurry, deformed, watermark",
     variations: 4,
     aspectRatio: "16:9"
   });

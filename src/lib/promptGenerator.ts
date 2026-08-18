@@ -2,7 +2,8 @@ export function generateMasterPrompt(
   channel: any,
   topic: string,
   additionalContext: string,
-  videoConfig: any
+  videoConfig: any,
+  promptSettings?: any
 ): { masterPrompt: string; systemInstruction: string } {
   const channelContext = `
 Nama Channel/Akun: ${channel.channelName}
@@ -21,7 +22,10 @@ Gunakan Audio VO: ${channel.audioVO ? "Ya" : "Tidak"}
     ? `Produk untuk Soft-selling:\n${activeProducts.map((p: any) => `- ${p.name} (Rp ${p.price}): ${p.description}`).join('\n')}`
     : "Tidak ada produk khusus untuk disisipkan.";
 
-  const systemInstruction = `Kamu adalah asisten ahli kreator konten dan scriptwriter profesional. Bertindaklah sebagai ${videoConfig?.pov || "Ahli di bidang ini"}.`;
+  let systemInstruction = `Kamu adalah asisten ahli kreator konten dan scriptwriter profesional. Bertindaklah sebagai ${videoConfig?.pov || "Ahli di bidang ini"}.`;
+  if (promptSettings?.videoSystemInstruction?.trim()) {
+    systemInstruction += `\n${promptSettings.videoSystemInstruction.trim()}`;
+  }
 
   const jsonFields = [
     `"judul_konten": "string (Judul menarik untuk video)"`

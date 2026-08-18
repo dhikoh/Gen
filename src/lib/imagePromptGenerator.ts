@@ -2,10 +2,12 @@ export function generateImagePrompt(
   channel: any,
   topic: string,
   additionalContext: string,
-  imageConfig: any
+  imageConfig: any,
+  promptSettings?: any
 ): { masterPrompt: string; systemInstruction: string; finalJson?: string } {
   const variations = [];
   const numVars = imageConfig?.variations || 4;
+  const activeNegPrompt = imageConfig?.negativePrompt || promptSettings?.defaultNegativePrompt || "";
   
   for (let i = 1; i <= numVars; i++) {
     // Basic assembly
@@ -28,8 +30,8 @@ export function generateImagePrompt(
     }
     promptText += ` --ar ${ar}`;
     
-    if (imageConfig?.negativePrompt && imageConfig.negativePrompt !== "None") {
-      promptText += ` --no ${imageConfig.negativePrompt}`;
+    if (activeNegPrompt && activeNegPrompt !== "None") {
+      promptText += ` --no ${activeNegPrompt}`;
     }
 
     // Create a narrative version
@@ -48,16 +50,21 @@ export function generateImagePrompt(
       id: i,
       prompt_text: promptText,
       narrative_prompt: narrative.trim(),
-      negative_prompt: imageConfig?.negativePrompt || "",
+      negative_prompt: activeNegPrompt,
       aspect_ratio: `--ar ${ar}`
     });
   }
 
   const finalJson = JSON.stringify({ variations }, null, 2);
 
+  let systemInstruction = "Direct generation successful.";
+  if (promptSettings?.imageSystemInstruction?.trim()) {
+    systemInstruction = promptSettings.imageSystemInstruction.trim();
+  }
+
   return { 
     masterPrompt: "Prompt generated directly. You can edit the JSON below.", 
-    systemInstruction: "Direct generation successful.",
+    systemInstruction,
     finalJson
   };
 }

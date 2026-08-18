@@ -82,6 +82,26 @@ export async function POST(req: Request) {
 
     const { type, channelId, topic, additionalContext, videoConfig, imageConfig } = parsedData.data;
 
+    // Fetch system prompt settings
+    const promptSettings = await prisma.promptSettings.findUnique({
+      where: { id: "singleton" }
+    });
+
+    // Content filter: Check banned words
+    if (promptSettings && Array.isArray(promptSettings.bannedWords) && promptSettings.bannedWords.length > 0) {
+      const inputContent = `${topic} ${additionalContext || ""}`.toLowerCase();
+      const bannedList = promptSettings.bannedWords as unknown[];
+      const containsBannedWord = bannedList.some((word) => {
+        if (typeof word !== "string") return false;
+        const cleanWord = word.trim().toLowerCase();
+        return cleanWord.length > 0 && inputContent.includes(cleanWord);
+      });
+
+      if (containsBannedWord) {
+        return NextResponse.json({ error: t("bannedWordDetected") }, { status: 400 });
+      }
+    }
+
     let dbUser, plan;
     try {
       const result = await requireActiveSubscription(session.user.id);
@@ -133,11 +153,11 @@ export async function POST(req: Request) {
     let finalJson: string | undefined = undefined;
 
     if (type === "VIDEO" && videoConfig) {
-      const result = generateMasterPrompt(channel, topic, additionalContext || "", videoConfig);
+      const result = generateMasterPrompt(channel, topic, additionalContext || "", videoConfig, promptSettings);
       masterPrompt = result.masterPrompt + titleContext;
       systemInstruction = result.systemInstruction;
     } else if (type === "IMAGE" && imageConfig) {
-      const result = generateImagePrompt(channel, topic, additionalContext || "", imageConfig);
+      const result = generateImagePrompt(channel, topic, additionalContext || "", imageConfig, promptSettings);
       masterPrompt = result.masterPrompt + titleContext;
       systemInstruction = result.systemInstruction;
       finalJson = result.finalJson;

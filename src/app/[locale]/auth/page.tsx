@@ -2,6 +2,7 @@ import AuthForm from "@/components/auth/AuthForm";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 
 export const metadata = {
   title: "Autentikasi - Prompt Gen",
@@ -25,7 +26,9 @@ export default async function AuthPage({ params }: { params: Promise<{ locale: s
         <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white mb-2">Prompt Gen</h1>
         <p className="text-zinc-500 dark:text-zinc-400">Silakan masuk atau daftar untuk melanjutkan</p>
       </div>
-      <AuthForm />
+      <Suspense fallback={<div className="text-zinc-500">Memuat...</div>}>
+        <AuthForm />
+      </Suspense>
     </div>
   );
 }

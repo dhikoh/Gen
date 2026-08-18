@@ -2,16 +2,26 @@
 
 import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 
 export default function AuthForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const t = useTranslations("Auth");
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const rawCallbackUrl = searchParams.get("callbackUrl");
+
+  const getSafeCallbackUrl = () => {
+    if (rawCallbackUrl && rawCallbackUrl.startsWith("/") && !rawCallbackUrl.startsWith("//") && !rawCallbackUrl.startsWith("/\\")) {
+      return rawCallbackUrl;
+    }
+    return "/dashboard";
+  };
 
   // Form State
   const [identifier, setIdentifier] = useState("");
@@ -73,7 +83,7 @@ export default function AuthForm() {
         if (res?.error) {
           setError(res.error);
         } else {
-          router.push("/dashboard");
+          router.push(getSafeCallbackUrl());
           router.refresh();
         }
       } else {
@@ -125,7 +135,7 @@ export default function AuthForm() {
           if (loginRes?.error) {
             setError(loginRes.error);
           } else {
-            router.push("/dashboard");
+            router.push(getSafeCallbackUrl());
             router.refresh();
           }
         }

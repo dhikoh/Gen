@@ -88,6 +88,7 @@ export async function POST(req: Request) {
           passwordHash,
           dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
           role: "USER",
+          registrationStatus: "PENDING_APPROVAL",
           subscriptionStatus: "INACTIVE",
           currentPlanId: null
         }
