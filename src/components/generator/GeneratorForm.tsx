@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import toast from "react-hot-toast";
 import CompositionSliderGroup from "./CompositionSliderGroup";
+import { PresetSelect, PresetOption } from "@/components/ui/PresetSelect";
 
 interface ProductItem {
   id: string;
@@ -57,9 +58,9 @@ export default function GeneratorForm({
   const [saving, setSaving] = useState(false);
 
   // Dynamic presets state
-  const [platformOptions, setPlatformOptions] = useState<PlatformOptionItem[]>([]);
-  const [personaPresets, setPersonaPresets] = useState<PersonaPresetItem[]>([]);
-  const [visualAesthetics, setVisualAesthetics] = useState<VisualAestheticItem[]>([]);
+  const [platformOptions, setPlatformOptions] = useState<PresetOption[]>([]);
+  const [personaPresets, setPersonaPresets] = useState<PresetOption[]>([]);
+  const [visualAesthetics, setVisualAesthetics] = useState<PresetOption[]>([]);
   const [channelProducts, setChannelProducts] = useState<ProductItem[]>([]);
 
   // Quick Add Product Modal state
@@ -70,19 +71,22 @@ export default function GeneratorForm({
   const [newProductLink, setNewProductLink] = useState("");
   const [addingProduct, setAddingProduct] = useState(false);
 
-  // Default speech rate
-  let initialSpeechRate = "Sedang";
-  if (promptSettings?.defaultSpeechRate === "slow") initialSpeechRate = "Lambat";
-  if (promptSettings?.defaultSpeechRate === "fast") initialSpeechRate = "Cepat";
+  const speechRateOptions: PresetOption[] = [
+    { value: 0.25, label: "0.25 s/kata (Super Fast)" },
+    { value: 0.30, label: "0.30 s/kata (Cepat)" },
+    { value: 0.35, label: "0.35 s/kata (Normal / Standard)" },
+    { value: 0.40, label: "0.40 s/kata (Santai)" },
+    { value: 0.50, label: "0.50 s/kata (Lambat)" },
+  ];
 
   // Video specific fields
   const [videoConfig, setVideoConfig] = useState({
-    pov: "Ahli SEO & Digital Marketing",
+    pov: "Expert Storyteller (Edukasi & Inspirasi)",
     targetPlatform: "TikTok",
     aspectRatio: "9:16",
     targetDurationSec: 60,
     targetSceneCount: 6,
-    speechRate: initialSpeechRate,
+    speechRate: 0.35,
     hookStyle: "Pertanyaan Provokatif",
     endingStyle: "Pertanyaan Terbuka",
     narrativeLoopStyle: "Tanpa Loop",
@@ -107,7 +111,7 @@ export default function GeneratorForm({
     lighting: "Natural Light",
     mood: "Cinematic",
     colorGrading: "Teal and Orange",
-    visualStyle: "Photorealistic",
+    visualStyle: "Cinematic Dark Mode (Sleek & Professional)",
     negativePrompt: promptSettings?.defaultNegativePrompt || "ugly, blurry, deformed, watermark",
     variations: 4,
     aspectRatio: "16:9"
@@ -117,19 +121,55 @@ export default function GeneratorForm({
   useEffect(() => {
     fetch("/api/platform-options")
       .then((res) => res.json())
-      .then((d) => d.success && setPlatformOptions(d.options || []))
+      .then((d) => {
+        if (d.success && d.options) {
+          setPlatformOptions(
+            d.options.map((opt: any) => ({ value: opt.label, label: opt.label }))
+          );
+        }
+      })
       .catch(() => {});
 
     fetch("/api/persona-presets")
       .then((res) => res.json())
-      .then((d) => d.success && setPersonaPresets(d.presets || []))
+      .then((d) => {
+        if (d.success && d.presets) {
+          setPersonaPresets(
+            d.presets.map((p: any) => ({ value: p.label, label: p.label }))
+          );
+        }
+      })
       .catch(() => {});
 
     fetch("/api/visual-aesthetic-presets")
       .then((res) => res.json())
-      .then((d) => d.success && setVisualAesthetics(d.presets || []))
+      .then((d) => {
+        if (d.success && d.presets) {
+          setVisualAesthetics(
+            d.presets.map((v: any) => ({ value: v.label, label: v.label }))
+          );
+        }
+      })
       .catch(() => {});
   }, []);
+
+  // Synchronize channel settings into form configs when channel selection changes
+  useEffect(() => {
+    if (!channelId) return;
+    const selectedChannel = channels.find((c: any) => c.id === channelId);
+    if (selectedChannel) {
+      setVideoConfig((prev) => ({
+        ...prev,
+        targetPlatform: selectedChannel.targetPlatform || prev.targetPlatform || "TikTok",
+        pov: selectedChannel.personaPov || prev.pov || "Expert Storyteller (Edukasi & Inspirasi)",
+        speechRate: selectedChannel.speechRate ?? prev.speechRate ?? 0.35,
+      }));
+      setImageConfig((prev) => ({
+        ...prev,
+        visualStyle: selectedChannel.visualAesthetic || prev.visualStyle || "Cinematic Dark Mode (Sleek & Professional)",
+      }));
+    }
+  }, [channelId, channels]);
 
   // Fetch channel products when channelId changes
   useEffect(() => {
@@ -139,27 +179,31 @@ export default function GeneratorForm({
     }
     fetch(`/api/channels/${channelId}/products`)
       .then((res) => res.json())
-      .then((d) => setChannelProducts(d.products || []))
-      .catch(() => setChannelProducts([]));
+      .then((d) => {
+        if (d.products) {
+          setChannelProducts(d.products);
+        }
+      })
+      .catch(() => {});
   }, [channelId]);
 
-  const handleVideoConfigChange = (name: string, value: any) => {
-    setVideoConfig((prev) => ({ ...prev, [name]: value }));
+  const handleVideoConfigChange = (key: string, value: any) => {
+    setVideoConfig((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleImageConfigChange = (e: any) => {
-    const { name, value, type } = e.target;
-    setImageConfig((prev) => ({ ...prev, [name]: type === "number" ? parseInt(value) || 0 : value }));
+  const handleImageConfigChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setImageConfig((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newProductName.trim()) {
-      toast.error("Nama produk wajib diisi.");
-      return;
-    }
     if (!channelId) {
       toast.error("Pilih channel terlebih dahulu.");
+      return;
+    }
+    if (!newProductName.trim()) {
+      toast.error("Nama produk wajib diisi.");
       return;
     }
 
@@ -255,10 +299,7 @@ export default function GeneratorForm({
     setError(null);
 
     try {
-      let rateValue = 130;
-      if (videoConfig.speechRate === "Lambat") rateValue = 110;
-      if (videoConfig.speechRate === "Cepat") rateValue = 160;
-
+      const rateValue = Number(videoConfig.speechRate) || 0.35;
       const selectedChannel = channels.find((c) => c.id === channelId);
       const effectiveTopic = topic.trim() ? topic.trim() : (selectedChannel?.niche || "Topik Umum");
 
@@ -285,17 +326,59 @@ export default function GeneratorForm({
 
       const data = await res.json();
 
-      if (!res.ok) {
-        setError(data.error || t("saveDraftError"));
+      if (res.ok) {
+        setResult(t("draftSavedSuccess"));
+        toast.success("Draft berhasil disimpan!");
+        router.push(`/${document.documentElement.lang || "id"}/dashboard/drafts`);
       } else {
-        setResult(t("savedInDraftsSuccess"));
-        router.refresh();
+        setError(data.error || t("saveDraftFail"));
       }
     } catch (err) {
       setError(t("serverError"));
     } finally {
       setSaving(false);
     }
+  };
+
+  const downloadJsonPrompt = () => {
+    let jsonString = aiResultJson;
+
+    if (!jsonString || !jsonString.trim()) {
+      try {
+        jsonString = JSON.stringify(
+          {
+            topic: topic || "Prompt Result",
+            type: type,
+            prompt: generatedPrompt,
+            createdAt: new Date().toISOString(),
+          },
+          null,
+          2
+        );
+      } catch (e) {
+        jsonString = generatedPrompt;
+      }
+    } else {
+      // Validate JSON formatting
+      try {
+        const parsed = JSON.parse(jsonString);
+        jsonString = JSON.stringify(parsed, null, 2);
+      } catch (e) {
+        // Keep raw text
+      }
+    }
+
+    const blob = new Blob([jsonString], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const safeTopic = (topic || "prompt").replace(/[^a-z0-9]/gi, "_").toLowerCase();
+    link.href = url;
+    link.download = `prompt_${safeTopic}_${Date.now()}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success("File JSON Prompt berhasil diunduh!");
   };
 
   return (
@@ -428,45 +511,32 @@ export default function GeneratorForm({
                   {t("videoSettings")} & Presisi Presets
                 </h3>
 
-                {/* Platform & Persona Comboboxes */}
+                {/* Platform & Persona PresetSelect */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                      {t("targetPlatform")} (Pilih / Kustom)
-                    </label>
-                    <input
-                      type="text"
-                      list="platform-list"
-                      value={videoConfig.targetPlatform}
-                      onChange={(e) => handleVideoConfigChange("targetPlatform", e.target.value)}
-                      placeholder="TikTok, Instagram Reels, dst."
-                      className="w-full px-3 py-1.5 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
-                    />
-                    <datalist id="platform-list">
-                      {platformOptions.map((p) => (
-                        <option key={p.id} value={p.label} />
-                      ))}
-                    </datalist>
-                  </div>
+                  <PresetSelect
+                    label="Target Platform"
+                    value={videoConfig.targetPlatform}
+                    onChange={(val) => handleVideoConfigChange("targetPlatform", val)}
+                    options={platformOptions.length > 0 ? platformOptions : [
+                      { value: "TikTok", label: "TikTok" },
+                      { value: "Instagram Reels", label: "Instagram Reels" },
+                      { value: "YouTube Shorts", label: "YouTube Shorts" },
+                      { value: "YouTube Long", label: "YouTube Long" },
+                    ]}
+                    placeholder="Platform kustom..."
+                  />
 
-                  <div>
-                    <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                      Persona & POV Kreator (Pilih / Kustom)
-                    </label>
-                    <input
-                      type="text"
-                      list="persona-list"
-                      value={videoConfig.pov}
-                      onChange={(e) => handleVideoConfigChange("pov", e.target.value)}
-                      placeholder="Ahli SEO, Storyteller, Mentor Bisnis..."
-                      className="w-full px-3 py-1.5 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
-                    />
-                    <datalist id="persona-list">
-                      {personaPresets.map((p) => (
-                        <option key={p.id} value={p.label} />
-                      ))}
-                    </datalist>
-                  </div>
+                  <PresetSelect
+                    label="Persona & POV Kreator"
+                    value={videoConfig.pov}
+                    onChange={(val) => handleVideoConfigChange("pov", val)}
+                    options={personaPresets.length > 0 ? personaPresets : [
+                      { value: "Expert Storyteller (Edukasi & Inspirasi)", label: "Expert Storyteller (Edukasi & Inspirasi)" },
+                      { value: "Energetic Reviewer (Review Produk)", label: "Energetic Reviewer (Review Produk)" },
+                      { value: "Casual Friend (Santai & Relatable)", label: "Casual Friend (Santai & Relatable)" },
+                    ]}
+                    placeholder="Ketik Persona Kustom..."
+                  />
                 </div>
 
                 {/* Product Selection Section */}
@@ -567,20 +637,18 @@ export default function GeneratorForm({
                     </select>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                      {t("speechRate")}
-                    </label>
-                    <select
-                      value={videoConfig.speechRate}
-                      onChange={(e) => handleVideoConfigChange("speechRate", e.target.value)}
-                      className="w-full px-3 py-1.5 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
-                    >
-                      <option value="Lambat">Lambat (~110 kata/menit)</option>
-                      <option value="Sedang">Sedang (~130 kata/menit)</option>
-                      <option value="Cepat">Cepat (~160 kata/menit)</option>
-                    </select>
-                  </div>
+                  <PresetSelect
+                    label="Speech Rate"
+                    value={videoConfig.speechRate}
+                    onChange={(val) => handleVideoConfigChange("speechRate", val)}
+                    options={speechRateOptions}
+                    type="number"
+                    step="0.01"
+                    min={0.1}
+                    max={1.0}
+                    placeholder="Detik/kata (e.g. 0.35)"
+                    helpText="Kecepatan kata (s/kata)"
+                  />
                 </div>
 
                 {/* Hook Style & Ending Style */}
@@ -806,25 +874,21 @@ export default function GeneratorForm({
                       className="w-full px-3 py-1.5 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
                     />
                   </div>
-                  <div>
-                    <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                      {t("visualStyle")} (Pilih / Kustom)
-                    </label>
-                    <input
-                      type="text"
-                      list="visual-aesthetic-list"
-                      name="visualStyle"
-                      value={imageConfig.visualStyle}
-                      onChange={handleImageConfigChange}
-                      placeholder="Photorealistic, Anime..."
-                      className="w-full px-3 py-1.5 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
-                    />
-                    <datalist id="visual-aesthetic-list">
-                      {visualAesthetics.map((v) => (
-                        <option key={v.id} value={v.label} />
-                      ))}
-                    </datalist>
-                  </div>
+
+                  <PresetSelect
+                    label="Visual Style & Aesthetic"
+                    value={imageConfig.visualStyle}
+                    onChange={(val) =>
+                      setImageConfig((prev) => ({ ...prev, visualStyle: val }))
+                    }
+                    options={visualAesthetics.length > 0 ? visualAesthetics : [
+                      { value: "Cinematic Dark Mode (Sleek & Professional)", label: "Cinematic Dark Mode" },
+                      { value: "Neon Cyberpunk (Futuristis & High-Contrast)", label: "Neon Cyberpunk" },
+                      { value: "Minimalist Clean (Soft Colors & Modern)", label: "Minimalist Clean" },
+                    ]}
+                    placeholder="Gaya visual kustom..."
+                  />
+
                   <div className="col-span-2">
                     <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                       {t("negativePrompt")}
@@ -928,18 +992,21 @@ export default function GeneratorForm({
             </div>
           ) : (
             <>
-              {/* Step 2: Show Prompt, ask for JSON */}
+              {/* Step 2: Directly download or review prompt */}
               <div className="flex flex-col h-1/2 border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden bg-zinc-50 dark:bg-zinc-950">
                 <div className="p-3 bg-zinc-100 dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center">
                   <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
-                    {t("copyPromptStep")}
+                    Hasil Prompt AI
                   </span>
-                  <button
-                    onClick={() => navigator.clipboard.writeText(generatedPrompt)}
-                    className="px-3 py-1 text-xs font-medium text-zinc-700 bg-white border border-zinc-300 rounded hover:bg-zinc-50 dark:bg-zinc-700 dark:text-zinc-300 dark:border-zinc-600 dark:hover:bg-zinc-600 transition-colors"
-                  >
-                    {t("copy")}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={downloadJsonPrompt}
+                      className="px-3 py-1 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded transition-colors shadow-sm flex items-center gap-1"
+                    >
+                      <span>⬇️</span> Download JSON Prompt
+                    </button>
+                  </div>
                 </div>
                 <textarea
                   readOnly
@@ -949,10 +1016,19 @@ export default function GeneratorForm({
               </div>
 
               <div className="flex flex-col h-1/2 border border-blue-200 dark:border-blue-900 rounded-lg overflow-hidden bg-blue-50/30 dark:bg-blue-900/10">
-                <div className="p-3 bg-blue-100 dark:bg-blue-900 border-b border-blue-200 dark:border-blue-800">
+                <div className="p-3 bg-blue-100 dark:bg-blue-900 border-b border-blue-200 dark:border-blue-800 flex justify-between items-center">
                   <span className="text-xs font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wider">
                     {t("pasteJsonStep")}
                   </span>
+                  {aiResultJson && (
+                    <button
+                      type="button"
+                      onClick={downloadJsonPrompt}
+                      className="px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 rounded hover:bg-emerald-200 transition-colors"
+                    >
+                      Download .JSON
+                    </button>
+                  )}
                 </div>
                 <div className="px-4 py-2 border-b border-blue-200/50 dark:border-blue-800/50">
                   <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">
@@ -978,23 +1054,32 @@ export default function GeneratorForm({
         </div>
 
         {step === 2 && (
-          <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-800 flex justify-end space-x-3">
+          <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-800 flex justify-between items-center">
             <button
-              onClick={() => router.push(`/${document.documentElement.lang || "id"}/dashboard/drafts`)}
-              className="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-md hover:bg-zinc-50 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 dark:hover:bg-zinc-700 transition-colors"
+              type="button"
+              onClick={downloadJsonPrompt}
+              className="px-4 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-md transition-colors shadow flex items-center gap-1.5"
             >
-              {t("viewDraftsBtn")}
+              <span>⬇️</span> Download JSON Prompt
             </button>
-            <button
-              onClick={handleSaveDraft}
-              disabled={saving}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-md transition-colors flex items-center"
-            >
-              {saving ? (
-                <span className="inline-block animate-spin mr-2 border-2 border-white/20 border-t-white rounded-full w-4 h-4" />
-              ) : null}
-              {t("saveDraftBtn")}
-            </button>
+            <div className="flex space-x-3">
+              <button
+                onClick={() => router.push(`/${document.documentElement.lang || "id"}/dashboard/drafts`)}
+                className="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-md hover:bg-zinc-50 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 dark:hover:bg-zinc-700 transition-colors"
+              >
+                {t("viewDraftsBtn")}
+              </button>
+              <button
+                onClick={handleSaveDraft}
+                disabled={saving}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-md transition-colors flex items-center"
+              >
+                {saving ? (
+                  <span className="inline-block animate-spin mr-2 border-2 border-white/20 border-t-white rounded-full w-4 h-4" />
+                ) : null}
+                {t("saveDraftBtn")}
+              </button>
+            </div>
           </div>
         )}
       </div>

@@ -13,7 +13,7 @@ export async function GET() {
   const userId = session?.user?.id;
 
   try {
-    const options = await prisma.platformOption.findMany({
+    let options = await prisma.platformOption.findMany({
       where: {
         OR: [
           { isSystem: true },
@@ -22,6 +22,25 @@ export async function GET() {
       },
       orderBy: [{ isSystem: "desc" }, { label: "asc" }],
     });
+
+    if (options.length === 0) {
+      const defaultPlatforms = [
+        "TikTok",
+        "Instagram Reels",
+        "YouTube Shorts",
+        "YouTube Long",
+        "Facebook Video",
+        "LinkedIn",
+        "Twitter / X",
+      ];
+      options = defaultPlatforms.map((label, idx) => ({
+        id: `sys-platform-${idx}`,
+        label,
+        isSystem: true,
+        createdByUserId: null,
+        createdAt: new Date(),
+      }));
+    }
 
     return NextResponse.json({ success: true, options });
   } catch (error) {

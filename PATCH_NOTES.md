@@ -161,5 +161,13 @@ Pembaruan ini mencakup seluruh perbaikan bug dan arsitektur yang teridentifikasi
   - **Sinkronisasi Blueprint Single Source of Truth:** Memperbarui `Project Prompt Gen.txt` pada **Bagian 5.2** (arsitektur proteksi RBAC berbasis layout & i18n middleware) dan menambahkan **Bagian 12: FITUR PASCA-BLUEPRINT** yang mendokumentasikan seluruh 10 ekstensi sistem pasca-blueprint.
   - **Verifikasi Kualitas Kunci:** Seluruh siklus kompilasi (`npx tsc --noEmit` & `npm run build`) berjalan bersih tanpa error tipe data pada 33 rute server.
 
-
-
+### 31. Standardisasi UI Presets, Auto-fill Profil Kanal & Ekspor JSON Prompt Direct (Phase 14)
+- **Komponen Terdampak:** `prisma/schema.prisma`, `src/components/ui/PresetSelect.tsx`, `src/app/api/platform-options/route.ts`, `src/app/api/persona-presets/route.ts`, `src/app/api/visual-aesthetic-presets/route.ts`, `src/app/api/niche-category-presets/route.ts`, `src/app/api/channels/route.ts`, `src/app/api/channels/[id]/route.ts`, `src/app/[locale]/dashboard/channels/EditChannelClient.tsx`, `src/components/generator/GeneratorForm.tsx`, `src/app/[locale]/dashboard/drafts/[id]/DraftActions.tsx`, `src/components/dashboard/UsedTitlesDirectory.tsx`, `PATCH_NOTES.md`.
+- **Perbaikan:**
+  - **Prisma Schema Update:** Menambahkan field `targetPlatform` (String?), `personaPov` (String?), dan `speechRate` (Float, default 0.35) pada model `ProfileChannel`.
+  - **API Fallback Hardening:** Memperbarui seluruh API route preset (`/api/platform-options`, `/api/persona-presets`, `/api/visual-aesthetic-presets`, `/api/niche-category-presets`) agar selalu mengembalikan opsi default sistem jika database kosong.
+  - **Komponen UI PresetSelect:** Membuat komponen reusable `PresetSelect.tsx` yang mendukung *dual-mode* (Pilihan Dropdown Preset + Sakelar Input Kustom) menggantikan tag `<datalist>` lama.
+  - **Standardisasi Satuan Speech Rate:** Mengubah standar *speech rate* dari sekadar label tekstual menjadi nilai numeric detik-per-kata (`0.25` - `0.50` s/kata), di mana `0.35` s/kata adalah standar normal.
+  - **Auto-Fill Profil Kanal:** Mengimplementasikan `useEffect` sinkron pada `GeneratorForm.tsx` sehingga ketika pengguna memilih kanal, seluruh konfigurasi (`targetPlatform`, `personaPov`, `speechRate`, `visualStyle`) otomatis terisi sesuai profil kanal tersebut.
+  - **Direct JSON Prompt Download:** Menggantikan tombol "Copy This Prompt" dengan aksi **Download JSON Prompt** (`.json` file export) di `GeneratorForm.tsx` dan `DraftActions.tsx`.
+  - **Kompilasi & Pengujian:** `npx prisma generate` dan `npx next build` lulus 100% tanpa error tipe data pada 33 API routes dan 26 rute halaman Next.js.

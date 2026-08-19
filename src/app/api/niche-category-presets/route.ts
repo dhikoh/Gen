@@ -13,7 +13,7 @@ export async function GET() {
   const userId = session?.user?.id;
 
   try {
-    const presets = await prisma.nicheCategoryPreset.findMany({
+    let presets = await prisma.nicheCategoryPreset.findMany({
       where: {
         OR: [
           { isSystem: true },
@@ -22,6 +22,28 @@ export async function GET() {
       },
       orderBy: [{ isSystem: "desc" }, { label: "asc" }],
     });
+
+    if (presets.length === 0) {
+      const defaultNiches = [
+        "Teknologi & Gadget",
+        "Bisnis & Finance",
+        "Edukasi & Karir",
+        "Kesehatan & Fitness",
+        "Kecantikan & Fashion",
+        "Kuliner & Foodie",
+        "Travel & Petualangan",
+        "Gaming & Esports",
+        "Parenting & Keluarga",
+        "Hiburan & Life Hack",
+      ];
+      presets = defaultNiches.map((label, idx) => ({
+        id: `sys-niche-${idx}`,
+        label,
+        isSystem: true,
+        createdByUserId: null,
+        createdAt: new Date(),
+      }));
+    }
 
     return NextResponse.json({ success: true, presets });
   } catch (error) {

@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 
 interface UsedTitlesDirectoryProps {
   channelId: string;
+  channelName?: string;
 }
 
 interface TitleInfo {

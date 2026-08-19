@@ -9,15 +9,18 @@ import { applyRateLimit } from "@/lib/rateLimit";
 import { requireActiveSubscription } from "@/lib/subscription";
 
 const channelSchema = z.object({
-  channelName: z.string().min(1),
+  channelName: z.string().min(1, "Nama channel harus diisi"),
   niche: z.string().optional(),
   description: z.string().optional(),
+  targetPlatform: z.string().optional(),
+  personaPov: z.string().optional(),
+  speechRate: z.number().optional().default(0.35),
   visualAesthetic: z.string().optional(),
   cta1: z.string().optional(),
   cta2: z.string().optional(),
-  audioBGM: z.boolean().optional(),
-  audioSFX: z.boolean().optional(),
-  audioVO: z.boolean().optional(),
+  audioBGM: z.boolean().optional().default(true),
+  audioSFX: z.boolean().optional().default(true),
+  audioVO: z.boolean().optional().default(true),
   socialLinks: z.union([
     z.record(z.string(), z.string()),
     z.object({
@@ -115,6 +118,9 @@ export async function POST(req: Request) {
             channelName: parsedData.data.channelName,
             niche: parsedData.data.niche,
             description: parsedData.data.description,
+            targetPlatform: parsedData.data.targetPlatform,
+            personaPov: parsedData.data.personaPov,
+            speechRate: parsedData.data.speechRate ?? 0.35,
             visualAesthetic: parsedData.data.visualAesthetic,
             cta1: parsedData.data.cta1,
             cta2: parsedData.data.cta2,

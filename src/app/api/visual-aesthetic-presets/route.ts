@@ -13,7 +13,7 @@ export async function GET() {
   const userId = session?.user?.id;
 
   try {
-    const presets = await prisma.visualAestheticPreset.findMany({
+    let presets = await prisma.visualAestheticPreset.findMany({
       where: {
         OR: [
           { isSystem: true },
@@ -22,6 +22,25 @@ export async function GET() {
       },
       orderBy: [{ isSystem: "desc" }, { label: "asc" }],
     });
+
+    if (presets.length === 0) {
+      const defaultAesthetics = [
+        "Cinematic Dark Mode (Sleek & Professional)",
+        "Neon Cyberpunk (Futuristis & High-Contrast)",
+        "Minimalist Clean (Soft Colors & Modern)",
+        "Vintage Retro (Warm Tones & Nostalgic)",
+        "Vibrant Pop (Bright & High Engagement)",
+        "3D Render / Cartoon (Playful & Eye-Catching)",
+        "Documentary Realism (Natural & Authentic)",
+      ];
+      presets = defaultAesthetics.map((label, idx) => ({
+        id: `sys-aesthetic-${idx}`,
+        label,
+        isSystem: true,
+        createdByUserId: null,
+        createdAt: new Date(),
+      }));
+    }
 
     return NextResponse.json({ success: true, presets });
   } catch (error) {

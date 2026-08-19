@@ -11,6 +11,30 @@ export default function DraftActions({ draftId, rawJson, locale }: { draftId: st
   const [copied, setCopied] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  const handleDownloadJson = () => {
+    try {
+      let formattedJson = rawJson;
+      try {
+        const parsed = JSON.parse(rawJson);
+        formattedJson = JSON.stringify(parsed, null, 2);
+      } catch (e) {
+        // keep as is
+      }
+      const blob = new Blob([formattedJson], { type: "application/json;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `draft_prompt_${draftId.slice(-6)}_${Date.now()}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success("File JSON Prompt berhasil diunduh!");
+    } catch (err) {
+      toast.error("Gagal mengunduh file JSON.");
+    }
+  };
+
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(rawJson);
@@ -39,6 +63,12 @@ export default function DraftActions({ draftId, rawJson, locale }: { draftId: st
 
   return (
     <>
+      <button
+        onClick={handleDownloadJson}
+        className="px-4 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-md shadow-sm transition-colors flex items-center gap-1.5"
+      >
+        <span>⬇️</span> Download JSON
+      </button>
       <button 
         onClick={handleCopy}
         className="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-md hover:bg-zinc-50 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 dark:hover:bg-zinc-700 shadow-sm transition-colors"

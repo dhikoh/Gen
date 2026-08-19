@@ -14,7 +14,7 @@ export async function GET() {
   const userId = session?.user?.id;
 
   try {
-    const presets = await prisma.personaPreset.findMany({
+    let presets = await prisma.personaPreset.findMany({
       where: {
         OR: [
           { isSystem: true },
@@ -23,6 +23,26 @@ export async function GET() {
       },
       orderBy: [{ isSystem: "desc" }, { label: "asc" }],
     });
+
+    if (presets.length === 0) {
+      const defaultPersonas = [
+        "Expert Storyteller (Edukasi & Inspirasi)",
+        "Energetic Reviewer (Review Produk & Unboxing)",
+        "Casual Friend (Santai & Relatable)",
+        "Educational Tutor (Penjelasan Step-by-Step)",
+        "Professional Instructor (Formal & Otoritatif)",
+        "Motivational Coach (Semangat & Solutif)",
+        "Direct Sales Specialist (Persuasif & High-Converting)",
+      ];
+      presets = defaultPersonas.map((label, idx) => ({
+        id: `sys-persona-${idx}`,
+        label,
+        description: null,
+        isSystem: true,
+        createdByUserId: null,
+        createdAt: new Date(),
+      }));
+    }
 
     return NextResponse.json({ success: true, presets });
   } catch (error) {

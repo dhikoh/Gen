@@ -135,6 +135,9 @@ model ProfileChannel {
   description     String?
   cta1            String?
   cta2            String?
+  targetPlatform  String?
+  personaPov      String?
+  speechRate      Float?   @default(0.35)
   visualAesthetic String?
   audioBGM        Boolean  @default(true)
   audioSFX        Boolean  @default(true)
