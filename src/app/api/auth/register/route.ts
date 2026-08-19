@@ -8,29 +8,23 @@ import { applyRateLimit } from "@/lib/rateLimit";
 import { notifyAllSuperadmins } from "@/lib/notifications";
 
 const registerSchema = z.object({
-  name: z.string().min(2),
-  username: z.string().min(3).regex(/^[a-zA-Z0-9_]+$/),
-  email: z.string().email(),
-  phoneNumber: z.string().min(8).optional().or(z.literal("")),
-  dateOfBirth: z.string().optional().or(z.literal("")),
-  password: z.string().min(8),
+  name: z.string().trim().min(1, "Nama lengkap wajib diisi"),
+  username: z.string().trim().min(3, "Username minimal 3 karakter").regex(/^[a-zA-Z0-9_.-]+$/, "Username hanya boleh huruf, angka, underscore, titik, dan strip"),
+  email: z.string().trim().toLowerCase().email("Format email tidak valid"),
+  phoneNumber: z.string().optional().nullable().or(z.literal("")),
+  dateOfBirth: z.string().optional().nullable().or(z.literal("")),
+  password: z.string().min(8, "Password minimal 8 karakter"),
   // Step 2 Data
-  channelName: z.string().min(1),
-  niche: z.string().optional(),
-  description: z.string().optional(),
-  cta1: z.string().optional(),
-  cta2: z.string().optional(),
-  visualAesthetic: z.string().optional(),
+  channelName: z.string().trim().min(1, "Nama channel wajib diisi"),
+  niche: z.string().optional().nullable(),
+  description: z.string().optional().nullable(),
+  cta1: z.string().optional().nullable(),
+  cta2: z.string().optional().nullable(),
+  visualAesthetic: z.string().optional().nullable(),
   audioBGM: z.boolean().default(true),
   audioSFX: z.boolean().default(true),
   audioVO: z.boolean().default(true),
-  socialLinks: z.object({
-    tiktok: z.string().optional(),
-    instagram: z.string().optional(),
-    youtube: z.string().optional(),
-    facebook: z.string().optional(),
-    website: z.string().optional()
-  }).optional(),
+  socialLinks: z.record(z.string(), z.string()).optional().nullable(),
 });
 
 export async function POST(req: Request) {
@@ -41,15 +35,18 @@ export async function POST(req: Request) {
     
     const body = await req.json();
     const emailStr = typeof body.email === 'string' ? body.email.toLowerCase() : 'unknown';
-    const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
-    const isAllowed = await applyRateLimit(`register_${ip}_${emailStr}`, 5, 60 * 60); // 5 registers per hour per IP+email
+    const rawIp = req.headers.get("x-forwarded-for") || "127.0.0.1";
+    const ip = rawIp.split(",")[0].trim();
+    const isAllowed = await applyRateLimit(`register_${ip}_${emailStr}`, 10, 60 * 60); // 10 registers per hour per IP+email
     if (!isAllowed) {
       return NextResponse.json({ error: t("registerRateLimit") }, { status: 429 });
     }
     const parsedData = registerSchema.safeParse(body);
 
     if (!parsedData.success) {
-      return NextResponse.json({ error: t("invalidData") }, { status: 400 });
+      const firstIssueMsg = parsedData.error.issues[0]?.message || t("invalidData");
+      console.warn("Register Zod validation error:", parsedData.error.flatten());
+      return NextResponse.json({ error: firstIssueMsg }, { status: 400 });
     }
 
     const {

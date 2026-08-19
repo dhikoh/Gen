@@ -62,6 +62,22 @@ export default function AuthForm() {
   const [socialWebsite, setSocialWebsite] = useState("");
 
   const handleNextStep = () => {
+    if (!name.trim()) {
+      setError(t('fullName') + " " + "wajib diisi");
+      return;
+    }
+    if (!username.trim() || username.trim().length < 3) {
+      setError("Username minimal 3 karakter!");
+      return;
+    }
+    if (!/^[a-zA-Z0-9_.-]+$/.test(username.trim())) {
+      setError("Username hanya boleh huruf, angka, underscore (_), titik (.), dan strip (-)");
+      return;
+    }
+    if (!email.trim() || !email.includes('@')) {
+      setError("Format email tidak valid!");
+      return;
+    }
     if (password !== confirmPassword) {
       setError(t('passNotMatch'));
       return;
@@ -117,6 +133,12 @@ export default function AuthForm() {
         }
       } else {
         // Register flow
+        if (!channelName.trim()) {
+          setError(t('channelName') + " " + "wajib diisi!");
+          setLoading(false);
+          return;
+        }
+
         const parsedSocial = {
           tiktok: socialTiktok,
           instagram: socialInstagram,
