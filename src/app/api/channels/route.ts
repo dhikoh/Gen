@@ -18,7 +18,16 @@ const channelSchema = z.object({
   audioBGM: z.boolean().optional(),
   audioSFX: z.boolean().optional(),
   audioVO: z.boolean().optional(),
-  socialLinks: z.any().optional(),
+  socialLinks: z.union([
+    z.record(z.string(), z.string()),
+    z.object({
+      website: z.string().optional(),
+      tiktok: z.string().optional(),
+      instagram: z.string().optional(),
+      facebook: z.string().optional(),
+      youtube: z.string().optional(),
+    })
+  ]).optional(),
 });
 
 export async function GET(req: Request) {

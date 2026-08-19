@@ -34,7 +34,7 @@ export default async function AdminPlansPage({ params }: { params: Promise<{ loc
         </p>
       </div>
 
-      <AdminPlansClient initialPlans={plans as any} />
+      <AdminPlansClient initialPlans={plans} />
     </div>
   );
 }

@@ -7,10 +7,21 @@ import { useTranslations } from "next-intl";
 
 import { KNOWN_PLAN_FEATURES } from "@/lib/planFeatures";
 
-export default function AdminPlansClient({ initialPlans }: { initialPlans: any[] }) {
+export interface PlanDto {
+  id: string;
+  code: string;
+  name: string;
+  priceMonthly: number;
+  maxChannels: number;
+  isActive: boolean;
+  features: any;
+  sortOrder: number;
+}
+
+export default function AdminPlansClient({ initialPlans }: { initialPlans: PlanDto[] }) {
   const router = useRouter();
   const t = useTranslations("AdminPlans");
-  const [plans, setPlans] = useState(initialPlans);
+  const [plans, setPlans] = useState<PlanDto[]>(initialPlans);
   const [loading, setLoading] = useState<string | null>(null);
 
   const handleUpdate = async (id: string) => {
@@ -24,8 +35,8 @@ export default function AdminPlansClient({ initialPlans }: { initialPlans: any[]
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: plan.id,
-          priceMonthly: parseInt(plan.priceMonthly, 10),
-          maxChannels: parseInt(plan.maxChannels, 10),
+          priceMonthly: Number(plan.priceMonthly),
+          maxChannels: Number(plan.maxChannels),
           isActive: plan.isActive,
           features: plan.features || {}
         })

@@ -91,7 +91,11 @@
     "rejectedBannerDesc": "Your account registration could not be approved at this time. Please contact Customer Support for more info.",
     "contactCsBtn": "Contact CS via WhatsApp",
     "authSubtitle": "Please log in or register to continue",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "RATE_LIMITED": "Too many login attempts. Please try again later.",
+    "PENDING_APPROVAL": "Your account is awaiting Superadmin approval.",
+    "REJECTED": "Your account registration was rejected by an admin.",
+    "INVALID_CREDENTIALS": "Invalid credentials or password."
   },
   "Overview": {
     "welcome": "Welcome back, {name}!",

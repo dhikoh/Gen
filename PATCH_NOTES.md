@@ -74,6 +74,9 @@ Pembaruan ini mencakup seluruh perbaikan bug dan arsitektur yang teridentifikasi
 - **Komponen Terdampak:** `README.md`, `src/lib/authOptions.ts`, `src/app/auth/page.tsx`.
 - **Perbaikan:** Memperbaiki dokumentasi variabel lingkungan `SMTP_PASS` menjadi `SMTP_PASSWORD`. Membuat rute netral `/auth` untuk menangani pengalihan login NextAuth berbasis cookie `NEXT_LOCALE`. Mengonfirmasi keselarasan nama field skema JSON (`segments`, `caption`, `duration_estimation`) pada seluruh komponen generator dan UI.
 
+## 19. Restrukturisasi Link Media Sosial & Limitasi Channel (AUDIT-24)
+- **Komponen Terdampak:** `src/app/api/channels/route.ts`, `src/app/api/channels/[id]/route.ts`, `src/lib/channelLockLogic.ts`.
+- **Perbaikan:** Menambahkan pemutakhiran skema `socialLinks` untuk mendukung link media sosial terstruktur (Website, TikTok, Instagram, Facebook, YouTube) dan memastikan pengecekan `enforceChannelLimits` berjalan atomik.
 
 ## 20. Multi-Stage Registration Approval & Access Hardening (AUDIT-25)
 - **Komponen Terdampak:** `prisma/schema.prisma`, `src/lib/authOptions.ts`, `src/app/api/auth/register/route.ts`, `src/app/api/admin/registrations/route.ts`, `src/app/[locale]/admin/registrations/page.tsx`, `src/app/[locale]/admin/registrations/AdminRegistrationsClient.tsx`, `src/app/[locale]/admin/layout.tsx`.
@@ -97,6 +100,10 @@ Pembaruan ini mencakup seluruh perbaikan bug dan arsitektur yang teridentifikasi
 - **Perbaikan:**
   - **In-App Feature Guides:** Menambahkan halaman panduan penggunaan interaktif bagi User (`/dashboard/panduan`) dan Superadmin (`/admin/panduan`) dengan layout kartu glassmorphic responsif. Menyediakan akses mudah melalui menu navigasi sidebar pada Dashboard Layout dan Admin Layout.
   - **Penghapusan Hardcoded Strings pada Auth Page:** Mengubah `src/app/[locale]/auth/page.tsx` untuk memanfaatkan `getTranslations('Auth')` pada metadata title/description, subtitle halaman, dan elemen fallback `Suspense`.
+
+## 24. Modul Customer Support Tiket & Hardening Rate Limit (AUDIT-FINAL-Phase-13-CS)
+- **Komponen Terdampak:** `src/app/api/support/tickets/route.ts`, `src/app/api/support/tickets/[id]/messages/route.ts`, `src/components/support/UserSupportClient.tsx`, `src/components/support/AdminSupportClient.tsx`.
+- **Perbaikan:** Mengintegrasikan sistem penanganan tiket CS penuh (buat tiket, balas pesan, ubah status) dengan otorisasi berbasis peran dan proteksi rate limiting pada seluruh rute pembuatan tiket.
 
 ## 25. High-Security SaaS Audit Remediation & Type Hardening (AUDIT-27 s/d AUDIT-30)
 - **Komponen Terdampak:** `src/app/api/generate/route.ts`, `src/app/api/admin/...`, `src/app/api/support/tickets/route.ts`, `src/app/api/channels/...`, `src/app/api/drafts/...`, `src/app/api/notifications/route.ts`, `src/lib/promptGenerator.ts`, `src/lib/imagePromptGenerator.ts`, `src/lib/notifications.ts`, `prisma/seed.js`.
@@ -144,6 +151,15 @@ Pembaruan ini mencakup seluruh perbaikan bug dan arsitektur yang teridentifikasi
   - **UI Generator Form Overhaul:** UI Generator Form dilengkapi dengan combobox preset dinamis (Platform, Persona, Visual), modal *Quick Add Product*, dan input kontrol jumlah scene dan loop style.
   - **Restrukturisasi Media Sosial Channel (L7-L9):** Memperbarui `channelSchema` di backend dan membangun input media sosial terstruktur (Website, TikTok, Instagram, Facebook, YouTube) pada `EditChannelClient.tsx` beserta grid kartu channel dan icon badge di `ChannelManagerClient.tsx`.
   - **Auto-Demo Plan Assignment pada Approval (L10):** Memperbarui `/api/admin/registrations` agar pengguna yang disetujui pendaftarannya secara otomatis diberikan paket "DEMO" (3 Hari) secara aktif.
+
+## 30. Audit Total Fase 13+, Lokalisasi i18n Auth, Strict Type Purge & Blueprint Synchronization
+- **Komponen Terdampak:** `src/app/[locale]/admin/page.tsx`, `src/app/[locale]/admin/plans/page.tsx`, `src/app/[locale]/admin/plans/AdminPlansClient.tsx`, `src/app/api/channels/route.ts`, `src/app/api/channels/[id]/route.ts`, `src/lib/authOptions.ts`, `src/components/auth/AuthForm.tsx`, `messages/id.json`, `messages/en.json`, `Project Prompt Gen.txt`, `PATCH_NOTES.md`.
+- **Perbaikan:**
+  - **Deduplikasi UI Admin Dashboard & Visualisasi Recharts:** Halaman root `/admin` sepenuhnya dikonsolidasikan sebagai Executive Summary Dashboard yang didukung oleh 4 grafik analitik finansial real-time berbasis `recharts`. Form manajemen rencana yang redundat dihapus dari `/admin` dan dipusatkan di `/admin/plans`.
+  - **Pembersihan Tipe Strict (Zero `any` in Admin Plans & Channels):** Menghapus penggunaan `z.any()` pada API Channels (`route.ts` & `[id]/route.ts`) dan menggantinya dengan skema objek Zod yang presisi. Menghapus assertion `plans as any` pada `/admin/plans/page.tsx` dengan mendefinisikan interface `PlanDto` di `AdminPlansClient.tsx`.
+  - **Lokalisasi Error Autentikasi (i18n):** Menghapus string error terisolasi dalam Bahasa Indonesia di `authOptions.ts` dan menggantinya dengan kode error terstruktur (`RATE_LIMITED`, `PENDING_APPROVAL`, `REJECTED`, `INVALID_CREDENTIALS`). Menambahkan terjemahan kunci di `messages/id.json` & `messages/en.json` dan memperbarui `AuthForm.tsx` untuk penerjemahan dinamis berbasis `next-intl`.
+  - **Sinkronisasi Blueprint Single Source of Truth:** Memperbarui `Project Prompt Gen.txt` pada **Bagian 5.2** (arsitektur proteksi RBAC berbasis layout & i18n middleware) dan menambahkan **Bagian 12: FITUR PASCA-BLUEPRINT** yang mendokumentasikan seluruh 10 ekstensi sistem pasca-blueprint.
+  - **Verifikasi Kualitas Kunci:** Seluruh siklus kompilasi (`npx tsc --noEmit` & `npm run build`) berjalan bersih tanpa error tipe data pada 33 rute server.
 
 
 

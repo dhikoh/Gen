@@ -91,7 +91,11 @@
     "rejectedBannerDesc": "Pendaftaran akun Anda belum dapat disetujui saat ini. Silakan hubungi Customer Support untuk info lebih lanjut.",
     "contactCsBtn": "Hubungi CS via WhatsApp",
     "authSubtitle": "Silakan masuk atau daftar untuk melanjutkan",
-    "loading": "Memuat..."
+    "loading": "Memuat...",
+    "RATE_LIMITED": "Terlalu banyak percobaan login. Silakan coba lagi nanti.",
+    "PENDING_APPROVAL": "Akun Anda sedang menunggu persetujuan Superadmin.",
+    "REJECTED": "Pendaftaran akun Anda ditolak oleh admin.",
+    "INVALID_CREDENTIALS": "Identifier atau password salah."
   },
   "Overview": {
     "welcome": "Selamat Datang, {name}!",

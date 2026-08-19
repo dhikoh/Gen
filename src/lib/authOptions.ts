@@ -30,7 +30,7 @@ export const authOptions: NextAuthOptions = {
         const ip = req.headers?.["x-forwarded-for"] || "127.0.0.1";
         const isAllowed = await applyRateLimit(`login_${ip}_${credentials.identifier}`, 5, 60); // 5 tries per minute
         if (!isAllowed) {
-          throw new Error("Terlalu banyak percobaan login. Silakan coba lagi nanti.");
+          throw new Error("RATE_LIMITED");
         }
 
         const user = await prisma.user.findFirst({
@@ -44,21 +44,21 @@ export const authOptions: NextAuthOptions = {
         });
 
         if (!user) {
-          throw new Error("Invalid credentials");
+          throw new Error("INVALID_CREDENTIALS");
         }
 
         const isValid = await bcrypt.compare(credentials.password, user.passwordHash);
 
         if (!isValid) {
-          throw new Error("Invalid credentials");
+          throw new Error("INVALID_CREDENTIALS");
         }
 
         if (user.role !== "SUPERADMIN" && user.registrationStatus === "PENDING_APPROVAL") {
-          throw new Error("Akun Anda sedang menunggu persetujuan superadmin.");
+          throw new Error("PENDING_APPROVAL");
         }
 
         if (user.role !== "SUPERADMIN" && user.registrationStatus === "REJECTED") {
-          throw new Error("Pendaftaran akun Anda ditolak oleh admin.");
+          throw new Error("REJECTED");
         }
 
         // Self-healing subscription logic
@@ -86,7 +86,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = user.role;
-        token.registrationStatus = (user as any).registrationStatus;
+        token.registrationStatus = user.registrationStatus;
         token.rememberMe = user.rememberMe;
       }
       return token;
