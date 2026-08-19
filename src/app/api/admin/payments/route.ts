@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
 import { sendEmail } from "@/lib/email";
+import { notifyUser } from "@/lib/notifications";
 
 const actionSchema = z.object({
   invoiceId: z.string().min(1),
@@ -56,6 +57,14 @@ export async function POST(req: Request) {
       if (updateResult.count === 0) {
         return NextResponse.json({ error: t("invalidInvoice") }, { status: 400 });
       }
+
+      await notifyUser(
+        invoice.userId,
+        "PAYMENT_REJECTED",
+        "Pembayaran Ditolak",
+        `Pembayaran langganan paket ${invoice.plan.name} Anda ditolak. Silakan unggah bukti transfer yang valid.`,
+        "/dashboard/billing"
+      );
       
       await sendEmail({
         to: invoice.user.email,

@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
+import { requireActiveSubscription } from "@/lib/subscription";
 
 const saveDraftSchema = z.object({
   channelId: z.string(),
@@ -23,6 +24,8 @@ export async function POST(req: Request) {
     if (!session) {
       return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
     }
+
+    await requireActiveSubscription(session.user.id);
 
     const body = await req.json();
     const parsedInput = saveDraftSchema.safeParse(body);
@@ -47,6 +50,10 @@ export async function POST(req: Request) {
 
     if (!channel || channel.userId !== session.user.id) {
       return NextResponse.json({ error: t("invalidChannel") }, { status: 400 });
+    }
+
+    if (channel.isLocked) {
+      return NextResponse.json({ error: t("channelLocked") }, { status: 403 });
     }
 
     // Calculate word count and estimated duration

@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
 import { applyRateLimit } from "@/lib/rateLimit";
+import { notifyAllSuperadmins } from "@/lib/notifications";
 
 const uploadSchema = z.object({
   invoiceId: z.string().min(1),
@@ -57,6 +58,13 @@ export async function PUT(req: Request) {
       where: { id: invoiceId },
       data: { proofUrl: proofBase64 }
     });
+
+    await notifyAllSuperadmins(
+      "NEW_PENDING_PAYMENT",
+      "Bukti Pembayaran Baru",
+      `User ${session.user.name || session.user.email} telah mengunggah bukti pembayaran baru.`,
+      "/admin/payments"
+    );
 
     return NextResponse.json({ success: true, invoice: updated }, { status: 200 });
   } catch (error) {

@@ -6,6 +6,7 @@ import LogoutButton from "@/components/auth/LogoutButton";
 import { getTranslations } from "next-intl/server";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/db";
+import NotificationBell from "@/components/notifications/NotificationBell";
 
 export default async function AdminLayout({
   children,
@@ -110,8 +111,18 @@ export default async function AdminLayout({
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto focus:outline-none">
-        {children}
+      <main className="flex-1 overflow-y-auto focus:outline-none flex flex-col">
+        <header className="h-16 px-8 flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-900/50 backdrop-blur sticky top-0 z-40">
+          <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+            Prompt Gen Admin Portal
+          </div>
+          <div className="flex items-center gap-4">
+            <NotificationBell />
+          </div>
+        </header>
+        <div className="py-6 px-8 flex-1">
+          {children}
+        </div>
       </main>
     </div>
   );

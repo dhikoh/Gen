@@ -34,7 +34,8 @@
     "billing": "Tagihan & Paket",
     "admin": "Admin Panel",
     "logout": "Keluar",
-    "studio": "Studio Generator"
+    "studio": "Studio Generator",
+    "notifications": "Notifikasi"
   },
   "Auth": {
     "login": "Masuk",
@@ -70,7 +71,8 @@
     "passNotMatch": "Konfirmasi password tidak cocok!",
     "passMinLen": "Password minimal 8 karakter!",
     "regFailed": "Gagal mendaftar",
-    "sysError": "Terjadi kesalahan sistem"
+    "sysError": "Terjadi kesalahan sistem",
+    "accountPendingApproval": "Pendaftaran berhasil! Akun Anda sedang menunggu persetujuan Superadmin sebelum dapat digunakan."
   },
   "Overview": {
     "welcome": "Selamat Datang, {name}!",
@@ -565,7 +567,8 @@
     "invalidImageFormat": "Hanya format gambar JPG/PNG yang diperbolehkan.",
     "invalidInvoice": "Tagihan tidak valid atau sudah diproses.",
     "tooManyChannels": "Terlalu banyak permintaan pembuatan channel. Coba lagi nanti.",
-    "tooManyUploads": "Terlalu banyak permintaan upload. Coba lagi nanti."
+    "tooManyUploads": "Terlalu banyak permintaan upload. Coba lagi nanti.",
+    "registrationAlreadyProcessed": "Registrasi ini sudah diproses sebelumnya."
   },
   "Emails": {
     "resetSubject": "Reset Password - Prompt Gen",
@@ -583,5 +586,16 @@
     "approveBody": "Tagihan Anda untuk paket <strong>{plan}</strong> telah berhasil diverifikasi.",
     "approveInstruction": "Akun Anda kini telah aktif dan batas channel Anda telah disesuaikan.",
     "thankYou": "Terima kasih telah menggunakan Prompt Gen!"
+  },
+  "Notifications": {
+    "title": "Notifikasi",
+    "unread": "Belum Dibaca",
+    "all": "Semua",
+    "markAllAsRead": "Tandai Semua Dibaca",
+    "empty": "Tidak ada notifikasi",
+    "viewAll": "Lihat Semua Notifikasi",
+    "loadMore": "Muat Lebih Banyak",
+    "filterAll": "Semua Notifikasi",
+    "filterUnread": "Belum Dibaca"
   }
 }

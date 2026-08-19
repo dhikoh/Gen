@@ -66,10 +66,13 @@ export default function AuthForm() {
     setRegisterStep(2);
   };
 
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setSuccessMessage(null);
 
     try {
       if (isLogin) {
@@ -124,20 +127,12 @@ export default function AuthForm() {
           setError(data.error || t('regFailed'));
           setRegisterStep(1); // Go back if error is in basic fields
         } else {
-          // Auto login after register
-          const loginRes = await signIn("credentials", {
-            redirect: false,
-            identifier: email,
-            password,
-            rememberMe: "false",
-          });
-
-          if (loginRes?.error) {
-            setError(loginRes.error);
-          } else {
-            router.push(getSafeCallbackUrl());
-            router.refresh();
-          }
+          // Show pending approval notice and switch to login tab
+          setSuccessMessage(data.message || t('accountPendingApproval'));
+          setIsLogin(true);
+          setRegisterStep(1);
+          setPassword("");
+          setConfirmPassword("");
         }
       }
     } catch (err) {
@@ -153,20 +148,26 @@ export default function AuthForm() {
         <div className="bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg inline-flex neu-pressed">
           <button
             type="button"
-            onClick={() => { setIsLogin(true); setError(null); setRegisterStep(1); }}
+            onClick={() => { setIsLogin(true); setError(null); setSuccessMessage(null); setRegisterStep(1); }}
             className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${isLogin ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
           >
             {t('login')}
           </button>
           <button
             type="button"
-            onClick={() => { setIsLogin(false); setError(null); }}
+            onClick={() => { setIsLogin(false); setError(null); setSuccessMessage(null); }}
             className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${!isLogin ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
           >
             {t('register')}
           </button>
         </div>
       </div>
+
+      {successMessage && (
+        <div className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 rounded-lg text-sm leading-relaxed">
+          {successMessage}
+        </div>
+      )}
 
       {error && (
         <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-lg text-sm">

@@ -1,7 +1,7 @@
 import { prisma } from "./db";
 import { User, Plan } from "@prisma/client";
-
 import { enforceChannelLimits } from "./channelLockLogic";
+import { notifyUser } from "./notifications";
 
 export async function getSubscriptionState(userId: string) {
   let user = await prisma.user.findUnique({
@@ -24,6 +24,13 @@ export async function getSubscriptionState(userId: string) {
     });
     isActive = false;
     await enforceChannelLimits(userId);
+    await notifyUser(
+      userId,
+      "SUBSCRIPTION_EXPIRED",
+      "Langganan Berakhir",
+      "Masa aktif langganan Anda telah berakhir. Silakan perpanjang langganan Anda.",
+      "/dashboard/billing"
+    );
   }
 
   return {

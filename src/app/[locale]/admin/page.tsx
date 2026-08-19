@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import UserManagement from "@/components/admin/UserManagement";
-import PlanManagement from "@/components/admin/PlanManagement";
+import AdminPlansClient from "./plans/AdminPlansClient";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -71,7 +71,10 @@ export default async function AdminPage({ params }: { params: Promise<{ locale: 
       </div>
 
       <div className="space-y-8">
-        <PlanManagement initialPlans={plans as any} />
+        <div>
+          <h2 className="text-lg font-bold text-zinc-900 dark:text-white mb-4">Subscription Plans</h2>
+          <AdminPlansClient initialPlans={plans as any} />
+        </div>
         <UserManagement initialPlans={plans} />
       </div>
     </div>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import LogoutButton from "@/components/auth/LogoutButton";
 import { getTranslations } from "next-intl/server";
 import { headers } from "next/headers";
+import NotificationBell from "@/components/notifications/NotificationBell";
 
 export default async function DashboardLayout({
   children,
@@ -68,6 +69,12 @@ export default async function DashboardLayout({
           >
             {t('billing')}
           </Link>
+          <Link 
+            href={`/${locale}/dashboard/notifications`}
+            className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          >
+            {t('notifications')}
+          </Link>
 
           {session.user.role === "SUPERADMIN" && (
             <Link 
@@ -97,8 +104,16 @@ export default async function DashboardLayout({
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto focus:outline-none">
-        <div className="py-6 px-8">
+      <main className="flex-1 overflow-y-auto focus:outline-none flex flex-col">
+        <header className="h-16 px-8 flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-900/50 backdrop-blur sticky top-0 z-40">
+          <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+            Prompt Gen Dashboard
+          </div>
+          <div className="flex items-center gap-4">
+            <NotificationBell />
+          </div>
+        </header>
+        <div className="py-6 px-8 flex-1">
           {children}
         </div>
       </main>

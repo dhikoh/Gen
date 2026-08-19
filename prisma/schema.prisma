@@ -48,6 +48,20 @@ enum DraftType {
   IMAGE
 }
 
+enum NotificationType {
+  PAYMENT_APPROVED
+  PAYMENT_REJECTED
+  REGISTRATION_APPROVED
+  REGISTRATION_REJECTED
+  SUBSCRIPTION_EXPIRING_SOON
+  SUBSCRIPTION_EXPIRED
+  CHANNEL_LOCKED
+  CHANNEL_UNLOCKED
+  NEW_PENDING_PAYMENT
+  NEW_PENDING_REGISTRATION
+  SYSTEM_ANNOUNCEMENT
+}
+
 model User {
   id                    String              @id @default(cuid())
   name                  String
@@ -72,6 +86,7 @@ model User {
   invoices              Invoice[]
   drafts                Draft[]
   resetTokens           PasswordResetToken[]
+  notifications         Notification[]
 }
 
 model Plan {
@@ -193,5 +208,19 @@ model PromptSettings {
   defaultNegativePrompt  String?  @db.Text
   bannedWords            Json?
   updatedAt              DateTime @updatedAt
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  message   String           @db.Text
+  link      String?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  @@index([userId, isRead])
 }
 

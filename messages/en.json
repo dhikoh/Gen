@@ -34,7 +34,8 @@
     "billing": "Billing & Plans",
     "admin": "Admin Panel",
     "logout": "Logout",
-    "studio": "Generator Studio"
+    "studio": "Generator Studio",
+    "notifications": "Notifications"
   },
   "Auth": {
     "login": "Login",
@@ -70,7 +71,8 @@
     "passNotMatch": "Password confirmation does not match!",
     "passMinLen": "Password must be at least 8 characters!",
     "regFailed": "Failed to register",
-    "sysError": "System error occurred"
+    "sysError": "System error occurred",
+    "accountPendingApproval": "Registration successful! Your account is awaiting Superadmin approval before you can log in."
   },
   "Overview": {
     "welcome": "Welcome back, {name}!",
@@ -565,7 +567,8 @@
     "invalidImageFormat": "Only JPG/PNG image formats are allowed.",
     "invalidInvoice": "Invalid invoice or already processed.",
     "tooManyChannels": "Too many channel creation requests. Try again later.",
-    "tooManyUploads": "Too many upload requests. Try again later."
+    "tooManyUploads": "Too many upload requests. Try again later.",
+    "registrationAlreadyProcessed": "This registration has already been processed."
   },
   "Emails": {
     "resetSubject": "Reset Password - Prompt Gen",
@@ -583,5 +586,16 @@
     "approveBody": "Your payment for the <strong>{plan}</strong> plan has been successfully verified.",
     "approveInstruction": "Your account is now active and your channel limit has been adjusted.",
     "thankYou": "Thank you for using Prompt Gen!"
+  },
+  "Notifications": {
+    "title": "Notifications",
+    "unread": "Unread",
+    "all": "All",
+    "markAllAsRead": "Mark All as Read",
+    "empty": "No notifications",
+    "viewAll": "View All Notifications",
+    "loadMore": "Load More",
+    "filterAll": "All Notifications",
+    "filterUnread": "Unread Only"
   }
 }

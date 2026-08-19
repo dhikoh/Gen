@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import bcrypt from "bcrypt";
 import { z } from "zod";
 import { applyRateLimit } from "@/lib/rateLimit";
+import { notifyAllSuperadmins } from "@/lib/notifications";
 
 const registerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -114,7 +115,14 @@ export async function POST(req: Request) {
       return user;
     });
 
-    return NextResponse.json({ success: true, message: t("accountCreated") }, { status: 201 });
+    await notifyAllSuperadmins(
+      "NEW_PENDING_REGISTRATION",
+      "Pendaftaran User Baru",
+      `User ${newUser.name} (${newUser.email}) mendaftar dan menunggu persetujuan admin.`,
+      "/admin/registrations"
+    );
+
+    return NextResponse.json({ success: true, message: t("accountPendingApproval") }, { status: 201 });
 
   } catch (error: any) {
     console.error("Register error:", error);

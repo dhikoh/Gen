@@ -1,6 +1,7 @@
 import { prisma } from "../db";
 import { enforceChannelLimits } from "../channelLockLogic";
 import { CreateInvoiceInput, PaymentProvider } from "./types";
+import { notifyUser } from "../notifications";
 
 export class ManualTransferProvider implements PaymentProvider {
   name = "Manual Transfer";
@@ -36,7 +37,7 @@ export class ManualTransferProvider implements PaymentProvider {
 }
 
 export async function activateSubscription(invoiceId: string, reviewedById: string) {
-  return await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     // We use findFirst to get the invoice, but the actual status check 
     // happens inside an updateMany to prevent TOCTOU race conditions.
     const invoice = await tx.invoice.findUnique({
@@ -84,4 +85,15 @@ export async function activateSubscription(invoiceId: string, reviewedById: stri
 
     return invoice;
   });
+
+  // Send in-app notification to user
+  await notifyUser(
+    result.userId,
+    "PAYMENT_APPROVED",
+    "Pembayaran Disetujui",
+    `Pembayaran langganan paket ${result.plan?.name || "Premium"} Anda telah disetujui. Akses fitur Anda kini aktif.`,
+    "/dashboard/billing"
+  );
+
+  return result;
 }

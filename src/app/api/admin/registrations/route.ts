@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/authOptions";
 import { prisma, SAFE_USER_SELECT } from "@/lib/db";
 import { getApiTranslator } from "@/lib/apiI18n";
 import { sendEmail } from "@/lib/email";
+import { notifyUser } from "@/lib/notifications";
 
 export async function GET(req: Request) {
   const t = await getApiTranslator();
@@ -66,20 +67,38 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: t("userNotFound") }, { status: 404 });
     }
 
-    // Atomic transaction for idempotency
-    const updatedUser = await prisma.$transaction(async (tx) => {
-      const newStatus = action === "APPROVE" ? "APPROVED" : "REJECTED";
+    const newStatus = action === "APPROVE" ? "APPROVED" : "REJECTED";
 
-      const u = await tx.user.update({
-        where: { id: userId },
-        data: {
-          registrationStatus: newStatus,
-          approvedAt: action === "APPROVE" ? new Date() : null
-        }
-      });
-
-      return u;
+    // Atomic update with WHERE guard for idempotency
+    const updateResult = await prisma.user.updateMany({
+      where: {
+        id: userId,
+        registrationStatus: "PENDING_APPROVAL"
+      },
+      data: {
+        registrationStatus: newStatus,
+        approvedAt: action === "APPROVE" ? new Date() : null
+      }
     });
+
+    if (updateResult.count === 0) {
+      return NextResponse.json({ error: t("registrationAlreadyProcessed") }, { status: 400 });
+    }
+
+    const updatedUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: SAFE_USER_SELECT
+    });
+
+    await notifyUser(
+      targetUser.id,
+      action === "APPROVE" ? "REGISTRATION_APPROVED" : "REGISTRATION_REJECTED",
+      action === "APPROVE" ? "Pendaftaran Disetujui" : "Pendaftaran Ditolak",
+      action === "APPROVE"
+        ? "Akun Anda telah disetujui oleh admin. Silakan masuk untuk menggunakan aplikasi."
+        : "Mohon maaf, pendaftaran akun Anda belum disetujui oleh admin.",
+      "/auth"
+    );
 
     // Send email notification asynchronously
     if (action === "APPROVE") {
