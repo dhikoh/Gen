@@ -31,8 +31,8 @@ export default async function GeneratorPage({ params }: { params: Promise<{ loca
   const isSuperadmin = session.user.role === "SUPERADMIN";
   const rawFeatures = (dbUser?.currentPlan?.features as any) || {};
   const planFeatures = {
-    imagePromptStudio: isSuperadmin || rawFeatures.imagePromptStudio !== false,
-    htmlBlogExport: isSuperadmin || rawFeatures.htmlBlogExport !== false,
+    imagePromptStudio: isSuperadmin || rawFeatures.imagePromptStudio === true,
+    htmlBlogExport: isSuperadmin || rawFeatures.htmlBlogExport === true,
   };
 
   const promptSettings = await prisma.promptSettings.findFirst();
