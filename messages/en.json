@@ -35,7 +35,8 @@
     "admin": "Admin Panel",
     "logout": "Logout",
     "studio": "Generator Studio",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "guide": "User Guide"
   },
   "Auth": {
     "login": "Login",
@@ -72,7 +73,11 @@
     "passMinLen": "Password must be at least 8 characters!",
     "regFailed": "Failed to register",
     "sysError": "System error occurred",
-    "accountPendingApproval": "Registration successful! Your account is awaiting Superadmin approval before you can log in."
+    "accountPendingApproval": "Registration successful! Your account is awaiting Superadmin approval before you can log in.",
+    "authPageTitle": "Authentication - Prompt Gen",
+    "authPageDesc": "Log in or register for the Prompt Gen application.",
+    "authSubtitle": "Please log in or register to continue",
+    "loading": "Loading..."
   },
   "Overview": {
     "welcome": "Welcome back, {name}!",
@@ -347,7 +352,8 @@
     "free": "Free",
     "totalActiveUsers": "Total Active Users",
     "monthlyRevenue": "Monthly Revenue",
-    "pendingInvoices": "Pending Invoices"
+    "pendingInvoices": "Pending Invoices",
+    "guide": "Admin Guide"
   },
   "AdminUsers": {
     "usersManagement": "Users Management",
@@ -597,5 +603,30 @@
     "loadMore": "Load More",
     "filterAll": "All Notifications",
     "filterUnread": "Unread Only"
+  },
+  "Guide": {
+    "userTitle": "Prompt Gen User Guide",
+    "userSubtitle": "Learn how to maximize master prompt creation, channel management, and subscription features.",
+    "adminTitle": "Prompt Gen Admin Guide",
+    "adminSubtitle": "Operational guidelines for user registration approvals, payment verification, plan schemes, and AI moderation.",
+    "tabUser": "User Guide",
+    "tabAdmin": "Admin Guide",
+    "section1Title": "1. Master Video & Image Prompt Generator",
+    "section1Content": "Use the Generator menu to create content ideas, video scripts, social media captions, and image prompt instructions (Image Prompt Studio) tailored to your channel profile.",
+    "section2Title": "2. Channel Management & Used Titles Directory",
+    "section2Content": "You can register channels within your subscription limits. The Used Titles Directory feature allows CSV/JSON export/import to prevent duplicate topics.",
+    "section3Title": "3. Subscription System & Manual Transfer",
+    "section3Content": "Select a plan in the Billing menu and upload bank transfer proof. Once uploaded, Superadmins will verify and activate your subscription status.",
+    "section4Title": "4. Real-Time Notification Bell",
+    "section4Content": "The top notification bell notifies you of payment status, account approval, subscription expiration, and channel lock state changes.",
+    "adminSec1Title": "1. User Registration Approval",
+    "adminSec1Content": "New users require Superadmin approval in the Registrations menu before gaining login access to the platform.",
+    "adminSec2Title": "2. Transactional Payment Verification",
+    "adminSec2Content": "Review bank transfer proof in the Payment Approvals menu. Click Approve to automatically activate the user's plan and unlock channels.",
+    "adminSec3Title": "3. System Prompt & AI Moderation Settings",
+    "adminSec3Content": "In System Settings, you can configure global system instructions, default speech rates, and banned words that automatically block illegal generation requests.",
+    "backToDashboard": "Back to Dashboard",
+    "backToAdmin": "Back to Admin Portal",
+    "navGuide": "User Guide"
   }
 }

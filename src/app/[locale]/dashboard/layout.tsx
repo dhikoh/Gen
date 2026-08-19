@@ -75,6 +75,12 @@ export default async function DashboardLayout({
           >
             {t('notifications')}
           </Link>
+          <Link 
+            href={`/${locale}/dashboard/panduan`}
+            className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          >
+            {t('guide')}
+          </Link>
 
           {session.user.role === "SUPERADMIN" && (
             <Link 

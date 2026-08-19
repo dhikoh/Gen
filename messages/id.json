@@ -35,7 +35,8 @@
     "admin": "Admin Panel",
     "logout": "Keluar",
     "studio": "Studio Generator",
-    "notifications": "Notifikasi"
+    "notifications": "Notifikasi",
+    "guide": "Panduan Penggunaan"
   },
   "Auth": {
     "login": "Masuk",
@@ -72,7 +73,11 @@
     "passMinLen": "Password minimal 8 karakter!",
     "regFailed": "Gagal mendaftar",
     "sysError": "Terjadi kesalahan sistem",
-    "accountPendingApproval": "Pendaftaran berhasil! Akun Anda sedang menunggu persetujuan Superadmin sebelum dapat digunakan."
+    "accountPendingApproval": "Pendaftaran berhasil! Akun Anda sedang menunggu persetujuan Superadmin sebelum dapat digunakan.",
+    "authPageTitle": "Autentikasi - Prompt Gen",
+    "authPageDesc": "Masuk atau daftar ke aplikasi Prompt Gen.",
+    "authSubtitle": "Silakan masuk atau daftar untuk melanjutkan",
+    "loading": "Memuat..."
   },
   "Overview": {
     "welcome": "Selamat Datang, {name}!",
@@ -347,7 +352,8 @@
     "free": "Gratis",
     "totalActiveUsers": "Total User Aktif",
     "monthlyRevenue": "Pendapatan Bulan Ini",
-    "pendingInvoices": "Invoice Pending"
+    "pendingInvoices": "Invoice Pending",
+    "guide": "Panduan Admin"
   },
   "AdminUsers": {
     "usersManagement": "Manajemen Pengguna",
@@ -597,5 +603,30 @@
     "loadMore": "Muat Lebih Banyak",
     "filterAll": "Semua Notifikasi",
     "filterUnread": "Belum Dibaca"
+  },
+  "Guide": {
+    "userTitle": "Panduan Pengguna Prompt Gen",
+    "userSubtitle": "Pelajari cara memaksimalkan fitur pembuatan master prompt, pengolahan channel, dan sistem langganan.",
+    "adminTitle": "Panduan Admin Prompt Gen",
+    "adminSubtitle": "Petunjuk operasional kelola pendaftaran pengguna, verifikasi pembayaran, skema paket, dan moderasi AI.",
+    "tabUser": "Panduan Pengguna",
+    "tabAdmin": "Panduan Admin",
+    "section1Title": "1. Generator Master Prompt Video & Gambar",
+    "section1Content": "Gunakan menu Generator untuk membuat ide konten, skenario video, caption media sosial, hingga instruksi prompt gambar (Image Prompt Studio) yang disesuaikan dengan profil kanal Anda.",
+    "section2Title": "2. Manajemen Kanal (Channels) & Direktori Judul",
+    "section2Content": "Anda dapat mendaftarkan kanal sesuai dengan batas paket langganan Anda. Fitur Direktori Judul memungkinkan ekspor/impor CSV/JSON untuk mencegah topik duplikat.",
+    "section3Title": "3. Sistem Langganan & Pembayaran Manual",
+    "section3Content": "Pilih paket di menu Billing dan unggah bukti transfer bank. Setelah bukti diunggah, Superadmin akan memverifikasi dan mengaktifkan status langganan Anda.",
+    "section4Title": "4. Notifikasi Real-Time",
+    "section4Content": "Lonceng notifikasi di bagian atas akan memberitahu Anda mengenai status pembayaran, persetujuan akun, ekspirasi langganan, dan status penguncian kanal.",
+    "adminSec1Title": "1. Persetujuan Pendaftaran Akun",
+    "adminSec1Content": "Pengguna baru memerlukan persetujuan Superadmin di menu Pendaftaran sebelum dapat masuk ke dalam sistem.",
+    "adminSec2Title": "2. Verifikasi Pembayaran Transaksional",
+    "adminSec2Content": "Cek bukti transfer bank pada menu Persetujuan Pembayaran. Klik Setujui untuk mengaktifkan paket secara otomatis dan membuka kunci kanal pengguna.",
+    "adminSec3Title": "3. Pengaturan Prompt Sistem & Moderasi AI",
+    "adminSec3Content": "Pada Pengaturan Sistem, Anda dapat menetapkan instruksi sistem global, speech rate default, serta kata terlarang (banned words) yang akan memblokir request generasi ilegal secara otomatis.",
+    "backToDashboard": "Kembali ke Dashboard",
+    "backToAdmin": "Kembali ke Admin Portal",
+    "navGuide": "Panduan Penggunaan"
   }
 }

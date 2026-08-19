@@ -92,4 +92,12 @@ Pembaruan ini mencakup seluruh perbaikan bug dan arsitektur yang teridentifikasi
   - **UI Topbar Bell & Halaman Notifikasi:** Membuat komponen `NotificationBell` dengan badge hitung unread real-time dan popover preview cepat yang terintegrasi di top header bar `DashboardLayout` dan `AdminLayout`. Membangun halaman penuh `NotificationsClient` untuk manajemen riwayat notifikasi.
   - **Refactor Auth & Plan Management:** Memperbaiki aliran UI `AuthForm.tsx` setelah registrasi agar menampilkan pemberitahuan bahwa akun memerlukan persetujuan Superadmin (`PENDING_APPROVAL`). Mengkonsolidasikan manajemen plan admin dengan menghapus `PlanManagement.tsx` yang redundant dan menjadikan `AdminPlansClient.tsx` sebagai satu-satunya *source of truth*. Memastikan 100% paritas kunci terjemahan i18n (`id.json` & `en.json`).
 
+## 23. In-App Feature Guides & Complete Build Verification (Fase F & G)
+- **Komponen Terdampak:** `src/app/[locale]/dashboard/panduan/page.tsx`, `src/app/[locale]/admin/panduan/page.tsx`, `src/app/[locale]/auth/page.tsx`, `src/app/[locale]/dashboard/layout.tsx`, `src/app/[locale]/admin/layout.tsx`, `messages/id.json`, `messages/en.json`.
+- **Perbaikan:**
+  - **In-App Feature Guides:** Menambahkan halaman panduan penggunaan interaktif bagi User (`/dashboard/panduan`) dan Superadmin (`/admin/panduan`) dengan layout kartu glassmorphic responsif. Menyediakan akses mudah melalui menu navigasi sidebar pada Dashboard Layout dan Admin Layout.
+  - **Penghapusan Hardcoded Strings pada Auth Page:** Mengubah `src/app/[locale]/auth/page.tsx` untuk memanfaatkan `getTranslations('Auth')` pada metadata title/description, subtitle halaman, dan elemen fallback `Suspense`.
+  - **Verifikasi Statis & Produksi Build:** Menjalankan pemeriksaan tipe TypeScript (`npx tsc --noEmit`) dan build produksi Next.js Turbopack (`npm run build`). Seluruh 24 rute halaman dan API berhasil terkompilasi dengan **0 error**, menjamin aplikasi siap untuk tahap deployment produksi.
+
+
 
