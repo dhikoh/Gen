@@ -77,7 +77,7 @@ export async function POST(req: Request) {
     const parsedData = generateSchema.safeParse(body);
 
     if (!parsedData.success) {
-      return NextResponse.json({ error: t("invalidData"), details: parsedData.error.flatten() }, { status: 400 });
+      return NextResponse.json({ error: t("invalidData") }, { status: 400 });
     }
 
     const { type, channelId, topic, additionalContext, videoConfig, imageConfig } = parsedData.data;
@@ -107,15 +107,16 @@ export async function POST(req: Request) {
       const result = await requireActiveSubscription(session.user.id);
       dbUser = result.user;
       plan = result.plan;
-    } catch (err: any) {
-      if (err.message === "User not found") {
+    } catch (err: unknown) {
+      const errObj = err as Error;
+      if (errObj && errObj.message === "User not found") {
         return NextResponse.json({ error: t("userNotFound") }, { status: 404 });
       }
       return NextResponse.json({ error: t("inactiveSub") }, { status: 403 });
     }
 
     if (dbUser.role !== "SUPERADMIN") {
-      const features = plan?.features as any;
+      const features = (plan?.features || {}) as Record<string, boolean>;
 
       // Validasi fitur Image Prompt Studio (Bagian 5.5.B)
       if (type === "IMAGE") {
@@ -171,7 +172,7 @@ export async function POST(req: Request) {
       finalJson = result.finalJson;
     }
 
-    const outputData: any = {
+    const outputData: { master_prompt: string; system_instruction: string; finalJson?: string } = {
       master_prompt: masterPrompt,
       system_instruction: systemInstruction,
     };

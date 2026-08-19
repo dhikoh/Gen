@@ -41,7 +41,7 @@ export async function POST(req: Request) {
     }
 
     const { getTranslations } = await import("next-intl/server");
-    const locale = 'id'; // Or add a field to User model later if needed
+    const locale = invoice.user.preferredLocale || 'id';
     const tEmail = await getTranslations({ locale, namespace: 'Emails' });
 
     if (action === "REJECT") {
@@ -61,9 +61,10 @@ export async function POST(req: Request) {
       await notifyUser(
         invoice.userId,
         "PAYMENT_REJECTED",
-        "Pembayaran Ditolak",
-        `Pembayaran langganan paket ${invoice.plan.name} Anda ditolak. Silakan unggah bukti transfer yang valid.`,
-        "/dashboard/billing"
+        "paymentRejectedTitle",
+        "paymentRejectedMsg",
+        "/dashboard/billing",
+        { reason: `Paket ${invoice.plan.name}` }
       );
       
       await sendEmail({

@@ -12,7 +12,7 @@ export default async function DashboardLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const session = await requireRole(["USER", "SUPERADMIN"], locale);
+  const session = await requireRole("USER", locale);
 
   const t = await getTranslations({ locale, namespace: 'Dashboard' });
 

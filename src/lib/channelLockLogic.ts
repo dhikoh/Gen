@@ -33,11 +33,10 @@ export async function enforceChannelLimits(userId: string, tx?: Prisma.Transacti
       notifyUser(
         userId,
         shouldBeLocked ? "CHANNEL_LOCKED" : "CHANNEL_UNLOCKED",
-        shouldBeLocked ? "Kanal Dikunci" : "Kanal Dibuka",
-        shouldBeLocked
-          ? `Kanal ${channels[i].channelName} Anda dikunci karena melebihi kuota paket saat ini.`
-          : `Kanal ${channels[i].channelName} Anda telah dibuka kembali.`,
-        "/dashboard/channels"
+        shouldBeLocked ? "channelLockedTitle" : "channelUnlockedTitle",
+        shouldBeLocked ? "channelLockedMsg" : "channelUnlockedMsg",
+        "/dashboard/channels",
+        { channelName: channels[i].channelName }
       ).catch((err) => console.error("Error sending channel lock notification:", err));
     }
   }

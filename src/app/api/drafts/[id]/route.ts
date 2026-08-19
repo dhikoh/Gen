@@ -7,7 +7,7 @@ import { z } from "zod";
 
 const updateDraftSchema = z.object({
   isTemplate: z.boolean().optional(),
-  title: z.string().min(1, "Title cannot be empty").optional(),
+  title: z.string().min(1).optional(),
 });
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -53,7 +53,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const parsedData = updateDraftSchema.safeParse(body);
 
     if (!parsedData.success) {
-      return NextResponse.json({ error: t("invalidData"), details: parsedData.error.flatten() }, { status: 400 });
+      return NextResponse.json({ error: t("invalidData") }, { status: 400 });
     }
 
     const existingDraft = await prisma.draft.findUnique({
@@ -112,7 +112,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
       where: { id }
     });
 
-    return NextResponse.json({ success: true, message: "Draft deleted" }, { status: 200 });
+    return NextResponse.json({ success: true, message: t("draftDeleted") }, { status: 200 });
 
   } catch (error) {
     console.error("Draft delete error:", error);

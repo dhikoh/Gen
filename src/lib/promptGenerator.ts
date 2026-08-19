@@ -1,9 +1,50 @@
+export interface ProfileChannelData {
+  channelName: string;
+  niche?: string | null;
+  description?: string | null;
+  visualAesthetic?: string | null;
+  cta1?: string | null;
+  cta2?: string | null;
+  audioBGM?: boolean | null;
+  audioSFX?: boolean | null;
+  audioVO?: boolean | null;
+  products?: Array<{
+    name: string;
+    price: number;
+    description?: string | null;
+  }>;
+}
+
+export interface VideoConfigData {
+  targetPlatform?: string;
+  targetDurationSec?: number;
+  pov?: string;
+  speechRate?: string;
+  hookStyle?: string;
+  endingStyle?: string;
+  composition?: {
+    education?: number;
+    entertainment?: number;
+    marketing?: number;
+  };
+  includeHook?: boolean;
+  includeCTA?: boolean;
+  socialCaption?: boolean;
+  thumbnailIdea?: boolean;
+  htmlBlog?: boolean;
+}
+
+export interface PromptSettingsData {
+  videoSystemInstruction?: string | null;
+  imageSystemInstruction?: string | null;
+}
+
 export function generateMasterPrompt(
-  channel: any,
+  channel: ProfileChannelData,
   topic: string,
   additionalContext: string,
-  videoConfig: any,
-  promptSettings?: any
+  videoConfig: VideoConfigData,
+  promptSettings?: PromptSettingsData | null
 ): { masterPrompt: string; systemInstruction: string } {
   const channelContext = `
 Nama Channel/Akun: ${channel.channelName}
@@ -19,7 +60,7 @@ Gunakan Audio VO: ${channel.audioVO ? "Ya" : "Tidak"}
 
   const activeProducts = channel.products || [];
   const productContext = activeProducts.length > 0 
-    ? `Produk untuk Soft-selling:\n${activeProducts.map((p: any) => `- ${p.name} (Rp ${p.price}): ${p.description}`).join('\n')}`
+    ? `Produk untuk Soft-selling:\n${activeProducts.map((p) => `- ${p.name} (Rp ${p.price}): ${p.description}`).join('\n')}`
     : "Tidak ada produk khusus untuk disisipkan.";
 
   let systemInstruction = `Kamu adalah asisten ahli kreator konten dan scriptwriter profesional. Bertindaklah sebagai ${videoConfig?.pov || "Ahli di bidang ini"}.`;

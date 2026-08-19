@@ -75,6 +75,7 @@ export const authOptions: NextAuthOptions = {
           name: user.name,
           email: user.email,
           role: user.role,
+          registrationStatus: user.registrationStatus,
           rememberMe: credentials.rememberMe === "true"
         };
       }
@@ -85,6 +86,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        token.registrationStatus = (user as any).registrationStatus;
         token.rememberMe = user.rememberMe;
       }
       return token;
@@ -93,6 +95,7 @@ export const authOptions: NextAuthOptions = {
       if (token) {
         session.user.id = token.id as string;
         session.user.role = token.role as string;
+        session.user.registrationStatus = token.registrationStatus as string;
       }
       return session;
     }

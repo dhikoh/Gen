@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { getApiTranslator } from "@/lib/apiI18n";
 import { z } from "zod";
 
@@ -28,7 +29,7 @@ export async function GET(req: Request) {
 
     const { unreadOnly, page, pageSize } = parseResult.data;
 
-    const where: any = { userId: session.user.id };
+    const where: Prisma.NotificationWhereInput = { userId: session.user.id };
     if (unreadOnly) {
       where.isRead = false;
     }

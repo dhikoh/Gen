@@ -95,10 +95,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 }
 
 const updateProfileSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters").optional(),
-  username: z.string().min(3, "Username must be at least 3 characters").regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores").optional(),
-  email: z.string().email("Invalid email address").optional(),
-  phoneNumber: z.string().min(8, "Phone number is too short").optional().or(z.literal("")),
+  name: z.string().min(2).optional(),
+  username: z.string().min(3).regex(/^[a-zA-Z0-9_]+$/).optional(),
+  email: z.string().email().optional(),
+  phoneNumber: z.string().min(8).optional().or(z.literal("")),
   dateOfBirth: z.string().optional().or(z.literal("")),
 });
 
@@ -115,7 +115,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (body.action === "UPDATE_PROFILE") {
       const parsedData = updateProfileSchema.safeParse(body);
       if (!parsedData.success) {
-        return NextResponse.json({ error: parsedData.error.issues[0].message }, { status: 400 });
+        return NextResponse.json({ error: t("invalidData") }, { status: 400 });
       }
 
       const { name, username, email, phoneNumber, dateOfBirth } = parsedData.data;
@@ -234,9 +234,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     return NextResponse.json({ error: t("unknownAction") }, { status: 400 });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Update user error:", error);
-    if (error.code === 'P2002') {
+    const errObj = error as { code?: string };
+    if (errObj && errObj.code === 'P2002') {
       return NextResponse.json({ error: t("emailUsed") + " / " + t("usernameUsed") }, { status: 409 });
     }
     return NextResponse.json({ error: t("failProcessUserAction") }, { status: 500 });

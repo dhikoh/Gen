@@ -655,7 +655,13 @@
     "ticketRepliedTitle": "Balasan Tiket Dukungan",
     "ticketRepliedMsg": "Tiket #{ticketId} menerima balasan baru.",
     "ticketClosedTitle": "Tiket Dukungan Ditutup",
-    "ticketClosedMsg": "Tiket #{ticketId} telah ditandai selesai/ditutup."
+    "ticketClosedMsg": "Tiket #{ticketId} telah ditandai selesai/ditutup.",
+    "subscriptionExpiredTitle": "Langganan Berakhir",
+    "subscriptionExpiredMsg": "Langganan paket Anda telah berakhir. Silakan lakukan perpanjangan.",
+    "channelLockedTitle": "Kanal Dikunci",
+    "channelLockedMsg": "Kanal '{channelName}' dikunci karena melebihi batas paket aktif.",
+    "channelUnlockedTitle": "Kanal Dibuka",
+    "channelUnlockedMsg": "Kanal '{channelName}' telah dibuka kembali."
   },
   "Support": {
     "title": "Bantuan & Dukungan CS",

@@ -655,7 +655,13 @@
     "ticketRepliedTitle": "Support Ticket Reply",
     "ticketRepliedMsg": "Ticket #{ticketId} received a new reply.",
     "ticketClosedTitle": "Support Ticket Closed",
-    "ticketClosedMsg": "Ticket #{ticketId} has been closed."
+    "ticketClosedMsg": "Ticket #{ticketId} has been closed.",
+    "subscriptionExpiredTitle": "Subscription Expired",
+    "subscriptionExpiredMsg": "Your plan subscription has expired. Please renew your plan.",
+    "channelLockedTitle": "Channel Locked",
+    "channelLockedMsg": "Channel '{channelName}' was locked as it exceeds your active plan limit.",
+    "channelUnlockedTitle": "Channel Unlocked",
+    "channelUnlockedMsg": "Channel '{channelName}' has been unlocked."
   },
   "Support": {
     "title": "Help & Support CS",

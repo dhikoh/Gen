@@ -27,8 +27,8 @@ export async function getSubscriptionState(userId: string) {
     await notifyUser(
       userId,
       "SUBSCRIPTION_EXPIRED",
-      "Langganan Berakhir",
-      "Masa aktif langganan Anda telah berakhir. Silakan perpanjang langganan Anda.",
+      "subscriptionExpiredTitle",
+      "subscriptionExpiredMsg",
       "/dashboard/billing"
     );
   }

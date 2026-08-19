@@ -1,9 +1,23 @@
+import { ProfileChannelData, PromptSettingsData } from "./promptGenerator";
+
+export interface ImageConfigData {
+  cameraType?: string;
+  shotType?: string;
+  lighting?: string;
+  mood?: string;
+  colorGrading?: string;
+  visualStyle?: string;
+  negativePrompt?: string;
+  variations?: number;
+  aspectRatio?: string;
+}
+
 export function generateImagePrompt(
-  channel: any,
+  channel: ProfileChannelData,
   topic: string,
   additionalContext: string,
-  imageConfig: any,
-  promptSettings?: any
+  imageConfig: ImageConfigData,
+  promptSettings?: (PromptSettingsData & { defaultNegativePrompt?: string | null }) | null
 ): { masterPrompt: string; systemInstruction: string; finalJson?: string } {
   const variations = [];
   const numVars = imageConfig?.variations || 4;

@@ -1,6 +1,7 @@
 import { getApiTranslator } from "@/lib/apiI18n";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { applyRateLimit } from "@/lib/rateLimit";
 
@@ -33,14 +34,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: t("missingParams") }, { status: 400 });
     }
 
-    const conditions = [];
+    const conditions: Prisma.UserWhereInput[] = [];
     if (email) conditions.push({ email: { equals: email, mode: "insensitive" } });
     if (username) conditions.push({ username: { equals: username, mode: "insensitive" } });
     if (phoneNumber) conditions.push({ phoneNumber });
 
     const existingUser = await prisma.user.findFirst({
       where: {
-        OR: conditions as any
+        OR: conditions
       }
     });
 

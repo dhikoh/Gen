@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
+import { Prisma, DraftType } from "@prisma/client";
 import { getApiTranslator } from "@/lib/apiI18n";
 
 export async function GET(req: Request) {
@@ -16,18 +17,18 @@ export async function GET(req: Request) {
     const format = searchParams.get("format") || "csv"; // csv or json
 
     if (!type || (type !== "VIDEO" && type !== "IMAGE")) {
-      return NextResponse.json({ error: "Invalid type" }, { status: 400 });
+      return NextResponse.json({ error: t("invalidData") }, { status: 400 });
     }
 
-    let whereClause: any = { type };
+    let whereClause: Prisma.DraftWhereInput = { type: type as DraftType };
 
     if (session.user.role !== "SUPERADMIN") {
       if (!channelId) {
-         return NextResponse.json({ error: "Channel ID required" }, { status: 400 });
+         return NextResponse.json({ error: t("invalidInput") }, { status: 400 });
       }
       const channel = await prisma.profileChannel.findUnique({ where: { id: channelId } });
       if (!channel || channel.userId !== session.user.id) {
-         return NextResponse.json({ error: "Unauthorized for this channel" }, { status: 403 });
+         return NextResponse.json({ error: t("unauthorized") }, { status: 403 });
       }
       whereClause.channelId = channelId;
     } else {

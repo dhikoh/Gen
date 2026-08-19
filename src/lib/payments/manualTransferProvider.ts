@@ -90,9 +90,10 @@ export async function activateSubscription(invoiceId: string, reviewedById: stri
   await notifyUser(
     result.userId,
     "PAYMENT_APPROVED",
-    "Pembayaran Disetujui",
-    `Pembayaran langganan paket ${result.plan?.name || "Premium"} Anda telah disetujui. Akses fitur Anda kini aktif.`,
-    "/dashboard/billing"
+    "paymentApprovedTitle",
+    "paymentApprovedMsg",
+    "/dashboard/billing",
+    { planName: result.plan?.name || "Premium" }
   );
 
   return result;

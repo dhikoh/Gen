@@ -8,14 +8,14 @@ import { applyRateLimit } from "@/lib/rateLimit";
 import { notifyAllSuperadmins } from "@/lib/notifications";
 
 const registerSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  username: z.string().min(3, "Username must be at least 3 characters").regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores"),
-  email: z.string().email("Invalid email address"),
-  phoneNumber: z.string().min(8, "Phone number is too short").optional().or(z.literal("")),
+  name: z.string().min(2),
+  username: z.string().min(3).regex(/^[a-zA-Z0-9_]+$/),
+  email: z.string().email(),
+  phoneNumber: z.string().min(8).optional().or(z.literal("")),
   dateOfBirth: z.string().optional().or(z.literal("")),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  password: z.string().min(8),
   // Step 2 Data
-  channelName: z.string().min(1, "Channel name is required"),
+  channelName: z.string().min(1),
   niche: z.string().optional(),
   description: z.string().optional(),
   cta1: z.string().optional(),
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
     const parsedData = registerSchema.safeParse(body);
 
     if (!parsedData.success) {
-      return NextResponse.json({ error: t("invalidData"), details: parsedData.error.flatten() }, { status: 400 });
+      return NextResponse.json({ error: t("invalidData") }, { status: 400 });
     }
 
     const {
@@ -121,16 +121,18 @@ export async function POST(req: Request) {
 
     await notifyAllSuperadmins(
       "NEW_PENDING_REGISTRATION",
-      "Pendaftaran User Baru",
-      `User ${newUser.name} (${newUser.email}) mendaftar dan menunggu persetujuan admin.`,
-      "/admin/registrations"
+      "newPendingRegistrationTitle",
+      "newPendingRegistrationMsg",
+      "/admin/registrations",
+      { name: newUser.name, email: newUser.email }
     );
 
     return NextResponse.json({ success: true, message: t("accountPendingApproval") }, { status: 201 });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Register error:", error);
-    if (error.code === 'P2002') {
+    const errObj = error as { code?: string };
+    if (errObj && errObj.code === 'P2002') {
       return NextResponse.json({ error: t("emailUsed") + " / " + t("usernameUsed") }, { status: 409 });
     }
     return NextResponse.json({ error: t("serverError") }, { status: 500 });

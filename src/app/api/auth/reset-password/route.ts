@@ -7,8 +7,8 @@ import crypto from "crypto";
 import { applyRateLimit } from "@/lib/rateLimit";
 
 const resetPasswordSchema = z.object({
-  token: z.string().min(1, "Token is required"),
-  newPassword: z.string().min(8, "Password must be at least 8 characters"),
+  token: z.string().min(1),
+  newPassword: z.string().min(8),
 });
 
 export async function POST(req: Request) {
@@ -25,7 +25,7 @@ export async function POST(req: Request) {
     const parsedData = resetPasswordSchema.safeParse(body);
 
     if (!parsedData.success) {
-      return NextResponse.json({ error: parsedData.error.issues[0].message }, { status: 400 });
+      return NextResponse.json({ error: t("invalidData") }, { status: 400 });
     }
 
     const { token, newPassword } = parsedData.data;

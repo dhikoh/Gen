@@ -28,7 +28,7 @@ async function main() {
       name: 'Standard',
       priceMonthly: 10000,
       maxChannels: 1,
-      features: { imagePromptStudio: false },
+      features: { imagePromptStudio: false, htmlBlogExport: false },
       sortOrder: 1,
     },
     {
@@ -36,7 +36,7 @@ async function main() {
       name: 'Pro',
       priceMonthly: 25000,
       maxChannels: 3,
-      features: { imagePromptStudio: true },
+      features: { imagePromptStudio: true, htmlBlogExport: false },
       sortOrder: 2,
     },
     {
@@ -44,7 +44,7 @@ async function main() {
       name: 'Ultra',
       priceMonthly: 50000,
       maxChannels: 10,
-      features: { imagePromptStudio: true },
+      features: { imagePromptStudio: true, htmlBlogExport: true },
       sortOrder: 3,
     },
   ]
@@ -77,17 +77,13 @@ async function main() {
   console.log('Created PromptSettings')
 
   // 4. Create Superadmin User
-  const superadminEmail = 'admin@promptgen.com'
-  const passwordHash = await bcrypt.hash('superadmin123', 10)
+  const superadminEmail = process.env.SUPERADMIN_EMAIL || 'admin@promptgen.com'
+  const seedPassword = process.env.SUPERADMIN_SEED_PASSWORD || 'superadmin123'
+  const passwordHash = await bcrypt.hash(seedPassword, 10)
 
   await prisma.user.upsert({
     where: { email: superadminEmail },
-    update: {
-      passwordHash, // Reset password on seed just in case
-      role: 'SUPERADMIN',
-      registrationStatus: 'APPROVED',
-      approvedAt: new Date(),
-    },
+    update: {}, // Never overwrite passwordHash or admin fields if superadmin already exists
     create: {
       name: 'Super Admin',
       username: 'superadmin',

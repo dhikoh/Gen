@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { prisma, SAFE_USER_SELECT } from "@/lib/db";
-import { Prisma } from "@prisma/client";
+import { Prisma, Role, SubscriptionStatus } from "@prisma/client";
 
 export async function GET(req: Request) {
   const t = await getApiTranslator();
@@ -31,8 +31,8 @@ export async function GET(req: Request) {
           { phoneNumber: { contains: search, mode: 'insensitive' } }
         ]
       } : {}),
-      ...(role ? { role: role as any } : {}),
-      ...(status ? { subscriptionStatus: status as any } : {}),
+      ...(role ? { role: role as Role } : {}),
+      ...(status ? { subscriptionStatus: status as SubscriptionStatus } : {}),
       ...(planId ? { currentPlanId: planId } : {})
     };
 

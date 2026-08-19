@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { prisma, SAFE_USER_SELECT } from "@/lib/db";
+import { RegistrationStatus } from "@prisma/client";
 import { getApiTranslator } from "@/lib/apiI18n";
 import { getTranslations } from "next-intl/server";
 import { sendEmail } from "@/lib/email";
@@ -21,7 +22,7 @@ export async function GET(req: Request) {
   try {
     const users = await prisma.user.findMany({
       where: {
-        registrationStatus: statusParam as any
+        registrationStatus: statusParam as RegistrationStatus
       },
       select: {
         ...SAFE_USER_SELECT,
@@ -118,7 +119,7 @@ export async function POST(req: Request) {
     }
 
     const messageKey = action === "APPROVE" ? "approveRegistrationSuccess" : "rejectRegistrationSuccess";
-    return NextResponse.json({ success: true, message: t(messageKey as any), user: updatedUser });
+    return NextResponse.json({ success: true, message: t(messageKey as Parameters<typeof t>[0]), user: updatedUser });
 
   } catch (error) {
     console.error("POST registration approval error:", error);

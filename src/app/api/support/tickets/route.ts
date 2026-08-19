@@ -2,14 +2,15 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
+import { SupportTicketStatus } from "@prisma/client";
 import { z } from "zod";
 import { applyRateLimit } from "@/lib/rateLimit";
 import { getApiTranslator } from "@/lib/apiI18n";
 import { notifyAllSuperadmins } from "@/lib/notifications";
 
 const createTicketSchema = z.object({
-  subject: z.string().min(3, "Subject must be at least 3 characters"),
-  message: z.string().min(5, "Message must be at least 5 characters"),
+  subject: z.string().min(3),
+  message: z.string().min(5),
   guestName: z.string().optional(),
   guestEmail: z.string().email().optional().or(z.literal("")),
 });
@@ -27,7 +28,7 @@ export async function GET(req: Request) {
 
     if (session.user.role === "SUPERADMIN") {
       const tickets = await prisma.supportTicket.findMany({
-        where: statusParam ? { status: statusParam as any } : undefined,
+        where: statusParam ? { status: statusParam as SupportTicketStatus } : undefined,
         include: {
           user: { select: { id: true, name: true, email: true } },
           messages: { orderBy: { createdAt: "desc" }, take: 1 }
@@ -66,7 +67,7 @@ export async function POST(req: Request) {
     const parsed = createTicketSchema.safeParse(body);
 
     if (!parsed.success) {
-      return NextResponse.json({ error: t("invalidData"), details: parsed.error.flatten() }, { status: 400 });
+      return NextResponse.json({ error: t("invalidData") }, { status: 400 });
     }
 
     const { subject, message, guestName, guestEmail } = parsed.data;

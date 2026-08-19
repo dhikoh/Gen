@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
+import { Prisma, DraftType } from "@prisma/client";
 import { z } from "zod";
 import { requireActiveSubscription } from "@/lib/subscription";
 
@@ -37,7 +38,7 @@ export async function POST(req: Request) {
     const { channelId, type, topic, rawJson, speechRate, title: manualTitle, targetDurationSec } = parsedInput.data;
 
     // Parse the pasted JSON to validate it and extract data
-    let parsedData: any;
+    let parsedData: Record<string, any>;
     try {
       parsedData = JSON.parse(rawJson);
     } catch (e) {
@@ -63,7 +64,7 @@ export async function POST(req: Request) {
 
     if (type === "VIDEO" && parsedData.segments && Array.isArray(parsedData.segments)) {
       let totalWords = 0;
-      parsedData.segments.forEach((segment: any) => {
+      parsedData.segments.forEach((segment: Record<string, unknown>) => {
         if (segment.caption && typeof segment.caption === "string") {
           totalWords += segment.caption.split(/\s+/).filter(Boolean).length;
         }
@@ -74,7 +75,7 @@ export async function POST(req: Request) {
       estimatedDurationSec = Math.round(totalWords / wordsPerSecond);
     } else if (type === "IMAGE" && parsedData.variations && Array.isArray(parsedData.variations)) {
       let totalWords = 0;
-      parsedData.variations.forEach((v: any) => {
+      parsedData.variations.forEach((v: Record<string, unknown>) => {
          if (v.prompt_text && typeof v.prompt_text === "string") {
            totalWords += v.prompt_text.split(/\s+/).filter(Boolean).length;
          }
@@ -125,9 +126,9 @@ export async function GET(req: Request) {
     const channelId = searchParams.get('channelId');
     const type = searchParams.get('type');
 
-    const whereClause: any = { userId: session.user.id };
+    const whereClause: Prisma.DraftWhereInput = { userId: session.user.id };
     if (channelId) whereClause.channelId = channelId;
-    if (type) whereClause.type = type;
+    if (type) whereClause.type = type as DraftType;
 
     const drafts = await prisma.draft.findMany({
       where: whereClause,

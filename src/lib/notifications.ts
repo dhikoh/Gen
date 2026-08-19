@@ -25,11 +25,12 @@ export async function notifyUser(
 
     try {
       const t = await getTranslations({ locale, namespace: "NotificationContent" });
-      if (t.has(titleKeyOrText as any)) {
-        title = t(titleKeyOrText as any, params);
+      type TranslationKey = Parameters<typeof t>[0];
+      if (t.has(titleKeyOrText as TranslationKey)) {
+        title = t(titleKeyOrText as TranslationKey, params as never);
       }
-      if (t.has(messageKeyOrText as any)) {
-        message = t(messageKeyOrText as any, params);
+      if (t.has(messageKeyOrText as TranslationKey)) {
+        message = t(messageKeyOrText as TranslationKey, params as never);
       }
     } catch {
       // Fallback to literal text if key not found
@@ -75,11 +76,12 @@ export async function notifyAllSuperadmins(
 
       try {
         const t = await getTranslations({ locale, namespace: "NotificationContent" });
-        if (t.has(titleKeyOrText as any)) {
-          title = t(titleKeyOrText as any, params);
+        type TranslationKey = Parameters<typeof t>[0];
+        if (t.has(titleKeyOrText as TranslationKey)) {
+          title = t(titleKeyOrText as TranslationKey, params as never);
         }
-        if (t.has(messageKeyOrText as any)) {
-          message = t(messageKeyOrText as any, params);
+        if (t.has(messageKeyOrText as TranslationKey)) {
+          message = t(messageKeyOrText as TranslationKey, params as never);
         }
       } catch {
         // Fallback

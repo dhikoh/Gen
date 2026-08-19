@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
 const planUpdateSchema = z.object({
@@ -10,7 +11,7 @@ const planUpdateSchema = z.object({
   priceMonthly: z.number().min(0),
   maxChannels: z.number().min(1),
   isActive: z.boolean(),
-  features: z.any().optional()
+  features: z.record(z.string(), z.boolean()).optional()
 });
 
 export async function GET() {
@@ -50,13 +51,13 @@ export async function PUT(req: Request) {
 
     const { id, priceMonthly, maxChannels, isActive, features } = parsedData.data;
 
-    const dataToUpdate: any = {
+    const dataToUpdate: Prisma.PlanUpdateInput = {
       priceMonthly,
       maxChannels,
       isActive
     };
     if (features !== undefined) {
-      dataToUpdate.features = features;
+      dataToUpdate.features = features as Prisma.InputJsonValue;
     }
 
     const updated = await prisma.plan.update({

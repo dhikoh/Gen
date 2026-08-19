@@ -8,7 +8,7 @@ import { applyRateLimit } from "@/lib/rateLimit";
 import { requireActiveSubscription } from "@/lib/subscription";
 
 const productSchema = z.object({
-  name: z.string().min(1, "Nama produk harus diisi"),
+  name: z.string().min(1),
   description: z.string().optional(),
   price: z.number().min(0).default(0),
   link: z.string().url().optional().or(z.literal("")),
@@ -48,8 +48,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     try {
       await requireActiveSubscription(session.user.id);
-    } catch (e: any) {
-      return NextResponse.json({ error: e.message || "Langganan tidak aktif" }, { status: 403 });
+    } catch (e: unknown) {
+      const err = e as Error;
+      if (err && err.message === "User not found") {
+        return NextResponse.json({ error: t("userNotFound") }, { status: 404 });
+      }
+      return NextResponse.json({ error: t("inactiveSub") }, { status: 403 });
     }
 
     const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";

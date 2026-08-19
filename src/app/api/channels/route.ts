@@ -9,7 +9,7 @@ import { applyRateLimit } from "@/lib/rateLimit";
 import { requireActiveSubscription } from "@/lib/subscription";
 
 const channelSchema = z.object({
-  channelName: z.string().min(1, "Nama channel harus diisi"),
+  channelName: z.string().min(1),
   niche: z.string().optional(),
   description: z.string().optional(),
   visualAesthetic: z.string().optional(),
@@ -61,8 +61,9 @@ export async function POST(req: Request) {
     // Require active subscription
     try {
       await requireActiveSubscription(session.user.id);
-    } catch (e: any) {
-      if (e.message === "User not found") {
+    } catch (e: unknown) {
+      const err = e as Error;
+      if (err && err.message === "User not found") {
         return NextResponse.json({ error: t("userNotFound") }, { status: 404 });
       }
       return NextResponse.json({ error: t("inactiveSub") }, { status: 403 });
@@ -115,8 +116,9 @@ export async function POST(req: Request) {
           }
         });
       }, { isolationLevel: 'Serializable' });
-    } catch (e: any) {
-      if (e.message === "MAX_CHANNELS_LIMIT") {
+    } catch (e: unknown) {
+      const err = e as Error;
+      if (err && err.message === "MAX_CHANNELS_LIMIT") {
         return NextResponse.json({ error: t("maxChannelsReached", { max: limitErrMax || 1 }) }, { status: 403 });
       }
       throw e;

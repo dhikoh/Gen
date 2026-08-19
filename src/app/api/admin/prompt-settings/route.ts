@@ -58,7 +58,7 @@ export async function PUT(req: Request) {
     // Process bannedWords array or string input
     let sanitizedBannedWords: string[] = [];
     if (Array.isArray(bannedWords)) {
-      sanitizedBannedWords = bannedWords.map((w: any) => String(w).trim().toLowerCase()).filter(Boolean);
+      sanitizedBannedWords = bannedWords.map((w: unknown) => String(w).trim().toLowerCase()).filter(Boolean);
     } else if (typeof bannedWords === "string") {
       sanitizedBannedWords = bannedWords.split(",").map(w => w.trim().toLowerCase()).filter(Boolean);
     }
