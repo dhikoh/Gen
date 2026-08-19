@@ -23,9 +23,19 @@ export default async function GeneratorPage({ params }: { params: Promise<{ loca
     orderBy: { createdAt: "asc" }
   });
 
-  const promptSettings = await prisma.promptSettings.findUnique({
-    where: { id: "singleton" }
+  const dbUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    include: { currentPlan: true }
   });
+
+  const isSuperadmin = session.user.role === "SUPERADMIN";
+  const rawFeatures = (dbUser?.currentPlan?.features as any) || {};
+  const planFeatures = {
+    imagePromptStudio: isSuperadmin || rawFeatures.imagePromptStudio === true,
+    htmlBlogExport: isSuperadmin || rawFeatures.htmlBlogExport === true,
+  };
+
+  const promptSettings = await prisma.promptSettings.findFirst();
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -36,7 +46,7 @@ export default async function GeneratorPage({ params }: { params: Promise<{ loca
         </p>
       </div>
 
-      <GeneratorForm channels={channels} promptSettings={promptSettings} />
+      <GeneratorForm channels={channels} promptSettings={promptSettings} planFeatures={planFeatures} />
     </div>
   );
 }

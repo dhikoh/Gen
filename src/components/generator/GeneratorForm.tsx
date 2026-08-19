@@ -6,10 +6,12 @@ import { useTranslations } from "next-intl";
 
 export default function GeneratorForm({
   channels,
-  promptSettings
+  promptSettings,
+  planFeatures = { imagePromptStudio: true, htmlBlogExport: true }
 }: {
   channels: any[];
   promptSettings?: any;
+  planFeatures?: { imagePromptStudio?: boolean; htmlBlogExport?: boolean };
 }) {
   const router = useRouter();
   const t = useTranslations("Generator");
@@ -233,9 +235,24 @@ export default function GeneratorForm({
                     <input type="radio" name="type" value="VIDEO" checked={type === 'VIDEO'} onChange={() => setType('VIDEO')} className="sr-only" />
                     <span>{t('videoScript')}</span>
                   </label>
-                  <label className={`flex-1 flex items-center justify-center p-3 border rounded-lg cursor-pointer transition-colors ${type === 'IMAGE' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' : 'border-zinc-200 dark:border-zinc-700'}`}>
-                    <input type="radio" name="type" value="IMAGE" checked={type === 'IMAGE'} onChange={() => setType('IMAGE')} className="sr-only" />
-                    <span>{t('imagePrompt')}</span>
+                  <label className={`flex-1 flex items-center justify-center p-3 border rounded-lg transition-colors ${!planFeatures.imagePromptStudio ? 'opacity-50 cursor-not-allowed border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900/50' : type === 'IMAGE' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 cursor-pointer' : 'border-zinc-200 dark:border-zinc-700 cursor-pointer'}`}>
+                    <input
+                      type="radio"
+                      name="type"
+                      value="IMAGE"
+                      checked={type === 'IMAGE'}
+                      disabled={!planFeatures.imagePromptStudio}
+                      onChange={() => {
+                        if (planFeatures.imagePromptStudio) setType('IMAGE');
+                      }}
+                      className="sr-only"
+                    />
+                    <div className="flex flex-col items-center">
+                      <span>{t('imagePrompt')}</span>
+                      {!planFeatures.imagePromptStudio && (
+                        <span className="text-[10px] text-amber-500 font-semibold mt-0.5">🔒 Upgrade Required</span>
+                      )}
+                    </div>
                   </label>
                 </div>
               </div>
@@ -360,9 +377,19 @@ export default function GeneratorForm({
                       <input type="checkbox" name="includeThumbnail" checked={videoConfig.includeThumbnail} onChange={handleVideoConfigChange} className="rounded" />
                       <span>{t('thumbnailIdea')}</span>
                     </label>
-                    <label className="flex items-center space-x-2 col-span-2">
-                      <input type="checkbox" name="includeHtmlBlog" checked={videoConfig.includeHtmlBlog} onChange={handleVideoConfigChange} className="rounded" />
+                    <label className={`flex items-center space-x-2 col-span-2 ${!planFeatures.htmlBlogExport ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                      <input
+                        type="checkbox"
+                        name="includeHtmlBlog"
+                        checked={videoConfig.includeHtmlBlog}
+                        disabled={!planFeatures.htmlBlogExport}
+                        onChange={handleVideoConfigChange}
+                        className="rounded"
+                      />
                       <span>{t('htmlBlog')}</span>
+                      {!planFeatures.htmlBlogExport && (
+                        <span className="text-[10px] text-amber-500 font-semibold ml-1">🔒 Upgrade</span>
+                      )}
                     </label>
                   </div>
                 </div>

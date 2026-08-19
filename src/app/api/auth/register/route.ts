@@ -1,5 +1,6 @@
 import { getApiTranslator } from "@/lib/apiI18n";
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcrypt";
 import { z } from "zod";
@@ -35,6 +36,8 @@ const registerSchema = z.object({
 export async function POST(req: Request) {
   const t = await getApiTranslator();
   try {
+    const cookieStore = await cookies();
+    const userLocale = cookieStore.get('NEXT_LOCALE')?.value || 'id';
     
     const body = await req.json();
     const emailStr = typeof body.email === 'string' ? body.email.toLowerCase() : 'unknown';
@@ -46,7 +49,7 @@ export async function POST(req: Request) {
     const parsedData = registerSchema.safeParse(body);
 
     if (!parsedData.success) {
-      return NextResponse.json({ error: parsedData.error.issues[0].message }, { status: 400 });
+      return NextResponse.json({ error: t("invalidData"), details: parsedData.error.flatten() }, { status: 400 });
     }
 
     const {
@@ -91,7 +94,8 @@ export async function POST(req: Request) {
           role: "USER",
           registrationStatus: "PENDING_APPROVAL",
           subscriptionStatus: "INACTIVE",
-          currentPlanId: null
+          currentPlanId: null,
+          preferredLocale: userLocale
         }
       });
 

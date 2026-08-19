@@ -1,10 +1,7 @@
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/authOptions";
-import { redirect } from "next/navigation";
+import { requireRole } from "@/lib/authHelpers";
 import Link from "next/link";
 import LogoutButton from "@/components/auth/LogoutButton";
 import { getTranslations } from "next-intl/server";
-import { headers } from "next/headers";
 import { prisma } from "@/lib/db";
 import NotificationBell from "@/components/notifications/NotificationBell";
 
@@ -15,23 +12,17 @@ export default async function AdminLayout({
   children: React.ReactNode;
   params: Promise<{ locale: string }>;
 }) {
-  const session = await getServerSession(authOptions);
-  
   const { locale } = await params;
+  const session = await requireRole("SUPERADMIN", locale);
 
-  if (!session) {
-    const headerList = await headers();
-    const rawPath = headerList.get("x-pathname") || headerList.get("x-invoke-path") || headerList.get("next-url") || `/${locale}/admin`;
-    redirect(`/${locale}/auth?callbackUrl=${encodeURIComponent(rawPath)}`);
-  }
-
-  if (session.user.role !== "SUPERADMIN") {
-    redirect(`/${locale}/dashboard`);
-  }
   const t = await getTranslations({ locale, namespace: 'Admin' });
 
   const pendingRegistrationsCount = await prisma.user.count({
     where: { registrationStatus: "PENDING_APPROVAL" }
+  });
+
+  const openTicketsCount = await prisma.supportTicket.count({
+    where: { status: "OPEN" }
   });
 
   return (
@@ -77,6 +68,17 @@ export default async function AdminLayout({
             className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-white"
           >
             {t('paymentApproval')}
+          </Link>
+          <Link 
+            href={`/${locale}/admin/support`}
+            className="flex items-center justify-between px-3 py-2 text-sm font-medium rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-white"
+          >
+            <span>{t('support')}</span>
+            {openTicketsCount > 0 && (
+              <span className="px-2 py-0.5 text-xs font-bold bg-blue-500 text-white rounded-full">
+                {openTicketsCount}
+              </span>
+            )}
           </Link>
           <Link 
             href={`/${locale}/admin/plans`}

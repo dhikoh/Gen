@@ -115,11 +115,19 @@ export async function POST(req: Request) {
     }
 
     if (dbUser.role !== "SUPERADMIN") {
+      const features = plan?.features as any;
+
       // Validasi fitur Image Prompt Studio (Bagian 5.5.B)
       if (type === "IMAGE") {
-        const features = plan?.features as any;
         if (!features || features.imagePromptStudio !== true) {
           return NextResponse.json({ error: t("imageStudioLocked") }, { status: 403 });
+        }
+      }
+
+      // Validasi fitur HTML Blog Export [K1]
+      if (type === "VIDEO" && videoConfig?.htmlBlog === true) {
+        if (!features || features.htmlBlogExport !== true) {
+          return NextResponse.json({ error: t("htmlBlogLocked") }, { status: 403 });
         }
       }
     }

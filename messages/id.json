@@ -36,7 +36,8 @@
     "logout": "Keluar",
     "studio": "Studio Generator",
     "notifications": "Notifikasi",
-    "guide": "Panduan Penggunaan"
+    "guide": "Panduan Penggunaan",
+    "support": "Dukungan CS"
   },
   "Auth": {
     "login": "Masuk",
@@ -353,7 +354,8 @@
     "totalActiveUsers": "Total User Aktif",
     "monthlyRevenue": "Pendapatan Bulan Ini",
     "pendingInvoices": "Invoice Pending",
-    "guide": "Panduan Admin"
+    "guide": "Panduan Admin",
+    "support": "Tiket Support"
   },
   "AdminUsers": {
     "usersManagement": "Manajemen Pengguna",
@@ -574,7 +576,9 @@
     "invalidInvoice": "Tagihan tidak valid atau sudah diproses.",
     "tooManyChannels": "Terlalu banyak permintaan pembuatan channel. Coba lagi nanti.",
     "tooManyUploads": "Terlalu banyak permintaan upload. Coba lagi nanti.",
-    "registrationAlreadyProcessed": "Registrasi ini sudah diproses sebelumnya."
+    "registrationAlreadyProcessed": "Registrasi ini sudah diproses sebelumnya.",
+    "htmlBlogLocked": "Paket langganan Anda tidak mencakup fitur HTML Blog Export. Silakan upgrade paket.",
+    "maxChannelsReached": "Batas maksimal channel Anda adalah {max}. Silakan upgrade paket."
   },
   "Emails": {
     "resetSubject": "Reset Password - Prompt Gen",
@@ -591,7 +595,11 @@
     "approveGreeting": "Halo {name},",
     "approveBody": "Tagihan Anda untuk paket <strong>{plan}</strong> telah berhasil diverifikasi.",
     "approveInstruction": "Akun Anda kini telah aktif dan batas channel Anda telah disesuaikan.",
-    "thankYou": "Terima kasih telah menggunakan Prompt Gen!"
+    "thankYou": "Terima kasih telah menggunakan Prompt Gen!",
+    "regApproveSubject": "Pendaftaran Disetujui - Prompt Gen",
+    "regApproveBody": "Halo {name}, Pendaftaran akun Anda di Prompt Gen telah disetujui oleh admin. Anda sekarang dapat masuk ke dashboard dan mulai menggunakan aplikasi.",
+    "regRejectSubject": "Pendaftaran Ditolak - Prompt Gen",
+    "regRejectBody": "Halo {name}, Mohon maaf, pendaftaran akun Anda di Prompt Gen belum dapat disetujui oleh admin saat ini."
   },
   "Notifications": {
     "title": "Notifikasi",
@@ -628,5 +636,56 @@
     "backToDashboard": "Kembali ke Dashboard",
     "backToAdmin": "Kembali ke Admin Portal",
     "navGuide": "Panduan Penggunaan"
+  },
+  "NotificationContent": {
+    "newPendingRegistrationTitle": "Pendaftaran User Baru",
+    "newPendingRegistrationMsg": "User {name} ({email}) mendaftar dan menunggu persetujuan admin.",
+    "registrationApprovedTitle": "Pendaftaran Disetujui",
+    "registrationApprovedMsg": "Selamat! Akun Anda telah disetujui oleh Admin.",
+    "registrationRejectedTitle": "Pendaftaran Ditolak",
+    "registrationRejectedMsg": "Pendaftaran akun Anda ditolak oleh Admin.",
+    "newPendingPaymentTitle": "Pembayaran Baru",
+    "newPendingPaymentMsg": "Tagihan pembayaran sebesar Rp {amount} membutuhkan verifikasi admin.",
+    "paymentApprovedTitle": "Pembayaran Diterima",
+    "paymentApprovedMsg": "Pembayaran Anda untuk paket {planName} telah disetujui.",
+    "paymentRejectedTitle": "Pembayaran Ditolak",
+    "paymentRejectedMsg": "Pembayaran Anda telah ditolak. Alasan: {reason}",
+    "ticketNewTitle": "Tiket Dukungan Baru",
+    "ticketNewMsg": "Tiket baru #{ticketId}: {subject}",
+    "ticketRepliedTitle": "Balasan Tiket Dukungan",
+    "ticketRepliedMsg": "Tiket #{ticketId} menerima balasan baru.",
+    "ticketClosedTitle": "Tiket Dukungan Ditutup",
+    "ticketClosedMsg": "Tiket #{ticketId} telah ditandai selesai/ditutup."
+  },
+  "Support": {
+    "title": "Bantuan & Dukungan CS",
+    "desc": "Kirim tiket pertanyaan atau masalah teknis kepada tim layanan pelanggan Prompt Gen.",
+    "createTicket": "+ Buat Tiket Bantuan",
+    "subject": "Subjek / Judul Masalah",
+    "message": "Pesan / Detail Masalah",
+    "guestName": "Nama Lengkap",
+    "guestEmail": "Email Kontak",
+    "status": "Status",
+    "createdAt": "Tanggal Dibuat",
+    "actions": "Aksi",
+    "viewThread": "Buka Percakapan",
+    "noTickets": "Belum ada tiket bantuan.",
+    "sendMsg": "Kirim Balasan",
+    "replyPlaceholder": "Ketik pesan balasan Anda di sini...",
+    "statusOPEN": "Buka (Pending)",
+    "statusREPLIED": "Telah Dibalas",
+    "statusCLOSED": "Selesai (Ditutup)",
+    "closeTicket": "Tandai Selesai / Tutup Tiket",
+    "reopenTicket": "Buka Kembali Tiket",
+    "ticketCreated": "Tiket bantuan berhasil dibuat!",
+    "directWhatsapp": "Hubungi via WhatsApp",
+    "directEmail": "Kirim Email",
+    "operatingHours": "Jam Operasional",
+    "csSettings": "Pengaturan Customer Service",
+    "csMode": "Mode Layanan CS",
+    "csWhatsappNumber": "Nomor WhatsApp CS (e.g. 628123456789)",
+    "csEmail": "Email CS (e.g. support@promptgen.com)",
+    "csOperatingHours": "Jam Operasional (e.g. Senin - Jumat, 09:00 - 17:00 WIB)",
+    "csWidgetEnabled": "Tampilkan Floating CS Widget di Landing Page"
   }
 }

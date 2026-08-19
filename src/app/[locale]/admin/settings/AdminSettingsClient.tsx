@@ -11,6 +11,11 @@ interface AppSettings {
   bankName?: string | null;
   bankAccountNo?: string | null;
   bankAccountName?: string | null;
+  csMode?: "DIRECT_WHATSAPP" | "DIRECT_EMAIL" | "TICKET" | string | null;
+  csWhatsappNumber?: string | null;
+  csEmail?: string | null;
+  csOperatingHours?: string | null;
+  csWidgetEnabled?: boolean | null;
 }
 
 interface PromptSettingsData {
@@ -30,6 +35,7 @@ export default function AdminSettingsClient({
 }) {
   const router = useRouter();
   const t = useTranslations("AdminSettings");
+  const st = useTranslations("Support");
   const [activeTab, setActiveTab] = useState<"general" | "prompt">("general");
   const [loading, setLoading] = useState(false);
 
@@ -40,6 +46,11 @@ export default function AdminSettingsClient({
     bankName: settings?.bankName || "",
     bankAccountNo: settings?.bankAccountNo || "",
     bankAccountName: settings?.bankAccountName || "",
+    csMode: settings?.csMode || "TICKET",
+    csWhatsappNumber: settings?.csWhatsappNumber || "",
+    csEmail: settings?.csEmail || "",
+    csOperatingHours: settings?.csOperatingHours || "Senin - Jumat, 09:00 - 17:00 WIB",
+    csWidgetEnabled: settings?.csWidgetEnabled ?? true,
   });
 
   // Form State for PromptSettings
@@ -203,6 +214,79 @@ export default function AdminSettingsClient({
                   onChange={handleAppChange}
                   className="w-full px-4 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-zinc-900 dark:text-white"
                 />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-4">{st("csSettings")}</h3>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{st("csMode")}</label>
+                  <select
+                    name="csMode"
+                    value={appFormData.csMode}
+                    onChange={(e) => setAppFormData(prev => ({ ...prev, csMode: e.target.value }))}
+                    className="w-full px-4 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-zinc-900 dark:text-white text-sm"
+                  >
+                    <option value="TICKET">Sistem Tiket Internal (Default)</option>
+                    <option value="DIRECT_WHATSAPP">Direct WhatsApp</option>
+                    <option value="DIRECT_EMAIL">Direct Email</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{st("csOperatingHours")}</label>
+                  <input
+                    type="text"
+                    name="csOperatingHours"
+                    value={appFormData.csOperatingHours}
+                    onChange={handleAppChange}
+                    className="w-full px-4 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-zinc-900 dark:text-white text-sm"
+                  />
+                </div>
+              </div>
+
+              {appFormData.csMode === "DIRECT_WHATSAPP" && (
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{st("csWhatsappNumber")}</label>
+                  <input
+                    type="text"
+                    name="csWhatsappNumber"
+                    value={appFormData.csWhatsappNumber}
+                    onChange={handleAppChange}
+                    placeholder="628123456789"
+                    className="w-full px-4 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-zinc-900 dark:text-white text-sm"
+                  />
+                </div>
+              )}
+
+              {appFormData.csMode === "DIRECT_EMAIL" && (
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{st("csEmail")}</label>
+                  <input
+                    type="email"
+                    name="csEmail"
+                    value={appFormData.csEmail}
+                    onChange={handleAppChange}
+                    placeholder="support@promptgen.com"
+                    className="w-full px-4 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-zinc-900 dark:text-white text-sm"
+                  />
+                </div>
+              )}
+
+              <div className="flex items-center space-x-2 pt-2">
+                <input
+                  type="checkbox"
+                  id="csWidgetEnabled"
+                  checked={appFormData.csWidgetEnabled}
+                  onChange={(e) => setAppFormData(prev => ({ ...prev, csWidgetEnabled: e.target.checked }))}
+                  className="rounded text-purple-600 focus:ring-purple-500 h-4 w-4"
+                />
+                <label htmlFor="csWidgetEnabled" className="text-sm font-medium text-zinc-700 dark:text-zinc-300 cursor-pointer">
+                  {st("csWidgetEnabled")}
+                </label>
               </div>
             </div>
           </div>

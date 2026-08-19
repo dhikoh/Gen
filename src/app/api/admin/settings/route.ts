@@ -11,6 +11,11 @@ const settingsSchema = z.object({
   bankName: z.string().optional(),
   bankAccountNo: z.string().optional(),
   bankAccountName: z.string().optional(),
+  csMode: z.enum(["DIRECT_WHATSAPP", "DIRECT_EMAIL", "TICKET"]).optional(),
+  csWhatsappNumber: z.string().nullable().optional(),
+  csEmail: z.string().nullable().optional(),
+  csOperatingHours: z.string().nullable().optional(),
+  csWidgetEnabled: z.boolean().optional(),
 });
 
 export async function PUT(req: Request) {
@@ -38,6 +43,11 @@ export async function PUT(req: Request) {
         bankName: parsedData.data.bankName,
         bankAccountNo: parsedData.data.bankAccountNo,
         bankAccountName: parsedData.data.bankAccountName,
+        csMode: parsedData.data.csMode,
+        csWhatsappNumber: parsedData.data.csWhatsappNumber,
+        csEmail: parsedData.data.csEmail,
+        csOperatingHours: parsedData.data.csOperatingHours,
+        csWidgetEnabled: parsedData.data.csWidgetEnabled,
       },
       create: {
         id: "singleton",
@@ -46,6 +56,11 @@ export async function PUT(req: Request) {
         bankName: parsedData.data.bankName,
         bankAccountNo: parsedData.data.bankAccountNo,
         bankAccountName: parsedData.data.bankAccountName,
+        csMode: parsedData.data.csMode || "TICKET",
+        csWhatsappNumber: parsedData.data.csWhatsappNumber,
+        csEmail: parsedData.data.csEmail,
+        csOperatingHours: parsedData.data.csOperatingHours,
+        csWidgetEnabled: parsedData.data.csWidgetEnabled ?? true,
       }
     });
 

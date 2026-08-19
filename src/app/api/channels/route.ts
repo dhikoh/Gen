@@ -62,7 +62,10 @@ export async function POST(req: Request) {
     try {
       await requireActiveSubscription(session.user.id);
     } catch (e: any) {
-      return NextResponse.json({ error: e.message || "Langganan tidak aktif" }, { status: 403 });
+      if (e.message === "User not found") {
+        return NextResponse.json({ error: t("userNotFound") }, { status: 404 });
+      }
+      return NextResponse.json({ error: t("inactiveSub") }, { status: 403 });
     }
 
     const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
@@ -79,6 +82,7 @@ export async function POST(req: Request) {
     }
 
     let channel;
+    let limitErrMax: number | null = null;
     try {
       channel = await prisma.$transaction(async (tx) => {
         const user = await tx.user.findUnique({
@@ -91,7 +95,8 @@ export async function POST(req: Request) {
         });
 
         if (currentChannelsCount >= maxChannels) {
-          throw new Error(`Batas maksimal channel Anda adalah ${maxChannels}. Silakan upgrade paket.`);
+          limitErrMax = maxChannels;
+          throw new Error("MAX_CHANNELS_LIMIT");
         }
 
         return await tx.profileChannel.create({
@@ -111,8 +116,8 @@ export async function POST(req: Request) {
         });
       }, { isolationLevel: 'Serializable' });
     } catch (e: any) {
-      if (e.message?.includes('Batas maksimal')) {
-        return NextResponse.json({ error: e.message }, { status: 403 });
+      if (e.message === "MAX_CHANNELS_LIMIT") {
+        return NextResponse.json({ error: t("maxChannelsReached", { max: limitErrMax || 1 }) }, { status: 403 });
       }
       throw e;
     }

@@ -1,10 +1,7 @@
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/authOptions";
-import { redirect } from "next/navigation";
+import { requireRole } from "@/lib/authHelpers";
 import Link from "next/link";
 import LogoutButton from "@/components/auth/LogoutButton";
 import { getTranslations } from "next-intl/server";
-import { headers } from "next/headers";
 import NotificationBell from "@/components/notifications/NotificationBell";
 
 export default async function DashboardLayout({
@@ -14,19 +11,9 @@ export default async function DashboardLayout({
   children: React.ReactNode;
   params: Promise<{ locale: string }>;
 }) {
-  const session = await getServerSession(authOptions);
-  
   const { locale } = await params;
+  const session = await requireRole(["USER", "SUPERADMIN"], locale);
 
-  if (!session) {
-    const headerList = await headers();
-    const rawPath = headerList.get("x-pathname") || headerList.get("x-invoke-path") || headerList.get("next-url") || `/${locale}/dashboard`;
-    redirect(`/${locale}/auth?callbackUrl=${encodeURIComponent(rawPath)}`);
-  }
-  
-  if (session.user.role === 'SUPERADMIN') {
-    redirect(`/${locale}/admin`);
-  }
   const t = await getTranslations({ locale, namespace: 'Dashboard' });
 
   return (
@@ -74,6 +61,12 @@ export default async function DashboardLayout({
             className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
           >
             {t('notifications')}
+          </Link>
+          <Link 
+            href={`/${locale}/dashboard/support`}
+            className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          >
+            {t('support')}
           </Link>
           <Link 
             href={`/${locale}/dashboard/panduan`}

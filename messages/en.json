@@ -36,7 +36,8 @@
     "logout": "Logout",
     "studio": "Generator Studio",
     "notifications": "Notifications",
-    "guide": "User Guide"
+    "guide": "User Guide",
+    "support": "CS Support"
   },
   "Auth": {
     "login": "Login",
@@ -353,7 +354,8 @@
     "totalActiveUsers": "Total Active Users",
     "monthlyRevenue": "Monthly Revenue",
     "pendingInvoices": "Pending Invoices",
-    "guide": "Admin Guide"
+    "guide": "Admin Guide",
+    "support": "Support Tickets"
   },
   "AdminUsers": {
     "usersManagement": "Users Management",
@@ -574,7 +576,9 @@
     "invalidInvoice": "Invalid invoice or already processed.",
     "tooManyChannels": "Too many channel creation requests. Try again later.",
     "tooManyUploads": "Too many upload requests. Try again later.",
-    "registrationAlreadyProcessed": "This registration has already been processed."
+    "registrationAlreadyProcessed": "This registration has already been processed.",
+    "htmlBlogLocked": "Your subscription plan does not include the HTML Blog Export feature. Please upgrade your plan.",
+    "maxChannelsReached": "Your maximum channel limit is {max}. Please upgrade your plan."
   },
   "Emails": {
     "resetSubject": "Reset Password - Prompt Gen",
@@ -591,7 +595,11 @@
     "approveGreeting": "Hello {name},",
     "approveBody": "Your payment for the <strong>{plan}</strong> plan has been successfully verified.",
     "approveInstruction": "Your account is now active and your channel limit has been adjusted.",
-    "thankYou": "Thank you for using Prompt Gen!"
+    "thankYou": "Thank you for using Prompt Gen!",
+    "regApproveSubject": "Registration Approved - Prompt Gen",
+    "regApproveBody": "Hello {name}, Your account registration at Prompt Gen has been approved by the admin. You can now log in to the dashboard and start using the app.",
+    "regRejectSubject": "Registration Rejected - Prompt Gen",
+    "regRejectBody": "Hello {name}, We regret to inform you that your account registration at Prompt Gen could not be approved by the admin at this time."
   },
   "Notifications": {
     "title": "Notifications",
@@ -628,5 +636,56 @@
     "backToDashboard": "Back to Dashboard",
     "backToAdmin": "Back to Admin Portal",
     "navGuide": "User Guide"
+  },
+  "NotificationContent": {
+    "newPendingRegistrationTitle": "New User Registration",
+    "newPendingRegistrationMsg": "User {name} ({email}) registered and is awaiting admin approval.",
+    "registrationApprovedTitle": "Registration Approved",
+    "registrationApprovedMsg": "Congratulations! Your account has been approved by the Admin.",
+    "registrationRejectedTitle": "Registration Rejected",
+    "registrationRejectedMsg": "Your account registration was rejected by the Admin.",
+    "newPendingPaymentTitle": "New Payment",
+    "newPendingPaymentMsg": "Payment invoice of Rp {amount} requires admin verification.",
+    "paymentApprovedTitle": "Payment Approved",
+    "paymentApprovedMsg": "Your payment for plan {planName} has been approved.",
+    "paymentRejectedTitle": "Payment Rejected",
+    "paymentRejectedMsg": "Your payment was rejected. Reason: {reason}",
+    "ticketNewTitle": "New Support Ticket",
+    "ticketNewMsg": "New ticket #{ticketId}: {subject}",
+    "ticketRepliedTitle": "Support Ticket Reply",
+    "ticketRepliedMsg": "Ticket #{ticketId} received a new reply.",
+    "ticketClosedTitle": "Support Ticket Closed",
+    "ticketClosedMsg": "Ticket #{ticketId} has been closed."
+  },
+  "Support": {
+    "title": "Help & Support CS",
+    "desc": "Submit a ticket for technical issues or inquiries to the Prompt Gen customer support team.",
+    "createTicket": "+ Create Support Ticket",
+    "subject": "Subject / Issue Title",
+    "message": "Message / Issue Details",
+    "guestName": "Full Name",
+    "guestEmail": "Contact Email",
+    "status": "Status",
+    "createdAt": "Created Date",
+    "actions": "Actions",
+    "viewThread": "Open Conversation",
+    "noTickets": "No support tickets yet.",
+    "sendMsg": "Send Reply",
+    "replyPlaceholder": "Type your reply message here...",
+    "statusOPEN": "Open (Pending)",
+    "statusREPLIED": "Replied",
+    "statusCLOSED": "Resolved (Closed)",
+    "closeTicket": "Mark Resolved / Close Ticket",
+    "reopenTicket": "Reopen Ticket",
+    "ticketCreated": "Support ticket created successfully!",
+    "directWhatsapp": "Contact via WhatsApp",
+    "directEmail": "Send Email",
+    "operatingHours": "Operating Hours",
+    "csSettings": "Customer Service Settings",
+    "csMode": "CS Service Mode",
+    "csWhatsappNumber": "CS WhatsApp Number (e.g. 628123456789)",
+    "csEmail": "CS Email (e.g. support@promptgen.com)",
+    "csOperatingHours": "Operating Hours (e.g. Mon - Fri, 09:00 - 17:00 WIB)",
+    "csWidgetEnabled": "Show Floating CS Widget on Landing Page"
   }
 }

@@ -1,17 +1,40 @@
 import { prisma } from "@/lib/db";
 import { NotificationType } from "@prisma/client";
+import { getTranslations } from "next-intl/server";
 
 /**
- * Creates a notification record for a specific user.
+ * Creates a notification record for a specific user, automatically translating title/message
+ * based on the user's preferredLocale if i18n keys are provided.
  */
 export async function notifyUser(
   userId: string,
   type: NotificationType,
-  title: string,
-  message: string,
-  link?: string
+  titleKeyOrText: string,
+  messageKeyOrText: string,
+  link?: string,
+  params?: Record<string, string | number>
 ) {
   try {
+    const targetUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { preferredLocale: true },
+    });
+    const locale = targetUser?.preferredLocale || "id";
+    let title = titleKeyOrText;
+    let message = messageKeyOrText;
+
+    try {
+      const t = await getTranslations({ locale, namespace: "NotificationContent" });
+      if (t.has(titleKeyOrText as any)) {
+        title = t(titleKeyOrText as any, params);
+      }
+      if (t.has(messageKeyOrText as any)) {
+        message = t(messageKeyOrText as any, params);
+      }
+    } catch {
+      // Fallback to literal text if key not found
+    }
+
     return await prisma.notification.create({
       data: {
         userId,
@@ -28,31 +51,50 @@ export async function notifyUser(
 }
 
 /**
- * Creates notification records for all users with SUPERADMIN role.
+ * Creates notification records for all users with SUPERADMIN role using their preferred locales.
  */
 export async function notifyAllSuperadmins(
   type: NotificationType,
-  title: string,
-  message: string,
-  link?: string
+  titleKeyOrText: string,
+  messageKeyOrText: string,
+  link?: string,
+  params?: Record<string, string | number>
 ) {
   try {
     const superadmins = await prisma.user.findMany({
       where: { role: "SUPERADMIN" },
-      select: { id: true },
+      select: { id: true, preferredLocale: true },
     });
 
     if (superadmins.length === 0) return;
 
-    await prisma.notification.createMany({
-      data: superadmins.map((sa) => ({
-        userId: sa.id,
-        type,
-        title,
-        message,
-        link: link || null,
-      })),
-    });
+    for (const sa of superadmins) {
+      const locale = sa.preferredLocale || "id";
+      let title = titleKeyOrText;
+      let message = messageKeyOrText;
+
+      try {
+        const t = await getTranslations({ locale, namespace: "NotificationContent" });
+        if (t.has(titleKeyOrText as any)) {
+          title = t(titleKeyOrText as any, params);
+        }
+        if (t.has(messageKeyOrText as any)) {
+          message = t(messageKeyOrText as any, params);
+        }
+      } catch {
+        // Fallback
+      }
+
+      await prisma.notification.create({
+        data: {
+          userId: sa.id,
+          type,
+          title,
+          message,
+          link: link || null,
+        },
+      });
+    }
   } catch (error) {
     console.error("notifyAllSuperadmins error:", error);
   }

@@ -60,6 +60,21 @@ enum NotificationType {
   NEW_PENDING_PAYMENT
   NEW_PENDING_REGISTRATION
   SYSTEM_ANNOUNCEMENT
+  SUPPORT_TICKET_NEW
+  SUPPORT_TICKET_REPLIED
+  SUPPORT_TICKET_CLOSED
+}
+
+enum SupportTicketStatus {
+  OPEN
+  REPLIED
+  CLOSED
+}
+
+enum CsMode {
+  TICKET
+  DIRECT_WHATSAPP
+  DIRECT_EMAIL
 }
 
 model User {
@@ -73,6 +88,7 @@ model User {
   role                  Role                @default(USER)
   registrationStatus    RegistrationStatus  @default(APPROVED)
   approvedAt            DateTime?
+  preferredLocale       String?             @default("id")
 
   currentPlanId         String?
   currentPlan           Plan?               @relation(fields: [currentPlanId], references: [id])
@@ -87,6 +103,7 @@ model User {
   drafts                Draft[]
   resetTokens           PasswordResetToken[]
   notifications         Notification[]
+  supportTickets        SupportTicket[]
 }
 
 model Plan {
@@ -191,13 +208,18 @@ model PasswordResetToken {
 }
 
 model AppSettings {
-  id              String   @id @default("singleton")
-  bankName        String?
-  bankAccountNo   String?
-  bankAccountName String?
-  heroTitle       String?
-  heroSubtitle    String?
-  updatedAt       DateTime @updatedAt
+  id               String   @id @default("singleton")
+  bankName         String?
+  bankAccountNo    String?
+  bankAccountName  String?
+  heroTitle        String?
+  heroSubtitle     String?
+  csMode           CsMode   @default(TICKET)
+  csWhatsappNumber String?
+  csEmail          String?
+  csOperatingHours String?
+  csWidgetEnabled  Boolean  @default(true)
+  updatedAt        DateTime @updatedAt
 }
 
 model PromptSettings {
@@ -222,5 +244,31 @@ model Notification {
   createdAt DateTime         @default(now())
 
   @@index([userId, isRead])
+}
+
+model SupportTicket {
+  id         String              @id @default(cuid())
+  userId     String?
+  user       User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  guestName  String?
+  guestEmail String?
+  subject    String
+  status     SupportTicketStatus @default(OPEN)
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+
+  messages   SupportMessage[]
+
+  @@index([status])
+  @@index([userId])
+}
+
+model SupportMessage {
+  id         String        @id @default(cuid())
+  ticketId   String
+  ticket     SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  senderRole Role
+  body       String        @db.Text
+  createdAt  DateTime      @default(now())
 }
 

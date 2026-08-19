@@ -23,6 +23,9 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
 };
 
+import NextAuthProvider from "@/components/providers/NextAuthProvider";
+import FloatingCsWidget from "@/components/cs/FloatingCsWidget";
+
 export default async function RootLayout({
   children,
   params,
@@ -44,8 +47,11 @@ export default async function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
         <NextIntlClientProvider messages={messages}>
-          <ToastProvider />
-          {children}
+          <NextAuthProvider>
+            <ToastProvider />
+            {children}
+            <FloatingCsWidget />
+          </NextAuthProvider>
         </NextIntlClientProvider>
       </body>
     </html>

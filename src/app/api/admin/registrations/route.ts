@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { prisma, SAFE_USER_SELECT } from "@/lib/db";
 import { getApiTranslator } from "@/lib/apiI18n";
+import { getTranslations } from "next-intl/server";
 import { sendEmail } from "@/lib/email";
 import { notifyUser } from "@/lib/notifications";
 
@@ -90,13 +91,14 @@ export async function POST(req: Request) {
       select: SAFE_USER_SELECT
     });
 
+    const userLocale = targetUser.preferredLocale || "id";
+    const emailT = await getTranslations({ locale: userLocale, namespace: "Emails" });
+
     await notifyUser(
       targetUser.id,
       action === "APPROVE" ? "REGISTRATION_APPROVED" : "REGISTRATION_REJECTED",
-      action === "APPROVE" ? "Pendaftaran Disetujui" : "Pendaftaran Ditolak",
-      action === "APPROVE"
-        ? "Akun Anda telah disetujui oleh admin. Silakan masuk untuk menggunakan aplikasi."
-        : "Mohon maaf, pendaftaran akun Anda belum disetujui oleh admin.",
+      action === "APPROVE" ? "registrationApprovedTitle" : "registrationRejectedTitle",
+      action === "APPROVE" ? "registrationApprovedMsg" : "registrationRejectedMsg",
       "/auth"
     );
 
@@ -104,14 +106,14 @@ export async function POST(req: Request) {
     if (action === "APPROVE") {
       sendEmail({
         to: targetUser.email,
-        subject: "Pendaftaran Disetujui - Prompt Gen",
-        html: `<p>Halo ${targetUser.name},</p><p>Pendaftaran akun Anda di <strong>Prompt Gen</strong> telah disetujui oleh admin. Anda sekarang dapat masuk ke dashboard dan mulai menggunakan aplikasi.</p>`
+        subject: emailT("regApproveSubject"),
+        html: `<p>${emailT("regApproveBody", { name: targetUser.name })}</p>`
       }).catch(err => console.error("Registration approval email fail:", err));
     } else {
       sendEmail({
         to: targetUser.email,
-        subject: "Pendaftaran Ditolak - Prompt Gen",
-        html: `<p>Halo ${targetUser.name},</p><p>Mohon maaf, pendaftaran akun Anda di <strong>Prompt Gen</strong> belum dapat disetujui oleh admin saat ini.</p>`
+        subject: emailT("regRejectSubject"),
+        html: `<p>${emailT("regRejectBody", { name: targetUser.name })}</p>`
       }).catch(err => console.error("Registration rejection email fail:", err));
     }
 
