@@ -16,6 +16,7 @@ enum PlanCode {
   STANDARD
   PRO
   ULTRA
+  DEMO
 }
 
 enum SubscriptionStatus {
@@ -89,6 +90,7 @@ model User {
   registrationStatus    RegistrationStatus  @default(APPROVED)
   approvedAt            DateTime?
   preferredLocale       String?             @default("id")
+  hasUsedTrial          Boolean             @default(false)
 
   currentPlanId         String?
   currentPlan           Plan?               @relation(fields: [currentPlanId], references: [id])
@@ -107,20 +109,21 @@ model User {
 }
 
 model Plan {
-  id           String   @id @default(cuid())
-  code         PlanCode @unique
-  name         String
-  priceMonthly Int      // dalam Rupiah utuh, tanpa desimal
-  currency     String   @default("IDR")
-  maxChannels  Int
-  features     Json?    // contoh: { "imagePromptStudio": true, "htmlBlogExport": true }
-  isActive     Boolean  @default(true)
-  sortOrder    Int      @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                    String   @id @default(cuid())
+  code                  PlanCode @unique
+  name                  String
+  priceMonthly          Int      // dalam Rupiah utuh, tanpa desimal
+  currency              String   @default("IDR")
+  maxChannels           Int
+  features              Json?    // contoh: { "imagePromptStudio": true, "htmlBlogExport": true }
+  isActive              Boolean  @default(true)
+  isPubliclyPurchasable Boolean  @default(true)
+  sortOrder             Int      @default(0)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
-  users        User[]
-  invoices     Invoice[]
+  users                 User[]
+  invoices              Invoice[]
 }
 
 model ProfileChannel {
@@ -192,6 +195,9 @@ model Draft {
   rawJson              String    @db.Text
   parsedData           Json?
   targetDurationSec    Int?
+  targetSceneCount     Int?
+  narrativeLoopStyle   String?
+  visualLoopStyle      String?
   wordCount            Int?
   estimatedDurationSec Int?
   isTemplate           Boolean   @default(false)
@@ -275,4 +281,38 @@ model SupportMessage {
   body       String        @db.Text
   createdAt  DateTime      @default(now())
 }
+
+model PlatformOption {
+  id              String   @id @default(cuid())
+  label           String   @unique
+  isSystem        Boolean  @default(true)
+  createdByUserId String?
+  createdAt       DateTime @default(now())
+}
+
+model PersonaPreset {
+  id              String   @id @default(cuid())
+  label           String
+  description     String?
+  isSystem        Boolean  @default(true)
+  createdByUserId String?
+  createdAt       DateTime @default(now())
+}
+
+model VisualAestheticPreset {
+  id              String   @id @default(cuid())
+  label           String
+  isSystem        Boolean  @default(true)
+  createdByUserId String?
+  createdAt       DateTime @default(now())
+}
+
+model NicheCategoryPreset {
+  id              String   @id @default(cuid())
+  label           String
+  isSystem        Boolean  @default(true)
+  createdByUserId String?
+  createdAt       DateTime @default(now())
+}
+
 

@@ -15,6 +15,9 @@ const saveDraftSchema = z.object({
   speechRate: z.number().default(130),
   title: z.string().optional(),
   targetDurationSec: z.number().optional(),
+  targetSceneCount: z.number().optional(),
+  narrativeLoopStyle: z.string().optional(),
+  visualLoopStyle: z.string().optional(),
 });
 
 export async function POST(req: Request) {
@@ -35,7 +38,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: t("invalidData") }, { status: 400 });
     }
 
-    const { channelId, type, topic, rawJson, speechRate, title: manualTitle, targetDurationSec } = parsedInput.data;
+    const {
+      channelId,
+      type,
+      topic,
+      rawJson,
+      speechRate,
+      title: manualTitle,
+      targetDurationSec,
+      targetSceneCount,
+      narrativeLoopStyle,
+      visualLoopStyle,
+    } = parsedInput.data;
 
     // Parse the pasted JSON to validate it and extract data
     let parsedData: Record<string, any>;
@@ -100,6 +114,9 @@ export async function POST(req: Request) {
           wordCount: wordCount,
           estimatedDurationSec: estimatedDurationSec,
           targetDurationSec: targetDurationSec || 0,
+          targetSceneCount: targetSceneCount || null,
+          narrativeLoopStyle: narrativeLoopStyle || null,
+          visualLoopStyle: visualLoopStyle || null,
           isTemplate: false
         }
       });

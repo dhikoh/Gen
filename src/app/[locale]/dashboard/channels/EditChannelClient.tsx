@@ -11,6 +11,29 @@ export default function EditChannelClient({ channel, isNew = false, onSuccess }:
   const router = useRouter();
   const t = useTranslations("Channels");
   const [loading, setLoading] = useState(false);
+
+  // Parse initial social links
+  const initSocial = () => {
+    const raw = channel?.socialLinks;
+    if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+      return {
+        website: raw.website || "",
+        tiktok: raw.tiktok || "",
+        instagram: raw.instagram || "",
+        facebook: raw.facebook || "",
+        youtube: raw.youtube || "",
+      };
+    }
+    const arr = Array.isArray(raw) ? raw : (typeof raw === "string" ? raw.split(",") : []);
+    return {
+      website: arr[0]?.trim() || "",
+      tiktok: arr[1]?.trim() || "",
+      instagram: arr[2]?.trim() || "",
+      facebook: arr[3]?.trim() || "",
+      youtube: arr[4]?.trim() || "",
+    };
+  };
+
   const [formData, setFormData] = useState({
     channelName: channel?.channelName || "",
     niche: channel?.niche || "",
@@ -21,11 +44,16 @@ export default function EditChannelClient({ channel, isNew = false, onSuccess }:
     audioBGM: channel?.audioBGM ?? true,
     audioSFX: channel?.audioSFX ?? true,
     audioVO: channel?.audioVO ?? true,
-    socialLinks: Array.isArray(channel?.socialLinks) ? channel.socialLinks.join(", ") : (channel?.socialLinks?.url || ""), // Store as string for easy editing
   });
+
+  const [socialLinks, setSocialLinks] = useState(initSocial());
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleSocialChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSocialLinks(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -38,18 +66,13 @@ export default function EditChannelClient({ channel, isNew = false, onSuccess }:
     try {
       const url = isNew ? "/api/channels" : `/api/channels/${channel.id}`;
       const method = isNew ? "POST" : "PUT";
-      
-      let parsedSocial: string[] = [];
-      if (formData.socialLinks) {
-        parsedSocial = formData.socialLinks.split(',').map((s: string) => s.trim()).filter(Boolean);
-      }
 
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
-          socialLinks: parsedSocial
+          socialLinks: socialLinks
         })
       });
       const data = await res.json();
@@ -160,16 +183,68 @@ export default function EditChannelClient({ channel, isNew = false, onSuccess }:
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('socialMediaLabel')}</label>
-          <input 
-            type="text"
-            name="socialLinks"
-            placeholder={t('socialMediaPlaceholder2')}
-            value={formData.socialLinks}
-            onChange={handleChange}
-            className="w-full px-4 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-zinc-900 dark:text-white neu-flat"
-          />
+        {/* Structured Social Media Links */}
+        <div className="space-y-3 pt-2">
+          <label className="block text-sm font-semibold text-zinc-900 dark:text-white">
+            Tautan Media Sosial & Website Channel
+          </label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1">🌐 Website</label>
+              <input
+                type="url"
+                name="website"
+                placeholder="https://mywebsite.com"
+                value={socialLinks.website}
+                onChange={handleSocialChange}
+                className="w-full px-3 py-1.5 text-sm bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg outline-none text-zinc-900 dark:text-white"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1">🎵 TikTok</label>
+              <input
+                type="url"
+                name="tiktok"
+                placeholder="https://tiktok.com/@channel"
+                value={socialLinks.tiktok}
+                onChange={handleSocialChange}
+                className="w-full px-3 py-1.5 text-sm bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg outline-none text-zinc-900 dark:text-white"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1">📸 Instagram</label>
+              <input
+                type="url"
+                name="instagram"
+                placeholder="https://instagram.com/channel"
+                value={socialLinks.instagram}
+                onChange={handleSocialChange}
+                className="w-full px-3 py-1.5 text-sm bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg outline-none text-zinc-900 dark:text-white"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1">📘 Facebook</label>
+              <input
+                type="url"
+                name="facebook"
+                placeholder="https://facebook.com/channel"
+                value={socialLinks.facebook}
+                onChange={handleSocialChange}
+                className="w-full px-3 py-1.5 text-sm bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg outline-none text-zinc-900 dark:text-white"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-xs text-zinc-500 mb-1">▶️ YouTube</label>
+              <input
+                type="url"
+                name="youtube"
+                placeholder="https://youtube.com/@channel"
+                value={socialLinks.youtube}
+                onChange={handleSocialChange}
+                className="w-full px-3 py-1.5 text-sm bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg outline-none text-zinc-900 dark:text-white"
+              />
+            </div>
+          </div>
         </div>
 
         <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800">

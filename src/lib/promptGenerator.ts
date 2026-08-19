@@ -18,10 +18,20 @@ export interface ProfileChannelData {
 export interface VideoConfigData {
   targetPlatform?: string;
   targetDurationSec?: number;
+  targetSceneCount?: number;
+  aspectRatio?: string;
+  narrativeLoopStyle?: string;
+  visualLoopStyle?: string;
   pov?: string;
   speechRate?: string;
   hookStyle?: string;
   endingStyle?: string;
+  selectedProductId?: string;
+  selectedProduct?: {
+    name: string;
+    price: number;
+    description?: string | null;
+  };
   composition?: {
     education?: number;
     entertainment?: number;
@@ -59,10 +69,12 @@ Gunakan Audio SFX: ${channel.audioSFX ? "Ya" : "Tidak"}
 Gunakan Audio VO: ${channel.audioVO ? "Ya" : "Tidak"}
 `.trim();
 
-  const activeProducts = channel.products || [];
-  const productContext = activeProducts.length > 0 
-    ? `Produk untuk Soft-selling:\n${activeProducts.map((p) => `- ${p.name} (Rp ${p.price}): ${p.description}`).join('\n')}`
-    : "Tidak ada produk khusus untuk disisipkan.";
+  let productContext = "Tidak ada produk khusus untuk disisipkan.";
+  if (videoConfig?.selectedProduct) {
+    productContext = `Produk Utama yang Dipromosikan (Soft-selling/Hard-selling):\n- ${videoConfig.selectedProduct.name} (Rp ${videoConfig.selectedProduct.price}): ${videoConfig.selectedProduct.description || "-"}`;
+  } else if (channel.products && channel.products.length > 0) {
+    productContext = `Produk untuk Soft-selling:\n${channel.products.map((p) => `- ${p.name} (Rp ${p.price}): ${p.description || "-"}`).join('\n')}`;
+  }
 
   let systemInstruction = `Kamu adalah asisten ahli kreator konten dan scriptwriter profesional. Bertindaklah sebagai ${videoConfig?.pov || "Ahli di bidang ini"}.`;
   if (promptSettings?.videoSystemInstruction?.trim()) {
@@ -93,7 +105,7 @@ Buatkan struktur konten video (Video Script) berdasarkan parameter berikut:
 1. PROFIL CHANNEL
 ${channelContext}
 
-2. PRODUK (SOFT-SELLING)
+2. PRODUK (SOFT-SELLING / PROMOSI)
 ${productContext}
 
 3. TOPIK UTAMA
@@ -103,12 +115,16 @@ ${topic}
 ${additionalContext || "-"}
 
 5. PENGATURAN VIDEO
-- Platform Target: ${videoConfig?.targetPlatform || "Tiktok / Reels"}
+- Platform Target: ${videoConfig?.targetPlatform || "TikTok / Reels"}
 - Target Durasi: ${videoConfig?.targetDurationSec ? `${videoConfig.targetDurationSec} detik` : "Opsional"}
+- Target Jumlah Scene: ${videoConfig?.targetSceneCount ? `${videoConfig.targetSceneCount} scene` : "Opsional"}
+- Aspect Ratio Video: ${videoConfig?.aspectRatio || "9:16"}
 - POV / Persona: ${videoConfig?.pov || "Kreator Ahli"}
 - Laju Bicara: ${videoConfig?.speechRate || "Sedang"}
 - Hook Style: ${videoConfig?.hookStyle || "Pertanyaan Provokatif"}
 - Ending Style: ${videoConfig?.endingStyle || "Pertanyaan Terbuka"}
+- Gaya Loop Narasi: ${videoConfig?.narrativeLoopStyle || "Tanpa Loop"}
+- Gaya Loop Visual: ${videoConfig?.visualLoopStyle || "Tanpa Loop"}
 
 6. KOMPOSISI KONTEN
 - Edukasi: ${videoConfig?.composition?.education || 0}%
@@ -124,6 +140,7 @@ ${additionalContext || "-"}
 ${excludeSection}
 Instruksi Khusus:
 ${videoConfig?.targetDurationSec ? `PENTING: Pastikan teks narasi dan adegan yang dihasilkan kira-kira dapat diselesaikan dalam waktu persis atau mendekati ${videoConfig.targetDurationSec} detik.` : ""}
+${videoConfig?.targetSceneCount ? `PENTING: Buatlah segmen video (array segments) persis berjumlah ${videoConfig.targetSceneCount} scene.` : ""}
 Pastikan Anda mematuhi profil channel di atas. Jika BGM/SFX diatur ke "Tidak", pastikan tabel output Anda tidak mengisinya atau kosong.
 ${excludeTitles && excludeTitles.length > 0 ? "Wajib mematuhi aturan dilarang menggunakan judul yang sudah terpakai di atas." : ""}
 

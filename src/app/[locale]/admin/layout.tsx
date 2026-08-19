@@ -86,6 +86,18 @@ export default async function AdminLayout({
           >
             {t('subscriptionPlans')}
           </Link>
+          <Link 
+            href={`/${locale}/admin/announcements`}
+            className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-purple-300 hover:bg-zinc-800 hover:text-white"
+          >
+            Broadcast Pengumuman
+          </Link>
+          <Link 
+            href={`/${locale}/admin/notifications`}
+            className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-white"
+          >
+            Notifikasi System
+          </Link>
 
           <Link 
             href={`/${locale}/admin/settings`}

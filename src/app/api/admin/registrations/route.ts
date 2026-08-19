@@ -71,6 +71,20 @@ export async function POST(req: Request) {
 
     const newStatus = action === "APPROVE" ? "APPROVED" : "REJECTED";
 
+    // Auto-assign DEMO plan for 3 days on approval if user has no plan
+    let demoPlanId: string | undefined = undefined;
+    let subscriptionExpiresAt: Date | undefined = undefined;
+
+    if (action === "APPROVE") {
+      const demoPlan = await prisma.plan.findUnique({ where: { code: "DEMO" } });
+      if (demoPlan) {
+        demoPlanId = demoPlan.id;
+        const ends = new Date();
+        ends.setDate(ends.getDate() + 3);
+        subscriptionExpiresAt = ends;
+      }
+    }
+
     // Atomic update with WHERE guard for idempotency
     const updateResult = await prisma.user.updateMany({
       where: {
@@ -79,7 +93,12 @@ export async function POST(req: Request) {
       },
       data: {
         registrationStatus: newStatus,
-        approvedAt: action === "APPROVE" ? new Date() : null
+        approvedAt: action === "APPROVE" ? new Date() : null,
+        ...(action === "APPROVE" ? {
+          subscriptionStatus: "ACTIVE",
+          currentPlanId: demoPlanId || targetUser.currentPlanId,
+          subscriptionExpiresAt: subscriptionExpiresAt || targetUser.subscriptionExpiresAt,
+        } : {})
       }
     });
 

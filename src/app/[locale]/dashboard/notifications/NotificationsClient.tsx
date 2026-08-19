@@ -21,6 +21,8 @@ export default function NotificationsClient() {
   const router = useRouter();
 
   const [filter, setFilter] = useState<"all" | "unread">("all");
+  const [selectedType, setSelectedType] = useState<string>("ALL");
+  const [selectedDays, setSelectedDays] = useState<string>("0");
   const [page, setPage] = useState(1);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [total, setTotal] = useState(0);
@@ -34,6 +36,8 @@ export default function NotificationsClient() {
         page: page.toString(),
         pageSize: "10",
         ...(filter === "unread" ? { unreadOnly: "true" } : {}),
+        ...(selectedType !== "ALL" ? { type: selectedType } : {}),
+        ...(selectedDays !== "0" ? { days: selectedDays } : {}),
       });
       const res = await fetch(`/api/notifications?${query.toString()}`);
       if (res.ok) {
@@ -51,7 +55,17 @@ export default function NotificationsClient() {
 
   useEffect(() => {
     fetchNotifications();
-  }, [filter, page]);
+  }, [filter, selectedType, selectedDays, page]);
+
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      if (unreadCount > 0) {
+        document.title = `(${unreadCount}) Notifikasi - Prompt Gen`;
+      } else {
+        document.title = `Notifikasi - Prompt Gen`;
+      }
+    }
+  }, [unreadCount]);
 
   const handleMarkAsRead = async (id: string, link: string | null) => {
     try {
@@ -102,40 +116,79 @@ export default function NotificationsClient() {
         )}
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex border-b border-zinc-200 dark:border-zinc-800">
-        <button
-          onClick={() => {
-            setFilter("all");
-            setPage(1);
-          }}
-          className={`pb-3 px-4 text-sm font-semibold border-b-2 transition-colors ${
-            filter === "all"
-              ? "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400"
-              : "border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
-          }`}
-        >
-          {t("filterAll")}
-        </button>
-        <button
-          onClick={() => {
-            setFilter("unread");
-            setPage(1);
-          }}
-          className={`pb-3 px-4 text-sm font-semibold border-b-2 transition-colors ${
-            filter === "unread"
-              ? "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400"
-              : "border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
-          }`}
-        >
-          {t("filterUnread")} ({unreadCount})
-        </button>
+      {/* Filter Options */}
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 flex flex-wrap gap-4 items-center justify-between shadow-sm">
+        <div className="flex border-b border-zinc-200 dark:border-zinc-800">
+          <button
+            onClick={() => {
+              setFilter("all");
+              setPage(1);
+            }}
+            className={`pb-2 px-3 text-sm font-semibold border-b-2 transition-colors ${
+              filter === "all"
+                ? "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400"
+                : "border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+            }`}
+          >
+            {t("filterAll")}
+          </button>
+          <button
+            onClick={() => {
+              setFilter("unread");
+              setPage(1);
+            }}
+            className={`pb-2 px-3 text-sm font-semibold border-b-2 transition-colors ${
+              filter === "unread"
+                ? "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400"
+                : "border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+            }`}
+          >
+            {t("filterUnread")} ({unreadCount})
+          </button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <div>
+            <select
+              value={selectedType}
+              onChange={(e) => {
+                setSelectedType(e.target.value);
+                setPage(1);
+              }}
+              className="px-3 py-1.5 text-xs font-medium border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-950 text-zinc-900 dark:text-white"
+            >
+              <option value="ALL">Semua Jenis Notifikasi</option>
+              <option value="SYSTEM_ANNOUNCEMENT">Pengumuman Sistem</option>
+              <option value="PAYMENT_APPROVED">Pembayaran Disetujui</option>
+              <option value="PAYMENT_REJECTED">Pembayaran Ditolak</option>
+              <option value="REGISTRATION_APPROVED">Registrasi Disetujui</option>
+              <option value="SUPPORT_TICKET_REPLIED">Jawaban Tiket Support</option>
+              <option value="SUBSCRIPTION_EXPIRING_SOON">Langganan Segera Expired</option>
+              <option value="SUBSCRIPTION_EXPIRED">Langganan Expired</option>
+            </select>
+          </div>
+
+          <div>
+            <select
+              value={selectedDays}
+              onChange={(e) => {
+                setSelectedDays(e.target.value);
+                setPage(1);
+              }}
+              className="px-3 py-1.5 text-xs font-medium border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-950 text-zinc-900 dark:text-white"
+            >
+              <option value="0">Semua Waktu</option>
+              <option value="7">7 Hari Terakhir</option>
+              <option value="30">30 Hari Terakhir</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       {/* Notifications List */}
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl divide-y divide-zinc-100 dark:divide-zinc-800 shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-sm text-zinc-500">Loading notifications...</div>
+          <div className="p-12 text-center text-sm text-zinc-500">Memuat notifikasi...</div>
         ) : notifications.length === 0 ? (
           <div className="p-12 text-center text-sm text-zinc-500">{t("empty")}</div>
         ) : (

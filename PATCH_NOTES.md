@@ -137,5 +137,13 @@ Pembaruan ini mencakup seluruh perbaikan bug dan arsitektur yang teridentifikasi
   - `middleware.ts` dipokuskan khusus pada penanganan routing internasionalisasi (`next-intl`) berbasis cookie/header locale untuk menghindari masalah mismatch URL/locale dan infinite redirect loop saat sesi berakhir.
   - Proteksi Peran Pengguna (RBAC - SUPERADMIN vs USER) dan status langganan aktif diselenggarakan secara aman dan dinamis melalui *Server Component Layout Wrappers* (`requireRole()`, `requireActiveSubscription()`) serta utilitas autentikasi API helper.
 
+## 29. Generator Presisi, Restrukturisasi Social Links & Auto-Demo Approval (Phase L5 - L10)
+- **Komponen Terdampak:** `src/lib/promptGenerator.ts`, `src/app/api/generate/route.ts`, `src/app/api/drafts/route.ts`, `src/components/generator/GeneratorForm.tsx`, `src/app/[locale]/dashboard/channels/EditChannelClient.tsx`, `src/app/[locale]/dashboard/channels/ChannelManagerClient.tsx`, `src/app/api/channels/route.ts`, `src/app/api/channels/[id]/route.ts`, `src/app/api/admin/registrations/route.ts`.
+- **Perbaikan:**
+  - **Integrasi Generator Presisi (L5-L6):** Refactoring `promptGenerator.ts`, `/api/generate`, dan `/api/drafts` untuk mendukung field presisi baru (`targetSceneCount`, `aspectRatio`, `narrativeLoopStyle`, `visualLoopStyle`, `selectedProductId`). Menambahkan fallback otomatis `topic` ke `channel.niche` jika input kosong.
+  - **UI Generator Form Overhaul:** UI Generator Form dilengkapi dengan combobox preset dinamis (Platform, Persona, Visual), modal *Quick Add Product*, dan input kontrol jumlah scene dan loop style.
+  - **Restrukturisasi Media Sosial Channel (L7-L9):** Memperbarui `channelSchema` di backend dan membangun input media sosial terstruktur (Website, TikTok, Instagram, Facebook, YouTube) pada `EditChannelClient.tsx` beserta grid kartu channel dan icon badge di `ChannelManagerClient.tsx`.
+  - **Auto-Demo Plan Assignment pada Approval (L10):** Memperbarui `/api/admin/registrations` agar pengguna yang disetujui pendaftarannya secara otomatis diberikan paket "DEMO" (3 Hari) secara aktif.
+
 
 

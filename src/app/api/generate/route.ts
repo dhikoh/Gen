@@ -12,10 +12,15 @@ import { generateImagePrompt } from "@/lib/imagePromptGenerator";
 const videoConfigSchema = z.object({
   targetPlatform: z.string().optional(),
   targetDurationSec: z.number().optional(),
+  targetSceneCount: z.number().optional(),
+  aspectRatio: z.string().optional(),
+  narrativeLoopStyle: z.string().optional(),
+  visualLoopStyle: z.string().optional(),
   pov: z.string().optional(),
   speechRate: z.string().optional(),
   hookStyle: z.string().optional(),
   endingStyle: z.string().optional(),
+  selectedProductId: z.string().optional(),
   composition: z.object({
     education: z.number(),
     entertainment: z.number(),
@@ -43,7 +48,7 @@ const imageConfigSchema = z.object({
 const generateSchema = z.object({
   type: z.enum(["VIDEO", "IMAGE"]),
   channelId: z.string(),
-  topic: z.string().min(1, "Topik tidak boleh kosong"),
+  topic: z.string().optional(),
   additionalContext: z.string().optional(),
   videoConfig: videoConfigSchema.optional(),
   imageConfig: imageConfigSchema.optional(),
@@ -80,7 +85,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: t("invalidData") }, { status: 400 });
     }
 
-    const { type, channelId, topic, additionalContext, videoConfig, imageConfig } = parsedData.data;
+    let { type, channelId, topic, additionalContext, videoConfig, imageConfig } = parsedData.data;
 
     // Fetch system prompt settings
     const promptSettings = await prisma.promptSettings.findUnique({
@@ -89,7 +94,7 @@ export async function POST(req: Request) {
 
     // Content filter: Check banned words
     if (promptSettings && Array.isArray(promptSettings.bannedWords) && promptSettings.bannedWords.length > 0) {
-      const inputContent = `${topic} ${additionalContext || ""}`.toLowerCase();
+      const inputContent = `${topic || ""} ${additionalContext || ""}`.toLowerCase();
       const bannedList = promptSettings.bannedWords as unknown[];
       const containsBannedWord = bannedList.some((word) => {
         if (typeof word !== "string") return false;
@@ -146,6 +151,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: t("channelLocked") }, { status: 403 });
     }
 
+    // Auto fallback topic to channel.niche if topic is empty
+    const effectiveTopic = (topic && topic.trim().length > 0) ? topic.trim() : (channel.niche || "Topik Umum");
+
     // Fetch previous titles to exclude
     const previousDrafts = await prisma.draft.findMany({
       where: { channelId, type },
@@ -158,11 +166,24 @@ export async function POST(req: Request) {
     let finalJson: string | undefined = undefined;
 
     if (type === "VIDEO" && videoConfig) {
-      const result = generateMasterPrompt(channel, topic, additionalContext || "", videoConfig, promptSettings, previousTitles);
+      let selectedProduct;
+      if (videoConfig.selectedProductId) {
+        const found = channel.products.find((p) => p.id === videoConfig.selectedProductId);
+        if (found) {
+          selectedProduct = { name: found.name, price: found.price, description: found.description };
+        }
+      }
+
+      const fullVideoConfig = {
+        ...videoConfig,
+        selectedProduct,
+      };
+
+      const result = generateMasterPrompt(channel, effectiveTopic, additionalContext || "", fullVideoConfig, promptSettings, previousTitles);
       masterPrompt = result.masterPrompt;
       systemInstruction = result.systemInstruction;
     } else if (type === "IMAGE" && imageConfig) {
-      const result = generateImagePrompt(channel, topic, additionalContext || "", imageConfig, promptSettings, previousTitles);
+      const result = generateImagePrompt(channel, effectiveTopic, additionalContext || "", imageConfig, promptSettings, previousTitles);
       masterPrompt = result.masterPrompt;
       systemInstruction = result.systemInstruction;
       finalJson = result.finalJson;

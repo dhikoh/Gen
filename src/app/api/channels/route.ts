@@ -18,7 +18,7 @@ const channelSchema = z.object({
   audioBGM: z.boolean().optional(),
   audioSFX: z.boolean().optional(),
   audioVO: z.boolean().optional(),
-  socialLinks: z.union([z.string(), z.array(z.string())]).optional(),
+  socialLinks: z.any().optional(),
 });
 
 export async function GET(req: Request) {

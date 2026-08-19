@@ -8,6 +8,8 @@ import { z } from "zod";
 
 const querySchema = z.object({
   unreadOnly: z.string().optional().transform((val) => val === "true"),
+  type: z.string().optional(),
+  days: z.string().optional().transform((val) => val ? parseInt(val, 10) : undefined),
   page: z.string().optional().transform((val) => Math.max(1, parseInt(val || "1", 10))),
   pageSize: z.string().optional().transform((val) => Math.min(50, Math.max(1, parseInt(val || "10", 10)))),
 });
@@ -27,11 +29,19 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: t("invalidInput") }, { status: 400 });
     }
 
-    const { unreadOnly, page, pageSize } = parseResult.data;
+    const { unreadOnly, type, days, page, pageSize } = parseResult.data;
 
     const where: Prisma.NotificationWhereInput = { userId: session.user.id };
     if (unreadOnly) {
       where.isRead = false;
+    }
+    if (type && type !== "ALL") {
+      where.type = type as Prisma.EnumNotificationTypeFilter;
+    }
+    if (days && days > 0) {
+      const dateCutoff = new Date();
+      dateCutoff.setDate(dateCutoff.getDate() - days);
+      where.createdAt = { gte: dateCutoff };
     }
 
     const [notifications, total, unreadCount] = await Promise.all([
