@@ -24,7 +24,13 @@
     "pricingImage": "Access to Image Prompt Studio (DSLR, Anime, etc)",
     "subscribe": "Subscribe Now",
     "monthSuffix": "/mo",
-    "copyright": "© {year} Prompt Gen. All rights reserved."
+    "copyright": "© {year} Prompt Gen. All rights reserved.",
+    "csSectionTitle": "Need Help or Have Questions?",
+    "csSectionDesc": "Our Customer Support team is ready to help you choose the best plan or resolve technical issues.",
+    "csButtonText": "Contact CS via WhatsApp",
+    "csOperatingHoursPrefix": "Operating Hours:",
+    "csEmailPrefix": "CS Email:",
+    "waDefaultMsg": "Hello CS Prompt Gen, I am interested in asking about subscription plans."
   },
   "Dashboard": {
     "overview": "Overview",
@@ -77,6 +83,13 @@
     "accountPendingApproval": "Registration successful! Your account is awaiting Superadmin approval before you can log in.",
     "authPageTitle": "Authentication - Prompt Gen",
     "authPageDesc": "Log in or register for the Prompt Gen application.",
+    "pendingBannerTitle": "Account Awaiting Admin Approval",
+    "pendingBannerDesc": "Your account registration is under verification by Superadmin.",
+    "pendingBadgeOver": "Waiting > {hours} Hours",
+    "pendingBadgeNormal": "Under Review",
+    "rejectedBannerTitle": "Account Registration Rejected",
+    "rejectedBannerDesc": "Your account registration could not be approved at this time. Please contact Customer Support for more info.",
+    "contactCsBtn": "Contact CS via WhatsApp",
     "authSubtitle": "Please log in or register to continue",
     "loading": "Loading..."
   },
@@ -130,7 +143,13 @@
     "uploadProof": "Upload Transfer Proof",
     "uploading": "Uploading...",
     "changeProof": "Change Proof",
-    "sendProof": "Send Proof"
+    "sendProof": "Send Proof",
+    "pendingEscalationTitle": "Payment Verification is Taking Longer Than Expected",
+    "pendingEscalationDesc": "Your payment proof has been uploaded and is in the manual verification queue by Superadmin.",
+    "pendingBadgeOver": "Waiting > {hours} Hours",
+    "rejectedEscalationTitle": "Invoice Payment Rejected",
+    "rejectedReasonPrefix": "Rejection Reason:",
+    "contactCsBtn": "Contact CS via WhatsApp"
   },
   "Channels": {
     "title": "Channel Settings",
@@ -445,7 +464,12 @@
     "waitProof": "Wait for user to upload proof",
     "processing": "Processing...",
     "approveBtn": "Approve",
-    "rejectBtn": "Reject"
+    "rejectBtn": "Reject",
+    "rejectModalTitle": "Reject Invoice Payment",
+    "rejectReasonLabel": "Rejection Reason (Shown to User):",
+    "rejectReasonPlaceholder": "Example: Unreadable transfer proof / incorrect amount",
+    "confirmReject": "Yes, Reject Invoice",
+    "cancel": "Cancel"
   },
   "AdminRegistrations": {
     "pageTitleTab": "Registration Approvals - Admin Prompt Gen",
@@ -704,6 +728,11 @@
     "csWhatsappNumber": "CS WhatsApp Number (e.g. 628123456789)",
     "csEmail": "CS Email (e.g. support@promptgen.com)",
     "csOperatingHours": "Operating Hours (e.g. Mon - Fri, 09:00 - 17:00 WIB)",
-    "csWidgetEnabled": "Show Floating CS Widget on Landing Page"
+    "csWidgetEnabled": "Show Floating CS Widget on Landing Page",
+    "sendAnotherTicket": "Send Another Ticket",
+    "ticketSuccessDesc": "Our team will respond to your message as soon as possible.",
+    "subjectPlaceholder": "Problem summary...",
+    "messagePlaceholder": "Details of your issue or question...",
+    "guestNamePlaceholder": "Your Name"
   }
 }

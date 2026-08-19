@@ -122,13 +122,13 @@ export default function FloatingCsWidget() {
                 {t("ticketCreated")}
               </p>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-4">
-                Tim kami akan merespons pesan Anda secepatnya.
+                {t("ticketSuccessDesc")}
               </p>
               <button
                 onClick={() => setSuccess(false)}
                 className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium"
               >
-                Kirim Tiket Lain
+                {t("sendAnotherTicket")}
               </button>
             </div>
           ) : (
@@ -150,7 +150,7 @@ export default function FloatingCsWidget() {
                       required
                       value={guestName}
                       onChange={(e) => setGuestName(e.target.value)}
-                      placeholder="Nama Anda"
+                      placeholder={t("guestNamePlaceholder")}
                       className="w-full px-3 py-1.5 text-xs bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
                     />
                   </div>
@@ -179,7 +179,7 @@ export default function FloatingCsWidget() {
                   required
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
-                  placeholder="Ringkasan masalah..."
+                  placeholder={t("subjectPlaceholder")}
                   className="w-full px-3 py-1.5 text-xs bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
                 />
               </div>
@@ -193,7 +193,7 @@ export default function FloatingCsWidget() {
                   rows={3}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Detail kendala atau pertanyaan Anda..."
+                  placeholder={t("messagePlaceholder")}
                   className="w-full px-3 py-1.5 text-xs bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 dark:text-white resize-none"
                 />
               </div>

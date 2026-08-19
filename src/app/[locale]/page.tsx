@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { getTranslations } from "next-intl/server";
+import { formatWaLink } from "@/lib/csContact";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -207,18 +208,76 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
               </div>
             ))}
           </div>
+
+          {/* Explicit CS Contact Section on Landing Page */}
+          {settings?.csWidgetEnabled !== false && (settings?.csWhatsappNumber || settings?.csEmail) && (
+            <div className="mt-16 max-w-4xl mx-auto bg-gradient-to-r from-blue-900/40 via-indigo-900/30 to-purple-900/40 border border-blue-500/20 rounded-3xl p-8 backdrop-blur-md text-center shadow-xl">
+              <h3 className="text-2xl font-bold text-white mb-2">
+                {tLanding("csSectionTitle")}
+              </h3>
+              <p className="text-zinc-300 text-sm max-w-xl mx-auto mb-6">
+                {tLanding("csSectionDesc")}
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-4">
+                {settings?.csWhatsappNumber && (
+                  <a
+                    href={formatWaLink(settings.csWhatsappNumber, tLanding("waDefaultMsg")) || "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-6 py-3 rounded-full shadow-lg shadow-emerald-600/30 transition-all active:scale-95 text-sm"
+                  >
+                    <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                      <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z" />
+                    </svg>
+                    <span>{tLanding("csButtonText")}</span>
+                  </a>
+                )}
+                {settings?.csEmail && (
+                  <a
+                    href={`mailto:${settings.csEmail}`}
+                    className="inline-flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-medium px-6 py-3 rounded-full border border-zinc-700 transition-all text-sm"
+                  >
+                    <svg className="w-5 h-5 stroke-current fill-none" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    <span>{settings.csEmail}</span>
+                  </a>
+                )}
+              </div>
+              {settings?.csOperatingHours && (
+                <p className="mt-4 text-xs text-zinc-400">
+                  {tLanding("csOperatingHoursPrefix")} {settings.csOperatingHours}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </section>
 
       {/* Footer */}
       <footer className="bg-white dark:bg-zinc-950 py-12 border-t border-zinc-200 dark:border-zinc-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center">
-          <div className="flex items-center space-x-2 mb-4 md:mb-0">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="flex items-center space-x-2">
             <div className="w-6 h-6 rounded bg-zinc-900 dark:bg-white flex items-center justify-center">
               <span className="text-white dark:text-zinc-900 font-bold text-[10px]">PG</span>
             </div>
             <span className="font-semibold text-zinc-900 dark:text-white">Prompt Gen</span>
           </div>
+
+          {settings?.csWhatsappNumber && (
+            <div className="text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-2">
+              <span>CS WA:</span>
+              <a
+                href={formatWaLink(settings.csWhatsappNumber) || "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-emerald-600 dark:text-emerald-400 hover:underline font-medium"
+              >
+                +{settings.csWhatsappNumber}
+              </a>
+            </div>
+          )}
+
           <p className="text-zinc-500 dark:text-zinc-400 text-sm">
             {tLanding("copyright", { year: new Date().getFullYear() })}
           </p>

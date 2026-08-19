@@ -56,7 +56,10 @@ export async function PUT(req: Request) {
 
     const updated = await prisma.invoice.update({
       where: { id: invoiceId },
-      data: { proofUrl: proofBase64 }
+      data: { 
+        proofUrl: proofBase64,
+        proofUploadedAt: new Date()
+      }
     });
 
     await notifyAllSuperadmins(

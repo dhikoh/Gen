@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { CsEscalationBanner } from "@/components/cs/CsEscalationBanner";
 
 export default function AuthForm() {
   const router = useRouter();
@@ -13,6 +14,13 @@ export default function AuthForm() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [escalationData, setEscalationData] = useState<{
+    status: string;
+    isOverThreshold: boolean;
+    elapsedHours: number;
+    thresholdHours: number;
+    waLink: string | null;
+  } | null>(null);
 
   const rawCallbackUrl = searchParams.get("callbackUrl");
 
@@ -73,6 +81,7 @@ export default function AuthForm() {
     setLoading(true);
     setError(null);
     setSuccessMessage(null);
+    setEscalationData(null);
 
     try {
       if (isLogin) {
@@ -85,6 +94,23 @@ export default function AuthForm() {
 
         if (res?.error) {
           setError(res.error);
+          try {
+            const regRes = await fetch(`/api/auth/registration-status?identifier=${encodeURIComponent(identifier)}`);
+            if (regRes.ok) {
+              const regData = await regRes.json();
+              if (regData.status === "PENDING_APPROVAL" || regData.status === "REJECTED") {
+                setEscalationData({
+                  status: regData.status,
+                  isOverThreshold: regData.isOverThreshold,
+                  elapsedHours: regData.elapsedHours,
+                  thresholdHours: regData.registrationPendingAlertHours,
+                  waLink: regData.waLink,
+                });
+              }
+            }
+          } catch {
+            // Ignore fetch error
+          }
         } else {
           router.push(getSafeCallbackUrl());
           router.refresh();
@@ -172,6 +198,39 @@ export default function AuthForm() {
       {error && (
         <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-lg text-sm">
           {error}
+        </div>
+      )}
+
+      {escalationData && (
+        <div className="mb-6">
+          <CsEscalationBanner
+            urgency={
+              escalationData.status === "REJECTED"
+                ? "error"
+                : escalationData.isOverThreshold
+                ? "warning"
+                : "info"
+            }
+            title={
+              escalationData.status === "REJECTED"
+                ? t("rejectedBannerTitle")
+                : t("pendingBannerTitle")
+            }
+            description={
+              escalationData.status === "REJECTED"
+                ? t("rejectedBannerDesc")
+                : t("pendingBannerDesc")
+            }
+            badgeText={
+              escalationData.status === "PENDING_APPROVAL"
+                ? escalationData.isOverThreshold
+                  ? t("pendingBadgeOver", { hours: escalationData.thresholdHours })
+                  : t("pendingBadgeNormal")
+                : undefined
+            }
+            waLink={escalationData.waLink}
+            waButtonText={t("contactCsBtn")}
+          />
         </div>
       )}
 

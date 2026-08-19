@@ -24,7 +24,13 @@
     "pricingImage": "Akses Image Prompt Studio (DSLR, Anime, dll)",
     "subscribe": "Berlangganan Sekarang",
     "monthSuffix": "/bln",
-    "copyright": "© {year} Prompt Gen. Hak cipta dilindungi undang-undang."
+    "copyright": "© {year} Prompt Gen. Hak cipta dilindungi undang-undang.",
+    "csSectionTitle": "Butuh Bantuan atau Pertanyaan Prazual?",
+    "csSectionDesc": "Tim Customer Support kami siap membantu Anda memilih paket terbaik atau menangani kendala teknis.",
+    "csButtonText": "Hubungi CS via WhatsApp",
+    "csOperatingHoursPrefix": "Jam Operasional:",
+    "csEmailPrefix": "Email CS:",
+    "waDefaultMsg": "Halo CS Prompt Gen, saya berminat bertanya mengenai paket langganan."
   },
   "Dashboard": {
     "overview": "Ikhtisar",
@@ -77,6 +83,13 @@
     "accountPendingApproval": "Pendaftaran berhasil! Akun Anda sedang menunggu persetujuan Superadmin sebelum dapat digunakan.",
     "authPageTitle": "Autentikasi - Prompt Gen",
     "authPageDesc": "Masuk atau daftar ke aplikasi Prompt Gen.",
+    "pendingBannerTitle": "Akun Menunggu Persetujuan Admin",
+    "pendingBannerDesc": "Pendaftaran akun Anda sedang dalam proses verifikasi oleh Superadmin.",
+    "pendingBadgeOver": "Menunggu > {hours} Jam",
+    "pendingBadgeNormal": "Dalam Proses",
+    "rejectedBannerTitle": "Pendaftaran Akun Ditolak",
+    "rejectedBannerDesc": "Pendaftaran akun Anda belum dapat disetujui saat ini. Silakan hubungi Customer Support untuk info lebih lanjut.",
+    "contactCsBtn": "Hubungi CS via WhatsApp",
     "authSubtitle": "Silakan masuk atau daftar untuk melanjutkan",
     "loading": "Memuat..."
   },
@@ -130,7 +143,13 @@
     "uploadProof": "Upload Bukti Transfer",
     "uploading": "Mengunggah...",
     "changeProof": "Ganti Bukti",
-    "sendProof": "Kirim Bukti"
+    "sendProof": "Kirim Bukti",
+    "pendingEscalationTitle": "Verifikasi Pembayaran Membutuhkan Waktu Lebih Lama",
+    "pendingEscalationDesc": "Bukti pembayaran Anda telah diunggah dan sedang dalam antrean verifikasi manual oleh Superadmin.",
+    "pendingBadgeOver": "Menunggu > {hours} Jam",
+    "rejectedEscalationTitle": "Pembayaran Tagihan Ditolak",
+    "rejectedReasonPrefix": "Alasan Penolakan:",
+    "contactCsBtn": "Hubungi CS via WhatsApp"
   },
   "Channels": {
     "title": "Pengaturan Channel",
@@ -445,7 +464,12 @@
     "waitProof": "Tunggu user upload bukti",
     "processing": "Proses...",
     "approveBtn": "Setujui",
-    "rejectBtn": "Tolak"
+    "rejectBtn": "Tolak",
+    "rejectModalTitle": "Tolak Pembayaran Invoice",
+    "rejectReasonLabel": "Alasan Penolakan (Tampil ke User):",
+    "rejectReasonPlaceholder": "Contoh: Bukti transfer tidak terbaca / nominal tidak sesuai",
+    "confirmReject": "Ya, Tolak Invoice",
+    "cancel": "Batal"
   },
   "AdminRegistrations": {
     "pageTitleTab": "Persetujuan Pendaftaran - Admin Prompt Gen",
@@ -704,6 +728,11 @@
     "csWhatsappNumber": "Nomor WhatsApp CS (e.g. 628123456789)",
     "csEmail": "Email CS (e.g. support@promptgen.com)",
     "csOperatingHours": "Jam Operasional (e.g. Senin - Jumat, 09:00 - 17:00 WIB)",
-    "csWidgetEnabled": "Tampilkan Floating CS Widget di Landing Page"
+    "csWidgetEnabled": "Tampilkan Floating CS Widget di Landing Page",
+    "sendAnotherTicket": "Kirim Tiket Lain",
+    "ticketSuccessDesc": "Tim kami akan merespons pesan Anda secepatnya.",
+    "subjectPlaceholder": "Ringkasan masalah...",
+    "messagePlaceholder": "Detail kendala atau pertanyaan Anda...",
+    "guestNamePlaceholder": "Nama Anda"
   }
 }

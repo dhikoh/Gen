@@ -9,6 +9,8 @@ export default function AdminPaymentsClient({ invoices }: { invoices: any[] }) {
   const router = useRouter();
   const t = useTranslations("AdminPayments");
   const [loading, setLoading] = useState<string | null>(null);
+  const [rejectingInvoiceId, setRejectingInvoiceId] = useState<string | null>(null);
+  const [rejectionReasonInput, setRejectionReasonInput] = useState("");
 
   const handleApprove = async (invoiceId: string) => {
     setLoading(invoiceId);
@@ -32,17 +34,25 @@ export default function AdminPaymentsClient({ invoices }: { invoices: any[] }) {
     }
   };
 
-  const handleReject = async (invoiceId: string) => {
-    setLoading(invoiceId);
+  const handleConfirmReject = async () => {
+    if (!rejectingInvoiceId) return;
+    const invId = rejectingInvoiceId;
+    setLoading(invId);
     try {
       const res = await fetch(`/api/admin/payments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ invoiceId, action: "REJECT" })
+        body: JSON.stringify({
+          invoiceId: invId,
+          action: "REJECT",
+          rejectionReason: rejectionReasonInput.trim() || undefined
+        })
       });
       const data = await res.json();
       if (res.ok) {
         toast.success(t('rejectSuccess'));
+        setRejectingInvoiceId(null);
+        setRejectionReasonInput("");
         router.refresh();
       } else {
         toast.error(data.error || t('rejectFail'));
@@ -104,7 +114,10 @@ export default function AdminPaymentsClient({ invoices }: { invoices: any[] }) {
                     {loading === inv.id ? t('processing') : t('approveBtn')}
                   </button>
                   <button 
-                    onClick={() => handleReject(inv.id)}
+                    onClick={() => {
+                      setRejectingInvoiceId(inv.id);
+                      setRejectionReasonInput("");
+                    }}
                     disabled={loading !== null}
                     className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium"
                   >
@@ -116,6 +129,46 @@ export default function AdminPaymentsClient({ invoices }: { invoices: any[] }) {
           </tbody>
         </table>
       </div>
+
+      {/* Reject Modal */}
+      {rejectingInvoiceId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-xl p-6 max-w-md w-full border border-zinc-200 dark:border-zinc-800 shadow-xl space-y-4">
+            <h3 className="text-lg font-bold text-zinc-900 dark:text-white">
+              {t('rejectModalTitle')}
+            </h3>
+            <div>
+              <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                {t('rejectReasonLabel')}
+              </label>
+              <textarea
+                value={rejectionReasonInput}
+                onChange={(e) => setRejectionReasonInput(e.target.value)}
+                placeholder={t('rejectReasonPlaceholder')}
+                className="w-full px-3 py-2 text-sm bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+                rows={3}
+              />
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setRejectingInvoiceId(null)}
+                className="px-4 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 rounded-lg"
+              >
+                {t('cancel')}
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmReject}
+                disabled={loading !== null}
+                className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg disabled:opacity-50"
+              >
+                {loading === rejectingInvoiceId ? t('processing') : t('confirmReject')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

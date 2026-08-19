@@ -10,6 +10,7 @@ import { notifyUser } from "@/lib/notifications";
 const actionSchema = z.object({
   invoiceId: z.string().min(1),
   action: z.enum(["APPROVE", "REJECT"]),
+  rejectionReason: z.string().optional(),
 });
 
 export async function POST(req: Request) {
@@ -29,7 +30,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: t("invalidData") }, { status: 400 });
     }
 
-    const { invoiceId, action } = parsedData.data;
+    const { invoiceId, action, rejectionReason } = parsedData.data;
 
     const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
@@ -50,7 +51,8 @@ export async function POST(req: Request) {
         data: { 
           status: "REJECTED",
           reviewedById: session.user.id,
-          reviewedAt: new Date()
+          reviewedAt: new Date(),
+          rejectionReason: rejectionReason || null
         }
       });
       
@@ -64,9 +66,13 @@ export async function POST(req: Request) {
         "paymentRejectedTitle",
         "paymentRejectedMsg",
         "/dashboard/billing",
-        { reason: `Paket ${invoice.plan.name}` }
+        { reason: rejectionReason || `Paket ${invoice.plan.name}` }
       );
       
+      const reasonHtml = rejectionReason
+        ? `<p style="color: #dc2626;"><strong>Alasan Penolakan:</strong> ${rejectionReason}</p>`
+        : "";
+
       await sendEmail({
         to: invoice.user.email,
         subject: tEmail('rejectSubject'),
@@ -75,6 +81,7 @@ export async function POST(req: Request) {
             <h2>${tEmail('rejectSubject')}</h2>
             <p>${tEmail('rejectGreeting', { name: invoice.user.name })}</p>
             <p>${tEmail.raw('rejectBody').replace('{plan}', invoice.plan.name).replace('{amount}', invoice.amount.toLocaleString('id-ID'))}</p>
+            ${reasonHtml}
             <p>${tEmail('rejectInstruction')}</p>
           </div>
         `

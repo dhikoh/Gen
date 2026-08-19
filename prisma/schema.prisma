@@ -171,6 +171,8 @@ model Invoice {
   method       PaymentMethod @default(MANUAL_TRANSFER)
   status       PaymentStatus @default(PENDING)
   proofUrl     String?       // khusus MANUAL_TRANSFER
+  proofUploadedAt DateTime?
+  rejectionReason String?    @db.Text
   externalRef  String?       // cadangan untuk gateway otomatis di masa depan
   periodDays   Int           @default(30)
   reviewedById String?
@@ -208,18 +210,20 @@ model PasswordResetToken {
 }
 
 model AppSettings {
-  id               String   @id @default("singleton")
-  bankName         String?
-  bankAccountNo    String?
-  bankAccountName  String?
-  heroTitle        String?
-  heroSubtitle     String?
-  csMode           CsMode   @default(TICKET)
-  csWhatsappNumber String?
-  csEmail          String?
-  csOperatingHours String?
-  csWidgetEnabled  Boolean  @default(true)
-  updatedAt        DateTime @updatedAt
+  id                          String   @id @default("singleton")
+  bankName                    String?
+  bankAccountNo               String?
+  bankAccountName             String?
+  heroTitle                   String?
+  heroSubtitle                String?
+  csMode                      CsMode   @default(TICKET)
+  csWhatsappNumber            String?
+  csEmail                     String?
+  csOperatingHours            String?
+  csWidgetEnabled             Boolean  @default(true)
+  registrationPendingAlertHours Int?   @default(24)
+  paymentPendingAlertHours      Int?   @default(12)
+  updatedAt                   DateTime @updatedAt
 }
 
 model PromptSettings {

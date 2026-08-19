@@ -17,6 +17,13 @@ async function main() {
       bankAccountName: 'PT Prompt Gen Indonesia',
       heroTitle: 'Buat Master Prompt Terstruktur dengan Mudah',
       heroSubtitle: 'Optimalkan performa konten sosial media Anda dengan AI prompt generator terbaik.',
+      csMode: 'DIRECT_WHATSAPP',
+      csWhatsappNumber: '628123456789', // Placeholder WA (Wajib diganti sebelum produksi)
+      csEmail: 'cs@promptgen.com',      // Placeholder Email
+      csOperatingHours: 'Senin - Jumat, 09:00 - 17:00 WIB',
+      csWidgetEnabled: true,
+      registrationPendingAlertHours: 24,
+      paymentPendingAlertHours: 12,
     },
   })
   console.log('Created AppSettings')
