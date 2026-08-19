@@ -105,3 +105,19 @@ Pembaruan ini mencakup seluruh perbaikan bug dan arsitektur yang teridentifikasi
   - **Hardening Error Handling & Zod Validation:** Seluruh respons error validasi API dibersihkan dari *raw error output* (menghapus ekspos internal Zod `flatten()`) dan disatukan di bawah penerjemah `getApiTranslator()` untuk mencegah kebocoran struktur data ke *client*.
   - **Proteksi Password Seed & Generasi Fitur Paket:** Mengubah `prisma/seed.js` agar membaca `SUPERADMIN_EMAIL` dan `SUPERADMIN_SEED_PASSWORD` dari environment variables, menjamin *upsert* superadmin tidak menimpa password yang sudah diubah di produksi. Menyingkronkan fitur `htmlBlogExport` ke seluruh skema paket bawaan.
   - **Verifikasi Kualitas Tipe Data & Kompilasi Produksi:** `npx tsc --noEmit` terverifikasi 100% lulus tanpa error tipe (0 error), dan `npm run build` berhasil memaketkan seluruh 26 rute aplikasi dan 33 endpoint API secara optimal.
+
+## 26. Dashboard Analitik Bisnis Superadmin & Isolasi Portal (AUDIT-FINAL-01 s/d 05 / BUG-01 s/d BUG-11)
+- **Komponen Terdampak:** `src/app/[locale]/admin/page.tsx`, `src/app/[locale]/admin/users/page.tsx`, `src/components/admin/AdminAnalyticsCharts.tsx`, `src/components/admin/UserManagement.tsx`, `src/app/[locale]/admin/layout.tsx`, `src/app/[locale]/dashboard/layout.tsx`, `package.json`, `messages/id.json`, `messages/en.json`.
+- **Perbaikan:**
+  - **Deduplikasi UI & Rute Manajemen Pengguna Terpisah (BUG-01, BUG-03):** Memindahkan antarmuka manajemen pengguna ke rute khusus `/[locale]/admin/users` (`src/app/[locale]/admin/users/page.tsx`). Menghapus komponen `<AdminPlansClient>` dari halaman *root* `/admin` untuk menghilangkan duplikasi visual.
+  - **Isolasi Portal Superadmin & Pembersihan Navigasi (BUG-01, BUG-04, BUG-05):** Menghapus tautan "Back to User App" dari layout Admin dan menghapus tautan kondisional `Admin` dari layout Dashboard User, memastikan pembatas peran Superadmin vs User terisolasi secara penuh.
+  - **Dashboard Finansial & Grafik Analitik Interaktif (BUG-02, BUG-06 s/d BUG-11):** Mengintegrasikan library `recharts` untuk visualisasi data finansial dan pertumbuhan SaaS di `/admin`:
+    1. Metrik Kartu Finansial Real-time (Pendapatan Bulan Ini, Total Pendapatan All-Time, Subscriber Aktif, Invoice Pending).
+    2. Grafik Tren Pendapatan Bulanan (`AreaChart` 6 Bulan Terakhir).
+    3. Grafik Distribusi Pendapatan per Paket Langganan (`PieChart` Donut).
+    4. Grafik Tren Pertumbuhan User Baru (`BarChart` 6 Bulan Terakhir).
+    5. Grafik Distribusi Status Langganan User (`PieChart` ACTIVE vs INACTIVE).
+    6. Kartu Ringkasan Operasional Sistem (Channel Terkunci, Tiket Support Terbuka, Registrasi Pending).
+  - **Single Source of Truth Database Queries:** Seluruh metrik ditarik langsung dari database Prisma melalui agregasi *server-side* real-time (`aggregate`, `count`, `groupBy`).
+  - **Lokalisasi Lengkap (i18n):** Menambahkan kunci terjemahan untuk seluruh label grafik, status, dan judul di `id.json` dan `en.json`.
+

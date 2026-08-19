@@ -21,6 +21,7 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-hot-toast": "^2.6.0",
+    "recharts": "^3.10.1",
     "sanitize-html": "~2.14.0",
     "zod": "^4.4.3"
   },

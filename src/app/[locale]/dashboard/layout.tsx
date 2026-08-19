@@ -74,15 +74,6 @@ export default async function DashboardLayout({
           >
             {t('guide')}
           </Link>
-
-          {session.user.role === "SUPERADMIN" && (
-            <Link 
-              href={`/${locale}/admin`}
-              className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
-            >
-              {t('admin')}
-            </Link>
-          )}
         </nav>
         <div className="p-4 border-t border-zinc-200 dark:border-zinc-800">
           <div className="flex items-center space-x-3 mb-4">

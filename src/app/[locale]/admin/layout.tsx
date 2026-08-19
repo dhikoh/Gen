@@ -35,19 +35,19 @@ export default async function AdminLayout({
           </Link>
         </div>
         <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-          <Link 
-            href={`/${locale}/dashboard`}
-            className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-white"
-          >
-            &larr; {t('backToUserApp')}
-          </Link>
-          <div className="pt-4 pb-2">
+          <div className="pt-2 pb-2">
             <p className="px-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
               {t('systemManagement')}
             </p>
           </div>
           <Link 
             href={`/${locale}/admin`}
+            className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-white"
+          >
+            {t('overview')}
+          </Link>
+          <Link 
+            href={`/${locale}/admin/users`}
             className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-white"
           >
             {t('users')}
