@@ -122,13 +122,20 @@ Pembaruan ini mencakup seluruh perbaikan bug dan arsitektur yang teridentifikasi
   - **Lokalisasi Lengkap (i18n):** Menambahkan kunci terjemahan untuk seluruh label grafik, status, dan judul di `id.json` dan `en.json`.
 
 ## 27. Time-based CS Escalation & Financial Approval Hardening (AUDIT-FINAL-Phase-13)
-- **Komponen Terdampak:** `prisma/schema.prisma`, `src/lib/csContact.ts`, `src/app/api/auth/registration-status/route.ts`, `src/components/auth/AuthForm.tsx`, `src/app/api/invoice/upload/route.ts`, `src/app/api/admin/payments/route.ts`, `src/app/[locale]/admin/payments/AdminPaymentsClient.tsx`, `src/app/[locale]/dashboard/billing/page.tsx`, `src/components/cs/CsEscalationBanner.tsx`, `messages/id.json`, `messages/en.json`.
+- **Komponen Terdampak:** `prisma/schema.prisma`, `src/lib/csContact.ts`, `src/app/api/auth/registration-status/route.ts`, `src/components/auth/AuthForm.tsx`, `src/app/api/invoice/upload/route.ts`, `src/app/api/admin/payments/route.ts`, `src/app/[locale]/admin/payments/AdminPaymentsClient.tsx`, `src/app/[locale]/dashboard/billing/page.tsx`, `src/components/cs/CsEscalationBanner.tsx`, `src/app/api/cs/contact-info/route.ts`, `src/app/api/support/settings/route.ts`, `messages/id.json`, `messages/en.json`.
 - **Perbaikan:**
   - **Skema DB & Tracking Waktu:** Menambahkan field `rejectionReason` (String?) dan `proofUploadedAt` (DateTime?) ke model `Invoice` pada Prisma schema.
   - **Eskalasi Status Registrasi:** Membangun API rate-limited `/api/auth/registration-status` untuk mendeteksi durasi pendaftaran yang belum disetujui tanpa mengekspos data pribadi user (anti user-enumeration). Memperbarui `AuthForm.tsx` untuk menampilkan banner eskalasi CS terintegrasi dengan tautan WhatsApp otomatis jika pendaftaran berada di state `PENDING` melebihi threshold `registrationPendingAlertHours` (default 24 jam) atau jika status `REJECTED`.
   - **Eskalasi Status Pembayaran Tagihan:** Memperbarui `src/app/[locale]/dashboard/billing/page.tsx` untuk menghitung durasi sejak `proofUploadedAt`. Menampilkan `CsEscalationBanner` warning pada tagihan pending jika melebihi threshold `paymentPendingAlertHours` (default 12 jam), serta banner error untuk tagihan yang ditolak beserta alasan penolakan konkret dari admin.
   - **Modal Alasan Penolakan Finansial Admin:** Memperbarui `AdminPaymentsClient.tsx` dan `POST /api/admin/payments` API route untuk mendukung modal penolakan tagihan dengan masukan `rejectionReason` yang dikomunikasikan secara transparan ke dashboard user.
-  - **Pencegahan Infinite Redirect Loop CS:** Menambahkan `GET /api/cs/contact-info` API publik terproteksi rate-limit untuk menyediakan informasi kontak CS resmi ke landing page dan form auth publik tanpa memicu redirect loop.
+  - **Single Source of Truth CS Settings & Public Alias:** Menggunakan `/api/support/settings` (authed) dan `/api/cs/contact-info` (publik & rate-limited) sebagai rujukan CS yang sah tanpa memicu redirect loop.
   - **Lokalisasi 100% (i18n):** Menambahkan seluruh kunci terjemahan eskalasi CS, modal alasan penolakan, dan footer landing page di `id.json` dan `en.json`.
+
+## 28. Arsitektur Proteksi Akses (RBAC) & Middleware i18n
+- **Komponen Terdampak:** `src/middleware.ts`, `src/app/[locale]/dashboard/layout.tsx`, `src/app/[locale]/admin/layout.tsx`, `src/lib/subscription.ts`.
+- **Keputusan Arsitektur:**
+  - `middleware.ts` dipokuskan khusus pada penanganan routing internasionalisasi (`next-intl`) berbasis cookie/header locale untuk menghindari masalah mismatch URL/locale dan infinite redirect loop saat sesi berakhir.
+  - Proteksi Peran Pengguna (RBAC - SUPERADMIN vs USER) dan status langganan aktif diselenggarakan secara aman dan dinamis melalui *Server Component Layout Wrappers* (`requireRole()`, `requireActiveSubscription()`) serta utilitas autentikasi API helper.
+
 
 

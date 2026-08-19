@@ -64,9 +64,10 @@ export async function PUT(req: Request) {
 
     await notifyAllSuperadmins(
       "NEW_PENDING_PAYMENT",
-      "Bukti Pembayaran Baru",
-      `User ${session.user.name || session.user.email} telah mengunggah bukti pembayaran baru.`,
-      "/admin/payments"
+      "newPendingPaymentTitle",
+      "newPendingPaymentMsg",
+      "/admin/payments",
+      { amount: invoice.amount ? invoice.amount.toLocaleString("id-ID") : 0 }
     );
 
     return NextResponse.json({ success: true, invoice: updated }, { status: 200 });

@@ -44,9 +44,36 @@ export default function UsedTitlesDirectory({ channelId }: UsedTitlesDirectoryPr
     window.location.href = `/api/drafts/export?channelId=${channelId}&type=${type}&format=csv`;
   };
 
+  const handleExportJSON = () => {
+    const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(
+      JSON.stringify(titles.map(t => t.title), null, 2)
+    )}`;
+    const downloadAnchor = document.createElement("a");
+    downloadAnchor.setAttribute("href", jsonString);
+    downloadAnchor.setAttribute("download", `used-titles-${channelId}-${type.toLowerCase()}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  };
+
   const handleImport = async () => {
     if (!importText.trim()) return toast.error("Please enter some titles");
-    const rawTitles = importText.split("\n").map(t => t.trim()).filter(Boolean);
+    
+    let rawTitles: string[] = [];
+    const trimmed = importText.trim();
+    if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          rawTitles = parsed.map(t => String(t).trim()).filter(Boolean);
+        }
+      } catch {
+        rawTitles = trimmed.split("\n").map(t => t.trim()).filter(Boolean);
+      }
+    } else {
+      rawTitles = trimmed.split("\n").map(t => t.trim()).filter(Boolean);
+    }
+
     if (rawTitles.length === 0) return toast.error("No valid titles found");
     
     setImporting(true);
@@ -95,6 +122,12 @@ export default function UsedTitlesDirectory({ channelId }: UsedTitlesDirectoryPr
             Export CSV
           </button>
           <button 
+            onClick={handleExportJSON}
+            className="px-3 py-1.5 text-sm bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-700"
+          >
+            Export JSON
+          </button>
+          <button 
             onClick={() => setImportModal(true)}
             className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
           >
@@ -138,10 +171,10 @@ export default function UsedTitlesDirectory({ channelId }: UsedTitlesDirectoryPr
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white dark:bg-zinc-900 rounded-xl p-6 w-full max-w-lg shadow-xl">
             <h3 className="font-bold text-lg mb-4">Import Titles ({type})</h3>
-            <p className="text-sm text-zinc-500 mb-4">Paste multiple titles here, one per line. Duplicates will be ignored. Max 200 titles per request.</p>
+            <p className="text-sm text-zinc-500 mb-4">Paste multiple titles here, either line-by-line or as a JSON array (e.g. <code>[&quot;Title 1&quot;, &quot;Title 2&quot;]</code>). Duplicates will be ignored automatically. Max 200 titles per request.</p>
             <textarea 
-              className="w-full h-48 p-3 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-md text-sm mb-4"
-              placeholder="Title 1&#10;Title 2&#10;..."
+              className="w-full h-48 p-3 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-md text-sm mb-4 font-mono"
+              placeholder={'[\n  "China\'s Flood Just Unleashed a Literal Snake Nightmare",\n  "This Animal Gets Drunk on Purpose — And Scientists Are Jealous"\n]'}
               value={importText}
               onChange={(e) => setImportText(e.target.value)}
             />

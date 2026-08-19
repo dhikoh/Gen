@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
+import { applyRateLimit } from "@/lib/rateLimit";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
@@ -17,7 +18,6 @@ const planUpdateSchema = z.object({
 export async function GET() {
   const t = await getApiTranslator();
   try {
-    
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== "SUPERADMIN") {
       return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
@@ -36,10 +36,15 @@ export async function GET() {
 export async function PUT(req: Request) {
   const t = await getApiTranslator();
   try {
-    
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== "SUPERADMIN") {
       return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
+    }
+
+    const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
+    const isAllowed = await applyRateLimit(`admin_plans_${session.user.id}_${ip}`, 20, 60);
+    if (!isAllowed) {
+      return NextResponse.json({ error: t("rateLimit") }, { status: 429 });
     }
 
     const body = await req.json();

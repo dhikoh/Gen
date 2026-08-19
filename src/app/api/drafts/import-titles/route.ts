@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { getApiTranslator } from "@/lib/apiI18n";
+import { applyRateLimit } from "@/lib/rateLimit";
 
 export async function POST(req: Request) {
   const t = await getApiTranslator();
@@ -10,14 +11,43 @@ export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
 
+    const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
+    const isAllowed = await applyRateLimit(`import_titles_${session.user.id}_${ip}`, 10, 60);
+    if (!isAllowed) {
+      return NextResponse.json({ error: t("rateLimit") }, { status: 429 });
+    }
+
     const body = await req.json();
     const { channelId, type, titles } = body;
 
-    if (!channelId || !type || (type !== "VIDEO" && type !== "IMAGE") || !Array.isArray(titles)) {
+    if (!channelId || !type || (type !== "VIDEO" && type !== "IMAGE") || !titles) {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
 
-    if (titles.length > 200) {
+    let titleList: string[] = [];
+    if (Array.isArray(titles)) {
+      titleList = titles;
+    } else if (typeof titles === "string") {
+      const trimmed = titles.trim();
+      if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+        try {
+          const jsonArr = JSON.parse(trimmed);
+          if (Array.isArray(jsonArr)) {
+            titleList = jsonArr;
+          }
+        } catch {
+          titleList = trimmed.split("\n");
+        }
+      } else {
+        titleList = trimmed.split("\n");
+      }
+    }
+
+    if (titleList.length === 0) {
+      return NextResponse.json({ error: "No titles provided" }, { status: 400 });
+    }
+
+    if (titleList.length > 200) {
       return NextResponse.json({ error: "Max 200 titles per request" }, { status: 400 });
     }
 
@@ -47,7 +77,7 @@ export async function POST(req: Request) {
     let importedCount = 0;
     const newTitlesSet = new Set<string>();
 
-    for (const rawTitle of titles) {
+    for (const rawTitle of titleList) {
       const title = rawTitle.toString().trim();
       if (!title) continue;
       

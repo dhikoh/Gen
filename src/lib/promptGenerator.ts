@@ -44,7 +44,8 @@ export function generateMasterPrompt(
   topic: string,
   additionalContext: string,
   videoConfig: VideoConfigData,
-  promptSettings?: PromptSettingsData | null
+  promptSettings?: PromptSettingsData | null,
+  excludeTitles?: string[]
 ): { masterPrompt: string; systemInstruction: string } {
   const channelContext = `
 Nama Channel/Akun: ${channel.channelName}
@@ -66,6 +67,15 @@ Gunakan Audio VO: ${channel.audioVO ? "Ya" : "Tidak"}
   let systemInstruction = `Kamu adalah asisten ahli kreator konten dan scriptwriter profesional. Bertindaklah sebagai ${videoConfig?.pov || "Ahli di bidang ini"}.`;
   if (promptSettings?.videoSystemInstruction?.trim()) {
     systemInstruction += `\n${promptSettings.videoSystemInstruction.trim()}`;
+  }
+
+  let excludeSection = "";
+  if (excludeTitles && excludeTitles.length > 0) {
+    excludeSection = `
+8. DILARANG MENGGUNAKAN JUDUL BERIKUT (SUDAH TERPAKAI / TERPILIH)
+PENTING: JANGAN SEKALI-KALI merekomendasikan, membuat, atau memilih judul yang sama persis maupun yang mirip dengan daftar judul terpakai di bawah ini:
+${excludeTitles.map((t) => `- "${t}"`).join("\n")}
+`;
   }
 
   const jsonFields = [
@@ -111,10 +121,11 @@ ${additionalContext || "-"}
 - Buat Caption Medsos: ${videoConfig?.socialCaption ? "Ya" : "Tidak"}
 - Ide Thumbnail: ${videoConfig?.thumbnailIdea ? "Ya" : "Tidak"}
 - Generate Artikel HTML Blog: ${videoConfig?.htmlBlog ? "Ya" : "Tidak"}
-
+${excludeSection}
 Instruksi Khusus:
 ${videoConfig?.targetDurationSec ? `PENTING: Pastikan teks narasi dan adegan yang dihasilkan kira-kira dapat diselesaikan dalam waktu persis atau mendekati ${videoConfig.targetDurationSec} detik.` : ""}
 Pastikan Anda mematuhi profil channel di atas. Jika BGM/SFX diatur ke "Tidak", pastikan tabel output Anda tidak mengisinya atau kosong.
+${excludeTitles && excludeTitles.length > 0 ? "Wajib mematuhi aturan dilarang menggunakan judul yang sudah terpakai di atas." : ""}
 
 Berikan 10 opsi judul menarik, lalu pilih satu sebagai judul_konten utama.
 Berikan output HANYA dalam format JSON yang valid tanpa markdown block (\`\`\`). Struktur JSON wajib mengikuti skema berikut:

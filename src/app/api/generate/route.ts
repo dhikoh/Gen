@@ -151,23 +151,19 @@ export async function POST(req: Request) {
       where: { channelId, type },
       select: { title: true }
     });
-    const previousTitles = previousDrafts.map(d => d.title).filter(Boolean);
-    let titleContext = "";
-    if (previousTitles.length > 0) {
-      titleContext = `\n[JUDUL YANG SUDAH PERNAH DIPAKAI (HINDARI)]\n${previousTitles.join(", ")}\n`;
-    }
+    const previousTitles = previousDrafts.map(d => d.title).filter((t): t is string => Boolean(t && t.trim()));
 
     let masterPrompt = "";
     let systemInstruction = "";
     let finalJson: string | undefined = undefined;
 
     if (type === "VIDEO" && videoConfig) {
-      const result = generateMasterPrompt(channel, topic, additionalContext || "", videoConfig, promptSettings);
-      masterPrompt = result.masterPrompt + titleContext;
+      const result = generateMasterPrompt(channel, topic, additionalContext || "", videoConfig, promptSettings, previousTitles);
+      masterPrompt = result.masterPrompt;
       systemInstruction = result.systemInstruction;
     } else if (type === "IMAGE" && imageConfig) {
-      const result = generateImagePrompt(channel, topic, additionalContext || "", imageConfig, promptSettings);
-      masterPrompt = result.masterPrompt + titleContext;
+      const result = generateImagePrompt(channel, topic, additionalContext || "", imageConfig, promptSettings, previousTitles);
+      masterPrompt = result.masterPrompt;
       systemInstruction = result.systemInstruction;
       finalJson = result.finalJson;
     }

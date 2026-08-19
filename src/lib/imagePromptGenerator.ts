@@ -17,7 +17,8 @@ export function generateImagePrompt(
   topic: string,
   additionalContext: string,
   imageConfig: ImageConfigData,
-  promptSettings?: (PromptSettingsData & { defaultNegativePrompt?: string | null }) | null
+  promptSettings?: (PromptSettingsData & { defaultNegativePrompt?: string | null }) | null,
+  excludeTitles?: string[]
 ): { masterPrompt: string; systemInstruction: string; finalJson?: string } {
   const variations = [];
   const numVars = imageConfig?.variations || 4;
