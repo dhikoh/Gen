@@ -1,15 +1,15 @@
 import { ProfileChannelData, PromptSettingsData } from "./promptGenerator";
 
 export interface ImageConfigData {
-  cameraType?: string;
-  shotType?: string;
-  lighting?: string;
-  mood?: string;
-  colorGrading?: string;
-  visualStyle?: string;
-  negativePrompt?: string;
-  variations?: number;
-  aspectRatio?: string;
+  cameraType?: string | null;
+  shotType?: string | null;
+  lighting?: string | null;
+  mood?: string | null;
+  colorGrading?: string | null;
+  visualStyle?: string | null;
+  negativePrompt?: string | null;
+  variations?: number | null;
+  aspectRatio?: string | null;
 }
 
 export function generateImagePrompt(

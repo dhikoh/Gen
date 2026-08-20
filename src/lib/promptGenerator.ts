@@ -16,32 +16,32 @@ export interface ProfileChannelData {
 }
 
 export interface VideoConfigData {
-  targetPlatform?: string;
-  targetDurationSec?: number;
-  targetSceneCount?: number;
-  aspectRatio?: string;
-  narrativeLoopStyle?: string;
-  visualLoopStyle?: string;
-  pov?: string;
-  speechRate?: string;
-  hookStyle?: string;
-  endingStyle?: string;
-  selectedProductId?: string;
+  targetPlatform?: string | null;
+  targetDurationSec?: number | null;
+  targetSceneCount?: number | null;
+  aspectRatio?: string | null;
+  narrativeLoopStyle?: string | null;
+  visualLoopStyle?: string | null;
+  pov?: string | null;
+  speechRate?: string | null;
+  hookStyle?: string | null;
+  endingStyle?: string | null;
+  selectedProductId?: string | null;
   selectedProduct?: {
     name: string;
     price: number;
     description?: string | null;
   };
   composition?: {
-    education?: number;
-    entertainment?: number;
-    marketing?: number;
-  };
-  includeHook?: boolean;
-  includeCTA?: boolean;
-  socialCaption?: boolean;
-  thumbnailIdea?: boolean;
-  htmlBlog?: boolean;
+    education?: number | null;
+    entertainment?: number | null;
+    marketing?: number | null;
+  } | null;
+  includeHook?: boolean | null;
+  includeCTA?: boolean | null;
+  socialCaption?: boolean | null;
+  thumbnailIdea?: boolean | null;
+  htmlBlog?: boolean | null;
 }
 
 export interface PromptSettingsData {

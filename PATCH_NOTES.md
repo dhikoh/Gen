@@ -179,3 +179,12 @@ Pembaruan ini mencakup seluruh perbaikan bug dan arsitektur yang teridentifikasi
   - **Hardening Keamanan Fail-Fast pada `prisma/seed.js`:** Menambahkan pengecekan runtime yang menggagalkan proses seeding (*fail-fast exit*) jika `NODE_ENV === 'production'` tetapi `SUPERADMIN_EMAIL` atau `SUPERADMIN_SEED_PASSWORD` belum dikonfigurasi di environment variables.
   - **Eliminasi 100% Kebocoran Tipe `any`:** Melakukan refactoring menyeluruh di seluruh codebase `src/` untuk menggantikan tipe `any` dengan parameter terisolasi `Parameters<typeof t>[0]` pada lokalisasi dynamic keys, interface structural pada sesi Auth, `unknown` pada penanganan payload JSON API, dan tipe DTO konkret.
   - **Verifikasi Kompilasi TypeScript Strict (`npx tsc --noEmit`):** Menjalankan pemeriksaan tipe penuh pada seluruh codebase dan mengoreksi seluruh variabel tooltip Recharts, tipe prop PresetSelect, serta interface ProfileChannelDto/PricingPlanDto. Hasil pemeriksaan `npx tsc --noEmit` terverifikasi **100% Clean dengan Exit Code 0 (Zero Errors)**.
+
+## 33. Fix Generate API Zod Schema Validation & Numeric Coercion (HTTP 400 Remediation)
+- **Komponen Terdampak:** `src/app/api/generate/route.ts`, `src/components/generator/GeneratorForm.tsx`, `src/lib/promptGenerator.ts`, `src/lib/imagePromptGenerator.ts`, `PATCH_NOTES.md`.
+- **Perbaikan:**
+  - **Hardening Skema Zod `/api/generate`:** Mengubah `speechRate` dari `z.string().optional()` menjadi `z.union([z.string(), z.number()]).transform(...)` dan menerapkan `z.coerce.number()` pada field numeric seperti `targetDurationSec`, `targetSceneCount`, dan `variations`, serta mengizinkan `.nullable()` pada opsi string/number.
+  - **Normalisasi Mapping Payload Form:** Memperbarui `GeneratorForm.tsx` untuk memetakan nama field sakelar form (`includeCaption`, `includeThumbnail`, `includeHtmlBlog`) secara eksplisit ke properti backend Zod (`socialCaption`, `thumbnailIdea`, `htmlBlog`).
+  - **Pembaruan Interface TypeScript & Error Logging:** Menyesuaikan interface `VideoConfigData` & `ImageConfigData` agar menerima tipe `null` yang diparse dari JSON body, serta menambahkan pencatatan log `parsedData.error.flatten()` di konsol server jika terjadi kegagalan validasi.
+  - **Pengujian Kompilasi:** `npx tsc --noEmit` terverifikasi **100% Clean dengan Exit Code 0 (Zero Errors)**.
+

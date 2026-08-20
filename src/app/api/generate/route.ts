@@ -10,48 +10,51 @@ import { generateMasterPrompt } from "@/lib/promptGenerator";
 import { generateImagePrompt } from "@/lib/imagePromptGenerator";
 
 const videoConfigSchema = z.object({
-  targetPlatform: z.string().optional(),
-  targetDurationSec: z.number().optional(),
-  targetSceneCount: z.number().optional(),
-  aspectRatio: z.string().optional(),
-  narrativeLoopStyle: z.string().optional(),
-  visualLoopStyle: z.string().optional(),
-  pov: z.string().optional(),
-  speechRate: z.string().optional(),
-  hookStyle: z.string().optional(),
-  endingStyle: z.string().optional(),
-  selectedProductId: z.string().optional(),
+  targetPlatform: z.string().optional().nullable(),
+  targetDurationSec: z.coerce.number().optional().nullable(),
+  targetSceneCount: z.coerce.number().optional().nullable(),
+  aspectRatio: z.string().optional().nullable(),
+  narrativeLoopStyle: z.string().optional().nullable(),
+  visualLoopStyle: z.string().optional().nullable(),
+  pov: z.string().optional().nullable(),
+  speechRate: z.union([z.string(), z.number()]).transform((v) => String(v)).optional().nullable(),
+  hookStyle: z.string().optional().nullable(),
+  endingStyle: z.string().optional().nullable(),
+  selectedProductId: z.string().optional().nullable(),
   composition: z.object({
-    education: z.number(),
-    entertainment: z.number(),
-    marketing: z.number()
-  }).optional(),
-  includeHook: z.boolean().optional(),
-  includeCTA: z.boolean().optional(),
-  socialCaption: z.boolean().optional(),
-  thumbnailIdea: z.boolean().optional(),
-  htmlBlog: z.boolean().optional(),
+    education: z.coerce.number(),
+    entertainment: z.coerce.number(),
+    marketing: z.coerce.number()
+  }).optional().nullable(),
+  includeHook: z.boolean().optional().nullable(),
+  includeCTA: z.boolean().optional().nullable(),
+  socialCaption: z.boolean().optional().nullable(),
+  thumbnailIdea: z.boolean().optional().nullable(),
+  htmlBlog: z.boolean().optional().nullable(),
+  includeCaption: z.boolean().optional().nullable(),
+  includeThumbnail: z.boolean().optional().nullable(),
+  includeHtmlBlog: z.boolean().optional().nullable(),
 });
 
 const imageConfigSchema = z.object({
-  cameraType: z.string().optional(),
-  shotType: z.string().optional(),
-  lighting: z.string().optional(),
-  mood: z.string().optional(),
-  colorGrading: z.string().optional(),
-  visualStyle: z.string().optional(),
-  negativePrompt: z.string().optional(),
-  variations: z.number().optional(),
-  aspectRatio: z.string().optional()
+  cameraType: z.string().optional().nullable(),
+  shotType: z.string().optional().nullable(),
+  lighting: z.string().optional().nullable(),
+  mood: z.string().optional().nullable(),
+  colorGrading: z.string().optional().nullable(),
+  visualStyle: z.string().optional().nullable(),
+  negativePrompt: z.string().optional().nullable(),
+  variations: z.coerce.number().optional().nullable(),
+  aspectRatio: z.string().optional().nullable()
 });
 
 const generateSchema = z.object({
   type: z.enum(["VIDEO", "IMAGE"]),
-  channelId: z.string(),
-  topic: z.string().optional(),
-  additionalContext: z.string().optional(),
-  videoConfig: videoConfigSchema.optional(),
-  imageConfig: imageConfigSchema.optional(),
+  channelId: z.string().min(1),
+  topic: z.string().optional().nullable(),
+  additionalContext: z.string().optional().nullable(),
+  videoConfig: videoConfigSchema.optional().nullable(),
+  imageConfig: imageConfigSchema.optional().nullable(),
 }).refine(data => {
   if (data.type === "VIDEO" && data.videoConfig?.composition) {
     const { education, entertainment, marketing } = data.videoConfig.composition;
@@ -82,7 +85,8 @@ export async function POST(req: Request) {
     const parsedData = generateSchema.safeParse(body);
 
     if (!parsedData.success) {
-      return NextResponse.json({ error: t("invalidData") }, { status: 400 });
+      console.error("Generate API validation error:", parsedData.error.flatten());
+      return NextResponse.json({ error: t("invalidData"), details: parsedData.error.flatten() }, { status: 400 });
     }
 
     let { type, channelId, topic, additionalContext, videoConfig, imageConfig } = parsedData.data;

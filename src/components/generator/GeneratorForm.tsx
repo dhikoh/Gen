@@ -277,7 +277,12 @@ export default function GeneratorForm({
         channelId,
         topic: effectiveTopic,
         additionalContext,
-        videoConfig: type === "VIDEO" ? videoConfig : undefined,
+        videoConfig: type === "VIDEO" ? {
+          ...videoConfig,
+          socialCaption: videoConfig.includeCaption,
+          thumbnailIdea: videoConfig.includeThumbnail,
+          htmlBlog: videoConfig.includeHtmlBlog,
+        } : undefined,
         imageConfig: type === "IMAGE" ? imageConfig : undefined,
       };
 
