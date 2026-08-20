@@ -188,3 +188,14 @@ Pembaruan ini mencakup seluruh perbaikan bug dan arsitektur yang teridentifikasi
   - **Pembaruan Interface TypeScript & Error Logging:** Menyesuaikan interface `VideoConfigData` & `ImageConfigData` agar menerima tipe `null` yang diparse dari JSON body, serta menambahkan pencatatan log `parsedData.error.flatten()` di konsol server jika terjadi kegagalan validasi.
   - **Pengujian Kompilasi:** `npx tsc --noEmit` terverifikasi **100% Clean dengan Exit Code 0 (Zero Errors)**.
 
+## 34. 2-Stage Master Prompting Workflow & Push App Alignment
+- **Komponen Terdampak:** `src/lib/promptGenerator.ts`, `Project Prompt Gen.txt`, `PATCH_NOTES.md`.
+- **Perbaikan:**
+  - **Refaktorisasi Master Prompt 2-Tahap (`generateMasterPrompt`):** Memperbarui instruksi generator Master Prompt pada `src/lib/promptGenerator.ts` menjadi alur interaktif 2-Tahap selaras dengan aplikasi Push:
+    - **Tahap 1 (Penawaran 10 Judul Viral):** Jika judul spesifik belum diisi user, AI menawarkan 10 rekomendasi judul berpotensi viral lengkap dengan indikator persentase potensi viralitasnya di chat box AI eksternal, lalu berhenti sejenak meminta konfirmasi nomor pilihan (1-10) dari user.
+    - **Tahap 2 (Eksekusi JSON Skrip Video):** Setelah user membalas nomor pilihan di chat box AI eksternal, AI merilis output murni JSON valid (tanpa teks pembuka/markdown fence) berisi `opsi_judul`, `judul_konten`, `segments`, `caption_medsos`, `ide_thumbnail`, dan `html_blog`.
+  - **Aturan Direktori Judul Terpakai (`excludeTitles`):** Menegaskan bahwa hanya judul yang disetujui/disimpan (`draft.title`) yang dimasukkan ke daftar eksklusi `excludeTitles` pada penciptaan prompt berikutnya; 9 opsi judul yang tidak terpilih tetap bersih dan tidak dikunci dari ideasi di masa mendatang.
+  - **Pembaruan Spesifikasi Blueprint Proyek:** Memperbarui Bagian 5.4.A dan menambahkan Bagian 12.12 pada `Project Prompt Gen.txt` sebagai dokumen spesifikasi tunggal dan otoritatif.
+  - **Verifikasi TypeScript:** `npx tsc --noEmit` terverifikasi **100% Clean (Zero Errors)**.
+
+

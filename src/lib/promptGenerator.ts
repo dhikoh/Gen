@@ -138,18 +138,26 @@ ${additionalContext || "-"}
 - Ide Thumbnail: ${videoConfig?.thumbnailIdea ? "Ya" : "Tidak"}
 - Generate Artikel HTML Blog: ${videoConfig?.htmlBlog ? "Ya" : "Tidak"}
 ${excludeSection}
-Instruksi Khusus:
-${videoConfig?.targetDurationSec ? `PENTING: Pastikan teks narasi dan adegan yang dihasilkan kira-kira dapat diselesaikan dalam waktu persis atau mendekati ${videoConfig.targetDurationSec} detik.` : ""}
-${videoConfig?.targetSceneCount ? `PENTING: Buatlah segmen video (array segments) persis berjumlah ${videoConfig.targetSceneCount} scene.` : ""}
-Pastikan Anda mematuhi profil channel di atas. Jika BGM/SFX diatur ke "Tidak", pastikan tabel output Anda tidak mengisinya atau kosong.
-${excludeTitles && excludeTitles.length > 0 ? "Wajib mematuhi aturan dilarang menggunakan judul yang sudah terpakai di atas." : ""}
+8. INSTRUKSI KHUSUS & KETENTUAN KONTEN:
+${videoConfig?.targetDurationSec ? `- PENTING: Pastikan teks narasi dan adegan yang dihasilkan kira-kira dapat diselesaikan dalam waktu persis atau mendekati ${videoConfig.targetDurationSec} detik.` : ""}
+${videoConfig?.targetSceneCount ? `- PENTING: Buatlah segmen video (array segments) persis berjumlah ${videoConfig.targetSceneCount} scene.` : ""}
+- Wajib mematuhi profil channel di atas. Jika BGM/SFX diatur ke "Tidak", pastikan tabel/field audio tidak mengisinya atau kosong.
+${excludeTitles && excludeTitles.length > 0 ? "- WAJIB MEMATUHI ATURAN: Dilarang menggunakan judul yang sudah terpakai di daftar poin 8 di atas." : ""}
 
-Berikan 10 opsi judul menarik, lalu pilih satu sebagai judul_konten utama.
-Berikan output HANYA dalam format JSON yang valid tanpa markdown block (\`\`\`). Struktur JSON wajib mengikuti skema berikut:
-{
-  "opsi_judul": ["string", "string", "..."],
-  ${jsonFields.join(",\n  ")}
-}
+PANDUAN INTERAKSI ALUR (2-TAHAP):
+PENTING:
+- TAHAP 1 (Penawaran 10 Judul Viral):
+  1. Tampilkan 10 rekomendasi judul konten berpotensi viral berdasarkan topik dan profil channel di atas, lengkap dengan perkiraan persentase potensi viralitasnya (contoh: "1. [Judul Konten] (Potensi Viral: 95%)").
+  2. BERHENTI sementara dan berikan pesan kepada pengguna: "Silakan balas dengan memilih nomor judul (1-10) atau ketik judul Anda sendiri untuk melanjutkan pembuatan naskah video lengkap."
+
+- TAHAP 2 (Eksekusi Output JSON Skrip Video):
+  Setelah pengguna memberikan nomor pilihan atau judul yang diinginkan:
+  Buatkan struktur naskah video lengkap dan berikan output HANYA dalam format JSON yang valid tanpa teks tambahan dan tanpa markdown block (\`\`\`).
+  Struktur JSON wajib mengikuti skema berikut:
+  {
+    "opsi_judul": ["string", "string", "... (10 opsi judul rekomendasi dari Tahap 1)"],
+    ${jsonFields.join(",\n    ")}
+  }
 `;
 
   return { masterPrompt, systemInstruction };
