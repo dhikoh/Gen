@@ -230,3 +230,28 @@ Pembaruan ini mencakup seluruh perbaikan bug dan arsitektur yang teridentifikasi
   - **[Phase Push-4] ParsedOutput Model + API:** Model `ParsedOutput` di schema Prisma + endpoint `/api/parsed-outputs` (GET/POST) dengan auto-cleanup 10 record/user.
   - **[Phase Push-5] Scene Prompt Studio:** Halaman `/dashboard/scene-prompt` — parser lokal regex, Scene Viewer dengan badge audio cues & voice guidelines, Thumbnail Studio tab, Platform Content tab, Aspect Ratio/Sref suffix, Save as Draft, i18n 24 kunci, link sidebar.
   - **TypeScript:** `npx tsc --noEmit` → **100% Clean (Exit Code 0)** setelah `npx prisma generate`.
+---
+
+## [37] Generator UX Overhaul — Result Persistence & Legacy Cleanup
+**Tanggal:** 2026-08-20
+
+### Changes
+**UX Cleanup — Menghapus "Paste JSON Output Here":**
+- Kolom "Paste JSON Output Here" (textarea manual input JSON) telah DIHAPUS dari panel hasil Generator karena sudah digantikan sepenuhnya oleh fitur 🎬 Scene Prompt Studio.
+- Alur resmi yang berlaku: Generator → Copy Markdown → Scene Prompt Studio → Parse → Save Draft.
+
+**Result Panel Overhaul — Desain Minimalis & Fungsional:**
+- Panel hasil kanan Generator didesain ulang dari 2 textarea besar menjadi UI aksi yang bersih:
+  - 📄 **Textarea Prompt** (read-only, fullscreen) untuk review output.
+  - 📋 **Tombol "Copy Markdown"** — salin output ke clipboard.
+  - ⬇️ **Tombol "Download JSON"** — unduh prompt sebagai file JSON.
+  - 🎬 **Tombol "Copy → Scene Studio"** — salin & notifikasi untuk buka Scene Prompt Studio.
+  - 💾 **Panel Simpan** — judul draft + tombol Save Draft + View Drafts.
+- Duplikasi tombol Download JSON dihapus (sebelumnya muncul di 3 tempat berbeda).
+
+**State Persistence — Result Selamat dari Pindah Tab:**
+- Variabel `step`, `generatedPrompt`, `aiResultJson`, dan `manualTitle` kini dimasukkan ke dalam sistem auto-save (LocalStorage + Server).
+- Saat user berpindah menu lalu kembali ke Generator, hasil generate terakhir tetap terpampang persis seperti saat ditinggalkan.
+
+**i18n:**
+- Menambahkan key `resultReady` pada `messages/en.json` dan `messages/id.json`.

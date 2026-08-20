@@ -288,7 +288,8 @@
     "saveDraftBtn": "Simpan Draft (Hitung Durasi)",
     "durationShort": "Pendek (< 30s)",
     "durationMedium": "Sedang (30s - 60s)",
-    "durationLong": "Panjang (> 60s)"
+    "durationLong": "Panjang (> 60s)",
+    "resultReady": "Hasil Siap"
   },
   "Drafts": {
     "pageTitleTab": "Riwayat Prompt",

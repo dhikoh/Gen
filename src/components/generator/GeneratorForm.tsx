@@ -209,10 +209,22 @@ export default function GeneratorForm({
         }
       })
       .catch(() => {});
+
+    // 3. Also restore result state from local cache
+    const savedResult = localStorage.getItem("generatorFormState");
+    if (savedResult) {
+      try {
+        const p = JSON.parse(savedResult);
+        if (p.step) setStep(p.step as 1 | 2);
+        if (p.generatedPrompt) setGeneratedPrompt(p.generatedPrompt);
+        if (p.aiResultJson) setAiResultJson(p.aiResultJson);
+        if (p.manualTitle !== undefined) setManualTitle(p.manualTitle);
+      } catch (e) {}
+    }
   }, []);
 
   useEffect(() => {
-    const stateObj = { type, channelId, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, videoConfig, imageConfig };
+    const stateObj = { type, channelId, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, videoConfig, imageConfig, step, generatedPrompt, aiResultJson, manualTitle };
     localStorage.setItem("generatorFormState", JSON.stringify(stateObj));
 
     const timeoutId = setTimeout(() => {
@@ -224,7 +236,7 @@ export default function GeneratorForm({
     }, 3000); // 3 seconds debounce
 
     return () => clearTimeout(timeoutId);
-  }, [type, channelId, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, videoConfig, imageConfig]);
+  }, [type, channelId, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, videoConfig, imageConfig, step, generatedPrompt, aiResultJson, manualTitle]);
 
   // Fetch presets on mount
   useEffect(() => {
@@ -1222,64 +1234,63 @@ export default function GeneratorForm({
           <h2 className="text-xl font-bold text-zinc-900 dark:text-white">
             {step === 1 ? t("resultTitle") : t("resultAndSave")}
           </h2>
-          {result && (
+          {step === 2 && (
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-              {result}
+              ✓ {t("resultReady")}
             </span>
           )}
         </div>
 
-        <div className="flex-1 flex flex-col space-y-4">
+        <div className="flex-1 flex flex-col space-y-4 min-h-0">
           {loading ? (
             <div className="flex-1 flex flex-col items-center justify-center text-zinc-500 border border-zinc-200 dark:border-zinc-800 rounded-lg bg-zinc-50 dark:bg-zinc-950">
               <div className="w-10 h-10 border-4 border-zinc-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
               <p className="animate-pulse">{t("loadingMsg")}</p>
             </div>
           ) : step === 1 ? (
-            <div className="flex-1 flex items-center justify-center text-zinc-400 dark:text-zinc-600 text-sm p-8 text-center border border-zinc-200 dark:border-zinc-800 rounded-lg bg-zinc-50 dark:bg-zinc-950">
-              {t("emptyResult")}
+            <div className="flex-1 flex flex-col items-center justify-center text-zinc-400 dark:text-zinc-600 text-sm p-8 text-center border border-zinc-200 dark:border-zinc-800 rounded-lg bg-zinc-50 dark:bg-zinc-950 gap-3">
+              <span className="text-4xl">✨</span>
+              <p>{t("emptyResult")}</p>
             </div>
           ) : (
             <>
-              {/* Step 2: Directly download or review prompt */}
-              <div className="flex flex-col h-1/2 border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden bg-zinc-50 dark:bg-zinc-950">
-                <div className="p-3 bg-zinc-100 dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center">
+              {/* Generated Prompt Output */}
+              <div className="flex flex-col flex-1 border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden bg-zinc-50 dark:bg-zinc-950 min-h-0">
+                <div className="p-3 bg-zinc-100 dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center shrink-0">
                   <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
-                    Hasil Prompt AI
+                    📄 Hasil Prompt AI (Markdown)
                   </span>
                   <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(generatedPrompt);
+                        toast.success("Prompt disalin!");
+                      }}
+                      className="px-3 py-1 text-xs font-semibold text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/40 border border-blue-300 dark:border-blue-700 hover:bg-blue-200 dark:hover:bg-blue-800/60 rounded transition-colors flex items-center gap-1"
+                    >
+                      📋 Copy Markdown
+                    </button>
                     <button
                       type="button"
                       onClick={downloadJsonPrompt}
                       className="px-3 py-1 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded transition-colors shadow-sm flex items-center gap-1"
                     >
-                      <span>⬇️</span> Download JSON Prompt
+                      ⬇️ Download JSON
                     </button>
                   </div>
                 </div>
                 <textarea
                   readOnly
                   value={generatedPrompt}
-                  className="w-full h-full p-4 bg-transparent text-sm font-mono text-zinc-800 dark:text-zinc-200 outline-none resize-none custom-scrollbar"
+                  className="w-full flex-1 p-4 bg-transparent text-sm font-mono text-zinc-800 dark:text-zinc-200 outline-none resize-none custom-scrollbar"
                 />
               </div>
 
-              <div className="flex flex-col h-1/2 border border-blue-200 dark:border-blue-900 rounded-lg overflow-hidden bg-blue-50/30 dark:bg-blue-900/10">
-                <div className="p-3 bg-blue-100 dark:bg-blue-900 border-b border-blue-200 dark:border-blue-800 flex justify-between items-center">
-                  <span className="text-xs font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wider">
-                    {t("pasteJsonStep")}
-                  </span>
-                  {aiResultJson && (
-                    <button
-                      type="button"
-                      onClick={downloadJsonPrompt}
-                      className="px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 rounded hover:bg-emerald-200 transition-colors"
-                    >
-                      Download .JSON
-                    </button>
-                  )}
-                </div>
-                <div className="px-4 py-2 border-b border-blue-200/50 dark:border-blue-800/50">
+              {/* Action Panel — Title + Save */}
+              <div className="border border-blue-200 dark:border-blue-900 rounded-lg bg-blue-50/30 dark:bg-blue-900/10 p-4 space-y-3 shrink-0">
+                <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wider">💾 Simpan & Lanjutkan</p>
+                <div>
                   <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                     {t("optionalTitle")}
                   </label>
@@ -1291,46 +1302,39 @@ export default function GeneratorForm({
                     className="w-full px-3 py-1.5 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none dark:text-white"
                   />
                 </div>
-                <textarea
-                  value={aiResultJson}
-                  onChange={(e) => setAiResultJson(e.target.value)}
-                  placeholder={t("jsonPlaceholder")}
-                  className="w-full h-full p-4 bg-transparent text-sm font-mono text-zinc-800 dark:text-zinc-200 outline-none resize-none custom-scrollbar"
-                />
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(generatedPrompt);
+                      toast.success("Prompt disalin! Tempelkan di Scene Prompt Studio.");
+                    }}
+                    className="flex-1 min-w-[140px] px-3 py-2 text-sm font-medium text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-300 dark:border-indigo-700 hover:bg-indigo-100 dark:hover:bg-indigo-800/50 rounded-md transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    🎬 Copy → Scene Studio
+                  </button>
+                  <button
+                    onClick={handleSaveDraft}
+                    disabled={saving}
+                    className="flex-1 min-w-[120px] px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-md transition-colors flex items-center justify-center"
+                  >
+                    {saving ? (
+                      <span className="inline-block animate-spin mr-2 border-2 border-white/20 border-t-white rounded-full w-4 h-4" />
+                    ) : null}
+                    {t("saveDraftBtn")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/${document.documentElement.lang || "id"}/dashboard/drafts`)}
+                    className="px-3 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-md hover:bg-zinc-50 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 dark:hover:bg-zinc-700 transition-colors"
+                  >
+                    {t("viewDraftsBtn")}
+                  </button>
+                </div>
               </div>
             </>
           )}
         </div>
-
-        {step === 2 && (
-          <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-800 flex justify-between items-center">
-            <button
-              type="button"
-              onClick={downloadJsonPrompt}
-              className="px-4 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-md transition-colors shadow flex items-center gap-1.5"
-            >
-              <span>⬇️</span> Download JSON Prompt
-            </button>
-            <div className="flex space-x-3">
-              <button
-                onClick={() => router.push(`/${document.documentElement.lang || "id"}/dashboard/drafts`)}
-                className="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-md hover:bg-zinc-50 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 dark:hover:bg-zinc-700 transition-colors"
-              >
-                {t("viewDraftsBtn")}
-              </button>
-              <button
-                onClick={handleSaveDraft}
-                disabled={saving}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-md transition-colors flex items-center"
-              >
-                {saving ? (
-                  <span className="inline-block animate-spin mr-2 border-2 border-white/20 border-t-white rounded-full w-4 h-4" />
-                ) : null}
-                {t("saveDraftBtn")}
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Modal Quick Add Product */}

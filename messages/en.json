@@ -288,7 +288,8 @@
     "saveDraftBtn": "Save Draft (Calculate Duration)",
     "durationShort": "Short (< 30s)",
     "durationMedium": "Medium (30s - 60s)",
-    "durationLong": "Long (> 60s)"
+    "durationLong": "Long (> 60s)",
+    "resultReady": "Result Ready"
   },
   "Drafts": {
     "pageTitleTab": "Prompt History",
