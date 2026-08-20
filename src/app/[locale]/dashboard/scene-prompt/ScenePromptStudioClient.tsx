@@ -59,6 +59,26 @@ export default function ScenePromptStudioClient({ channels, locale }: Props) {
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"scenes"|"thumbnail"|"platform">("scenes");
 
+  // LocalStorage Persistence
+  useEffect(() => {
+    const saved = localStorage.getItem("scenePromptState");
+    if (saved) {
+      try {
+        const p = JSON.parse(saved);
+        if (p.rawText) setRawText(p.rawText);
+        if (p.selectedChannelId) setSelectedChannelId(p.selectedChannelId);
+        if (p.ar) setAr(p.ar);
+        if (p.sref) setSref(p.sref);
+        if (p.cref) setCref(p.cref);
+        if (p.draftTitle) setDraftTitle(p.draftTitle);
+      } catch (e) {}
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("scenePromptState", JSON.stringify({ rawText, selectedChannelId, ar, sref, cref, draftTitle }));
+  }, [rawText, selectedChannelId, ar, sref, cref, draftTitle]);
+
   // sref/cref are manual inputs — no channel default sync needed
 
   const copy = useCallback((id: string, text: string) => {

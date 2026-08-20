@@ -162,6 +162,36 @@ export default function GeneratorForm({
     aspectRatio: "16:9"
   });
 
+  // LocalStorage Persistence
+  useEffect(() => {
+    const saved = localStorage.getItem("generatorFormState");
+    if (saved) {
+      try {
+        const p = JSON.parse(saved);
+        if (p.type) setType(p.type);
+        if (p.channelId) setChannelId(p.channelId);
+        if (p.topic) setTopic(p.topic);
+        if (p.additionalContext) setAdditionalContext(p.additionalContext);
+        if (p.rolePOV) setRolePOV(p.rolePOV);
+        if (p.toneOfVoice !== undefined) setToneOfVoice(p.toneOfVoice);
+        if (p.visualStyleKey !== undefined) setVisualStyleKey(p.visualStyleKey);
+        if (p.hookStyleType) setHookStyleType(p.hookStyleType);
+        if (p.customHookText !== undefined) setCustomHookText(p.customHookText);
+        if (p.musicPreference !== undefined) setMusicPreference(p.musicPreference);
+        if (p.sfxPreference !== undefined) setSfxPreference(p.sfxPreference);
+        if (p.voPreference !== undefined) setVoPreference(p.voPreference);
+        if (p.videoConfig) setVideoConfig(prev => ({ ...prev, ...p.videoConfig }));
+        if (p.imageConfig) setImageConfig(prev => ({ ...prev, ...p.imageConfig }));
+      } catch (e) {}
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("generatorFormState", JSON.stringify({
+      type, channelId, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, videoConfig, imageConfig
+    }));
+  }, [type, channelId, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, videoConfig, imageConfig]);
+
   // Fetch presets on mount
   useEffect(() => {
     fetch("/api/platform-options")
