@@ -4,9 +4,17 @@ import toast from "react-hot-toast";
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 
+interface ProductDto {
+  id: string;
+  name: string;
+  description?: string | null;
+  price: number;
+  link?: string | null;
+}
+
 export default function ProductsClient({ channelId }: { channelId: string }) {
   const t = useTranslations("Channels");
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<ProductDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [addingNew, setAddingNew] = useState(false);
@@ -31,7 +39,7 @@ export default function ProductsClient({ channelId }: { channelId: string }) {
     fetchProducts();
   }, [channelId]);
 
-  const handleStartEdit = (p: any) => {
+  const handleStartEdit = (p: ProductDto) => {
     setEditingId(p.id);
     setFormData({ name: p.name, description: p.description || "", price: p.price, link: p.link || "" });
     setAddingNew(false);

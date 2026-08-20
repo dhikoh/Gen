@@ -78,7 +78,7 @@ export default function AdminAnalyticsCharts({ data }: AdminAnalyticsChartsProps
                   tickFormatter={(val) => `Rp ${(val / 1000).toLocaleString()}k`}
                 />
                 <Tooltip
-                  formatter={(val: any) => [`Rp ${Number(val).toLocaleString("id-ID")}`, t("monthlyRevenue")]}
+                  formatter={(val: unknown) => [`Rp ${Number(val ?? 0).toLocaleString("id-ID")}`, t("monthlyRevenue")]}
                   contentStyle={{ backgroundColor: "#18181b", borderColor: "#3f3f46", color: "#fff", borderRadius: "8px" }}
                 />
                 <Area type="monotone" dataKey="revenue" stroke="#3b82f6" fillOpacity={1} fill="url(#colorRevenue)" />
@@ -99,7 +99,7 @@ export default function AdminAnalyticsCharts({ data }: AdminAnalyticsChartsProps
                 <XAxis dataKey="month" stroke="#a1a1aa" fontSize={12} />
                 <YAxis stroke="#a1a1aa" fontSize={12} allowDecimals={false} />
                 <Tooltip
-                  formatter={(val: any) => [`${val} User`, t("recentUsers")]}
+                  formatter={(val: unknown) => [`${String(val ?? 0)} User`, t("recentUsers")]}
                   contentStyle={{ backgroundColor: "#18181b", borderColor: "#3f3f46", color: "#fff", borderRadius: "8px" }}
                 />
                 <Bar dataKey="users" fill="#10b981" radius={[4, 4, 0, 0]} />
@@ -127,13 +127,13 @@ export default function AdminAnalyticsCharts({ data }: AdminAnalyticsChartsProps
                     outerRadius={80}
                     paddingAngle={5}
                     dataKey="value"
-                    label={({ name, percent }: any) => `${name} (${((percent || 0) * 100).toFixed(0)}%)`}
+                    label={({ name, percent }: { name?: string; percent?: number }) => `${name} (${((percent || 0) * 100).toFixed(0)}%)`}
                   >
                     {data.revenueByPlan.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(val: any) => [`Rp ${Number(val).toLocaleString("id-ID")}`, "Total"]} />
+                  <Tooltip formatter={(val: unknown) => [`Rp ${Number(val ?? 0).toLocaleString("id-ID")}`, "Total"]} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
@@ -160,13 +160,13 @@ export default function AdminAnalyticsCharts({ data }: AdminAnalyticsChartsProps
                     outerRadius={80}
                     paddingAngle={4}
                     dataKey="value"
-                    label={({ name, value }: any) => `${name}: ${value}`}
+                    label={({ name, value }: { name?: string; value?: number }) => `${name}: ${value}`}
                   >
                     {data.subscriptionStatusDist.map((entry, index) => (
                       <Cell key={`status-cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(val: any) => [`${val} User`, "Jumlah"]} />
+                  <Tooltip formatter={(val: unknown) => [`${String(val ?? 0)} User`, "Jumlah"]} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>

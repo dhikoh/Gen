@@ -65,9 +65,11 @@ export async function PUT(req: Request) {
       dataToUpdate.features = features as Prisma.InputJsonValue;
     }
 
-    const updated = await prisma.plan.update({
-      where: { id },
-      data: dataToUpdate
+    const updated = await prisma.$transaction(async (tx) => {
+      return tx.plan.update({
+        where: { id },
+        data: dataToUpdate
+      });
     });
 
     return NextResponse.json({ success: true, plan: updated }, { status: 200 });

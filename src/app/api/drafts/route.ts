@@ -52,7 +52,7 @@ export async function POST(req: Request) {
     } = parsedInput.data;
 
     // Parse the pasted JSON to validate it and extract data
-    let parsedData: Record<string, any>;
+    let parsedData: Record<string, unknown>;
     try {
       parsedData = JSON.parse(rawJson);
     } catch (e) {
@@ -108,9 +108,9 @@ export async function POST(req: Request) {
           userId: session.user.id,
           channelId: channel.id,
           type: type,
-          title: title,
+          title: String(title),
           rawJson: rawJson,
-          parsedData: parsedData,
+          parsedData: parsedData as Prisma.InputJsonValue,
           wordCount: wordCount,
           estimatedDurationSec: estimatedDurationSec,
           targetDurationSec: targetDurationSec || 0,

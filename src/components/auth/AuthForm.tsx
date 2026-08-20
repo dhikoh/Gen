@@ -110,7 +110,7 @@ export default function AuthForm() {
 
         if (res?.error) {
           const knownCodes = ["RATE_LIMITED", "PENDING_APPROVAL", "REJECTED", "INVALID_CREDENTIALS"];
-          const errMessage = knownCodes.includes(res.error) ? t(res.error as any) : res.error;
+          const errMessage = knownCodes.includes(res.error) ? t(res.error as Parameters<typeof t>[0]) : res.error;
           setError(errMessage);
           try {
             const regRes = await fetch(`/api/auth/registration-status?identifier=${encodeURIComponent(identifier)}`);

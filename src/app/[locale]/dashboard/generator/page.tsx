@@ -29,7 +29,7 @@ export default async function GeneratorPage({ params }: { params: Promise<{ loca
   });
 
   const isSuperadmin = session.user.role === "SUPERADMIN";
-  const rawFeatures = (dbUser?.currentPlan?.features as any) || {};
+  const rawFeatures = (dbUser?.currentPlan?.features as Record<string, boolean> | null) || {};
   const planFeatures = {
     imagePromptStudio: isSuperadmin || rawFeatures.imagePromptStudio === true,
     htmlBlogExport: isSuperadmin || rawFeatures.htmlBlogExport === true,

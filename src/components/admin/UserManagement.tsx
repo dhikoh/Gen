@@ -132,7 +132,7 @@ export default function UserManagement({ initialPlans }: { initialPlans: Plan[] 
           toast.error(data.error || tu('failDelete'));
         }
       } else {
-        const payload: any = { action: "" };
+        const payload: Record<string, unknown> = { action: "" };
         if (modalAction === "ROLE") {
           payload.action = "UPDATE_ROLE";
           payload.role = newRole;

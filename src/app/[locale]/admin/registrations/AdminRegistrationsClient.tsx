@@ -5,7 +5,22 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import toast from "react-hot-toast";
 
-export default function AdminRegistrationsClient({ initialUsers }: { initialUsers: any[] }) {
+interface PendingUserRegistration {
+  id: string;
+  name: string | null;
+  username: string;
+  email: string;
+  phoneNumber: string | null;
+  dateOfBirth: string | Date | null;
+  createdAt: string | Date;
+  registrationStatus: string;
+  channels?: Array<{
+    channelName: string;
+    niche: string | null;
+  }>;
+}
+
+export default function AdminRegistrationsClient({ initialUsers }: { initialUsers: PendingUserRegistration[] }) {
   const router = useRouter();
   const t = useTranslations("AdminRegistrations");
   const [users, setUsers] = useState(initialUsers);

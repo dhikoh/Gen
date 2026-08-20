@@ -165,7 +165,7 @@ export default function UserSupportClient() {
                       {ticket.subject}
                     </h3>
                     <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${badge.className}`}>
-                      {t(badge.labelKey as any)}
+                      {t(badge.labelKey as Parameters<typeof t>[0])}
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-[11px] text-zinc-500 dark:text-zinc-400">
@@ -192,7 +192,7 @@ export default function UserSupportClient() {
                         getTicketStatusBadge(selectedTicket.status).className
                       }`}
                     >
-                      {t(getTicketStatusBadge(selectedTicket.status).labelKey as any)}
+                      {t(getTicketStatusBadge(selectedTicket.status).labelKey as Parameters<typeof t>[0])}
                     </span>
                   </div>
                   <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">

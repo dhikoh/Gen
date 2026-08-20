@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
 import { applyRateLimit } from "@/lib/rateLimit";
@@ -75,7 +76,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       return NextResponse.json({ error: t("forbidden") }, { status: 403 });
     }
 
-    const updatePayload: any = {};
+    const updatePayload: Prisma.DraftUpdateInput = {};
     if (parsedData.data.isTemplate !== undefined) updatePayload.isTemplate = parsedData.data.isTemplate;
     if (parsedData.data.title !== undefined) updatePayload.title = parsedData.data.title;
 

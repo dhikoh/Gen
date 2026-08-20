@@ -10,7 +10,7 @@ export interface PresetOption {
 interface PresetSelectProps {
   label?: string;
   value: string | number;
-  onChange: (val: any) => void;
+  onChange: (val: string | number) => void;
   options: PresetOption[];
   placeholder?: string;
   customLabel?: string;
@@ -42,7 +42,7 @@ export const PresetSelect: React.FC<PresetSelectProps> = ({
 }) => {
   // Check if current value matches any preset option
   const isValueInOptions = options.some(
-    (opt) => String(opt.value) === String(value)
+    (opt: PresetOption) => String(opt.value) === String(value)
   );
 
   const [selectedOption, setSelectedOption] = useState<string>(() => {

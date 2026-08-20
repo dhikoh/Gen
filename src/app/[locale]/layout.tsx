@@ -23,6 +23,8 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
 };
 
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/authOptions";
 import NextAuthProvider from "@/components/providers/NextAuthProvider";
 import FloatingCsWidget from "@/components/cs/FloatingCsWidget";
 
@@ -34,11 +36,12 @@ export default async function RootLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  if (!routing.locales.includes(locale as any)) {
+  if (!routing.locales.includes(locale as (typeof routing.locales)[number])) {
     notFound();
   }
 
   const messages = await getMessages();
+  const session = await getServerSession(authOptions);
 
   return (
     <html

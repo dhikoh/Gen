@@ -5,7 +5,22 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 
-export default function AdminPaymentsClient({ invoices }: { invoices: any[] }) {
+interface AdminInvoice {
+  id: string;
+  amount: number;
+  status: string;
+  method: string;
+  proofUrl: string | null;
+  user: {
+    name: string | null;
+    email: string;
+  };
+  plan: {
+    name: string;
+  };
+}
+
+export default function AdminPaymentsClient({ invoices }: { invoices: AdminInvoice[] }) {
   const router = useRouter();
   const t = useTranslations("AdminPayments");
   const [loading, setLoading] = useState<string | null>(null);

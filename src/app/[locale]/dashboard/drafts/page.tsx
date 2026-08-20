@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import Link from "next/link";
-import { DraftType } from "@prisma/client";
+import { Prisma, DraftType } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
 import DraftFilter from "@/components/dashboard/DraftFilter";
 
@@ -27,7 +27,7 @@ export default async function DraftsPage({
 
   const t = await getTranslations({ locale, namespace: 'Drafts' });
 
-  const whereClause: any = { userId: session.user.id };
+  const whereClause: Prisma.DraftWhereInput = { userId: session.user.id };
   if (channelId && typeof channelId === 'string') whereClause.channelId = channelId;
   if (type && typeof type === 'string') whereClause.type = type as DraftType;
 

@@ -5,7 +5,16 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 
-export default function PricingClient({ plans, locale }: { plans: any[], locale: string }) {
+interface PricingPlanDto {
+  id: string;
+  code: string;
+  name: string;
+  priceMonthly: number;
+  maxChannels: number;
+  features?: Record<string, boolean> | null;
+}
+
+export default function PricingClient({ plans, locale }: { plans: PricingPlanDto[], locale: string }) {
   const router = useRouter();
   const t = useTranslations("Pricing");
   const [loading, setLoading] = useState<string | null>(null);

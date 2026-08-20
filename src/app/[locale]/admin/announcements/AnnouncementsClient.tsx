@@ -75,8 +75,9 @@ export default function AnnouncementsClient() {
       setMessage("");
       setLink("");
       fetchAnnouncements();
-    } catch (err: any) {
-      toast.error(err.message || "Terjadi kesalahan.");
+    } catch (err: unknown) {
+      const error = err as Error;
+      toast.error(error.message || "Terjadi kesalahan.");
     } finally {
       setSubmitting(false);
     }
@@ -133,7 +134,7 @@ export default function AnnouncementsClient() {
               </label>
               <select
                 value={target}
-                onChange={(e) => setTarget(e.target.value as any)}
+                onChange={(e) => setTarget(e.target.value as "ALL" | "PLAN" | "USER")}
                 className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-950 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="ALL">Semua Pengguna</option>

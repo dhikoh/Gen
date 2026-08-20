@@ -6,7 +6,19 @@ import { useRouter } from "next/navigation";
 import EditChannelClient from "./EditChannelClient";
 import { useTranslations } from "next-intl";
 
-export default function ChannelManagerClient({ channels, maxChannels }: { channels: any[], maxChannels: number }) {
+interface ProfileChannelDto {
+  id: string;
+  channelName: string;
+  targetPlatform?: string | null;
+  platform?: string | null;
+  niche: string | null;
+  socialLinks?: unknown;
+  isLocked: boolean;
+  createdAt: Date | string;
+  usageCount?: number;
+}
+
+export default function ChannelManagerClient({ channels, maxChannels }: { channels: ProfileChannelDto[], maxChannels: number }) {
   const router = useRouter();
   const t = useTranslations("Channels");
   const [addingNew, setAddingNew] = useState(false);
@@ -31,11 +43,11 @@ export default function ChannelManagerClient({ channels, maxChannels }: { channe
     }
   };
 
-  const renderSocialBadges = (socialLinks: any) => {
+  const renderSocialBadges = (socialLinks: Record<string, string> | unknown) => {
     if (!socialLinks) return null;
     let links: Record<string, string> = {};
-    if (typeof socialLinks === "object" && !Array.isArray(socialLinks)) {
-      links = socialLinks;
+    if (typeof socialLinks === "object" && socialLinks !== null && !Array.isArray(socialLinks)) {
+      links = socialLinks as Record<string, string>;
     } else if (Array.isArray(socialLinks)) {
       links = {
         website: socialLinks[0] || "",

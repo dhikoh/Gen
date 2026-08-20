@@ -30,7 +30,7 @@ export async function requireRole(allowedRoles: Role | Role[], locale: string = 
   }
 
   // Enforce registration approval status
-  const userObj = session.user as any;
+  const userObj = session.user as { registrationStatus?: string };
   if (userObj.registrationStatus && userObj.registrationStatus !== "APPROVED") {
     redirect(authRedirectPath);
   }

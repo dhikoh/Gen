@@ -34,7 +34,7 @@ export default async function PricingPage({ params }: { params: Promise<{ locale
         </p>
       </div>
 
-      <PricingClient plans={plans} locale={locale} />
+      <PricingClient plans={plans as unknown as Parameters<typeof PricingClient>[0]["plans"]} locale={locale} />
     </div>
   );
 }

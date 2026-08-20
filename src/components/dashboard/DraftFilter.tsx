@@ -4,7 +4,20 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 
 import { useTranslations } from "next-intl";
 
-export default function DraftFilter({ channels, defaultChannelId, defaultType }: { channels: any[], defaultChannelId?: string, defaultType?: string }) {
+interface ChannelOption {
+  id: string;
+  channelName: string;
+}
+
+export default function DraftFilter({
+  channels,
+  defaultChannelId = "",
+  defaultType = "",
+}: {
+  channels: ChannelOption[];
+  defaultChannelId?: string;
+  defaultType?: string;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();

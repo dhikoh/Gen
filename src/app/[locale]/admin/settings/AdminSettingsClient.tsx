@@ -23,7 +23,7 @@ interface PromptSettingsData {
   imageSystemInstruction?: string | null;
   defaultSpeechRate?: string | null;
   defaultNegativePrompt?: string | null;
-  bannedWords?: string[] | any;
+  bannedWords?: string[] | string | unknown;
 }
 
 export default function AdminSettingsClient({

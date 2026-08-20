@@ -192,6 +192,11 @@ async function main() {
   console.log('Created PromptSettings')
 
   // 8. Create Superadmin User
+  if (process.env.NODE_ENV === 'production' && (!process.env.SUPERADMIN_EMAIL || !process.env.SUPERADMIN_SEED_PASSWORD)) {
+    console.error('❌ SECURITY FATAL: SUPERADMIN_EMAIL and SUPERADMIN_SEED_PASSWORD MUST be set in production mode!');
+    process.exit(1);
+  }
+
   const superadminEmail = process.env.SUPERADMIN_EMAIL || 'admin@promptgen.com'
   const seedPassword = process.env.SUPERADMIN_SEED_PASSWORD || 'superadmin123'
   const passwordHash = await bcrypt.hash(seedPassword, 10)

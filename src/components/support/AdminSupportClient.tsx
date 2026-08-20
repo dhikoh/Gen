@@ -151,7 +151,7 @@ export default function AdminSupportClient() {
                 : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
             }`}
           >
-            {st === "ALL" ? "Semua Tiket" : t(`status${st}` as any)}
+            {st === "ALL" ? "Semua Tiket" : t(`status${st}` as Parameters<typeof t>[0])}
           </button>
         ))}
       </div>
@@ -185,7 +185,7 @@ export default function AdminSupportClient() {
                       {ticket.subject}
                     </h3>
                     <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${badge.className}`}>
-                      {t(badge.labelKey as any)}
+                      {t(badge.labelKey as Parameters<typeof t>[0])}
                     </span>
                   </div>
                   <p className="text-xs text-zinc-600 dark:text-zinc-300 truncate">{senderName} ({senderEmail})</p>
@@ -213,7 +213,7 @@ export default function AdminSupportClient() {
                         getTicketStatusBadge(selectedTicket.status).className
                       }`}
                     >
-                      {t(getTicketStatusBadge(selectedTicket.status).labelKey as any)}
+                      {t(getTicketStatusBadge(selectedTicket.status).labelKey as Parameters<typeof t>[0])}
                     </span>
                   </div>
                   <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">

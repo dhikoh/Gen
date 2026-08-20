@@ -7,6 +7,7 @@ const envSchema = z.object({
   STITCH_API_KEY: z.string().optional(),
   SMTP_HOST: z.string().min(1, 'SMTP_HOST is required'),
   SMTP_PORT: z.string().min(1, 'SMTP_PORT is required'),
+  SMTP_SECURE: z.string().optional(),
   SMTP_USER: z.string().min(1, 'SMTP_USER is required'),
   SMTP_PASSWORD: z.string().min(1, 'SMTP_PASSWORD is required'),
   SMTP_FROM: z.string().min(1, 'SMTP_FROM is required'),
@@ -16,7 +17,7 @@ const isBuildPhase = process.env.npm_lifecycle_event === 'build' || process.env.
 
 let envParsed;
 if (isBuildPhase) {
-  envParsed = { success: true, data: process.env as any };
+  envParsed = { success: true, data: process.env as unknown as z.infer<typeof envSchema> };
 } else {
   envParsed = envSchema.safeParse(process.env);
 }

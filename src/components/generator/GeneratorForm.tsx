@@ -31,15 +31,34 @@ interface VisualAestheticItem {
   label: string;
 }
 
+interface GeneratorFormChannel {
+  id: string;
+  channelName: string;
+  niche?: string | null;
+  targetPlatform?: string | null;
+  personaPov?: string | null;
+  speechRate?: number | null;
+  visualAesthetic?: string | null;
+}
+
+interface PromptSettingsDto {
+  defaultNegativePrompt?: string | null;
+}
+
+interface GeneratorFormProps {
+  channels: GeneratorFormChannel[];
+  promptSettings?: PromptSettingsDto | null;
+  planFeatures?: {
+    imagePromptStudio?: boolean;
+    htmlBlogExport?: boolean;
+  };
+}
+
 export default function GeneratorForm({
   channels,
   promptSettings,
   planFeatures = { imagePromptStudio: true, htmlBlogExport: true }
-}: {
-  channels: any[];
-  promptSettings?: any;
-  planFeatures?: { imagePromptStudio?: boolean; htmlBlogExport?: boolean };
-}) {
+}: GeneratorFormProps) {
   const router = useRouter();
   const t = useTranslations("Generator");
 
@@ -124,7 +143,7 @@ export default function GeneratorForm({
       .then((d) => {
         if (d.success && d.options) {
           setPlatformOptions(
-            d.options.map((opt: any) => ({ value: opt.label, label: opt.label }))
+            d.options.map((opt: { label: string }) => ({ value: opt.label, label: opt.label }))
           );
         }
       })
@@ -135,7 +154,7 @@ export default function GeneratorForm({
       .then((d) => {
         if (d.success && d.presets) {
           setPersonaPresets(
-            d.presets.map((p: any) => ({ value: p.label, label: p.label }))
+            d.presets.map((p: { label: string }) => ({ value: p.label, label: p.label }))
           );
         }
       })
@@ -146,7 +165,7 @@ export default function GeneratorForm({
       .then((d) => {
         if (d.success && d.presets) {
           setVisualAesthetics(
-            d.presets.map((v: any) => ({ value: v.label, label: v.label }))
+            d.presets.map((v: { label: string }) => ({ value: v.label, label: v.label }))
           );
         }
       })
@@ -156,7 +175,7 @@ export default function GeneratorForm({
   // Synchronize channel settings into form configs when channel selection changes
   useEffect(() => {
     if (!channelId) return;
-    const selectedChannel = channels.find((c: any) => c.id === channelId);
+    const selectedChannel = channels.find((c: GeneratorFormChannel) => c.id === channelId);
     if (selectedChannel) {
       setVideoConfig((prev) => ({
         ...prev,
@@ -187,7 +206,7 @@ export default function GeneratorForm({
       .catch(() => {});
   }, [channelId]);
 
-  const handleVideoConfigChange = (key: string, value: any) => {
+  const handleVideoConfigChange = (key: string, value: unknown) => {
     setVideoConfig((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -230,8 +249,9 @@ export default function GeneratorForm({
       setNewProductDesc("");
       setNewProductPrice("0");
       setNewProductLink("");
-    } catch (err: any) {
-      toast.error(err.message || "Terjadi kesalahan.");
+    } catch (err: unknown) {
+      const error = err as Error;
+      toast.error(error.message || "Terjadi kesalahan.");
     } finally {
       setAddingProduct(false);
     }
@@ -303,7 +323,7 @@ export default function GeneratorForm({
       const selectedChannel = channels.find((c) => c.id === channelId);
       const effectiveTopic = topic.trim() ? topic.trim() : (selectedChannel?.niche || "Topik Umum");
 
-      const payload: any = {
+      const payload: Record<string, unknown> = {
         channelId,
         type,
         topic: effectiveTopic,
@@ -879,7 +899,7 @@ export default function GeneratorForm({
                     label="Visual Style & Aesthetic"
                     value={imageConfig.visualStyle}
                     onChange={(val) =>
-                      setImageConfig((prev) => ({ ...prev, visualStyle: val }))
+                      setImageConfig((prev) => ({ ...prev, visualStyle: String(val) }))
                     }
                     options={visualAesthetics.length > 0 ? visualAesthetics : [
                       { value: "Cinematic Dark Mode (Sleek & Professional)", label: "Cinematic Dark Mode" },

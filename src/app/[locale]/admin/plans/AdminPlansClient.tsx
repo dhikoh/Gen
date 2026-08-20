@@ -14,7 +14,7 @@ export interface PlanDto {
   priceMonthly: number;
   maxChannels: number;
   isActive: boolean;
-  features: any;
+  features: Record<string, boolean> | null;
   sortOrder: number;
 }
 
@@ -56,7 +56,7 @@ export default function AdminPlansClient({ initialPlans }: { initialPlans: PlanD
     }
   };
 
-  const handleChange = (id: string, field: string, value: any) => {
+  const handleChange = (id: string, field: keyof PlanDto, value: unknown) => {
     setPlans(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
   };
 
@@ -129,7 +129,7 @@ export default function AdminPlansClient({ initialPlans }: { initialPlans: PlanD
                     const isChecked = planFeatures[feat.key] ?? feat.defaultValue;
                     return (
                       <label key={feat.key} className="flex items-center justify-between cursor-pointer text-sm text-zinc-700 dark:text-zinc-300">
-                        <span>{t(feat.labelKey as any)}</span>
+                        <span>{t(feat.labelKey as Parameters<typeof t>[0])}</span>
                         <div className="relative">
                           <input 
                             type="checkbox" 

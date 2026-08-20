@@ -8,12 +8,29 @@ import ProductsClient from "./ProductsClient";
 import UsedTitlesDirectory from "@/components/dashboard/UsedTitlesDirectory";
 import { PresetSelect, PresetOption } from "@/components/ui/PresetSelect";
 
+interface EditChannelProps {
+  id?: string;
+  channelName?: string;
+  niche?: string | null;
+  targetPlatform?: string | null;
+  personaPov?: string | null;
+  speechRate?: number | null;
+  description?: string | null;
+  cta1?: string | null;
+  cta2?: string | null;
+  visualAesthetic?: string | null;
+  audioBGM?: boolean;
+  audioSFX?: boolean;
+  audioVO?: boolean;
+  socialLinks?: unknown;
+}
+
 export default function EditChannelClient({
   channel,
   isNew = false,
   onSuccess,
 }: {
-  channel: any;
+  channel?: EditChannelProps | null;
   isNew?: boolean;
   onSuccess?: () => void;
 }) {
@@ -41,7 +58,7 @@ export default function EditChannelClient({
       .then((d) => {
         if (d.success && d.options) {
           setPlatformOptions(
-            d.options.map((opt: any) => ({ value: opt.label, label: opt.label }))
+            d.options.map((opt: { label: string }) => ({ value: opt.label, label: opt.label }))
           );
         }
       })
@@ -52,7 +69,7 @@ export default function EditChannelClient({
       .then((d) => {
         if (d.success && d.presets) {
           setPersonaOptions(
-            d.presets.map((p: any) => ({ value: p.label, label: p.label }))
+            d.presets.map((p: { label: string }) => ({ value: p.label, label: p.label }))
           );
         }
       })
@@ -63,7 +80,7 @@ export default function EditChannelClient({
       .then((d) => {
         if (d.success && d.presets) {
           setAestheticOptions(
-            d.presets.map((a: any) => ({ value: a.label, label: a.label }))
+            d.presets.map((a: { label: string }) => ({ value: a.label, label: a.label }))
           );
         }
       })
@@ -74,7 +91,7 @@ export default function EditChannelClient({
       .then((d) => {
         if (d.success && d.presets) {
           setNicheOptions(
-            d.presets.map((n: any) => ({ value: n.label, label: n.label }))
+            d.presets.map((n: { label: string }) => ({ value: n.label, label: n.label }))
           );
         }
       })
@@ -85,12 +102,13 @@ export default function EditChannelClient({
   const initSocial = () => {
     const raw = channel?.socialLinks;
     if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+      const obj = raw as Record<string, string>;
       return {
-        website: raw.website || "",
-        tiktok: raw.tiktok || "",
-        instagram: raw.instagram || "",
-        facebook: raw.facebook || "",
-        youtube: raw.youtube || "",
+        website: obj.website || "",
+        tiktok: obj.tiktok || "",
+        instagram: obj.instagram || "",
+        facebook: obj.facebook || "",
+        youtube: obj.youtube || "",
       };
     }
     const arr = Array.isArray(raw)
@@ -142,7 +160,7 @@ export default function EditChannelClient({
     e.preventDefault();
     setLoading(true);
     try {
-      const url = isNew ? "/api/channels" : `/api/channels/${channel.id}`;
+      const url = isNew ? "/api/channels" : `/api/channels/${channel?.id}`;
       const method = isNew ? "POST" : "PUT";
 
       const res = await fetch(url, {
@@ -200,7 +218,7 @@ export default function EditChannelClient({
           <PresetSelect
             label="Kategori / Niche Channel"
             value={formData.niche}
-            onChange={(val) => setFormData((prev) => ({ ...prev, niche: val }))}
+            onChange={(val) => setFormData((prev) => ({ ...prev, niche: String(val) }))}
             options={nicheOptions.length > 0 ? nicheOptions : [
               { value: "Teknologi & Gadget", label: "Teknologi & Gadget" },
               { value: "Bisnis & Finance", label: "Bisnis & Finance" },
@@ -215,7 +233,7 @@ export default function EditChannelClient({
             label="Target Platform"
             value={formData.targetPlatform}
             onChange={(val) =>
-              setFormData((prev) => ({ ...prev, targetPlatform: val }))
+              setFormData((prev) => ({ ...prev, targetPlatform: String(val) }))
             }
             options={platformOptions.length > 0 ? platformOptions : [
               { value: "TikTok", label: "TikTok" },
@@ -230,7 +248,7 @@ export default function EditChannelClient({
             label="Persona & POV Kreator"
             value={formData.personaPov}
             onChange={(val) =>
-              setFormData((prev) => ({ ...prev, personaPov: val }))
+              setFormData((prev) => ({ ...prev, personaPov: String(val) }))
             }
             options={personaOptions.length > 0 ? personaOptions : [
               { value: "Expert Storyteller (Edukasi & Inspirasi)", label: "Expert Storyteller (Edukasi & Inspirasi)" },
@@ -246,7 +264,7 @@ export default function EditChannelClient({
             label="Speech Rate (Kecepatan Suara)"
             value={formData.speechRate}
             onChange={(val) =>
-              setFormData((prev) => ({ ...prev, speechRate: val }))
+              setFormData((prev) => ({ ...prev, speechRate: Number(val) }))
             }
             options={speechRateOptions}
             type="number"
@@ -261,7 +279,7 @@ export default function EditChannelClient({
             label="Visual Aesthetic & Style"
             value={formData.visualAesthetic}
             onChange={(val) =>
-              setFormData((prev) => ({ ...prev, visualAesthetic: val }))
+              setFormData((prev) => ({ ...prev, visualAesthetic: String(val) }))
             }
             options={aestheticOptions.length > 0 ? aestheticOptions : [
               { value: "Cinematic Dark Mode (Sleek & Professional)", label: "Cinematic Dark Mode" },

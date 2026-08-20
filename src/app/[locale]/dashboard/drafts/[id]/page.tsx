@@ -15,6 +15,31 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   return { title: `${t('detailPageTitleTab')} - Prompt Gen` };
 }
 
+interface VideoSegment {
+  order?: number;
+  type?: string;
+  duration_estimation?: number;
+  visual?: string;
+  audio?: string;
+  caption?: string;
+}
+
+interface ImageVariation {
+  id?: number;
+  aspect_ratio?: string;
+  prompt_text?: string;
+  narrative_prompt?: string;
+  negative_prompt?: string;
+}
+
+interface DraftParsedData {
+  caption_medsos?: string;
+  ide_thumbnail?: string;
+  html_blog?: string;
+  segments?: VideoSegment[];
+  variations?: ImageVariation[];
+}
+
 export default async function DraftDetailPage({ 
   params 
 }: { 
@@ -40,7 +65,7 @@ export default async function DraftDetailPage({
     notFound();
   }
 
-  const parsedData = draft.parsedData as any;
+  const parsedData = draft.parsedData as unknown as DraftParsedData;
 
   return (
     <div className="max-w-4xl mx-auto pb-12">
@@ -143,7 +168,7 @@ export default async function DraftDetailPage({
               <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{t('segments')}</h2>
             </div>
             <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
-              {parsedData.segments.map((segment: any, idx: number) => (
+              {parsedData.segments.map((segment: VideoSegment, idx: number) => (
                 <div key={idx} className="p-6 hover:bg-zinc-50/50 dark:hover:bg-zinc-900/50 transition-colors">
                   <div className="flex items-center space-x-3 mb-4">
                     <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 text-xs font-bold">
@@ -191,7 +216,7 @@ export default async function DraftDetailPage({
               <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{t('imageVariations')}</h2>
             </div>
             <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
-              {parsedData.variations.map((variation: any, idx: number) => (
+              {parsedData.variations.map((variation: ImageVariation, idx: number) => (
                 <div key={idx} className="p-6 hover:bg-zinc-50/50 dark:hover:bg-zinc-900/50 transition-colors">
                   <div className="flex items-center space-x-3 mb-4">
                     <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 text-xs font-bold">

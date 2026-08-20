@@ -203,26 +203,24 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
 
     if (action === "UPDATE_PLAN" && planId) {
-      await prisma.user.update({
-        where: { id },
-        data: {
-          currentPlanId: planId,
-          subscriptionStatus: "ACTIVE", 
-        }
-      });
+      const isExpired = !targetUser.subscriptionExpiresAt || targetUser.subscriptionExpiresAt < new Date();
+      const newExpiry = isExpired ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : targetUser.subscriptionExpiresAt;
 
-      // Validasi exp, jika null maka set 30 hari default
-      if (!targetUser.subscriptionExpiresAt || targetUser.subscriptionExpiresAt < new Date()) {
-         await prisma.user.update({
-            where: { id },
-            data: { subscriptionExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) }
-         });
-      }
+      const updatedUser = await prisma.$transaction(async (tx) => {
+        return tx.user.update({
+          where: { id },
+          data: {
+            currentPlanId: planId,
+            subscriptionStatus: "ACTIVE",
+            ...(isExpired && { subscriptionExpiresAt: newExpiry }),
+          },
+          select: SAFE_USER_SELECT
+        });
+      });
 
       const { enforceChannelLimits } = await import("@/lib/channelLockLogic");
       await enforceChannelLimits(id);
-      
-      const updatedUser = await prisma.user.findUnique({ where: { id }, select: SAFE_USER_SELECT });
+
       return NextResponse.json({ success: true, message: t("planUpdated"), user: updatedUser });
     }
 
