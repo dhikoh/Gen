@@ -59,8 +59,9 @@ export default function ScenePromptStudioClient({ channels, locale }: Props) {
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"scenes"|"thumbnail"|"platform">("scenes");
 
-  // LocalStorage Persistence
+  // Server-Side Sync & LocalStorage Persistence
   useEffect(() => {
+    // 1. Local Storage load
     const saved = localStorage.getItem("scenePromptState");
     if (saved) {
       try {
@@ -73,10 +74,39 @@ export default function ScenePromptStudioClient({ channels, locale }: Props) {
         if (p.draftTitle) setDraftTitle(p.draftTitle);
       } catch (e) {}
     }
+
+    // 2. Server load (overrides local)
+    fetch("/api/user/preferences")
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.generatorPreferences?.scenePromptState) {
+          const p = data.generatorPreferences.scenePromptState;
+          if (p.rawText) setRawText(p.rawText);
+          if (p.selectedChannelId) setSelectedChannelId(p.selectedChannelId);
+          if (p.ar) setAr(p.ar);
+          if (p.sref) setSref(p.sref);
+          if (p.cref) setCref(p.cref);
+          if (p.draftTitle) setDraftTitle(p.draftTitle);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("scenePromptState", JSON.stringify({ rawText, selectedChannelId, ar, sref, cref, draftTitle }));
+    const stateObj = { rawText, selectedChannelId, ar, sref, cref, draftTitle };
+    localStorage.setItem("scenePromptState", JSON.stringify(stateObj));
+
+    const timeoutId = setTimeout(() => {
+      if (rawText || draftTitle || sref || cref) {
+        fetch("/api/user/preferences", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ scenePromptState: stateObj }),
+        }).catch(() => {});
+      }
+    }, 3000); // 3 seconds debounce
+
+    return () => clearTimeout(timeoutId);
   }, [rawText, selectedChannelId, ar, sref, cref, draftTitle]);
 
   // sref/cref are manual inputs — no channel default sync needed

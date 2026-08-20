@@ -162,8 +162,9 @@ export default function GeneratorForm({
     aspectRatio: "16:9"
   });
 
-  // LocalStorage Persistence
+  // Server-Side Sync & LocalStorage Persistence
   useEffect(() => {
+    // 1. Local Storage load
     const saved = localStorage.getItem("generatorFormState");
     if (saved) {
       try {
@@ -184,12 +185,45 @@ export default function GeneratorForm({
         if (p.imageConfig) setImageConfig(prev => ({ ...prev, ...p.imageConfig }));
       } catch (e) {}
     }
+
+    // 2. Server load (overrides local)
+    fetch("/api/user/preferences")
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.generatorPreferences?.generatorFormState) {
+          const p = data.generatorPreferences.generatorFormState;
+          if (p.type) setType(p.type);
+          if (p.channelId) setChannelId(p.channelId);
+          if (p.topic) setTopic(p.topic);
+          if (p.additionalContext) setAdditionalContext(p.additionalContext);
+          if (p.rolePOV) setRolePOV(p.rolePOV);
+          if (p.toneOfVoice !== undefined) setToneOfVoice(p.toneOfVoice);
+          if (p.visualStyleKey !== undefined) setVisualStyleKey(p.visualStyleKey);
+          if (p.hookStyleType) setHookStyleType(p.hookStyleType);
+          if (p.customHookText !== undefined) setCustomHookText(p.customHookText);
+          if (p.musicPreference !== undefined) setMusicPreference(p.musicPreference);
+          if (p.sfxPreference !== undefined) setSfxPreference(p.sfxPreference);
+          if (p.voPreference !== undefined) setVoPreference(p.voPreference);
+          if (p.videoConfig) setVideoConfig(prev => ({ ...prev, ...p.videoConfig }));
+          if (p.imageConfig) setImageConfig(prev => ({ ...prev, ...p.imageConfig }));
+        }
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("generatorFormState", JSON.stringify({
-      type, channelId, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, videoConfig, imageConfig
-    }));
+    const stateObj = { type, channelId, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, videoConfig, imageConfig };
+    localStorage.setItem("generatorFormState", JSON.stringify(stateObj));
+
+    const timeoutId = setTimeout(() => {
+      fetch("/api/user/preferences", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ generatorFormState: stateObj }),
+      }).catch(() => {});
+    }, 3000); // 3 seconds debounce
+
+    return () => clearTimeout(timeoutId);
   }, [type, channelId, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, videoConfig, imageConfig]);
 
   // Fetch presets on mount
