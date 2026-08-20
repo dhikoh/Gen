@@ -33,6 +33,7 @@ interface ImageVariation {
 }
 
 interface DraftParsedData {
+  opsi_judul?: string[];
   caption_medsos?: string;
   ide_thumbnail?: string;
   html_blog?: string;
@@ -123,6 +124,32 @@ export default async function DraftDetailPage({
 
       {/* Output Visualisasi */}
       <div className="space-y-6">
+        {parsedData?.opsi_judul && parsedData.opsi_judul.length > 0 && (
+          <div className="glass-panel shadow-lg rounded-xl p-6">
+            <div className="flex justify-between items-start mb-4">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                Opsi Judul Viral (Rekomendasi AI Tahap 1)
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {parsedData.opsi_judul.map((title: string, idx: number) => (
+                <div
+                  key={idx}
+                  className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-950 rounded-lg border border-zinc-100 dark:border-zinc-800 text-sm text-zinc-800 dark:text-zinc-200"
+                >
+                  <div className="flex items-center flex-1 min-w-0 mr-2">
+                    <span className="font-bold text-xs text-blue-600 dark:text-blue-400 mr-2 shrink-0">
+                      #{idx + 1}
+                    </span>
+                    <span className="truncate" title={title}>{title}</span>
+                  </div>
+                  <CopyButton textToCopy={title} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {parsedData?.caption_medsos && (
           <div className="glass-panel shadow-lg rounded-xl p-6">
             <div className="flex justify-between items-start mb-4">

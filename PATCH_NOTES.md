@@ -195,7 +195,9 @@ Pembaruan ini mencakup seluruh perbaikan bug dan arsitektur yang teridentifikasi
     - **Tahap 1 (Penawaran 10 Judul Viral):** Jika judul spesifik belum diisi user, AI menawarkan 10 rekomendasi judul berpotensi viral lengkap dengan indikator persentase potensi viralitasnya di chat box AI eksternal, lalu berhenti sejenak meminta konfirmasi nomor pilihan (1-10) dari user.
     - **Tahap 2 (Eksekusi JSON Skrip Video):** Setelah user membalas nomor pilihan di chat box AI eksternal, AI merilis output murni JSON valid (tanpa teks pembuka/markdown fence) berisi `opsi_judul`, `judul_konten`, `segments`, `caption_medsos`, `ide_thumbnail`, dan `html_blog`.
   - **Aturan Direktori Judul Terpakai (`excludeTitles`):** Menegaskan bahwa hanya judul yang disetujui/disimpan (`draft.title`) yang dimasukkan ke daftar eksklusi `excludeTitles` pada penciptaan prompt berikutnya; 9 opsi judul yang tidak terpilih tetap bersih dan tidak dikunci dari ideasi di masa mendatang.
+  - **Pembaruan Visualisasi UI Halaman Detail Draft (`DraftDetailPage`):** Menambahkan komponen visual kartu *Opsi Judul Viral (Rekomendasi AI Tahap 1)* di `src/app/[locale]/dashboard/drafts/[id]/page.tsx` lengkap dengan tombol *copy-to-clipboard* per judul untuk merender 10 alternatif judul yang dihasilkan AI di Tahap 1.
   - **Pembaruan Spesifikasi Blueprint Proyek:** Memperbarui Bagian 5.4.A dan menambahkan Bagian 12.12 pada `Project Prompt Gen.txt` sebagai dokumen spesifikasi tunggal dan otoritatif.
   - **Verifikasi TypeScript:** `npx tsc --noEmit` terverifikasi **100% Clean (Zero Errors)**.
+
 
 
