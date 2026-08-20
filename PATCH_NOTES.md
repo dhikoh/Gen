@@ -199,5 +199,23 @@ Pembaruan ini mencakup seluruh perbaikan bug dan arsitektur yang teridentifikasi
   - **Pembaruan Spesifikasi Blueprint Proyek:** Memperbarui Bagian 5.4.A dan menambahkan Bagian 12.12 pada `Project Prompt Gen.txt` sebagai dokumen spesifikasi tunggal dan otoritatif.
   - **Verifikasi TypeScript:** `npx tsc --noEmit` terverifikasi **100% Clean (Zero Errors)**.
 
-
-
+## 35. PROMPT AUDIT TOTAL — Business Logic, Blueprint Sync & Security Remediation
+- **Komponen Terdampak:** `src/app/api/admin/registrations/route.ts`, `src/app/[locale]/page.tsx`, `src/app/[locale]/dashboard/pricing/page.tsx`, `src/lib/subscription.ts`, `Project Prompt Gen.txt`, `PATCH_NOTES.md`, `AUDIT_REPORT_FINAL.md`.
+- **Perbaikan:**
+  - **Penyelesaian Orphan Field & Logika Trial (`User.hasUsedTrial`):** Memperbarui handler eksekusi persetujuan registrasi di `src/app/api/admin/registrations/route.ts` untuk memeriksa `!targetUser.hasUsedTrial` sebelum mengalokasikan paket DEMO 3 hari dan memperbarui `hasUsedTrial: true` secara atomik, menjamin perlindungan terhadap akumulasi/re-claim trial berulang.
+  - **Pemberlakuan Kontrol Akses Paket Publik (`Plan.isPubliclyPurchasable`):** Menerapkan filter `where: { isActive: true, isPubliclyPurchasable: true }` pada kueri `prisma.plan.findMany` di landing page (`src/app/[locale]/page.tsx`) dan dashboard pricing (`src/app/[locale]/dashboard/pricing/page.tsx`), mengisolasi paket khusus/internal (seperti DEMO) agar tidak bocor pada tampilan publik.
+  - **Pemicu Notifikasi Peringatan Masa Berlaku Langganan (`SUBSCRIPTION_EXPIRING_SOON`):** Menambahkan logika pemicu pada `getSubscriptionState` di `src/lib/subscription.ts` untuk memicu notifikasi `SUBSCRIPTION_EXPIRING_SOON` otomatis saat masa aktif tersisa <= 3 hari (72 jam), dengan penanganan *deduplication* 24 jam.
+  - **Sinkronisasi Total Blueprint Spesifikasi (`Project Prompt Gen.txt`):**
+    - Menambahkan baris paket DEMO pada tabel Bagian 5.7.2.
+    - Memperbarui Bagian 12.1 untuk mencakup 14 nilai `NotificationType` enum aktual dan pemicu backend-nya.
+    - Mengoreksi penamaan field `PromptSettings` (`videoSystemInstruction`, `imageSystemInstruction`) pada Bagian 12.2.
+    - Mendokumentasikan field `hasUsedTrial`, `preferredLocale`, `approvedAt` pada `User` di Bagian 12.3.
+    - Mendokumentasikan `isPubliclyPurchasable` pada `Plan` di Bagian 12.4, serta `proofUploadedAt` dan `rejectionReason` pada `Invoice` di Bagian 12.5.
+    - Mengoreksi penamaan model `SupportMessage` pada Bagian 12.7.
+    - Mendokumentasikan pengaturan CS dinamik (`registrationPendingAlertHours`, `paymentPendingAlertHours`, `csWidgetEnabled`, `csOperatingHours`, `csWhatsappNumber`, `csEmail`, `csMode`) pada Bagian 12.10.
+  - **Verifikasi Kematangan Bisnis & Keamanan (Modul 3.1 - 3.10):**
+    - 0% istilah credit/saldo di seluruh sistem.
+    - 100% keselarasan i18n (696 kunci di `messages/id.json` dan `messages/en.json`).
+    - 0 hardcoded string Bahasa Indonesia di JSX.
+    - Keamanan Section 6 terverifikasi penuh (Strict Zod, Rate Limiting, DOMPurify, Atomic Transactions).
+  - **Pemeriksaan Kompilasi TypeScript (`npx tsc --noEmit`):** Terverifikasi **100% Clean (Zero Errors)**.

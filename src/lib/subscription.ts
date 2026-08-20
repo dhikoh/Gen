@@ -31,6 +31,32 @@ export async function getSubscriptionState(userId: string) {
       "subscriptionExpiredMsg",
       "/dashboard/billing"
     );
+  } else if (isActive && user.subscriptionExpiresAt) {
+    const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
+    const timeLeft = user.subscriptionExpiresAt.getTime() - now.getTime();
+    if (timeLeft > 0 && timeLeft <= threeDaysMs) {
+      // Avoid duplicate notification if issued within the last 24h
+      const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const recentNotif = await prisma.notification.findFirst({
+        where: {
+          userId,
+          type: "SUBSCRIPTION_EXPIRING_SOON",
+          createdAt: { gte: oneDayAgo }
+        }
+      });
+
+      if (!recentNotif) {
+        const daysLeft = Math.max(1, Math.ceil(timeLeft / (24 * 60 * 60 * 1000)));
+        await notifyUser(
+          userId,
+          "SUBSCRIPTION_EXPIRING_SOON",
+          "subscriptionExpiringTitle",
+          "subscriptionExpiringMsg",
+          "/dashboard/billing",
+          { daysLeft }
+        );
+      }
+    }
   }
 
   return {

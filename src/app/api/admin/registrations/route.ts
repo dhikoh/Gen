@@ -71,17 +71,19 @@ export async function POST(req: Request) {
 
     const newStatus = action === "APPROVE" ? "APPROVED" : "REJECTED";
 
-    // Auto-assign DEMO plan for 3 days on approval if user has no plan
+    // Auto-assign DEMO plan for 3 days on approval if user has not used trial yet
     let demoPlanId: string | undefined = undefined;
     let subscriptionExpiresAt: Date | undefined = undefined;
+    let grantTrial = false;
 
-    if (action === "APPROVE") {
+    if (action === "APPROVE" && !targetUser.hasUsedTrial) {
       const demoPlan = await prisma.plan.findUnique({ where: { code: "DEMO" } });
       if (demoPlan) {
         demoPlanId = demoPlan.id;
         const ends = new Date();
         ends.setDate(ends.getDate() + 3);
         subscriptionExpiresAt = ends;
+        grantTrial = true;
       }
     }
 
@@ -95,9 +97,10 @@ export async function POST(req: Request) {
         registrationStatus: newStatus,
         approvedAt: action === "APPROVE" ? new Date() : null,
         ...(action === "APPROVE" ? {
-          subscriptionStatus: "ACTIVE",
+          subscriptionStatus: grantTrial ? "ACTIVE" : targetUser.subscriptionStatus,
           currentPlanId: demoPlanId || targetUser.currentPlanId,
           subscriptionExpiresAt: subscriptionExpiresAt || targetUser.subscriptionExpiresAt,
+          hasUsedTrial: grantTrial ? true : targetUser.hasUsedTrial,
         } : {})
       }
     });

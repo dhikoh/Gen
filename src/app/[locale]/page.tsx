@@ -25,7 +25,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
   // Fetch settings and plans concurrently
   const [settings, plans] = await Promise.all([
     prisma.appSettings.findUnique({ where: { id: "singleton" } }),
-    prisma.plan.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" } })
+    prisma.plan.findMany({ where: { isActive: true, isPubliclyPurchasable: true }, orderBy: { sortOrder: "asc" } })
   ]);
 
   const heroTitle = settings?.heroTitle || tLanding("heroTitle");
