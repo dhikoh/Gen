@@ -18,13 +18,7 @@ interface AppSettings {
   csWidgetEnabled?: boolean | null;
 }
 
-interface PromptSettingsData {
-  videoSystemInstruction?: string | null;
-  imageSystemInstruction?: string | null;
-  defaultSpeechRate?: string | null;
-  defaultNegativePrompt?: string | null;
-  bannedWords?: string[] | string | unknown;
-}
+import { PromptSettingsData } from "@/lib/promptGenerator";
 
 export default function AdminSettingsClient({
   settings,
@@ -230,9 +224,9 @@ export default function AdminSettingsClient({
                     onChange={(e) => setAppFormData(prev => ({ ...prev, csMode: e.target.value }))}
                     className="w-full px-4 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-zinc-900 dark:text-white text-sm"
                   >
-                    <option value="TICKET">Sistem Tiket Internal (Default)</option>
-                    <option value="DIRECT_WHATSAPP">Direct WhatsApp</option>
-                    <option value="DIRECT_EMAIL">Direct Email</option>
+                    <option value="TICKET">{st("csModeTICKET")}</option>
+                    <option value="DIRECT_WHATSAPP">{st("csModeDIRECT_WHATSAPP")}</option>
+                    <option value="DIRECT_EMAIL">{st("csModeDIRECT_EMAIL")}</option>
                   </select>
                 </div>
 

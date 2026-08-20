@@ -219,3 +219,14 @@ Pembaruan ini mencakup seluruh perbaikan bug dan arsitektur yang teridentifikasi
     - 0 hardcoded string Bahasa Indonesia di JSX.
     - Keamanan Section 6 terverifikasi penuh (Strict Zod, Rate Limiting, DOMPurify, Atomic Transactions).
   - **Pemeriksaan Kompilasi TypeScript (`npx tsc --noEmit`):** Terverifikasi **100% Clean (Zero Errors)**.
+
+## 36. Push Engine Integration — Scene Prompt Studio & Enriched Generator (Phase Push-1 s/d Push-5)
+- **Komponen Terdampak:** `src/lib/visualStyleMap.ts`, `src/lib/parsers.ts`, `src/lib/promptGenerator.ts`, `src/app/api/generate/route.ts`, `src/components/generator/GeneratorForm.tsx`, `prisma/schema.prisma`, `src/app/api/parsed-outputs/route.ts`, `src/app/[locale]/dashboard/scene-prompt/page.tsx`, `src/app/[locale]/dashboard/scene-prompt/ScenePromptStudioClient.tsx`, `src/app/[locale]/dashboard/layout.tsx`, `messages/en.json`, `messages/id.json`, `PATCH_NOTES.md`.
+- **Perbaikan:**
+  - **[Phase Push-1] visualStyleMap.ts:** 15 preset estetika visual (Photorealistic, Pixar, Ghibli, Cyberpunk, Flat Vector, Watercolor, Synthwave, Vintage Kodak, Dark Fantasy, Claymation, Fairytale, Isometric, Pop Art, Line Art, Oil Painting) + `resolveVisualStyle()` + `getVisualStyleOptions()`.
+  - **[Phase Push-2] promptGenerator.ts Overhaul:** POV/Persona (5 role AI), Tone of Voice, Visual Style resolution, Audio Guidelines adaptif (BGM/SFX/VO per-channel override), Loop Guidelines (Seamless Narrative & Video Loop), Anti-AI Detection (burstiness/perplexity/blacklist), Visual Prompt 5-bagian, Emotional Arc, Engagement Triggers. Format output Markdown Push-style (`## SCENE N`, NARASI, PANDUAN SUARA, VISUAL PROMPT, DURASI).
+  - **[Phase Push-2] generate/route.ts:** +12 parameter Zod baru: `rolePOV`, `toneOfVoice`, `visualStyle`, `hookStyleType`, `customHookText`, `isLoopable`, `isVideoLoop`, `musicPreference`, `sfxPreference`, `voPreference`, `selectedSections`, `isVideoPlatform`.
+  - **[Phase Push-3] GeneratorForm UI:** 5 kontrol baru: 🎭 Role & POV AI (6 radio cards), 🎨 Visual Style (dropdown 16 opsi), 🎙️ Tone of Voice (9 chips), 🔊 Audio Preferences (3 toggle), Audio sync useEffect dari channel profile.
+  - **[Phase Push-4] ParsedOutput Model + API:** Model `ParsedOutput` di schema Prisma + endpoint `/api/parsed-outputs` (GET/POST) dengan auto-cleanup 10 record/user.
+  - **[Phase Push-5] Scene Prompt Studio:** Halaman `/dashboard/scene-prompt` — parser lokal regex, Scene Viewer dengan badge audio cues & voice guidelines, Thumbnail Studio tab, Platform Content tab, Aspect Ratio/Sref suffix, Save as Draft, i18n 24 kunci, link sidebar.
+  - **TypeScript:** `npx tsc --noEmit` → **100% Clean (Exit Code 0)** setelah `npx prisma generate`.

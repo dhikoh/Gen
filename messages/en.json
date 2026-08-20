@@ -43,7 +43,8 @@
     "studio": "Generator Studio",
     "notifications": "Notifications",
     "guide": "User Guide",
-    "support": "CS Support"
+    "support": "CS Support",
+    "scenePromptStudio": "Scene Prompt Studio"
   },
   "Auth": {
     "login": "Login",
@@ -618,7 +619,11 @@
     "tooManyUploads": "Too many upload requests. Try again later.",
     "registrationAlreadyProcessed": "This registration has already been processed.",
     "htmlBlogLocked": "Your subscription plan does not include the HTML Blog Export feature. Please upgrade your plan.",
-    "maxChannelsReached": "Your maximum channel limit is {max}. Please upgrade your plan."
+    "maxChannelsReached": "Your maximum channel limit is {max}. Please upgrade your plan.",
+    "noRecipientsFound": "No recipients found for the specified criteria.",
+    "csModeDIRECT_WHATSAPP": "Direct WhatsApp",
+    "csModeDIRECT_EMAIL": "Direct Email",
+    "csModeTICKET": "Internal Ticket System"
   },
   "Emails": {
     "resetSubject": "Reset Password - Prompt Gen",
@@ -737,6 +742,45 @@
     "ticketSuccessDesc": "Our team will respond to your message as soon as possible.",
     "subjectPlaceholder": "Problem summary...",
     "messagePlaceholder": "Details of your issue or question...",
-    "guestNamePlaceholder": "Your Name"
+    "guestNamePlaceholder": "Your Name",
+    "csModeDIRECT_WHATSAPP": "Direct WhatsApp",
+    "csModeDIRECT_EMAIL": "Direct Email",
+    "csModeTICKET": "Internal Ticket System (Default)"
+  },
+  "Error": {
+    "title": "Something went wrong",
+    "description": "An unexpected error occurred. Please try again or contact support if the problem persists.",
+    "retry": "Try Again"
+  },
+  "NotFound": {
+    "title": "Page Not Found",
+    "description": "The page you're looking for doesn't exist or has been moved.",
+    "backHome": "Back to Home"
+  },
+  "ScenePromptStudio": {
+    "metaTitle": "Scene Prompt Studio | Prompt Gen",
+    "metaDescription": "Parse AI script output into scene-by-scene breakdown with visual prompts and audio cues.",
+    "title": "Scene Prompt Studio",
+    "subtitle": "Paste your AI output below to parse it into scene-by-scene breakdown.",
+    "channelLabel": "Channel",
+    "pastePlaceholder": "Paste your AI-generated script or LLM output here...",
+    "parseButton": "Parse Scenes",
+    "scenesFound": "scenes found",
+    "sceneViewerTab": "Scene Viewer",
+    "thumbnailTab": "Thumbnail Studio",
+    "platformTab": "Platform Content",
+    "narasi": "Narration / VO",
+    "visualPrompt": "Visual Prompt",
+    "copy": "Copy",
+    "platformContent": "Platform Content",
+    "titlesFound": "Extracted Titles",
+    "noThumbnailData": "No thumbnail data found in the parsed output.",
+    "saveDraft": "Save as Draft",
+    "draftTitlePlaceholder": "Draft title...",
+    "saveDraftButton": "Save Draft",
+    "saving": "Saving...",
+    "draftSaved": "Draft saved successfully!",
+    "draftError": "Failed to save draft.",
+    "defaultDraftTitle": "Scene Prompt Draft"
   }
 }

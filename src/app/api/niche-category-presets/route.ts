@@ -3,12 +3,14 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
+import { getApiTranslator } from "@/lib/apiI18n";
 
 const createSchema = z.object({
-  label: z.string().trim().min(1, "Label kategori niche wajib diisi"),
+  label: z.string().trim().min(1),
 });
 
 export async function GET() {
+  const t = await getApiTranslator();
   const session = await getServerSession(authOptions);
   const userId = session?.user?.id;
 
@@ -48,14 +50,15 @@ export async function GET() {
     return NextResponse.json({ success: true, presets });
   } catch (error) {
     console.error("GET /api/niche-category-presets error:", error);
-    return NextResponse.json({ error: "Gagal mengambil kategori niche." }, { status: 500 });
+    return NextResponse.json({ error: t("serverError") }, { status: 500 });
   }
 }
 
 export async function POST(req: Request) {
+  const t = await getApiTranslator();
   const session = await getServerSession(authOptions);
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
   }
 
   try {
@@ -84,9 +87,47 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, preset });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.issues[0]?.message || "Input tidak valid" }, { status: 400 });
+      return NextResponse.json({ error: t("invalidInput") }, { status: 400 });
     }
     console.error("POST /api/niche-category-presets error:", error);
-    return NextResponse.json({ error: "Gagal menambahkan kategori niche." }, { status: 500 });
+    return NextResponse.json({ error: t("serverError") }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request) {
+  const t = await getApiTranslator();
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
+  }
+
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json({ error: t("invalidInput") }, { status: 400 });
+    }
+
+    const preset = await prisma.nicheCategoryPreset.findUnique({ where: { id } });
+
+    if (!preset) {
+      return NextResponse.json({ error: t("notFound") }, { status: 404 });
+    }
+
+    if (preset.isSystem) {
+      return NextResponse.json({ error: t("forbidden") }, { status: 403 });
+    }
+
+    if (preset.createdByUserId !== session.user.id && session.user.role !== "SUPERADMIN") {
+      return NextResponse.json({ error: t("forbidden") }, { status: 403 });
+    }
+
+    await prisma.nicheCategoryPreset.delete({ where: { id } });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("DELETE /api/niche-category-presets error:", error);
+    return NextResponse.json({ error: t("serverError") }, { status: 500 });
   }
 }

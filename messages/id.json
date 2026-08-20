@@ -43,7 +43,8 @@
     "studio": "Studio Generator",
     "notifications": "Notifikasi",
     "guide": "Panduan Penggunaan",
-    "support": "Dukungan CS"
+    "support": "Dukungan CS",
+    "scenePromptStudio": "Scene Prompt Studio"
   },
   "Auth": {
     "login": "Masuk",
@@ -618,7 +619,11 @@
     "tooManyUploads": "Terlalu banyak permintaan upload. Coba lagi nanti.",
     "registrationAlreadyProcessed": "Registrasi ini sudah diproses sebelumnya.",
     "htmlBlogLocked": "Paket langganan Anda tidak mencakup fitur HTML Blog Export. Silakan upgrade paket.",
-    "maxChannelsReached": "Batas maksimal channel Anda adalah {max}. Silakan upgrade paket."
+    "maxChannelsReached": "Batas maksimal channel Anda adalah {max}. Silakan upgrade paket.",
+    "noRecipientsFound": "Tidak ada pengguna penerima yang ditemukan untuk kriteria ini.",
+    "csModeDIRECT_WHATSAPP": "Direct WhatsApp",
+    "csModeDIRECT_EMAIL": "Direct Email",
+    "csModeTICKET": "Sistem Tiket Internal"
   },
   "Emails": {
     "resetSubject": "Reset Password - Prompt Gen",
@@ -737,6 +742,45 @@
     "ticketSuccessDesc": "Tim kami akan merespons pesan Anda secepatnya.",
     "subjectPlaceholder": "Ringkasan masalah...",
     "messagePlaceholder": "Detail kendala atau pertanyaan Anda...",
-    "guestNamePlaceholder": "Nama Anda"
+    "guestNamePlaceholder": "Nama Anda",
+    "csModeDIRECT_WHATSAPP": "Direct WhatsApp",
+    "csModeDIRECT_EMAIL": "Direct Email",
+    "csModeTICKET": "Sistem Tiket Internal (Default)"
+  },
+  "Error": {
+    "title": "Terjadi Kesalahan",
+    "description": "Terjadi kesalahan yang tidak terduga. Silakan coba lagi atau hubungi dukungan jika masalah berlanjut.",
+    "retry": "Coba Lagi"
+  },
+  "NotFound": {
+    "title": "Halaman Tidak Ditemukan",
+    "description": "Halaman yang Anda cari tidak ada atau telah dipindahkan.",
+    "backHome": "Kembali ke Beranda"
+  },
+  "ScenePromptStudio": {
+    "metaTitle": "Scene Prompt Studio | Prompt Gen",
+    "metaDescription": "Parse output naskah AI menjadi detail per adegan dengan visual prompt dan audio cues.",
+    "title": "Scene Prompt Studio",
+    "subtitle": "Tempelkan hasil output AI Anda di bawah untuk diparse menjadi detail per adegan.",
+    "channelLabel": "Channel",
+    "pastePlaceholder": "Tempelkan hasil naskah AI atau output LLM eksternal di sini...",
+    "parseButton": "Parse Adegan",
+    "scenesFound": "adegan ditemukan",
+    "sceneViewerTab": "Scene Viewer",
+    "thumbnailTab": "Thumbnail Studio",
+    "platformTab": "Konten Platform",
+    "narasi": "Narasi / VO",
+    "visualPrompt": "Visual Prompt",
+    "copy": "Salin",
+    "platformContent": "Konten Platform",
+    "titlesFound": "Judul yang Diekstrak",
+    "noThumbnailData": "Tidak ada data thumbnail yang ditemukan dalam output yang diparse.",
+    "saveDraft": "Simpan sebagai Draf",
+    "draftTitlePlaceholder": "Judul draf...",
+    "saveDraftButton": "Simpan Draf",
+    "saving": "Menyimpan...",
+    "draftSaved": "Draf berhasil disimpan!",
+    "draftError": "Gagal menyimpan draf.",
+    "defaultDraftTitle": "Draf Scene Prompt"
   }
 }

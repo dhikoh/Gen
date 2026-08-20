@@ -103,6 +103,7 @@ model User {
   channels              ProfileChannel[]
   invoices              Invoice[]
   drafts                Draft[]
+  parsedOutputs         ParsedOutput[]
   resetTokens           PasswordResetToken[]
   notifications         Notification[]
   supportTickets        SupportTicket[]
@@ -318,4 +319,14 @@ model NicheCategoryPreset {
   createdAt       DateTime @default(now())
 }
 
+model ParsedOutput {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rawInput     String   @db.Text
+  parsedResult Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
+  @@index([userId])
+}

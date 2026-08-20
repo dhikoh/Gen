@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import toast from "react-hot-toast";
 import CompositionSliderGroup from "./CompositionSliderGroup";
 import { PresetSelect, PresetOption } from "@/components/ui/PresetSelect";
+import { getVisualStyleOptions } from "@/lib/visualStyleMap";
 
 interface ProductItem {
   id: string;
@@ -39,6 +40,9 @@ interface GeneratorFormChannel {
   personaPov?: string | null;
   speechRate?: number | null;
   visualAesthetic?: string | null;
+  audioBGM?: boolean | null;
+  audioSFX?: boolean | null;
+  audioVO?: boolean | null;
 }
 
 interface PromptSettingsDto {
@@ -81,6 +85,28 @@ export default function GeneratorForm({
   const [personaPresets, setPersonaPresets] = useState<PresetOption[]>([]);
   const [visualAesthetics, setVisualAesthetics] = useState<PresetOption[]>([]);
   const [channelProducts, setChannelProducts] = useState<ProductItem[]>([]);
+
+  // Push-ported enrichment state
+  const [rolePOV, setRolePOV] = useState<string>("default");
+  const [toneOfVoice, setToneOfVoice] = useState<string>("");
+  const [visualStyleKey, setVisualStyleKey] = useState<string>("");
+  const [hookStyleType, setHookStyleType] = useState<string>("auto");
+  const [customHookText, setCustomHookText] = useState<string>("");
+  const [musicPreference, setMusicPreference] = useState<boolean>(true);
+  const [sfxPreference, setSfxPreference] = useState<boolean>(true);
+  const [voPreference, setVoPreference] = useState<boolean>(true);
+
+  // Visual style options (from visualStyleMap)
+  const visualStyleOptions: PresetOption[] = [
+    { value: "", label: "Auto (Ikuti Estetika Channel)" },
+    ...getVisualStyleOptions().map(o => ({ value: o.value, label: o.label }))
+  ];
+
+  const toneOptions = [
+    "Kasual & Santai", "Profesional & Formal", "Energik & Antusias",
+    "Empatik & Hangat", "Tegas & Otoritatif", "Humoris & Playful",
+    "Inspiratif & Motivasional", "Dramatis & Sinematik", "Minimalis & To-The-Point"
+  ];
 
   // Quick Add Product Modal state
   const [showProductModal, setShowProductModal] = useState(false);
@@ -190,6 +216,17 @@ export default function GeneratorForm({
     }
   }, [channelId, channels]);
 
+  // Sync audio prefs from channel defaults when channel changes
+  useEffect(() => {
+    if (!channelId) return;
+    const ch = channels.find((c: GeneratorFormChannel) => c.id === channelId);
+    if (ch) {
+      setMusicPreference(ch.audioBGM !== false);
+      setSfxPreference(ch.audioSFX !== false);
+      setVoPreference(ch.audioVO !== false);
+    }
+  }, [channelId, channels]);
+
   // Fetch channel products when channelId changes
   useEffect(() => {
     if (!channelId) {
@@ -282,6 +319,18 @@ export default function GeneratorForm({
           socialCaption: videoConfig.includeCaption,
           thumbnailIdea: videoConfig.includeThumbnail,
           htmlBlog: videoConfig.includeHtmlBlog,
+          // Push enrichment params
+          rolePOV,
+          toneOfVoice: toneOfVoice || undefined,
+          visualStyle: visualStyleKey || undefined,
+          hookStyleType,
+          customHookText: hookStyleType === "custom" ? customHookText : undefined,
+          isLoopable: videoConfig.narrativeLoopStyle === "Seamless Loop",
+          isVideoLoop: videoConfig.visualLoopStyle === "Seamless Video Loop",
+          musicPreference,
+          sfxPreference,
+          voPreference,
+          isVideoPlatform: selectedChannel?.targetPlatform ? !/blog|podcast|article|web/i.test(selectedChannel.targetPlatform) : true,
         } : undefined,
         imageConfig: type === "IMAGE" ? imageConfig : undefined,
       };
@@ -744,7 +793,118 @@ export default function GeneratorForm({
                   </div>
                 </div>
 
+                {/* ── Push Enrichment: Role/POV AI ── */}
+                <div className="space-y-2 pt-2 border-t border-zinc-200 dark:border-zinc-800">
+                  <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                    🎭 Role &amp; POV AI
+                  </label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {[
+                      { value: "default", label: "Auto", desc: "Ikuti channel profile" },
+                      { value: "KONTEN_KREATOR", label: "Kreator", desc: "Influencer personal brand" },
+                      { value: "MARKETING", label: "Marketing", desc: "Copywriter persuasif" },
+                      { value: "PEBISNIS", label: "Pebisnis", desc: "Founder/brand story" },
+                      { value: "PENDIDIK", label: "Pendidik", desc: "Guru/ahli teknis" },
+                      { value: "STORYTELLER", label: "Storyteller", desc: "Sinematik & naratif" },
+                    ].map((role) => (
+                      <button
+                        key={role.value}
+                        type="button"
+                        onClick={() => setRolePOV(role.value)}
+                        className={`flex flex-col items-start px-3 py-2 text-left border rounded-lg transition-colors text-xs ${
+                          rolePOV === role.value
+                            ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
+                            : "border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                        }`}
+                      >
+                        <span className="font-semibold">{role.label}</span>
+                        <span className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">{role.desc}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* ── Push Enrichment: Visual Style Preset ── */}
+                <div>
+                  <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                    🎨 Visual Style Preset
+                  </label>
+                  <select
+                    value={visualStyleKey}
+                    onChange={(e) => setVisualStyleKey(e.target.value)}
+                    className="w-full px-3 py-1.5 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
+                  >
+                    {visualStyleOptions.map((opt) => (
+                      <option key={String(opt.value)} value={String(opt.value)}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* ── Push Enrichment: Tone of Voice ── */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                    🎙️ Tone of Voice
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setToneOfVoice("")}
+                      className={`px-2.5 py-1 text-xs rounded-full border transition-colors ${
+                        toneOfVoice === ""
+                          ? "bg-blue-600 text-white border-blue-600"
+                          : "bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400"
+                      }`}
+                    >
+                      Auto
+                    </button>
+                    {toneOptions.map((tone) => (
+                      <button
+                        key={tone}
+                        type="button"
+                        onClick={() => setToneOfVoice(toneOfVoice === tone ? "" : tone)}
+                        className={`px-2.5 py-1 text-xs rounded-full border transition-colors ${
+                          toneOfVoice === tone
+                            ? "bg-blue-600 text-white border-blue-600"
+                            : "bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                        }`}
+                      >
+                        {tone}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* ── Push Enrichment: Audio Preferences ── */}
+                <div className="space-y-2 pt-2 border-t border-zinc-200 dark:border-zinc-800">
+                  <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                    🔊 Audio Preferences
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { label: "BGM / Musik", state: musicPreference, setter: setMusicPreference },
+                      { label: "SFX / Efek", state: sfxPreference, setter: setSfxPreference },
+                      { label: "Voice Over", state: voPreference, setter: setVoPreference },
+                    ].map(({ label: lbl, state, setter }) => (
+                      <button
+                        key={lbl}
+                        type="button"
+                        onClick={() => setter(!state)}
+                        className={`flex items-center justify-center gap-1.5 px-2 py-2 text-xs font-medium rounded-lg border transition-colors ${
+                          state
+                            ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 text-emerald-700 dark:text-emerald-300"
+                            : "bg-zinc-100 dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-400 dark:text-zinc-500"
+                        }`}
+                      >
+                        <span>{state ? "✓" : "✗"}</span>
+                        <span>{lbl}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-zinc-400">Default dari pengaturan channel. Klik untuk override.</p>
+                </div>
+
                 {/* Composition Sliders */}
+
                 <CompositionSliderGroup
                   value={videoConfig.composition}
                   onChange={(val) => handleVideoConfigChange("composition", val)}

@@ -23,14 +23,18 @@ export function getTicketStatusBadge(status: string) {
   }
 }
 
-export function getCsModeLabel(mode: string) {
+/**
+ * Returns an i18n-safe labelKey for CS mode.
+ * Consumers should use t(labelKey) to get the localized string.
+ */
+export function getCsModeLabelKey(mode: string): string {
   switch (mode) {
     case "DIRECT_WHATSAPP":
-      return "Direct WhatsApp";
+      return "csModeDIRECT_WHATSAPP";
     case "DIRECT_EMAIL":
-      return "Direct Email";
+      return "csModeDIRECT_EMAIL";
     case "TICKET":
-      return "Sistem Tiket Internal";
+      return "csModeTICKET";
     default:
       return mode;
   }

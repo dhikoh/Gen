@@ -34,6 +34,19 @@ const videoConfigSchema = z.object({
   includeCaption: z.boolean().optional().nullable(),
   includeThumbnail: z.boolean().optional().nullable(),
   includeHtmlBlog: z.boolean().optional().nullable(),
+  // Push-ported enrichment params
+  rolePOV: z.string().optional().nullable(),
+  toneOfVoice: z.string().optional().nullable(),
+  visualStyle: z.string().optional().nullable(),
+  hookStyleType: z.string().optional().nullable(),
+  customHookText: z.string().optional().nullable(),
+  isLoopable: z.boolean().optional().nullable(),
+  isVideoLoop: z.boolean().optional().nullable(),
+  musicPreference: z.boolean().optional().nullable(),
+  sfxPreference: z.boolean().optional().nullable(),
+  voPreference: z.boolean().optional().nullable(),
+  selectedSections: z.array(z.string()).optional().nullable(),
+  isVideoPlatform: z.boolean().optional().nullable(),
 });
 
 const imageConfigSchema = z.object({

@@ -39,6 +39,12 @@ export default async function DashboardLayout({
             {t('generator')}
           </Link>
           <Link 
+            href={`/${locale}/dashboard/scene-prompt`}
+            className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          >
+            🎬 {t('scenePromptStudio')}
+          </Link>
+          <Link 
             href={`/${locale}/dashboard/drafts`}
             className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
           >

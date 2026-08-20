@@ -76,15 +76,6 @@ body {
     border: 1px solid var(--glass-panel-border);
   }
 
-  .neumorphic {
-    background: var(--neu-bg);
-    box-shadow: var(--neu-shadow);
-  }
-  
-  .dark .neumorphic {
-    background: var(--neu-bg);
-    box-shadow: var(--neu-shadow);
-  }
 
   .neu-flat {
     background: var(--neu-flat-bg);

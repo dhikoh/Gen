@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import { Prisma, DraftType } from "@prisma/client";
 import { z } from "zod";
 import { requireActiveSubscription } from "@/lib/subscription";
+import { applyRateLimit } from "@/lib/rateLimit";
 
 const saveDraftSchema = z.object({
   channelId: z.string(),
@@ -27,6 +28,12 @@ export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
+    }
+
+    const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
+    const isAllowed = await applyRateLimit(`draft_create_${session.user.id}_${ip}`, 10, 60);
+    if (!isAllowed) {
+      return NextResponse.json({ error: t("rateLimit") }, { status: 429 });
     }
 
     await requireActiveSubscription(session.user.id);

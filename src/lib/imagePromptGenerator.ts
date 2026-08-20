@@ -1,4 +1,5 @@
 import { ProfileChannelData, PromptSettingsData } from "./promptGenerator";
+import { resolveVisualStyle } from "./visualStyleMap";
 
 export interface ImageConfigData {
   cameraType?: string | null;
@@ -36,7 +37,10 @@ export function generateImagePrompt(
     if (imageConfig?.lighting) promptText += `, ${imageConfig.lighting}`;
     if (imageConfig?.mood) promptText += `, ${imageConfig.mood} mood`;
     if (imageConfig?.colorGrading) promptText += `, ${imageConfig.colorGrading} color grading`;
-    if (imageConfig?.visualStyle) promptText += `, ${imageConfig.visualStyle}`;
+    if (imageConfig?.visualStyle) {
+      const resolvedStyle = resolveVisualStyle(imageConfig.visualStyle) || imageConfig.visualStyle;
+      promptText += `, ${resolvedStyle}`;
+    }
     
     let ar = "16:9";
     if (imageConfig?.aspectRatio) {
@@ -59,7 +63,10 @@ export function generateImagePrompt(
     if (imageConfig?.lighting) narrative += `It is illuminated by ${imageConfig.lighting}. `;
     if (imageConfig?.mood) narrative += `The overall atmosphere conveys a ${imageConfig.mood} mood. `;
     if (imageConfig?.colorGrading) narrative += `Apply a ${imageConfig.colorGrading} color grading. `;
-    if (imageConfig?.visualStyle) narrative += `The visual style is distinctly ${imageConfig.visualStyle}. `;
+    if (imageConfig?.visualStyle) {
+      const resolvedStyle = resolveVisualStyle(imageConfig.visualStyle) || imageConfig.visualStyle;
+      narrative += `The visual style is distinctly ${resolvedStyle}. `;
+    }
 
     variations.push({
       id: i,

@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { getApiTranslator } from "@/lib/apiI18n";
 import { notifyUser, notifyAllSuperadmins } from "@/lib/notifications";
+import { applyRateLimit } from "@/lib/rateLimit";
 
 export async function POST(
   req: Request,
@@ -15,6 +16,12 @@ export async function POST(
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
+    }
+
+    const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
+    const isAllowed = await applyRateLimit(`support_msg_${session.user.id}_${ip}`, 10, 60);
+    if (!isAllowed) {
+      return NextResponse.json({ error: t("rateLimit") }, { status: 429 });
     }
 
     const ticket = await prisma.supportTicket.findUnique({

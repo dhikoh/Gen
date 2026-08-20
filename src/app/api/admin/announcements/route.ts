@@ -5,10 +5,11 @@ import { prisma } from "@/lib/db";
 import { applyRateLimit } from "@/lib/rateLimit";
 import { NotificationType, PlanCode } from "@prisma/client";
 import { z } from "zod";
+import { getApiTranslator } from "@/lib/apiI18n";
 
 const announcementSchema = z.object({
-  title: z.string().trim().min(1, "Judul wajib diisi"),
-  message: z.string().trim().min(1, "Pesan pengumuman wajib diisi"),
+  title: z.string().trim().min(1),
+  message: z.string().trim().min(1),
   link: z.string().trim().optional().or(z.literal("")),
   target: z.enum(["ALL", "PLAN", "USER"]),
   targetPlanCode: z.nativeEnum(PlanCode).optional(),
@@ -16,11 +17,12 @@ const announcementSchema = z.object({
 });
 
 export async function POST(req: Request) {
+  const t = await getApiTranslator();
   const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
   const limitRes = await applyRateLimit(ip, 10, 60);
   if (!limitRes) {
     return NextResponse.json(
-      { error: "Terlalu banyak permintaan. Coba beberapa saat lagi." },
+      { error: t("rateLimit") },
       { status: 429 }
     );
   }
@@ -28,7 +30,7 @@ export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== "SUPERADMIN") {
     return NextResponse.json(
-      { error: "Akses ditolak. Khusus Superadmin." },
+      { error: t("forbidden") },
       { status: 403 }
     );
   }
@@ -58,7 +60,7 @@ export async function POST(req: Request) {
 
     if (recipientUserIds.length === 0) {
       return NextResponse.json(
-        { error: "Tidak ada pengguna penerima yang ditemukan untuk kriteria ini." },
+        { error: t("noRecipientsFound") },
         { status: 400 }
       );
     }
@@ -78,27 +80,27 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       recipientCount: recipientUserIds.length,
-      message: `Pengumuman berhasil dikirim ke ${recipientUserIds.length} pengguna.`,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: error.issues[0]?.message || "Input tidak valid" },
+        { error: t("invalidInput") },
         { status: 400 }
       );
     }
     console.error("POST /api/admin/announcements error:", error);
     return NextResponse.json(
-      { error: "Gagal mengirim pengumuman sistem." },
+      { error: t("serverError") },
       { status: 500 }
     );
   }
 }
 
 export async function GET(req: Request) {
+  const t = await getApiTranslator();
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== "SUPERADMIN") {
-    return NextResponse.json({ error: "Akses ditolak." }, { status: 403 });
+    return NextResponse.json({ error: t("forbidden") }, { status: 403 });
   }
 
   try {
@@ -122,7 +124,7 @@ export async function GET(req: Request) {
   } catch (error) {
     console.error("GET /api/admin/announcements error:", error);
     return NextResponse.json(
-      { error: "Gagal mengambil daftar pengumuman." },
+      { error: t("serverError") },
       { status: 500 }
     );
   }

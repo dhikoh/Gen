@@ -1,3 +1,5 @@
+import { resolveVisualStyle } from "./visualStyleMap";
+
 export interface ProfileChannelData {
   channelName: string;
   niche?: string | null;
@@ -8,11 +10,7 @@ export interface ProfileChannelData {
   audioBGM?: boolean | null;
   audioSFX?: boolean | null;
   audioVO?: boolean | null;
-  products?: Array<{
-    name: string;
-    price: number;
-    description?: string | null;
-  }>;
+  products?: Array<{ name: string; price: number; description?: string | null }>;
 }
 
 export interface VideoConfigData {
@@ -27,26 +25,34 @@ export interface VideoConfigData {
   hookStyle?: string | null;
   endingStyle?: string | null;
   selectedProductId?: string | null;
-  selectedProduct?: {
-    name: string;
-    price: number;
-    description?: string | null;
-  };
-  composition?: {
-    education?: number | null;
-    entertainment?: number | null;
-    marketing?: number | null;
-  } | null;
+  selectedProduct?: { name: string; price: number; description?: string | null };
+  composition?: { education?: number | null; entertainment?: number | null; marketing?: number | null } | null;
   includeHook?: boolean | null;
   includeCTA?: boolean | null;
   socialCaption?: boolean | null;
   thumbnailIdea?: boolean | null;
   htmlBlog?: boolean | null;
+  // Push-ported enrichment params
+  rolePOV?: string | null;
+  toneOfVoice?: string | null;
+  visualStyle?: string | null;
+  hookStyleType?: string | null;
+  customHookText?: string | null;
+  isLoopable?: boolean | null;
+  isVideoLoop?: boolean | null;
+  musicPreference?: boolean | null;
+  sfxPreference?: boolean | null;
+  voPreference?: boolean | null;
+  selectedSections?: string[] | null;
+  isVideoPlatform?: boolean | null;
 }
 
 export interface PromptSettingsData {
   videoSystemInstruction?: string | null;
   imageSystemInstruction?: string | null;
+  defaultSpeechRate?: string | null;
+  defaultNegativePrompt?: string | null;
+  bannedWords?: string[] | string | unknown;
 }
 
 export function generateMasterPrompt(
@@ -57,108 +63,231 @@ export function generateMasterPrompt(
   promptSettings?: PromptSettingsData | null,
   excludeTitles?: string[]
 ): { masterPrompt: string; systemInstruction: string } {
-  const channelContext = `
-Nama Channel/Akun: ${channel.channelName}
-Niche: ${channel.niche || "-"}
-Deskripsi/Ciri Khas: ${channel.description || "-"}
-Gaya Visual: ${channel.visualAesthetic || "-"}
-Call to Action 1: ${channel.cta1 || "-"}
-Call to Action 2: ${channel.cta2 || "-"}
-Gunakan Audio BGM: ${channel.audioBGM ? "Ya" : "Tidak"}
-Gunakan Audio SFX: ${channel.audioSFX ? "Ya" : "Tidak"}
-Gunakan Audio VO: ${channel.audioVO ? "Ya" : "Tidak"}
-`.trim();
 
-  let productContext = "Tidak ada produk khusus untuk disisipkan.";
-  if (videoConfig?.selectedProduct) {
-    productContext = `Produk Utama yang Dipromosikan (Soft-selling/Hard-selling):\n- ${videoConfig.selectedProduct.name} (Rp ${videoConfig.selectedProduct.price}): ${videoConfig.selectedProduct.description || "-"}`;
-  } else if (channel.products && channel.products.length > 0) {
-    productContext = `Produk untuk Soft-selling:\n${channel.products.map((p) => `- ${p.name} (Rp ${p.price}): ${p.description || "-"}`).join('\n')}`;
-  }
-
-  let systemInstruction = `Kamu adalah asisten ahli kreator konten dan scriptwriter profesional. Bertindaklah sebagai ${videoConfig?.pov || "Ahli di bidang ini"}.`;
+  // ── System Instruction ─────────────────────────────────────────────────
+  let systemInstruction = `Kamu adalah AI Content Strategist dan Scriptwriter profesional yang berpengalaman dalam membuat naskah konten video pendek viral.`;
   if (promptSettings?.videoSystemInstruction?.trim()) {
     systemInstruction += `\n${promptSettings.videoSystemInstruction.trim()}`;
   }
 
+  // ── Audio Config ───────────────────────────────────────────────────────
+  const finalMusic = videoConfig.musicPreference !== undefined ? Boolean(videoConfig.musicPreference) : Boolean(channel.audioBGM !== false);
+  const finalSfx   = videoConfig.sfxPreference   !== undefined ? Boolean(videoConfig.sfxPreference)   : Boolean(channel.audioSFX !== false);
+  const finalVo    = videoConfig.voPreference     !== undefined ? Boolean(videoConfig.voPreference)    : Boolean(channel.audioVO  !== false);
+  const isVideoPlat = videoConfig.isVideoPlatform !== false;
+
+  // ── Loop Config ────────────────────────────────────────────────────────
+  const isLoopable   = videoConfig.narrativeLoopStyle === "Seamless Loop" || videoConfig.isLoopable === true;
+  const isVideoLoop  = videoConfig.visualLoopStyle === "Seamless Video Loop" || videoConfig.isVideoLoop === true;
+
+  // ── Aspect Ratio ───────────────────────────────────────────────────────
+  const ar = videoConfig.aspectRatio || "9:16";
+  const arSuffix = ` --ar ${ar}`;
+
+  // ── POV / Persona Section ──────────────────────────────────────────────
+  let povSection = "";
+  povSection += `[SUDUT PANDANG / PERSONA DAN GAYA AI]\n`;
+  povSection += `Kamu wajib bertindak dari sudut pandang (POV) channel berikut:\n`;
+  povSection += `- Sebagai "${channel.channelName}": yang memahami dan memiliki keahlian dalam "${channel.description || channel.niche || "konten digital"}"\n`;
+
+  const isMarketingZero = videoConfig.composition?.marketing === 0;
+  if (!isMarketingZero) {
+    if (channel.cta1) povSection += `  - Kalimat CTA Utama: "${channel.cta1}"\n`;
+    if (channel.cta2) povSection += `  - Kalimat CTA Alternatif: "${channel.cta2}"\n`;
+  } else {
+    if (channel.cta1) povSection += `  - Kalimat CTA Utama: "${channel.cta1}"\n`;
+    povSection += `- Catatan Penting: Karena bobot Marketing 0%, tulislah naskah yang murni edukatif/hiburan tanpa promosi komersial.\n`;
+  }
+
+  // Role/POV Persona
+  if (videoConfig.rolePOV && videoConfig.rolePOV !== "default") {
+    const roleDescriptions: Record<string, string> = {
+      KONTEN_KREATOR: "Konten Kreator / Influencer digital yang karismatik dan sangat dekat dengan audiens. Gunakan gaya personal brand yang kuat, menceritakan pengalaman pribadi (POV orang pertama), ramah, kasual, dan fokus pada interaksi komunitas.",
+      MARKETING: "Copywriter dan Ahli Pemasaran Profesional. Fokus pada psikologi konsumen, penulisan persuasif, penonjolan USP, mengatasi keraguan pembeli, dan mengarahkan audiens menuju konversi.",
+      PEBISNIS: "Pebisnis, Founder, atau Brand Owner yang visioner. Tulis dari sudut pandang pembangun bisnis, menceritakan kisah behind the scenes, tantangan operasional, dan nilai-nilai brand.",
+      PENDIDIK: "Guru, Dosen, atau Ahli Teknis yang mahir menyederhanakan materi kompleks. Gunakan analogi visual, penjelasan step-by-step, dan pastikan mudah dipahami pemula.",
+      STORYTELLER: "Storyteller profesional dan Sutradara Naratif. Fokus pada plot twist, emosi mendalam, suspense, latar imersif, dan alur narasi sinematik.",
+    };
+    const desc = roleDescriptions[videoConfig.rolePOV];
+    if (desc) povSection += `- Peran & POV AI (Persona): Bertindaklah sebagai ${desc}\n`;
+  }
+
+  if (videoConfig.toneOfVoice) {
+    povSection += `- Nada Penyampaian (Tone of Voice): Tulis naskah dengan gaya bahasa "${videoConfig.toneOfVoice}".\n`;
+  }
+
+  if (videoConfig.visualStyle) {
+    const resolved = resolveVisualStyle(videoConfig.visualStyle);
+    if (resolved) {
+      povSection += `- Estetika Visual (Visual Style): Pada setiap VISUAL PROMPT per scene, sertakan elemen gaya estetika "${resolved}".\n`;
+    }
+  }
+
+  povSection += `Gabungkan keahlian, nada bicara, peran persona, dan gaya visual di atas secara harmonis.\n\n`;
+
+  // ── Audio Guidelines ───────────────────────────────────────────────────
+  const audioParts: string[] = [];
+  if (finalSfx) {
+    audioParts.push(`1. SFX tidak terbatas satu per scene. Sisipkan [SFX: Nama Efek Suara] di posisi relevan dalam NARASI. Cantumkan SAMA PERSIS di akhir VISUAL PROMPT: "accompanied by [SFX: ...]".`);
+  } else {
+    audioParts.push(`1. DILARANG menyisipkan [SFX: ...] dalam narasi. WAJIB tambahkan "no sound effects" di akhir setiap Visual Prompt.`);
+  }
+  if (finalMusic) {
+    audioParts.push(`2. Sisipkan [BGM: Jenis Musik] saat pembuka atau perubahan mood. Cantumkan SAMA PERSIS di akhir Visual Prompt: "with [BGM: ...] as background music".`);
+  } else {
+    audioParts.push(`2. DILARANG menyisipkan [BGM: ...] dalam narasi. WAJIB tambahkan "no background music" di akhir setiap Visual Prompt.`);
+  }
+  if (!finalVo) audioParts.push(`3. WAJIB tambahkan "no voice over" di akhir setiap Visual Prompt.`);
+  if (!finalSfx && !finalMusic) audioParts.push(`4. Gabungkan: "silent audio, no sound effects, no background music" di akhir setiap Visual Prompt.`);
+  const audioGuidelinesText = `[PANDUAN AUDIO, SFX & BGM]\n${audioParts.join("\n")}`;
+
+  // ── Visual Audio Suffix for examples ──────────────────────────────────
+  let visualAudioSuffix = "";
+  if (finalSfx && finalMusic) visualAudioSuffix = ", accompanied by [SFX: Dramatic Reveal], with [BGM: Cinematic orchestral swell] as background music";
+  else if (finalSfx && !finalMusic) visualAudioSuffix = ", accompanied by [SFX: Dramatic Reveal], no background music";
+  else if (!finalSfx && finalMusic) visualAudioSuffix = ", no sound effects, with [BGM: Cinematic orchestral swell] as background music";
+  else visualAudioSuffix = ", silent audio, no sound effects, no background music";
+  if (!finalVo) visualAudioSuffix += ", no voice over";
+
+  let narasiExample = "Narasi / dialog untuk adegan ini. Tulis teks yang diucapkan secara lengkap. Gunakan bahasa natural, conversational, relatable, hindari gaya kaku/robotik";
+  if (finalSfx && finalMusic) narasiExample += ". Sisipkan [SFX: Nama Efek Suara] dan [BGM: Jenis Musik] di posisi relevan";
+  else if (finalSfx) narasiExample += ". Sisipkan [SFX: Nama Efek Suara] di posisi relevan. DILARANG [BGM: ...]";
+  else if (finalMusic) narasiExample += ". Sisipkan [BGM: Jenis Musik] saat perubahan mood. DILARANG [SFX: ...]";
+  else narasiExample += ". DILARANG menyisipkan [SFX: ...] atau [BGM: ...]";
+
+  // ── Loop Guidelines ────────────────────────────────────────────────────
+  const loopGuidelinesText = isLoopable
+    ? `[PANDUAN LOOP VIDEO PENDEK (SEAMLESS LOOP - AKTIF)]\n1. WAJIB merancang naskah agar dapat diputar terus-menerus tanpa henti secara mulus.\n2. Kalimat paling akhir di SCENE TERAKHIR harus langsung menyambung ke kalimat pertama SCENE 1.\n3. Periksa kalimat pertama Scene 1, lalu sesuaikan kata demi kata di akhir Scene Terakhir agar membentuk tata bahasa yang 100% benar dan mengalir natural.`
+    : `[PANDUAN PENUTUP NASKAH (NORMAL/KLASIK)]\n1. DILARANG membuat kalimat penutup yang menggantung.\n2. Naskah harus diakhiri dengan kesimpulan solid atau CTA yang bermakna tuntas.`;
+
+  const videoLoopGuidelinesText = isVideoLoop
+    ? `[PANDUAN LOOP VIDEO (SEAMLESS VISUAL LOOP - AKTIF)]\n1. WAJIB merancang Visual Prompt agar video awal dan akhir tampak menyambung secara visual.\n2. Di SCENE TERAKHIR, akhir Visual Prompt harus kembali ke kondisi visual awal SCENE 1.\n3. Sesuaikan camera movement, lighting, posisi subjek, dan environment agar transisinya mulus.`
+    : `[PANDUAN VISUAL VIDEO (NORMAL ENDING)]\n1. Visual scene terakhir tidak perlu menyambung ke scene pertama.\n2. Fokuskan pada resolusi cerita atau adegan penutup yang natural.`;
+
+  // ── Format Output Wajib (Markdown — Push Style) ──────────────────────
+  let formatOutputWajib = "\n\n[FORMAT OUTPUT WAJIB]\n";
+
+  const hasTitleSection = !videoConfig.selectedSections || videoConfig.selectedSections.includes("TITLE");
+
+  if (hasTitleSection) {
+    formatOutputWajib += `Proses pembuatan konten ini WAJIB dilakukan dalam 2 TAHAP interaktif:\n\nTAHAP 1: Tampilkan Ide Konten & Tunggu Konfirmasi (BERHENTI SEBELUM MENULIS NASKAH)\n1. Tampilkan tepat 10 ide judul konten kreatif yang memiliki potensi viral tinggi.\n2. Setiap ide ditulis dengan format:\n   [NOMOR]. [JUDUL IDE KONTEN] (Potensi Viral: [Persentase])\n   Deskripsi Singkat: [Penjelasan mengapa berpotensi viral]\n3. Setelah menampilkan 10 ide, WAJIB BERHENTI dan ketik:\n   "Silakan pilih nomor ide konten (1-10) yang ingin Anda buat naskah lengkapnya."\n\nTAHAP 2: Pembuatan Naskah Lengkap (Setelah Konfirmasi User)\nSetelah user memilih, tulis naskah lengkap dengan format berikut:\n\n## RISET & VARIASI JUDUL\nJUDUL TERPILIH: [Judul yang dipilih user]\n\n## ANALISIS STRATEGI KONTEN & HOOK\nAUDIENS PERSONA & PSIKOLOGI: [Analisis singkat]\nSTRATEGI HOOK (0-3 DETIK): [Cara menciptakan curiosity gap]\nALUR KONTEN PAS/AIDA: [Alur penyampaian]\n`;
+  } else {
+    formatOutputWajib += `Kamu WAJIB mengembalikan output dengan format terstruktur berikut:\n\n## ANALISIS STRATEGI KONTEN & HOOK\nAUDIENS PERSONA & PSIKOLOGI: [Analisis singkat]\nSTRATEGI HOOK (0-3 DETIK): [Cara menciptakan curiosity gap]\nALUR KONTEN PAS/AIDA: [Alur penyampaian]\n`;
+  }
+
+  const hasCaption  = !videoConfig.selectedSections || videoConfig.selectedSections.includes("CAPTION");
+  const hasHashtag  = !videoConfig.selectedSections || videoConfig.selectedSections.includes("HASHTAG");
+  const hasScene    = !videoConfig.selectedSections || videoConfig.selectedSections.some(s => ["HOOK","BODY","CTA"].includes(s));
+  const hasThumbnail = videoConfig.thumbnailIdea || videoConfig.selectedSections?.includes("THUMBNAIL");
+
+  if (hasCaption || hasHashtag) {
+    formatOutputWajib += `\n## KONTEN PLATFORM\n`;
+    if (hasCaption) formatOutputWajib += `CAPTION: [Teks caption menarik. Sertakan link sosial media dari profil channel jika ada, dalam format RAW URL bukan markdown link.]\n`;
+    if (hasHashtag) formatOutputWajib += `HASHTAGS: [Kumpulan hashtag optimasi jangkauan viral]\n`;
+  }
+
+  if (hasScene) {
+    const visualPromptInstruction = isVideoPlat
+      ? `Tulis prompt video/visual sinematik siap-pakai dalam bahasa Inggris. WAJIB formula 5-bagian: [Shot Type & Camera Angle], [Subject & Action], [Environment & Lighting], [Camera Movement Path], [Style/Aesthetic]. Sangat ilustratif, dinamis, metaforis (HINDARI penerjemahan literal). Contoh: "Extreme macro shot, glowing double-helix DNA strands morphing, surrounded by holographic data streams, cinematic volumetric lighting, slow push-in${visualAudioSuffix}".`
+      : `Tulis prompt gambar/visual sinematik siap-pakai dalam bahasa Inggris untuk Midjourney V6. WAJIB formula 5-bagian: [Shot Type & Camera Angle], [Subject & Action], [Environment & Lighting], [Cinematic Composition], [Style/Aesthetic]. Sangat ilustratif, dinamis, metaforis. Contoh: "Extreme macro shot, glowing double-helix DNA strands morphing, holographic biological data streams, cinematic volumetric lighting, shallow depth of field${visualAudioSuffix}".`;
+
+    formatOutputWajib += `\n## SCENE 1\nNARASI: [${narasiExample}]\nPANDUAN SUARA: [Context: <konteks/suasana adegan> | Note: <petunjuk intonasi/kecepatan/jeda> | Traits: <karakteristik vokal, misal: deep voice, energetic>]\nVISUAL PROMPT: [${visualPromptInstruction}]${arSuffix}\nDURASI: [Estimasi durasi adegan dalam detik, contoh: 5 detik]\n`;
+    formatOutputWajib += `\n## SCENE 2\nNARASI: [Narasi / dialog adegan kedua]\nPANDUAN SUARA: [Context: <konteks adegan kedua> | Note: <petunjuk pembacaan> | Traits: <karakteristik vokal>]\nVISUAL PROMPT: [Tulis prompt visual adegan kedua, formula 5-bagian, bahasa Inggris.]${arSuffix}\nDURASI: [Estimasi durasi]\n`;
+
+    const sceneCount = videoConfig.targetSceneCount;
+    if (sceneCount && sceneCount > 2) {
+      formatOutputWajib += `\n...dan seterusnya hingga TEPAT SCENE ${sceneCount}. Kamu WAJIB menghasilkan TEPAT ${sceneCount} SCENE.\n`;
+    } else {
+      formatOutputWajib += `\n...dan seterusnya sesuai alur naskah hingga selesai.\n`;
+    }
+  }
+
+  if (hasThumbnail) {
+    formatOutputWajib += `\n## THUMBNAIL STUDIO\nTEKS OVERLAY SEO: [3-4 kata memicu rasa ingin tahu, huruf kapital semua, SEO-friendly]\nOPSI 1 PROMPT: [Shot Type, Subject/Action, Environment, Emotion, Lighting, Style. Visual dramatis, kontras tinggi. Bahasa Inggris.]${arSuffix}\nOPSI 1 TEKS OVERLAY: [Teks singkat ditempel pada gambar Opsi 1 (maks 3-4 kata)]\nOPSI 2 PROMPT: [Visual prompt alternatif yang kontras dengan Opsi 1. Bahasa Inggris.]${arSuffix}\nOPSI 2 TEKS OVERLAY: [Teks singkat ditempel pada gambar Opsi 2 (maks 3-4 kata)]\nREKOMENDASI WARNA & ELEMEN: [Palet warna kontras, penempatan teks, elemen visual utama]\n`;
+  }
+
+  // ── All Guidelines (Push-ported) ───────────────────────────────────────
+  const allGuidelines = `
+[PANDUAN STRATEGI DAN REKAYASA PROMPT]
+1. Arsitektur Konten & Tren: Buat narasi autentik, rentan, retro, dan organik. Hindari gaya bahasa terlampau formal. Hubungkan secara relatable ke audiens modern.
+2. Psikologi Copywriting: Gunakan kerangka PAS (Problem → Agitate → Solution) atau AIDA (Attention → Interest → Desire → Action).
+
+[PANDUAN PEMERKAYAAN VISUAL PROMPT]
+1. Baca NARASI per scene terlebih dahulu, lalu buat Visual Prompt secara dinamis, metaforis, dan sangat ilustratif (HINDARI penerjemahan harfiah/literal).
+2. FORMULA WAJIB: [Shot Type & Camera Angle], [Subject & Action], [Environment & Lighting], [Camera Movement/Composition], [Style/Aesthetic].
+3. Pergerakan kamera aktif (khusus video): "slow push-in", "sweeping orbital", "crane down and tilt up", "zoom out to reveal".
+4. DILARANG menampilkan visual secara harfiah. Gunakan metafora visual (misal: DNA → glowing double-helix hologram, bukan gambar manusia berdiri).
+5. Integrasi Gaya Estetika: Leburkan gaya visual ke dalam deskripsi kalimat, bukan hanya menempelkan kata kunci di akhir.
+6. DILARANG mencantumkan parameter referensi kosong seperti "--cref [url]" atau "--sref [url]" jika data URL tidak disediakan.
+
+[PANDUAN ANTI-DETEKSI AI & NATURALISASI BAHASA]
+1. Burstiness: Kombinasikan kalimat pendek, sedang, dan panjang secara dinamis. Gunakan kalimat 1-2 kata untuk penekanan dramatis.
+2. Perplexity: Tulis seperti manusia bercerita ke teman. Gunakan kontraksi informal Indonesia (udah, aja, nggak, tapi, kok, sih, bikin, nyesek, lho).
+3. Blacklist AI Cliché: Dilarang "Ingatlah bahwa...", "Dalam era digital ini...", "Mari kita bahas...", "Secara keseluruhan...". Ganti dengan "Pernah nggak sih...", "Coba bayangin...", "Tahu gak...", "Ternyata...".
+4. Sisipkan ekspresi keraguan, keterkejutan, atau jeda alami.
+
+${audioGuidelinesText}
+
+${loopGuidelinesText}
+
+${videoLoopGuidelinesText}
+
+[KONSISTENSI VISUAL KARAKTER]
+1. Jika ada karakter utama berulang di beberapa scene, deskripsikan ciri fisiknya 100% konsisten di setiap scene tempat dia muncul.
+2. Jika scene tidak membutuhkan karakter (b-roll produk, pemandangan, transisi), tulis visual bebas tanpa memaksakan kehadiran karakter.
+
+[PANDUAN PACING & RHYTHM NARASI]
+1. Scene 1 (Hook): Kalimat pendek, cepat, staccato. Maksimal 2-3 kalimat singkat. Tujuan: menghentikan scroll dalam 3 detik.
+2. Scene Tengah (Body): Perlambat pacing. Kalimat lebih panjang dan detail.
+3. Scene Akhir (CTA): Kembali ke pacing cepat. Kalimat imperatif dan berenergi.
+
+[PANDUAN EMOTIONAL ARC / BUSUR EMOSI]
+1. Rancang busur emosi: Kejutan/Rasa Ingin Tahu (Hook) → Empati/Kekhawatiran (Problem) → Harapan (Solution) → Motivasi (CTA).
+2. Setiap scene punya satu emosi dominan yang jelas.
+3. Gunakan Visual Prompt untuk memperkuat emosi dominan.
+
+[PANDUAN ENGAGEMENT TRIGGERS]
+1. Sisipkan minimal 1-2 trigger interaksi (misal: "Coba tebak...", "Kalian tim mana nih?", "Tulis di komentar...").
+2. Engagement trigger harus terasa natural dan relevan dengan konteks cerita.
+`;
+
+  // ── Exclude Titles ─────────────────────────────────────────────────────
   let excludeSection = "";
   if (excludeTitles && excludeTitles.length > 0) {
-    excludeSection = `
-8. DILARANG MENGGUNAKAN JUDUL BERIKUT (SUDAH TERPAKAI / TERPILIH)
-PENTING: JANGAN SEKALI-KALI merekomendasikan, membuat, atau memilih judul yang sama persis maupun yang mirip dengan daftar judul terpakai di bawah ini:
-${excludeTitles.map((t) => `- "${t}"`).join("\n")}
-`;
+    excludeSection = `\n[EXCLUDE LIST JUDUL]\nHindari judul-judul berikut karena sudah pernah dipakai:\n${excludeTitles.map((t) => `- "${t}"`).join("\n")}\n`;
   }
 
-  const jsonFields = [
-    `"judul_konten": "string (Judul menarik untuk video)"`
-  ];
-  if (videoConfig?.socialCaption) jsonFields.push(`"caption_medsos": "string (Caption lengkap dengan hashtag)"`);
-  if (videoConfig?.thumbnailIdea) jsonFields.push(`"ide_thumbnail": "string (Ide visual thumbnail yang clickbait namun relevan)"`);
-  if (videoConfig?.htmlBlog) jsonFields.push(`"html_blog": "string (Artikel blog format HTML SEO-friendly berdasarkan skrip video)"`);
-  
-  jsonFields.push(`"segments": [\n    {\n      "order": number,\n      "type": "string (Tipe scene: A-roll, B-roll, Text, dsb)",\n      "visual": "string (Instruksi visual/kamera/B-roll)",\n      "audio": "string (Musik/Sound Effect)",\n      "caption": "string (Teks yang diucapkan/Voice Over)",\n      "duration_estimation": number (Estimasi detik)\n    }\n  ]`);
-
-  const masterPrompt = `
-Buatkan struktur konten video (Video Script) berdasarkan parameter berikut:
-
-1. PROFIL CHANNEL
-${channelContext}
-
-2. PRODUK (SOFT-SELLING / PROMOSI)
-${productContext}
-
-3. TOPIK UTAMA
-${topic}
-
-4. KONTEKS TAMBAHAN
-${additionalContext || "-"}
-
-5. PENGATURAN VIDEO
-- Platform Target: ${videoConfig?.targetPlatform || "TikTok / Reels"}
-- Target Durasi: ${videoConfig?.targetDurationSec ? `${videoConfig.targetDurationSec} detik` : "Opsional"}
-- Target Jumlah Scene: ${videoConfig?.targetSceneCount ? `${videoConfig.targetSceneCount} scene` : "Opsional"}
-- Aspect Ratio Video: ${videoConfig?.aspectRatio || "9:16"}
-- POV / Persona: ${videoConfig?.pov || "Kreator Ahli"}
-- Laju Bicara: ${videoConfig?.speechRate || "Sedang"}
-- Hook Style: ${videoConfig?.hookStyle || "Pertanyaan Provokatif"}
-- Ending Style: ${videoConfig?.endingStyle || "Pertanyaan Terbuka"}
-- Gaya Loop Narasi: ${videoConfig?.narrativeLoopStyle || "Tanpa Loop"}
-- Gaya Loop Visual: ${videoConfig?.visualLoopStyle || "Tanpa Loop"}
-
-6. KOMPOSISI KONTEN
-- Edukasi: ${videoConfig?.composition?.education || 0}%
-- Hiburan: ${videoConfig?.composition?.entertainment || 0}%
-- Marketing: ${videoConfig?.composition?.marketing || 0}%
-
-7. KOMPONEN TAMBAHAN
-- Sertakan Hook: ${videoConfig?.includeHook ? "Ya" : "Tidak"}
-- Sertakan CTA: ${videoConfig?.includeCTA ? "Ya" : "Tidak"}
-- Buat Caption Medsos: ${videoConfig?.socialCaption ? "Ya" : "Tidak"}
-- Ide Thumbnail: ${videoConfig?.thumbnailIdea ? "Ya" : "Tidak"}
-- Generate Artikel HTML Blog: ${videoConfig?.htmlBlog ? "Ya" : "Tidak"}
-${excludeSection}
-8. INSTRUKSI KHUSUS & KETENTUAN KONTEN:
-${videoConfig?.targetDurationSec ? `- PENTING: Pastikan teks narasi dan adegan yang dihasilkan kira-kira dapat diselesaikan dalam waktu persis atau mendekati ${videoConfig.targetDurationSec} detik.` : ""}
-${videoConfig?.targetSceneCount ? `- PENTING: Buatlah segmen video (array segments) persis berjumlah ${videoConfig.targetSceneCount} scene.` : ""}
-- Wajib mematuhi profil channel di atas. Jika BGM/SFX diatur ke "Tidak", pastikan tabel/field audio tidak mengisinya atau kosong.
-${excludeTitles && excludeTitles.length > 0 ? "- WAJIB MEMATUHI ATURAN: Dilarang menggunakan judul yang sudah terpakai di daftar poin 8 di atas." : ""}
-
-PANDUAN INTERAKSI ALUR (2-TAHAP):
-PENTING:
-- TAHAP 1 (Penawaran 10 Judul Viral):
-  1. Tampilkan 10 rekomendasi judul konten berpotensi viral berdasarkan topik dan profil channel di atas, lengkap dengan perkiraan persentase potensi viralitasnya (contoh: "1. [Judul Konten] (Potensi Viral: 95%)").
-  2. BERHENTI sementara dan berikan pesan kepada pengguna: "Silakan balas dengan memilih nomor judul (1-10) atau ketik judul Anda sendiri untuk melanjutkan pembuatan naskah video lengkap."
-
-- TAHAP 2 (Eksekusi Output JSON Skrip Video):
-  Setelah pengguna memberikan nomor pilihan atau judul yang diinginkan:
-  Buatkan struktur naskah video lengkap dan berikan output HANYA dalam format JSON yang valid tanpa teks tambahan dan tanpa markdown block (\`\`\`).
-  Struktur JSON wajib mengikuti skema berikut:
-  {
-    "opsi_judul": ["string", "string", "... (10 opsi judul rekomendasi dari Tahap 1)"],
-    ${jsonFields.join(",\n    ")}
+  // ── Composition ────────────────────────────────────────────────────────
+  let compositionText = "";
+  if (videoConfig.composition) {
+    const { education, entertainment, marketing } = videoConfig.composition;
+    compositionText = `\n[KOMPOSISI TEMA NASKAH]\nSusun konten dengan komposisi: ${education || 0}% Edukasi/Informasi, ${entertainment || 0}% Hiburan/Storytelling, ${marketing || 0}% Marketing/CTA.`;
   }
-`;
+
+  // ── Duration & Scene Count ─────────────────────────────────────────────
+  let durationText = "";
+  if (videoConfig.targetDurationSec) {
+    durationText = `\n[TARGET DURASI VIDEO]\nWAJIB mengarahkan estimasi durasi agar total seluruh scene mendekati atau TEPAT ${videoConfig.targetDurationSec} detik.`;
+  }
+
+  // ── Product Context ────────────────────────────────────────────────────
+  let productContext = "";
+  if (videoConfig.selectedProduct) {
+    productContext = `\n[PRODUK YANG DIPROMOSIKAN]\n- ${videoConfig.selectedProduct.name} (Rp ${videoConfig.selectedProduct.price}): ${videoConfig.selectedProduct.description || "-"}`;
+  } else if (channel.products && channel.products.length > 0) {
+    productContext = `\n[PRODUK UNTUK SOFT-SELLING]\n${channel.products.map((p) => `- ${p.name} (Rp ${p.price}): ${p.description || "-"}`).join("\n")}`;
+  }
+
+  // ── Additional Context ─────────────────────────────────────────────────
+  const contextText = additionalContext ? `\n[KONTEKS TAMBAHAN]\n${additionalContext}` : "";
+
+  // ── Platform ───────────────────────────────────────────────────────────
+  const platformText = videoConfig.targetPlatform
+    ? `\n[PLATFORM TARGET]\nKonten ini ditargetkan untuk: ${videoConfig.targetPlatform}. Sesuaikan format bahasa, durasi, dan layout visual.`
+    : "";
+
+  // ── Assemble Master Prompt ─────────────────────────────────────────────
+  const masterPrompt = `${povSection}[TOPIK UTAMA]\n${topic}${contextText}${productContext}${compositionText}${platformText}${excludeSection}${durationText}${formatOutputWajib}${allGuidelines}`;
 
   return { masterPrompt, systemInstruction };
 }
