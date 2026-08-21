@@ -16,6 +16,8 @@ interface AppSettings {
   csEmail?: string | null;
   csOperatingHours?: string | null;
   csWidgetEnabled?: boolean | null;
+  rateLimitRequests?: number;
+  rateLimitWindowMs?: number;
 }
 
 import { PromptSettingsData } from "@/lib/promptGenerator";
@@ -45,6 +47,8 @@ export default function AdminSettingsClient({
     csEmail: settings?.csEmail || "",
     csOperatingHours: settings?.csOperatingHours || "Senin - Jumat, 09:00 - 17:00 WIB",
     csWidgetEnabled: settings?.csWidgetEnabled ?? true,
+    rateLimitRequests: settings?.rateLimitRequests ?? 30,
+    rateLimitWindowMs: settings?.rateLimitWindowMs ?? 60000,
   });
 
   // Form State for PromptSettings
@@ -61,7 +65,8 @@ export default function AdminSettingsClient({
   });
 
   const handleAppChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setAppFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    const value = e.target.type === 'number' ? Number(e.target.value) : e.target.value;
+    setAppFormData(prev => ({ ...prev, [e.target.name]: value }));
   };
 
   const handlePromptChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -281,6 +286,39 @@ export default function AdminSettingsClient({
                 <label htmlFor="csWidgetEnabled" className="text-sm font-medium text-zinc-700 dark:text-zinc-300 cursor-pointer">
                   {st("csWidgetEnabled")}
                 </label>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-4">API & Keamanan (Rate Limit)</h3>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Batas Request (Hits)</label>
+                  <input
+                    type="number"
+                    name="rateLimitRequests"
+                    value={appFormData.rateLimitRequests}
+                    onChange={handleAppChange}
+                    min={1}
+                    className="w-full px-4 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-zinc-900 dark:text-white text-sm"
+                  />
+                  <p className="text-xs text-zinc-500 mt-1">Jumlah maksimal aksi yang diizinkan per user/IP dalam satu jendela waktu.</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Jendela Waktu (Milidetik)</label>
+                  <input
+                    type="number"
+                    name="rateLimitWindowMs"
+                    value={appFormData.rateLimitWindowMs}
+                    onChange={handleAppChange}
+                    min={1000}
+                    step={1000}
+                    className="w-full px-4 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-zinc-900 dark:text-white text-sm"
+                  />
+                  <p className="text-xs text-zinc-500 mt-1">Contoh: 60000 = 1 menit.</p>
+                </div>
               </div>
             </div>
           </div>

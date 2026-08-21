@@ -12,9 +12,10 @@ const announcementSchema = z.object({
   title: z.string().trim().min(1),
   message: z.string().trim().min(1),
   link: z.string().trim().optional().or(z.literal("")),
-  target: z.enum(["ALL", "PLAN", "USER"]),
+  target: z.enum(["ALL", "PLAN", "USER", "STATUS"]),
   targetPlanCode: z.nativeEnum(PlanCode).optional(),
   targetUserId: z.string().optional(),
+  targetStatus: z.enum(["ACTIVE", "INACTIVE", "EXPIRED"]).optional(),
 });
 
 export async function POST(req: Request) {
@@ -51,6 +52,12 @@ export async function POST(req: Request) {
         select: { id: true },
       });
       if (user) recipientUserIds = [user.id];
+    } else if (parsed.target === "STATUS" && parsed.targetStatus) {
+      const users = await prisma.user.findMany({
+        where: { subscriptionStatus: parsed.targetStatus },
+        select: { id: true },
+      });
+      recipientUserIds = users.map((u) => u.id);
     }
 
     if (recipientUserIds.length === 0) {

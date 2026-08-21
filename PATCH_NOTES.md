@@ -372,3 +372,39 @@ Penyelesaian audit batch ketiga: eliminasi total hardcoded strings pada 5 kompon
 - **Social Integration**: Augmented `promptGenerator.ts` to natively inject `socialLinks` from `ProfileChannelData` into AI instructions for enhanced automated captioning.
 - **Viral Engineering**: Updated Master Prompt guidelines with advanced pacing, open loop, and retention hooks instructions for algorithm optimization.
 - **Layout Alignment**: Reordered sidebar navigation linking "Channels" immediately below "Overview" for logical administrative flow.
+
+## Phase 19: Final Audit Gaps Remediation
+**Date:** 2026-08-21
+**Status:** ✅ COMPLETION
+**Summary:** Resolved the final set of critical gaps and warnings identified during the comprehensive Phase 18 audit, achieving 100% production readiness.
+- **Orphan Directories Cleanup (GAP-1, GAP-2):** Deleted unused and empty directories (`src/app/api/billing` and `src/app/[locale]/dashboard/studio`).
+- **Role Guard Security (GAP-3):** Added `SUPERADMIN` role guard to the Admin Notifications page (`src/app/[locale]/admin/notifications/page.tsx`).
+- **Draft Deduplication (WARN-3):** Fixed `POST /api/drafts` to properly update existing drafts by checking `channelId`, `type`, and `title` without the restrictive `wordCount: 0` condition, preventing duplicate entries on repeated saves.
+- **Auto-Demo Plan (GAP-4):** Implemented logic in `src/app/api/auth/register/route.ts` to automatically assign new users to the `DEMO` plan if it exists, activating their subscription for 7 days and setting `hasUsedTrial: true`.
+- **Support Messages API (GAP-5):** Added a `GET` endpoint to `src/app/api/support/tickets/[id]/messages/route.ts` for consistent RESTful message retrieval.
+- **Change Password API (BIZ-1):** Created `PUT /api/user/password` to allow authenticated users to change their passwords directly from their dashboard.
+
+## Phase 20: Camera Movement Feature (Generator Studio)
+**Date:** 2026-08-21
+**Status:** ✅ COMPLETE
+**Summary:** Added a fully integrated Camera Movement control panel to the Video Generator Studio, giving users granular control over how cinematographic camera movements are applied to AI-generated scene visual prompts.
+
+### What Was Added
+- **Toggle ON/OFF:** A pill-toggle switch allows users to fully enable or disable camera movement guidance. When disabled, the prompt generator instructs the AI to use only `static shot` or `minimal movement`.
+- **30+ Preset Options (Grouped):** Camera movement presets organized into 5 intuitive categories:
+  - 📹 **Pergerakan Dasar** (7 items): Static Shot, Slow Push-In, Pull-Out, Pan L/R, Tilt U/D
+  - 🎬 **Gerakan Sinematik** (7 items): Slow Zoom, Dolly Zoom (Vertigo), Crane, Dutch Angle, Handheld
+  - 🌀 **Gerakan Dinamis** (6 items): Sweeping Orbital, 360° Spin, Tracking, Whip Pan, Arc Shot, Roll
+  - 🚁 **Aerial & Drone** (4 items): Bird's Eye View, Drone Reveal, Top-Down Flat Lay, Drone Chase
+  - 🔬 **Khusus & Sinematif** (7 items): Extreme Slow Motion, Time-Lapse, Macro Close-Up, Split-Screen, First-Person POV, Underwater Glide, Gimbal Glide
+- **Custom Concept Input:** Free-text field for users to describe unique/custom camera concepts not covered by presets.
+- **Selection Counter & Reset:** Live badge showing selected count with one-click reset.
+
+### Prompt Generator Integration
+- **`VideoConfigData` Interface Updated** (`src/lib/promptGenerator.ts`): Added `cameraMovementEnabled`, `cameraMovementPresets`, `cameraMovementCustom` fields.
+- **3 Injection Modes:**
+  1. **Disabled:** Explicit `[PANDUAN CAMERA MOVEMENT]` block forbidding active movement.
+  2. **Curated (presets/custom selected):** `[PANDUAN CAMERA MOVEMENT — KURASI USER]` block with approved movement list, instructing AI to distribute them variably across scenes.
+  3. **Auto (enabled, no selection):** `[PANDUAN CAMERA MOVEMENT — AUTO]` block with scene-type-specific recommendations (hook, emotional, action, CTA).
+- **API Route Updated** (`src/app/api/generate/route.ts`): `videoConfigSchema` extended with Zod-validated camera movement fields.
+- **State Persistence:** Camera movement preferences are persisted to localStorage and synced to user server preferences.

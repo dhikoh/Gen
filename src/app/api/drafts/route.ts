@@ -134,9 +134,8 @@ export async function POST(req: Request) {
           channelId: channel.id,
           type: type,
           title: { equals: String(title), mode: "insensitive" },
-          wordCount: 0,
-          estimatedDurationSec: 0,
-        }
+        },
+        orderBy: { createdAt: "desc" }
       });
 
       if (existingStub) {

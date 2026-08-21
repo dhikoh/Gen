@@ -23,9 +23,10 @@ export default function AnnouncementsClient() {
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [link, setLink] = useState("");
-  const [target, setTarget] = useState<"ALL" | "PLAN" | "USER">("ALL");
+  const [target, setTarget] = useState<"ALL" | "PLAN" | "USER" | "STATUS">("ALL");
   const [targetPlanCode, setTargetPlanCode] = useState("STANDARD");
   const [targetUserId, setTargetUserId] = useState("");
+  const [targetStatus, setTargetStatus] = useState("ACTIVE");
 
   const fetchAnnouncements = async () => {
     setLoading(true);
@@ -66,6 +67,7 @@ export default function AnnouncementsClient() {
           target,
           targetPlanCode: target === "PLAN" ? targetPlanCode : undefined,
           targetUserId: target === "USER" ? targetUserId.trim() : undefined,
+          targetStatus: target === "STATUS" ? targetStatus : undefined,
         }),
       });
 
@@ -135,12 +137,13 @@ export default function AnnouncementsClient() {
               <select
                 id="announcement-target"
                 value={target}
-                onChange={(e) => setTarget(e.target.value as "ALL" | "PLAN" | "USER")}
+                onChange={(e) => setTarget(e.target.value as "ALL" | "PLAN" | "USER" | "STATUS")}
                 className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-950 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="ALL">{t("targetAll")}</option>
                 <option value="PLAN">{t("targetPlan")}</option>
                 <option value="USER">{t("targetUser")}</option>
+                <option value="STATUS">Berdasarkan Status</option>
               </select>
             </div>
 
@@ -174,6 +177,23 @@ export default function AnnouncementsClient() {
                   placeholder={t("userIdPlaceholder")}
                   className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-950 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
+              </div>
+            )}
+
+            {target === "STATUS" && (
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                  Status Langganan
+                </label>
+                <select
+                  value={targetStatus}
+                  onChange={(e) => setTargetStatus(e.target.value)}
+                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-950 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="ACTIVE">Active (Aktif)</option>
+                  <option value="INACTIVE">Inactive (Belum Pernah Beli)</option>
+                  <option value="EXPIRED">Expired (Kedaluwarsa)</option>
+                </select>
               </div>
             )}
 

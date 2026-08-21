@@ -6,6 +6,7 @@ import { RegistrationStatus } from "@prisma/client";
 import { getApiTranslator } from "@/lib/apiI18n";
 import { getTranslations } from "next-intl/server";
 import { sendEmail } from "@/lib/email";
+import { getBaseEmailTemplate } from "@/lib/emailTemplates";
 import { notifyUser } from "@/lib/notifications";
 import { z } from "zod";
 
@@ -138,13 +139,13 @@ export async function POST(req: Request) {
       sendEmail({
         to: targetUser.email,
         subject: emailT("regApproveSubject"),
-        html: `<p>${emailT("regApproveBody", { name: targetUser.name })}</p>`
+        html: getBaseEmailTemplate(`<p>${emailT("regApproveBody", { name: targetUser.name })}</p>`, emailT("regApproveSubject"))
       }).catch(err => console.error("Registration approval email fail:", err));
     } else {
       sendEmail({
         to: targetUser.email,
         subject: emailT("regRejectSubject"),
-        html: `<p>${emailT("regRejectBody", { name: targetUser.name })}</p>`
+        html: getBaseEmailTemplate(`<p>${emailT("regRejectBody", { name: targetUser.name })}</p>`, emailT("regRejectSubject"))
       }).catch(err => console.error("Registration rejection email fail:", err));
     }
 

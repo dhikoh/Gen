@@ -5,6 +5,7 @@ import { z } from "zod";
 import { applyRateLimit } from "@/lib/rateLimit";
 import crypto from "crypto";
 import { sendEmail } from "@/lib/email";
+import { getBaseEmailTemplate } from "@/lib/emailTemplates";
 
 const forgotPasswordSchema = z.object({
   identifier: z.string().min(1, "Identifier is required"),
@@ -62,16 +63,16 @@ export async function POST(req: Request) {
       await sendEmail({
         to: user.email,
         subject: tEmail('resetSubject'),
-        html: `
-          <div style="font-family: sans-serif; max-w: 600px; margin: 0 auto;">
-            <h2>${tEmail('resetSubject')}</h2>
-            <p>${tEmail('resetGreeting')}</p>
-            <p>${tEmail('resetInstruction')}</p>
-            <a href="${resetUrl}" style="display: inline-block; padding: 10px 20px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 5px; margin: 16px 0;">${tEmail('resetButton')}</a>
-            <p>${tEmail('resetIgnore')}</p>
-            <p>${tEmail('resetExpiry')}</p>
+        html: getBaseEmailTemplate(`
+          <h2>${tEmail('resetSubject')}</h2>
+          <p>${tEmail('resetGreeting')}</p>
+          <p>${tEmail('resetInstruction')}</p>
+          <div class="button-container">
+            <a href="${resetUrl}" class="button">${tEmail('resetButton')}</a>
           </div>
-        `
+          <p>${tEmail('resetIgnore')}</p>
+          <p>${tEmail('resetExpiry')}</p>
+        `, tEmail('resetSubject'))
       });
     }
 

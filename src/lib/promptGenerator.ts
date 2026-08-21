@@ -46,6 +46,10 @@ export interface VideoConfigData {
   voPreference?: boolean | null;
   selectedSections?: string[] | null;
   isVideoPlatform?: boolean | null;
+  // Camera Movement
+  cameraMovementEnabled?: boolean | null;
+  cameraMovementPresets?: string[] | null;
+  cameraMovementCustom?: string | null;
 }
 
 export interface PromptSettingsData {
@@ -164,6 +168,33 @@ export function generateMasterPrompt(
   const videoLoopGuidelinesText = isVideoLoop
     ? `[PANDUAN LOOP VIDEO (SEAMLESS VISUAL LOOP - AKTIF)]\n1. WAJIB merancang Visual Prompt agar video awal dan akhir tampak menyambung secara visual.\n2. Di SCENE TERAKHIR, akhir Visual Prompt harus kembali ke kondisi visual awal SCENE 1.\n3. Sesuaikan camera movement, lighting, posisi subjek, dan environment agar transisinya mulus.`
     : `[PANDUAN VISUAL VIDEO (NORMAL ENDING)]\n1. Visual scene terakhir tidak perlu menyambung ke scene pertama.\n2. Fokuskan pada resolusi cerita atau adegan penutup yang natural.`;
+
+  // ── Camera Movement Guide ──────────────────────────────────────────────
+  const camEnabled = videoConfig.cameraMovementEnabled !== false; // default ON
+  let cameraMovementGuide = "";
+  if (!camEnabled) {
+    cameraMovementGuide = `[PANDUAN CAMERA MOVEMENT]\nCamera movement DINONAKTIFKAN oleh user. WAJIB gunakan "static shot" atau "minimal movement" pada setiap Visual Prompt. JANGAN menyisipkan gerakan kamera aktif kecuali benar-benar diperlukan oleh narasi.`;
+  } else {
+    const presets = videoConfig.cameraMovementPresets ?? [];
+    const custom = videoConfig.cameraMovementCustom?.trim() ?? "";
+    const hasPresets = presets.length > 0;
+    const hasCustom = custom.length > 0;
+
+    if (hasPresets || hasCustom) {
+      cameraMovementGuide = `[PANDUAN CAMERA MOVEMENT — KURASI USER]\n`;
+      cameraMovementGuide += `Gunakan gerakan kamera berikut secara variatif dan kontekstual di setiap Visual Prompt:\n`;
+      if (hasPresets) {
+        cameraMovementGuide += `Pilihan Preset yang Disetujui:\n${presets.map(p => `- ${p}`).join("\n")}\n`;
+      }
+      if (hasCustom) {
+        cameraMovementGuide += `Konsep Kustom Tambahan: ${custom}\n`;
+      }
+      cameraMovementGuide += `WAJIB: Distribusikan gerakan kamera di atas secara bervariasi antar-scene. Hindari pengulangan gerakan yang sama di scene berurutan. Sesuaikan intensitas gerakan dengan mood narasi.`;
+    } else {
+      // Default ON but no preset selected — give AI creative freedom with guidance
+      cameraMovementGuide = `[PANDUAN CAMERA MOVEMENT — AUTO]\nAI bebas memilih dan memvariasikan gerakan kamera yang paling sinematik dan sesuai dengan mood setiap scene. Referensi pilihan yang disarankan (tidak terbatas):\n- Untuk scene pembuka/hook: slow push-in, whip pan, crane down and tilt up\n- Untuk scene emosional: slow zoom in, handheld shaky, arc shot\n- Untuk scene aksi/dinamis: tracking shot, sweeping orbital, dolly zoom\n- Untuk scene penutup/CTA: slow pull-out, crane up and wide reveal\nWAJIB: Variasikan gerakan kamera antar scene. Hindari static shot berturut-turut kecuali untuk efek dramatis yang disengaja.`;
+    }
+  }
 
   // ── Format Output Wajib (Markdown — Push Style) ──────────────────────
   let formatOutputWajib = "\n\n[FORMAT OUTPUT WAJIB]\n";
@@ -303,7 +334,7 @@ ${videoLoopGuidelinesText}
     : "";
 
   // ── Assemble Master Prompt ─────────────────────────────────────────────
-  const masterPrompt = `${povSection}[TOPIK UTAMA]\n${topic}${contextText}${productContext}${compositionText}${platformText}${excludeSection}${durationText}${formatOutputWajib}${allGuidelines}`;
+  const masterPrompt = `${povSection}[TOPIK UTAMA]\n${topic}${contextText}${productContext}${compositionText}${platformText}${excludeSection}${durationText}${formatOutputWajib}${cameraMovementGuide}\n\n${allGuidelines}`;
 
   return { masterPrompt, systemInstruction };
 }

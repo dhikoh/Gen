@@ -16,6 +16,8 @@ const settingsSchema = z.object({
   csEmail: z.string().nullable().optional(),
   csOperatingHours: z.string().nullable().optional(),
   csWidgetEnabled: z.boolean().optional(),
+  rateLimitRequests: z.number().min(1).optional(),
+  rateLimitWindowMs: z.number().min(1000).optional(),
 });
 
 export async function PUT(req: Request) {
@@ -48,6 +50,8 @@ export async function PUT(req: Request) {
         csEmail: parsedData.data.csEmail,
         csOperatingHours: parsedData.data.csOperatingHours,
         csWidgetEnabled: parsedData.data.csWidgetEnabled,
+        rateLimitRequests: parsedData.data.rateLimitRequests,
+        rateLimitWindowMs: parsedData.data.rateLimitWindowMs,
       },
       create: {
         id: "singleton",
@@ -61,6 +65,8 @@ export async function PUT(req: Request) {
         csEmail: parsedData.data.csEmail,
         csOperatingHours: parsedData.data.csOperatingHours,
         csWidgetEnabled: parsedData.data.csWidgetEnabled ?? true,
+        rateLimitRequests: parsedData.data.rateLimitRequests ?? 30,
+        rateLimitWindowMs: parsedData.data.rateLimitWindowMs ?? 60000,
       }
     });
 

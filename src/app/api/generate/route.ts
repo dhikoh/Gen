@@ -47,6 +47,10 @@ const videoConfigSchema = z.object({
   voPreference: z.boolean().optional().nullable(),
   selectedSections: z.array(z.string()).optional().nullable(),
   isVideoPlatform: z.boolean().optional().nullable(),
+  // Camera Movement
+  cameraMovementEnabled: z.boolean().optional().nullable(),
+  cameraMovementPresets: z.array(z.string()).optional().nullable(),
+  cameraMovementCustom: z.string().max(500).optional().nullable(),
 });
 
 const imageConfigSchema = z.object({

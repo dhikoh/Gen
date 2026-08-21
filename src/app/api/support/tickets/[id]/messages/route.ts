@@ -93,3 +93,36 @@ export async function POST(
     return NextResponse.json({ error: t("serverError") }, { status: 500 });
   }
 }
+
+export async function GET(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const t = await getApiTranslator();
+  const { id: ticketId } = await params;
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
+    }
+
+    const ticket = await prisma.supportTicket.findUnique({ 
+      where: { id: ticketId },
+      include: { messages: { orderBy: { createdAt: "asc" } } }
+    });
+    
+    if (!ticket) {
+      return NextResponse.json({ error: t("notFound") }, { status: 404 });
+    }
+
+    const isSuperadmin = session.user.role === "SUPERADMIN";
+    if (!isSuperadmin && ticket.userId !== session.user.id) {
+      return NextResponse.json({ error: t("unauthorized") }, { status: 403 });
+    }
+
+    return NextResponse.json({ messages: ticket.messages }, { status: 200 });
+  } catch (error) {
+    console.error("GET /api/support/tickets/[id]/messages error:", error);
+    return NextResponse.json({ error: t("serverError") }, { status: 500 });
+  }
+}

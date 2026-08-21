@@ -235,6 +235,8 @@ model AppSettings {
   csWidgetEnabled             Boolean  @default(true)
   registrationPendingAlertHours Int?   @default(24)
   paymentPendingAlertHours      Int?   @default(12)
+  rateLimitRequests           Int      @default(30)
+  rateLimitWindowMs           Int      @default(60000)
   updatedAt                   DateTime @updatedAt
 }
 

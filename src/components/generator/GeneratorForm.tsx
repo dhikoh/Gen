@@ -96,6 +96,11 @@ export default function GeneratorForm({
   const [sfxPreference, setSfxPreference] = useState<boolean>(true);
   const [voPreference, setVoPreference] = useState<boolean>(true);
 
+  // Camera Movement state
+  const [cameraMovementEnabled, setCameraMovementEnabled] = useState<boolean>(true);
+  const [cameraMovementPresets, setCameraMovementPresets] = useState<string[]>([]);
+  const [cameraMovementCustom, setCameraMovementCustom] = useState<string>("");
+
   // Visual style options (from visualStyleMap)
   const visualStyleOptions: PresetOption[] = [
     { value: "", label: "Auto (Ikuti Estetika Channel)" },
@@ -107,6 +112,67 @@ export default function GeneratorForm({
     "Empatik & Hangat", "Tegas & Otoritatif", "Humoris & Playful",
     "Inspiratif & Motivasional", "Dramatis & Sinematik", "Minimalis & To-The-Point"
   ];
+
+  // Camera movement preset options grouped by category
+  const CAMERA_MOVEMENT_CATEGORIES = [
+    {
+      category: "📹 Pergerakan Dasar",
+      items: [
+        { value: "static shot", label: "Static Shot" },
+        { value: "slow push-in", label: "Slow Push-In" },
+        { value: "slow pull-out", label: "Slow Pull-Out" },
+        { value: "pan left", label: "Pan Left" },
+        { value: "pan right", label: "Pan Right" },
+        { value: "tilt up", label: "Tilt Up" },
+        { value: "tilt down", label: "Tilt Down" },
+      ],
+    },
+    {
+      category: "🎬 Gerakan Sinematik",
+      items: [
+        { value: "slow zoom in", label: "Slow Zoom In" },
+        { value: "slow zoom out", label: "Slow Zoom Out" },
+        { value: "dolly zoom (Vertigo effect)", label: "Dolly Zoom (Vertigo)" },
+        { value: "crane up and wide reveal", label: "Crane Up & Wide Reveal" },
+        { value: "crane down and tilt up", label: "Crane Down & Tilt Up" },
+        { value: "Dutch angle (tilted camera)", label: "Dutch Angle (Tilted)" },
+        { value: "handheld shaky motion", label: "Handheld / Shaky" },
+      ],
+    },
+    {
+      category: "🌀 Gerakan Dinamis",
+      items: [
+        { value: "sweeping orbital shot", label: "Sweeping Orbital" },
+        { value: "360-degree spin", label: "360° Spin" },
+        { value: "tracking shot following subject", label: "Tracking Shot" },
+        { value: "whip pan transition", label: "Whip Pan" },
+        { value: "roll rotation", label: "Roll Rotation" },
+        { value: "arc shot circling subject", label: "Arc Shot" },
+      ],
+    },
+    {
+      category: "🚁 Aerial & Drone",
+      items: [
+        { value: "aerial drone high-altitude bird's eye view", label: "Bird's Eye View" },
+        { value: "drone reveal from low to high", label: "Drone Low-to-High Reveal" },
+        { value: "overhead top-down flat lay shot", label: "Top-Down Flat Lay" },
+        { value: "drone follow chase shot", label: "Drone Follow / Chase" },
+      ],
+    },
+    {
+      category: "🔬 Khusus & Sinematif",
+      items: [
+        { value: "extreme slow motion", label: "Extreme Slow Motion" },
+        { value: "time-lapse fast-forward", label: "Time-Lapse" },
+        { value: "macro close-up with shallow depth of field", label: "Macro Close-Up" },
+        { value: "split-screen parallel movement", label: "Split-Screen" },
+        { value: "first-person POV moving through scene", label: "First-Person POV" },
+        { value: "underwater flowing camera glide", label: "Underwater Glide" },
+        { value: "smooth gliding gimbal shot", label: "Smooth Gimbal Glide" },
+      ],
+    },
+  ];
+  const ALL_CAMERA_PRESETS = CAMERA_MOVEMENT_CATEGORIES.flatMap(c => c.items);
 
   // Quick Add Product Modal state
   const [showProductModal, setShowProductModal] = useState(false);
@@ -181,6 +247,9 @@ export default function GeneratorForm({
         if (p.musicPreference !== undefined) setMusicPreference(p.musicPreference);
         if (p.sfxPreference !== undefined) setSfxPreference(p.sfxPreference);
         if (p.voPreference !== undefined) setVoPreference(p.voPreference);
+        if (p.cameraMovementEnabled !== undefined) setCameraMovementEnabled(p.cameraMovementEnabled);
+        if (p.cameraMovementPresets !== undefined) setCameraMovementPresets(p.cameraMovementPresets);
+        if (p.cameraMovementCustom !== undefined) setCameraMovementCustom(p.cameraMovementCustom);
         if (p.videoConfig) setVideoConfig(prev => ({ ...prev, ...p.videoConfig }));
         if (p.imageConfig) setImageConfig(prev => ({ ...prev, ...p.imageConfig }));
       } catch (e) {}
@@ -204,6 +273,9 @@ export default function GeneratorForm({
           if (p.musicPreference !== undefined) setMusicPreference(p.musicPreference);
           if (p.sfxPreference !== undefined) setSfxPreference(p.sfxPreference);
           if (p.voPreference !== undefined) setVoPreference(p.voPreference);
+          if (p.cameraMovementEnabled !== undefined) setCameraMovementEnabled(p.cameraMovementEnabled);
+          if (p.cameraMovementPresets !== undefined) setCameraMovementPresets(p.cameraMovementPresets);
+          if (p.cameraMovementCustom !== undefined) setCameraMovementCustom(p.cameraMovementCustom);
           if (p.videoConfig) setVideoConfig(prev => ({ ...prev, ...p.videoConfig }));
           if (p.imageConfig) setImageConfig(prev => ({ ...prev, ...p.imageConfig }));
         }
@@ -224,7 +296,7 @@ export default function GeneratorForm({
   }, []);
 
   useEffect(() => {
-    const stateObj = { type, channelId, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, videoConfig, imageConfig, step, generatedPrompt, aiResultJson, manualTitle };
+    const stateObj = { type, channelId, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, cameraMovementEnabled, cameraMovementPresets, cameraMovementCustom, videoConfig, imageConfig, step, generatedPrompt, aiResultJson, manualTitle };
     localStorage.setItem("generatorFormState", JSON.stringify(stateObj));
 
     const timeoutId = setTimeout(() => {
@@ -236,7 +308,7 @@ export default function GeneratorForm({
     }, 3000); // 3 seconds debounce
 
     return () => clearTimeout(timeoutId);
-  }, [type, channelId, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, videoConfig, imageConfig, step, generatedPrompt, aiResultJson, manualTitle]);
+  }, [type, channelId, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, cameraMovementEnabled, cameraMovementPresets, cameraMovementCustom, videoConfig, imageConfig, step, generatedPrompt, aiResultJson, manualTitle]);
 
   // Fetch presets on mount
   useEffect(() => {
@@ -408,6 +480,9 @@ export default function GeneratorForm({
           musicPreference,
           sfxPreference,
           voPreference,
+          cameraMovementEnabled,
+          cameraMovementPresets: cameraMovementEnabled ? cameraMovementPresets : [],
+          cameraMovementCustom: cameraMovementEnabled ? cameraMovementCustom : undefined,
           isVideoPlatform: selectedChannel?.targetPlatform ? !/blog|podcast|article|web/i.test(selectedChannel.targetPlatform) : true,
         } : undefined,
         imageConfig: type === "IMAGE" ? imageConfig : undefined,
@@ -979,6 +1054,111 @@ export default function GeneratorForm({
                     ))}
                   </div>
                   <p className="text-[10px] text-zinc-400">Default dari pengaturan channel. Klik untuk override.</p>
+                </div>
+
+                {/* ── Camera Movement Section ── */}
+                <div className="space-y-3 pt-2 border-t border-zinc-200 dark:border-zinc-800">
+                  {/* Header + Toggle */}
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                      🎥 Camera Movement
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCameraMovementEnabled(!cameraMovementEnabled);
+                        if (cameraMovementEnabled) {
+                          setCameraMovementPresets([]);
+                          setCameraMovementCustom("");
+                        }
+                      }}
+                      className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none ${
+                        cameraMovementEnabled
+                          ? "bg-blue-600"
+                          : "bg-zinc-300 dark:bg-zinc-700"
+                      }`}
+                      aria-label="Toggle camera movement"
+                    >
+                      <span
+                        className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
+                          cameraMovementEnabled ? "translate-x-5" : "translate-x-1"
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {cameraMovementEnabled && (
+                    <div className="space-y-3">
+                      {/* Grouped preset chips */}
+                      {CAMERA_MOVEMENT_CATEGORIES.map((cat) => (
+                        <div key={cat.category} className="space-y-1.5">
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                            {cat.category}
+                          </p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {cat.items.map((item) => {
+                              const isSelected = cameraMovementPresets.includes(item.value);
+                              return (
+                                <button
+                                  key={item.value}
+                                  type="button"
+                                  onClick={() => {
+                                    setCameraMovementPresets(prev =>
+                                      isSelected
+                                        ? prev.filter(v => v !== item.value)
+                                        : [...prev, item.value]
+                                    );
+                                  }}
+                                  className={`px-2.5 py-1 text-[11px] font-medium rounded-full border transition-all ${
+                                    isSelected
+                                      ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                                      : "bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-blue-400 hover:text-blue-600"
+                                  }`}
+                                >
+                                  {item.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* Selected count badge */}
+                      {cameraMovementPresets.length > 0 && (
+                        <div className="flex items-center justify-between">
+                          <p className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">
+                            ✓ {cameraMovementPresets.length} gerakan dipilih — AI akan menggunakan variasi dari daftar ini.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => setCameraMovementPresets([])}
+                            className="text-[10px] text-zinc-400 hover:text-red-500 transition-colors"
+                          >
+                            Reset
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Custom camera movement concept input */}
+                      <div className="space-y-1">
+                        <label className="block text-[10px] font-medium text-zinc-500 dark:text-zinc-400">
+                          ✏️ Konsep Kamera Kustom (Opsional)
+                        </label>
+                        <input
+                          type="text"
+                          value={cameraMovementCustom}
+                          onChange={(e) => setCameraMovementCustom(e.target.value)}
+                          placeholder="e.g. whip pan to reveal, underwater flowing glide, first-person dash..."
+                          className="w-full px-3 py-1.5 text-xs bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white placeholder-zinc-400"
+                        />
+                        <p className="text-[10px] text-zinc-400">Deskripsikan konsep gerakan kamera unik yang ingin dipadukan ke dalam setiap visual prompt scene.</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {!cameraMovementEnabled && (
+                    <p className="text-[10px] text-zinc-400 italic">Camera movement dinonaktifkan — AI akan memilih gerakan kamera secara otomatis.</p>
+                  )}
                 </div>
 
                 {/* Composition Sliders */}

@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
 import { sendEmail } from "@/lib/email";
+import { getBaseEmailTemplate } from "@/lib/emailTemplates";
 import { notifyUser } from "@/lib/notifications";
 
 const actionSchema = z.object({
@@ -12,6 +13,29 @@ const actionSchema = z.object({
   action: z.enum(["APPROVE", "REJECT"]),
   rejectionReason: z.string().optional(),
 });
+
+export async function GET(req: Request) {
+  const t = await getApiTranslator();
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || session.user.role !== "SUPERADMIN") {
+      return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
+    }
+
+    const invoices = await prisma.invoice.findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        plan: { select: { name: true } },
+        user: { select: { name: true, email: true } },
+      }
+    });
+
+    return NextResponse.json({ invoices });
+  } catch (error) {
+    console.error("Admin Payments GET API error:", error);
+    return NextResponse.json({ error: t("systemError") }, { status: 500 });
+  }
+}
 
 export async function POST(req: Request) {
   const t = await getApiTranslator();
@@ -76,15 +100,13 @@ export async function POST(req: Request) {
       await sendEmail({
         to: invoice.user.email,
         subject: tEmail('rejectSubject'),
-        html: `
-          <div style="font-family: sans-serif; max-w: 600px; margin: 0 auto;">
-            <h2>${tEmail('rejectSubject')}</h2>
-            <p>${tEmail('rejectGreeting', { name: invoice.user.name })}</p>
-            <p>${tEmail.raw('rejectBody').replace('{plan}', invoice.plan.name).replace('{amount}', invoice.amount.toLocaleString('id-ID'))}</p>
-            ${reasonHtml}
-            <p>${tEmail('rejectInstruction')}</p>
-          </div>
-        `
+        html: getBaseEmailTemplate(`
+          <h2>${tEmail('rejectSubject')}</h2>
+          <p>${tEmail('rejectGreeting', { name: invoice.user.name })}</p>
+          <p>${tEmail.raw('rejectBody').replace('{plan}', invoice.plan.name).replace('{amount}', invoice.amount.toLocaleString('id-ID'))}</p>
+          ${reasonHtml}
+          <p>${tEmail('rejectInstruction')}</p>
+        `, tEmail('rejectSubject'))
       });
 
       return NextResponse.json({ success: true });
@@ -97,15 +119,13 @@ export async function POST(req: Request) {
       await sendEmail({
         to: invoice.user.email,
         subject: tEmail('approveSubject'),
-        html: `
-          <div style="font-family: sans-serif; max-w: 600px; margin: 0 auto;">
-            <h2>${tEmail('approveSubject')}</h2>
-            <p>${tEmail('approveGreeting', { name: invoice.user.name })}</p>
-            <p>${tEmail.raw('approveBody').replace('{plan}', invoice.plan.name)}</p>
-            <p>${tEmail('approveInstruction')}</p>
-            <p>${tEmail('thankYou')}</p>
-          </div>
-        `
+        html: getBaseEmailTemplate(`
+          <h2>${tEmail('approveSubject')}</h2>
+          <p>${tEmail('approveGreeting', { name: invoice.user.name })}</p>
+          <p>${tEmail.raw('approveBody').replace('{plan}', invoice.plan.name)}</p>
+          <p>${tEmail('approveInstruction')}</p>
+          <p>${tEmail('thankYou')}</p>
+        `, tEmail('approveSubject'))
       });
 
       return NextResponse.json({ success: true }, { status: 200 });
