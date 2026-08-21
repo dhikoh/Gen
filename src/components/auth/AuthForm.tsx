@@ -63,19 +63,19 @@ export default function AuthForm() {
 
   const handleNextStep = () => {
     if (!name.trim()) {
-      setError(t('fullName') + " " + "wajib diisi");
+      setError(t('fullName') + " " + t('fieldRequired'));
       return;
     }
     if (!username.trim() || username.trim().length < 3) {
-      setError("Username minimal 3 karakter!");
+      setError(t('usernameMin'));
       return;
     }
     if (!/^[a-zA-Z0-9_.-]+$/.test(username.trim())) {
-      setError("Username hanya boleh huruf, angka, underscore (_), titik (.), dan strip (-)");
+      setError(t('usernameInvalid'));
       return;
     }
     if (!email.trim() || !email.includes('@')) {
-      setError("Format email tidak valid!");
+      setError(t('emailInvalid'));
       return;
     }
     if (password !== confirmPassword) {
@@ -136,7 +136,8 @@ export default function AuthForm() {
       } else {
         // Register flow
         if (!channelName.trim()) {
-          setError(t('channelName') + " " + "wajib diisi!");
+          setError(t('channelName') + " " + t('channelRequired'));
+
           setLoading(false);
           return;
         }

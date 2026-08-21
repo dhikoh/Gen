@@ -106,7 +106,7 @@ export default function UserSupportClient() {
 
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || "Gagal membuat tiket.");
+        setError(data.error || t("ticketCreateFail"));
       } else {
         setShowNewModal(false);
         setNewSubject("");
@@ -114,7 +114,7 @@ export default function UserSupportClient() {
         await fetchTickets();
       }
     } catch (err) {
-      setError("Kesalahan jaringan.");
+      setError(t("ticketCreateFail"));
     } finally {
       setCreating(false);
     }
@@ -139,11 +139,11 @@ export default function UserSupportClient() {
         {/* Ticket List Column */}
         <div className="lg:col-span-1 glass-panel rounded-xl p-4 border border-zinc-200 dark:border-zinc-800 space-y-3 max-h-[75vh] overflow-y-auto">
           <h2 className="text-sm font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider px-2">
-            Daftar Tiket ({tickets.length})
+            {t("ticketListHeader")} ({tickets.length})
           </h2>
 
           {loading ? (
-            <div className="py-8 text-center text-sm text-zinc-500 animate-pulse">Memuat tiket...</div>
+            <div className="py-8 text-center text-sm text-zinc-500 animate-pulse">{t("loadingTickets")}</div>
           ) : tickets.length === 0 ? (
             <div className="py-8 text-center text-xs text-zinc-500">{t("noTickets")}</div>
           ) : (
@@ -235,7 +235,7 @@ export default function UserSupportClient() {
               {/* Reply Form */}
               {selectedTicket.status === "CLOSED" ? (
                 <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800 text-center text-xs text-zinc-500 dark:text-zinc-400">
-                  🔒 Tiket ini telah ditutup oleh Admin.
+              🔒 {t("ticketClosedMsg")}
                 </div>
               ) : (
                 <form onSubmit={handleSendReply} className="pt-4 border-t border-zinc-200 dark:border-zinc-800 flex gap-2">
@@ -264,7 +264,7 @@ export default function UserSupportClient() {
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-zinc-400 dark:text-zinc-600 text-sm">
               <span className="text-4xl mb-2">💬</span>
-              <p>Pilih tiket dari daftar di sebelah kiri untuk melihat percakapan.</p>
+              <p>{t("selectTicketHint")}</p>
             </div>
           )}
         </div>
@@ -325,7 +325,7 @@ export default function UserSupportClient() {
                   onClick={() => setShowNewModal(false)}
                   className="px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
                 >
-                  Batal
+                  {t("cancel")}
                 </button>
                 <button
                   type="submit"
@@ -335,7 +335,7 @@ export default function UserSupportClient() {
                   {creating ? (
                     <span className="inline-block animate-spin border-2 border-white/20 border-t-white rounded-full w-4 h-4" />
                   ) : (
-                    "Kirim Tiket"
+                    t("sendTicket")
                   )}
                 </button>
               </div>

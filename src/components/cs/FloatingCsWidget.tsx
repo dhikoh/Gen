@@ -13,7 +13,7 @@ interface CsSettings {
 }
 
 export default function FloatingCsWidget() {
-  const t = useTranslations("Support");
+  const t = useTranslations("CsWidget");
   const { data: session } = useSession();
 
   const [settings, setSettings] = useState<CsSettings | null>(null);
@@ -74,7 +74,7 @@ export default function FloatingCsWidget() {
 
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || "Gagal membuat tiket.");
+        setError(data.error || t("ticketCreateFail"));
       } else {
         setSuccess(true);
         setSubject("");
@@ -83,7 +83,7 @@ export default function FloatingCsWidget() {
         setGuestEmail("");
       }
     } catch (err) {
-      setError("Kesalahan jaringan.");
+      setError(t("ticketCreateFail"));
     } finally {
       setLoading(false);
     }
@@ -119,10 +119,10 @@ export default function FloatingCsWidget() {
                 ✓
               </div>
               <p className="text-sm font-semibold text-zinc-900 dark:text-white mb-1">
-                {t("ticketCreated")}
+                {t("successTitle")}
               </p>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-4">
-                {t("ticketSuccessDesc")}
+                {t("successDesc")}
               </p>
               <button
                 onClick={() => setSuccess(false)}
@@ -206,7 +206,7 @@ export default function FloatingCsWidget() {
                 {loading ? (
                   <span className="inline-block animate-spin mr-1 border-2 border-white/20 border-t-white rounded-full w-3.5 h-3.5" />
                 ) : (
-                  t("createTicket")
+                  t("submitBtn")
                 )}
               </button>
             </form>

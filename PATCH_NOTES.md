@@ -316,3 +316,46 @@ Pembaruan ini mencakup seluruh perbaikan bug dan arsitektur yang teridentifikasi
 - `admin/prompt-settings/route.ts` — Zod schema `promptSettingsSchema` dengan max-length per field ditambahkan.
 - `support/tickets/[id]/messages/route.ts` — Zod schema `messageSchema` max 5000 chars ditambahkan.
 - `support/tickets/[id]/route.ts` — Zod schema `ticketPatchSchema` (enum) ditambahkan.
+
+---
+
+## [#40] — 2026-08-21 | Audit Batch 3 — i18n 3.4 Completion + Blueprint Reconciliation
+
+### Scope
+Penyelesaian audit batch ketiga: eliminasi total hardcoded strings pada 5 komponen UI, penambahan 20+ i18n keys lintas 4 namespace, dan finalisasi rekonsiliasi blueprint arsitektur (Bagian 15-17).
+
+### i18n Remediation [3.4]
+**Komponen yang diperbaiki:**
+- `DraftActions.tsx` — `toast.success/error` diganti dengan `t("downloadSuccess")` / `t("downloadError")` (Drafts namespace)
+- `AuthForm.tsx` — 5 hardcoded validation strings diganti: fullName field required, usernameMin, usernameInvalid, emailInvalid, channelRequired
+- `GeneratorForm.tsx` — 4 hardcoded product modal strings: selectChannelFirst, productNameRequired, productAddFail/Success, systemError (Generator namespace)
+- `FloatingCsWidget.tsx` — Switch namespace dari Support ke CsWidget; fix ticketCreateFail, submitBtn, successTitle, successDesc
+- `UserSupportClient.tsx` — 7 hardcoded strings: ticketCreateFail, ticketListHeader, loadingTickets, ticketClosedMsg, selectTicketHint, cancel, sendTicket (Support namespace)
+
+**Keys baru ditambahkan:**
+| Namespace | Keys |
+|-----------|------|
+| Drafts | downloadSuccess, downloadError |
+| Auth | fieldRequired, usernameMin, usernameInvalid, emailInvalid, channelRequired |
+| Generator | selectChannelFirst, productNameRequired, productAddFail, productAddSuccess, systemError |
+| CsWidget | ticketCreateFail, namePlaceholder, emailPlaceholder, subjectPlaceholder, messagePlaceholder, submitBtn, submitting, successTitle, successDesc |
+| Support | ticketCreateFail, cancel, ticketListHeader, selectTicketHint, ticketClosedMsg, sendTicket, loadingTickets |
+
+### Blueprint Reconciliation
+- **Bagian 15**: `broadcastGroupId` field & deduplication logic (Notification model)
+- **Bagian 16**: `extractHtmlBlog()` parser + ScenePromptStudioClient integration + promptGenerator.ts HTML Blog injection
+- **Bagian 17**: Admin Plans CRUD (POST create, DELETE safety-guard, isPubliclyPurchasable field), Zod API hardening (4 routes), Zod leak prevention, User Preferences hardening
+
+### Build Integrity
+- `tsc --noEmit`: ✅ 0 errors
+- `prisma generate`: ✅ OK
+- Blueprint: 762 → 814 lines (Sections 15, 16, 17 added)
+
+### Files Modified
+- `messages/id.json`, `messages/en.json` (+20 keys each)
+- `src/app/[locale]/dashboard/drafts/[id]/DraftActions.tsx`
+- `src/components/auth/AuthForm.tsx`
+- `src/components/generator/GeneratorForm.tsx`
+- `src/components/cs/FloatingCsWidget.tsx`
+- `src/components/support/UserSupportClient.tsx`
+- `Project Prompt Gen.txt` (Blueprint +52 lines)

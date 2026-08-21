@@ -331,11 +331,11 @@ export default function GeneratorForm({
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!channelId) {
-      toast.error("Pilih channel terlebih dahulu.");
+      toast.error(t("selectChannelFirst"));
       return;
     }
     if (!newProductName.trim()) {
-      toast.error("Nama produk wajib diisi.");
+      toast.error(t("productNameRequired"));
       return;
     }
 
@@ -352,9 +352,9 @@ export default function GeneratorForm({
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Gagal menambah produk");
+      if (!res.ok) throw new Error(data.error || t("productAddFail"));
 
-      toast.success("Produk berhasil ditambahkan!");
+      toast.success(t("productAddSuccess"));
       setChannelProducts((prev) => [data.product, ...prev]);
       setVideoConfig((prev) => ({ ...prev, selectedProductId: data.product.id }));
       setShowProductModal(false);
@@ -364,7 +364,8 @@ export default function GeneratorForm({
       setNewProductLink("");
     } catch (err: unknown) {
       const error = err as Error;
-      toast.error(error.message || "Terjadi kesalahan.");
+      toast.error(error.message || t("systemError"));
+
     } finally {
       setAddingProduct(false);
     }

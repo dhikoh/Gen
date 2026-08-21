@@ -102,7 +102,12 @@
     "USERNAME_INVALID": "Username hanya boleh huruf, angka, underscore, titik, dan strip",
     "EMAIL_INVALID": "Format email tidak valid",
     "PASSWORD_TOO_SHORT": "Password minimal 8 karakter",
-    "CHANNEL_REQUIRED": "Nama channel wajib diisi"
+    "CHANNEL_REQUIRED": "Nama channel wajib diisi",
+    "fieldRequired": "wajib diisi",
+    "usernameMin": "Username minimal 3 karakter!",
+    "usernameInvalid": "Username hanya boleh huruf, angka, underscore (_), titik (.), dan strip (-)",
+    "emailInvalid": "Format email tidak valid!",
+    "channelRequired": "wajib diisi!"
   },
   "Overview": {
     "welcome": "Selamat Datang, {name}!",
@@ -295,7 +300,12 @@
     "durationShort": "Pendek (< 30s)",
     "durationMedium": "Sedang (30s - 60s)",
     "durationLong": "Panjang (> 60s)",
-    "resultReady": "Hasil Siap"
+    "resultReady": "Hasil Siap",
+    "selectChannelFirst": "Pilih channel terlebih dahulu.",
+    "productNameRequired": "Nama produk wajib diisi.",
+    "productAddFail": "Gagal menambah produk",
+    "productAddSuccess": "Produk berhasil ditambahkan!",
+    "systemError": "Terjadi kesalahan."
   },
   "Drafts": {
     "pageTitleTab": "Riwayat Prompt",
@@ -350,7 +360,9 @@
     "videoScript": "Video Script",
     "imagePrompt": "Image Prompt",
     "filterChannel": "Filter Channel",
-    "allChannels": "Semua Channel"
+    "allChannels": "Semua Channel",
+    "downloadSuccess": "File JSON Prompt berhasil diunduh!",
+    "downloadError": "Gagal mengunduh file JSON."
   },
   "Pricing": {
     "pageTitleTab": "Pilih Paket",
@@ -752,7 +764,14 @@
     "guestNamePlaceholder": "Nama Anda",
     "csModeDIRECT_WHATSAPP": "Direct WhatsApp",
     "csModeDIRECT_EMAIL": "Direct Email",
-    "csModeTICKET": "Sistem Tiket Internal (Default)"
+    "csModeTICKET": "Sistem Tiket Internal (Default)",
+    "ticketCreateFail": "Gagal membuat tiket.",
+    "cancel": "Batal",
+    "ticketListHeader": "Daftar Tiket",
+    "selectTicketHint": "Pilih tiket dari daftar di sebelah kiri untuk melihat percakapan.",
+    "ticketClosedMsg": "Tiket ini telah ditutup oleh Admin.",
+    "sendTicket": "Kirim Tiket",
+    "loadingTickets": "Memuat tiket..."
   },
   "Error": {
     "title": "Terjadi Kesalahan",
@@ -843,5 +862,16 @@
     "messagePlaceholder": "Tuliskan isi pengumuman secara rinci...",
     "userIdPlaceholder": "Masukkan CUID User",
     "linkPlaceholder": "/dashboard/generator atau https://..."
+  },
+  "CsWidget": {
+    "ticketCreateFail": "Gagal membuat tiket.",
+    "namePlaceholder": "Nama Anda",
+    "emailPlaceholder": "Email Anda",
+    "subjectPlaceholder": "Subjek pertanyaan...",
+    "messagePlaceholder": "Detail masalah atau pertanyaan...",
+    "submitBtn": "Kirim",
+    "submitting": "Mengirim...",
+    "successTitle": "Tiket terkirim!",
+    "successDesc": "Tim CS kami akan merespons secepatnya."
   }
 }

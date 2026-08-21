@@ -102,7 +102,12 @@
     "USERNAME_INVALID": "Username may only contain letters, numbers, underscores, dots, and hyphens",
     "EMAIL_INVALID": "Invalid email format",
     "PASSWORD_TOO_SHORT": "Password must be at least 8 characters",
-    "CHANNEL_REQUIRED": "Channel name is required"
+    "CHANNEL_REQUIRED": "Channel name is required",
+    "fieldRequired": "is required",
+    "usernameMin": "Username must be at least 3 characters!",
+    "usernameInvalid": "Username may only contain letters, numbers, underscore (_), dot (.), and dash (-)",
+    "emailInvalid": "Invalid email format!",
+    "channelRequired": "is required!"
   },
   "Overview": {
     "welcome": "Welcome back, {name}!",
@@ -295,7 +300,12 @@
     "durationShort": "Short (< 30s)",
     "durationMedium": "Medium (30s - 60s)",
     "durationLong": "Long (> 60s)",
-    "resultReady": "Result Ready"
+    "resultReady": "Result Ready",
+    "selectChannelFirst": "Please select a channel first.",
+    "productNameRequired": "Product name is required.",
+    "productAddFail": "Failed to add product",
+    "productAddSuccess": "Product added successfully!",
+    "systemError": "An error occurred."
   },
   "Drafts": {
     "pageTitleTab": "Prompt History",
@@ -350,7 +360,9 @@
     "videoScript": "Video Script",
     "imagePrompt": "Image Prompt",
     "filterChannel": "Filter Channel",
-    "allChannels": "All Channels"
+    "allChannels": "All Channels",
+    "downloadSuccess": "JSON Prompt file downloaded successfully!",
+    "downloadError": "Failed to download JSON file."
   },
   "Pricing": {
     "pageTitleTab": "Choose Plan",
@@ -752,7 +764,14 @@
     "guestNamePlaceholder": "Your Name",
     "csModeDIRECT_WHATSAPP": "Direct WhatsApp",
     "csModeDIRECT_EMAIL": "Direct Email",
-    "csModeTICKET": "Internal Ticket System (Default)"
+    "csModeTICKET": "Internal Ticket System (Default)",
+    "ticketCreateFail": "Failed to create ticket.",
+    "cancel": "Cancel",
+    "ticketListHeader": "Ticket List",
+    "selectTicketHint": "Select a ticket from the list on the left to view the conversation.",
+    "ticketClosedMsg": "This ticket has been closed by Admin.",
+    "sendTicket": "Send Ticket",
+    "loadingTickets": "Loading tickets..."
   },
   "Error": {
     "title": "Something went wrong",
@@ -843,5 +862,16 @@
     "messagePlaceholder": "Write the full announcement content...",
     "userIdPlaceholder": "Enter User CUID",
     "linkPlaceholder": "/dashboard/generator or https://..."
+  },
+  "CsWidget": {
+    "ticketCreateFail": "Failed to create ticket.",
+    "namePlaceholder": "Your Name",
+    "emailPlaceholder": "Your Email",
+    "subjectPlaceholder": "Subject of your question...",
+    "messagePlaceholder": "Details of your issue or question...",
+    "submitBtn": "Send",
+    "submitting": "Sending...",
+    "successTitle": "Ticket sent!",
+    "successDesc": "Our CS team will respond as soon as possible."
   }
 }

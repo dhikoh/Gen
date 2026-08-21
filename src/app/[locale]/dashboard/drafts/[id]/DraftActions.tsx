@@ -29,9 +29,9 @@ export default function DraftActions({ draftId, rawJson, locale }: { draftId: st
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      toast.success("File JSON Prompt berhasil diunduh!");
+      toast.success(t("downloadSuccess"));
     } catch (err) {
-      toast.error("Gagal mengunduh file JSON.");
+      toast.error(t("downloadError"));
     }
   };
 
