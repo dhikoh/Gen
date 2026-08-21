@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import AdminSidebarNav from "@/components/layout/AdminSidebarNav";
 import AdminMobileNav from "@/components/layout/AdminMobileNav";
+import LanguageSwitcher from "@/components/layout/LanguageSwitcher";
 
 export default async function AdminLayout({
   children,
@@ -140,6 +141,7 @@ export default async function AdminLayout({
             Prompt Gen Admin Portal
           </div>
           <div className="flex items-center gap-4">
+            <LanguageSwitcher />
             <NotificationBell />
           </div>
         </header>

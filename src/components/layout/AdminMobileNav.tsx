@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { useParams } from "next/navigation";
+import LanguageSwitcher from "@/components/layout/LanguageSwitcher";
 
 interface NavLink {
   href: string;
@@ -60,17 +61,23 @@ export default function AdminMobileNav({ links, adminName, adminInitial, adminRo
           </span>
           <span className="font-bold text-sm tracking-tight text-white">Admin Portal</span>
         </Link>
-        {/* Hamburger */}
-        <button
-          onClick={() => setOpen(true)}
-          className="w-9 h-9 flex flex-col items-center justify-center gap-1.5 rounded-xl border-none bg-transparent"
-          aria-label="Open menu"
-          style={{ color: "white" }}
-        >
-          <span className="w-5 h-0.5 rounded-full bg-current" />
-          <span className="w-5 h-0.5 rounded-full bg-current" />
-          <span className="w-4 h-0.5 rounded-full bg-current" />
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Language Switcher */}
+          <div className="text-white">
+            <LanguageSwitcher />
+          </div>
+          {/* Hamburger */}
+          <button
+            onClick={() => setOpen(true)}
+            className="w-9 h-9 flex flex-col items-center justify-center gap-1.5 rounded-xl border-none bg-transparent"
+            aria-label="Open menu"
+            style={{ color: "white" }}
+          >
+            <span className="w-5 h-0.5 rounded-full bg-current" />
+            <span className="w-5 h-0.5 rounded-full bg-current" />
+            <span className="w-4 h-0.5 rounded-full bg-current" />
+          </button>
+        </div>
       </header>
 
       {/* ── Backdrop ──────────────────────────────────── */}

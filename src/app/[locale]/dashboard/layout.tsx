@@ -2,6 +2,7 @@ import { requireRole } from "@/lib/authHelpers";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import NotificationBell from "@/components/notifications/NotificationBell";
+import LanguageSwitcher from "@/components/layout/LanguageSwitcher";
 import MobileDashboardNav from "@/components/layout/MobileDashboardNav";
 import LogoutButton from "@/components/auth/LogoutButton";
 import DashboardSidebarNav from "@/components/layout/DashboardSidebarNav";
@@ -112,6 +113,7 @@ export default async function DashboardLayout({
             {t("overview")}
           </div>
           <div className="flex items-center gap-4">
+            <LanguageSwitcher />
             <NotificationBell />
           </div>
         </header>

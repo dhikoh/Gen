@@ -6,7 +6,9 @@ import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
+import { Link as IntlLink } from "@/i18n/routing";
 import NotificationBell from "@/components/notifications/NotificationBell";
+import LanguageSwitcher from "@/components/layout/LanguageSwitcher";
 
 // ── Icons (inline SVG — no extra dep) ───────────────────────────
 const HomeIcon = () => (
@@ -120,12 +122,16 @@ export default function MobileDashboardNav({ userName, userEmail, userRole, user
             Prompt Gen
           </span>
         </Link>
-        {/* NotificationBell with real-time unread badge */}
-        <div
-          className="w-9 h-9 rounded-full flex items-center justify-center"
-          style={{ boxShadow: "var(--pg-neu-sm)", background: "var(--pg-card)" }}
-        >
-          <NotificationBell />
+        {/* Topbar Actions */}
+        <div className="flex items-center gap-3">
+          <LanguageSwitcher />
+          {/* NotificationBell with real-time unread badge */}
+          <div
+            className="w-9 h-9 rounded-full flex items-center justify-center"
+            style={{ boxShadow: "var(--pg-neu-sm)", background: "var(--pg-card)" }}
+          >
+            <NotificationBell />
+          </div>
         </div>
       </header>
 
