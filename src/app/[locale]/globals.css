@@ -1,69 +1,220 @@
+/* ================================================================
+   PROMPT GEN — Global Design System
+   Tema : Neumorphism + Orange Brand (#ff7600)
+   Font : Poppins (warm, humanist — inspired by XPDC HUB)
+   Dark : Fully adaptive (Prompt Gen advantage preserved)
+   ================================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+
 @import "tailwindcss";
 
+/* ----------------------------------------------------------------
+   CSS Design Tokens
+   ---------------------------------------------------------------- */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --glass-bg: rgba(255, 255, 255, 0.7);
-  --glass-panel-bg: rgba(255, 255, 255, 0.85);
-  --glass-border: rgba(255, 255, 255, 0.4);
-  --glass-panel-border: rgba(255, 255, 255, 0.5);
-  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
-  
-  --neu-bg: #ffffff;
-  --neu-shadow: 20px 20px 60px #d9d9d9, -20px -20px 60px #ffffff;
-  --neu-flat-bg: #f4f4f5;
-  --neu-flat-shadow: 4px 4px 10px #d4d4d8, -4px -4px 10px #ffffff;
-  --neu-pressed-shadow: inset 4px 4px 10px #d4d4d8, inset -4px -4px 10px #ffffff;
+  /* Background & Surface */
+  --pg-bg:          #ecf0f3;
+  --pg-surface:     #f0f3f8;
+  --pg-card:        #ecf0f3;
+
+  /* Brand */
+  --pg-brand:       #ff7600;
+  --pg-brand-hover: #e66a00;
+  --pg-brand-light: rgba(255, 118, 0, 0.12);
+  --pg-brand-glow:  rgba(255, 118, 0, 0.25);
+
+  /* Text */
+  --pg-text:        #2d3436;
+  --pg-text-sub:    #8392a5;
+  --pg-text-muted:  #b2bec3;
+
+  /* Neumorphic Shadows */
+  --pg-shadow-light: #ffffff;
+  --pg-shadow-dark:  #c8d0e7;
+  --pg-neu-out: 6px 6px 12px var(--pg-shadow-dark), -6px -6px 12px var(--pg-shadow-light);
+  --pg-neu-in:  inset 4px 4px 8px var(--pg-shadow-dark), inset -4px -4px 8px var(--pg-shadow-light);
+  --pg-neu-sm:  3px 3px 7px var(--pg-shadow-dark), -3px -3px 7px var(--pg-shadow-light);
+
+  /* Status Colors */
+  --pg-success: #00b894;
+  --pg-danger:  #e17055;
+  --pg-info:    #0984e3;
+  --pg-warning: #fdcb6e;
+
+  /* Admin Panel (dark navy) */
+  --pg-admin-bg:      #1e2a3a;
+  --pg-admin-surface: #243447;
+  --pg-admin-border:  rgba(255, 118, 0, 0.2);
+  --pg-admin-text:    #cdd9e5;
+  --pg-admin-sub:     #7a8fa6;
+
+  /* Misc */
+  --pg-radius-sm:  10px;
+  --pg-radius:     16px;
+  --pg-radius-lg:  22px;
+  --pg-transition: 0.22s ease;
+
+  /* Legacy compat aliases (keeps existing components working) */
+  --background:         var(--pg-bg);
+  --foreground:         var(--pg-text);
+  --glass-bg:           rgba(236, 240, 243, 0.75);
+  --glass-panel-bg:     rgba(236, 240, 243, 0.92);
+  --glass-border:       rgba(255, 255, 255, 0.55);
+  --glass-panel-border: rgba(255, 255, 255, 0.65);
+  --glass-shadow:       0 8px 32px 0 rgba(180, 190, 210, 0.18);
+  --neu-bg:             var(--pg-bg);
+  --neu-flat-bg:        var(--pg-surface);
+  --neu-shadow:         var(--pg-neu-out);
+  --neu-flat-shadow:    var(--pg-neu-sm);
+  --neu-pressed-shadow: var(--pg-neu-in);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
+/* ----------------------------------------------------------------
+   Dark Mode Adaptive (Prompt Gen advantage)
+   ---------------------------------------------------------------- */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --glass-bg: rgba(24, 24, 27, 0.7);
-    --glass-panel-bg: rgba(24, 24, 27, 0.85);
-    --glass-border: rgba(255, 255, 255, 0.08);
-    --glass-panel-border: rgba(255, 255, 255, 0.1);
-    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-    
-    --neu-bg: #0a0a0a;
-    --neu-shadow: 20px 20px 60px #040404, -20px -20px 60px #101010;
-    --neu-flat-bg: #18181b;
-    --neu-flat-shadow: 4px 4px 10px #0a0a0a, -4px -4px 10px #27272a;
-    --neu-pressed-shadow: inset 4px 4px 10px #0a0a0a, inset -4px -4px 10px #27272a;
+    --pg-bg:          #1a1f2e;
+    --pg-surface:     #202840;
+    --pg-card:        #1e2438;
+
+    --pg-brand:       #ff8c1a;
+    --pg-brand-hover: #ff7600;
+    --pg-brand-light: rgba(255, 140, 26, 0.15);
+    --pg-brand-glow:  rgba(255, 140, 26, 0.3);
+
+    --pg-text:        #e8eaf6;
+    --pg-text-sub:    #8892b0;
+    --pg-text-muted:  #4a5568;
+
+    --pg-shadow-light: #252c45;
+    --pg-shadow-dark:  #0d1120;
+    --pg-neu-out: 6px 6px 12px var(--pg-shadow-dark), -6px -6px 12px var(--pg-shadow-light);
+    --pg-neu-in:  inset 4px 4px 8px var(--pg-shadow-dark), inset -4px -4px 8px var(--pg-shadow-light);
+    --pg-neu-sm:  3px 3px 7px var(--pg-shadow-dark), -3px -3px 7px var(--pg-shadow-light);
+
+    /* Legacy compat — dark */
+    --background:         var(--pg-bg);
+    --foreground:         var(--pg-text);
+    --glass-bg:           rgba(26, 31, 46, 0.80);
+    --glass-panel-bg:     rgba(26, 31, 46, 0.92);
+    --glass-border:       rgba(255, 255, 255, 0.07);
+    --glass-panel-border: rgba(255, 255, 255, 0.10);
+    --glass-shadow:       0 8px 32px 0 rgba(0, 0, 0, 0.45);
+    --neu-bg:             var(--pg-bg);
+    --neu-flat-bg:        var(--pg-surface);
+    --neu-shadow:         var(--pg-neu-out);
+    --neu-flat-shadow:    var(--pg-neu-sm);
+    --neu-pressed-shadow: var(--pg-neu-in);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-  @apply antialiased selection:bg-blue-200 dark:selection:bg-blue-900/50;
+/* ----------------------------------------------------------------
+   Base Reset
+   ---------------------------------------------------------------- */
+*, *::before, *::after {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* Glassmorphism / Neumorphism Stitch Utilities */
+html, body {
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background-color: var(--pg-bg);
+  color: var(--pg-text);
+  font-size: clamp(13px, 3.5vw, 15px);
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+  transition: background-color var(--pg-transition), color var(--pg-transition);
+  @apply antialiased;
+}
+
+/* ----------------------------------------------------------------
+   Neumorphic Utility Classes
+   ---------------------------------------------------------------- */
 @layer utilities {
+  /* Elevated card — standard neumorphic surface */
+  .neu-flat {
+    background: var(--pg-card);
+    box-shadow: var(--pg-neu-out);
+    border-radius: var(--pg-radius);
+  }
+
+  /* Pressed / inset — for active inputs, pressed buttons */
+  .neu-pressed {
+    background: var(--pg-card);
+    box-shadow: var(--pg-neu-in);
+    border-radius: var(--pg-radius);
+  }
+
+  /* Small shadow card */
+  .neu-sm {
+    background: var(--pg-card);
+    box-shadow: var(--pg-neu-sm);
+    border-radius: var(--pg-radius-sm);
+  }
+
+  /* Brand primary button */
+  .neu-btn-brand {
+    background: var(--pg-brand);
+    color: #ffffff;
+    box-shadow: 4px 4px 10px var(--pg-brand-glow), -2px -2px 6px var(--pg-shadow-light);
+    border-radius: var(--pg-radius);
+    transition: all var(--pg-transition);
+    border: none;
+    cursor: pointer;
+  }
+  .neu-btn-brand:hover {
+    background: var(--pg-brand-hover);
+    box-shadow: 5px 5px 14px var(--pg-brand-glow), -2px -2px 8px var(--pg-shadow-light);
+    transform: translateY(-1px);
+  }
+  .neu-btn-brand:active {
+    transform: translateY(0);
+    box-shadow: 2px 2px 6px var(--pg-brand-glow);
+  }
+
+  /* Neutral secondary button */
+  .neu-btn {
+    background: var(--pg-card);
+    color: var(--pg-text);
+    box-shadow: var(--pg-neu-sm);
+    border-radius: var(--pg-radius);
+    transition: all var(--pg-transition);
+    border: none;
+    cursor: pointer;
+  }
+  .neu-btn:hover {
+    box-shadow: var(--pg-neu-out);
+  }
+  .neu-btn:active {
+    box-shadow: var(--pg-neu-in);
+  }
+
+  /* Neumorphic input */
+  .neu-input {
+    background: var(--pg-card);
+    box-shadow: var(--pg-neu-in);
+    border: 1px solid transparent;
+    border-radius: var(--pg-radius-sm);
+    color: var(--pg-text);
+    outline: none;
+    transition: border-color var(--pg-transition), box-shadow var(--pg-transition);
+  }
+  .neu-input:focus {
+    border-color: var(--pg-brand);
+    box-shadow: var(--pg-neu-in), 0 0 0 2px var(--pg-brand-light);
+  }
+
+  /* Glass (legacy support) */
   .glass {
     background: var(--glass-bg);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
     border: 1px solid var(--glass-border);
     box-shadow: var(--glass-shadow);
   }
-  
-  .dark .glass {
-    background: var(--glass-bg);
-    border: 1px solid var(--glass-border);
-    box-shadow: var(--glass-shadow);
-  }
-
   .glass-panel {
     background: var(--glass-panel-bg);
     backdrop-filter: blur(20px);
@@ -71,29 +222,60 @@ body {
     border: 1px solid var(--glass-panel-border);
   }
 
-  .dark .glass-panel {
-    background: var(--glass-panel-bg);
-    border: 1px solid var(--glass-panel-border);
-  }
+  /* Brand accent text */
+  .text-brand { color: var(--pg-brand); }
+  .bg-brand   { background-color: var(--pg-brand); }
+  .border-brand { border-color: var(--pg-brand); }
 
-
-  .neu-flat {
-    background: var(--neu-flat-bg);
-    box-shadow: var(--neu-flat-shadow);
-  }
-  
-  .dark .neu-flat {
-    background: var(--neu-flat-bg);
-    box-shadow: var(--neu-flat-shadow);
-  }
-
-  .neu-pressed {
-    background: var(--neu-flat-bg);
-    box-shadow: var(--neu-pressed-shadow);
-  }
-  
-  .dark .neu-pressed {
-    background: var(--neu-flat-bg);
-    box-shadow: var(--neu-pressed-shadow);
-  }
+  /* Status */
+  .text-success { color: var(--pg-success); }
+  .text-danger  { color: var(--pg-danger); }
+  .text-info    { color: var(--pg-info); }
+  .text-warning { color: var(--pg-warning); }
 }
+
+/* ----------------------------------------------------------------
+   Custom Scrollbar (subtle, branded)
+   ---------------------------------------------------------------- */
+.custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--pg-shadow-dark);
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--pg-brand); }
+
+/* ----------------------------------------------------------------
+   Animations
+   ---------------------------------------------------------------- */
+@keyframes pg-fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes pg-slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes pg-shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-4px); }
+  40%, 80% { transform: translateX(4px); }
+}
+@keyframes pg-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes pg-pulse-brand {
+  0%, 100% { box-shadow: 0 0 0 0 var(--pg-brand-glow); }
+  50%       { box-shadow: 0 0 0 8px transparent; }
+}
+
+.pg-fade-in   { animation: pg-fadeIn 0.3s ease forwards; }
+.pg-slide-up  { animation: pg-slideUp 0.35s ease forwards; }
+.pg-shake     { animation: pg-shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+.pg-spin      { animation: pg-spin 0.8s linear infinite; }
+.pg-pulse     { animation: pg-pulse-brand 1.8s ease infinite; }
+
+/* ----------------------------------------------------------------
+   Bottom Nav Safe Area (iOS notch support)
+   ---------------------------------------------------------------- */
+.pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }

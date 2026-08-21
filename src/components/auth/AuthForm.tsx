@@ -3,12 +3,15 @@
 import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { CsEscalationBanner } from "@/components/cs/CsEscalationBanner";
 
 export default function AuthForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const params = useParams();
+  const locale = (params?.locale as string) || "id";
   const t = useTranslations("Auth");
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -193,36 +196,51 @@ export default function AuthForm() {
     }
   };
 
+  // ── Shared input style ──
+  const inputCls = "w-full px-4 py-2.5 text-sm font-medium outline-none transition-all neu-input";
+  const labelCls = "block text-xs font-semibold mb-1.5";
+
   return (
-    <div className="w-full max-w-md mx-auto p-6 glass-panel rounded-xl shadow-xl border border-zinc-200 dark:border-zinc-800">
-      <div className="flex justify-center mb-8">
-        <div className="bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg inline-flex neu-pressed">
-          <button
-            type="button"
-            onClick={() => { setIsLogin(true); setError(null); setSuccessMessage(null); setRegisterStep(1); }}
-            className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${isLogin ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
-          >
-            {t('login')}
-          </button>
-          <button
-            type="button"
-            onClick={() => { setIsLogin(false); setError(null); setSuccessMessage(null); }}
-            className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${!isLogin ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
-          >
-            {t('register')}
-          </button>
-        </div>
+    <div>
+      {/* ── Tab Switcher ── */}
+      <div className="flex mb-6 neu-pressed rounded-xl p-1">
+        <button
+          type="button"
+          onClick={() => { setIsLogin(true); setError(null); setSuccessMessage(null); setRegisterStep(1); }}
+          className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all"
+          style={isLogin ? {
+            background: 'var(--pg-brand)',
+            color: '#fff',
+            boxShadow: '0 2px 8px var(--pg-brand-glow)'
+          } : { color: 'var(--pg-text-sub)', background: 'transparent' }}
+        >
+          {t('login')}
+        </button>
+        <button
+          type="button"
+          onClick={() => { setIsLogin(false); setError(null); setSuccessMessage(null); }}
+          className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all"
+          style={!isLogin ? {
+            background: 'var(--pg-brand)',
+            color: '#fff',
+            boxShadow: '0 2px 8px var(--pg-brand-glow)'
+          } : { color: 'var(--pg-text-sub)', background: 'transparent' }}
+        >
+          {t('register')}
+        </button>
       </div>
 
       {successMessage && (
-        <div className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 rounded-lg text-sm leading-relaxed">
-          {successMessage}
+        <div className="mb-5 p-4 rounded-xl text-sm font-medium pg-fade-in"
+          style={{ background: 'rgba(0,184,148,0.12)', color: 'var(--pg-success)', boxShadow: 'var(--pg-neu-sm)' }}>
+          ✅ {successMessage}
         </div>
       )}
 
       {error && (
-        <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-lg text-sm">
-          {error}
+        <div className="mb-5 p-4 rounded-xl text-sm font-medium pg-shake pg-fade-in"
+          style={{ background: 'rgba(225,112,85,0.12)', color: 'var(--pg-danger)', boxShadow: 'var(--pg-neu-sm)' }}>
+          ⚠️ {error}
         </div>
       )}
 
@@ -265,7 +283,7 @@ export default function AuthForm() {
             // LOGIN FIELDS
             <>
               <div>
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                <label className={labelCls} style={{ color: 'var(--pg-text)' }}>
                   {t('emailLabel')}
                 </label>
                 <input
@@ -274,13 +292,13 @@ export default function AuthForm() {
                   onChange={(e) => setIdentifier(e.target.value)}
                   autoComplete="username"
                   required
-                  className="w-full px-4 py-2 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all dark:text-white neu-flat"
+                  className={inputCls}
                   placeholder={t('identifierPlaceholder')}
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                <label className={labelCls} style={{ color: 'var(--pg-text)' }}>
                   {t('password')}
                 </label>
                 <div className="relative">
@@ -290,13 +308,13 @@ export default function AuthForm() {
                     onChange={(e) => setPassword(e.target.value)}
                     autoComplete="current-password"
                     required
-                    className="w-full px-4 py-2 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all dark:text-white pr-10 neu-flat"
+                    className={`${inputCls} pr-10`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
-                  >
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold"
+                    style={{ color: 'var(--pg-brand)' }}>
                     {showPassword ? t('hide') : t('show')}
                   </button>
                 </div>
@@ -308,24 +326,26 @@ export default function AuthForm() {
                     type="checkbox"
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
-                    className="rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
+                    className="rounded"
+                    style={{ accentColor: 'var(--pg-brand)' }}
                   />
-                  <span className="text-zinc-600 dark:text-zinc-400">{t('rememberMe')}</span>
+                  <span className="text-xs font-medium" style={{ color: 'var(--pg-text-sub)' }}>{t('rememberMe')}</span>
                 </label>
                 <button
                   type="button"
-                  onClick={() => router.push(`/${document.documentElement.lang || 'id'}/auth/forgot-password`)}
-                  className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
-                >
+                  onClick={() => router.push(`/${locale}/auth/forgot-password`)}
+                  className="text-xs font-semibold"
+                  style={{ color: 'var(--pg-brand)', background: 'none', border: 'none', cursor: 'pointer' }}>
                   {t('forgotPassword')}
                 </button>
               </div>
 
               <button
                 type="submit"
-                className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-all focus:ring-4 focus:ring-blue-500/20 disabled:opacity-50 flex items-center justify-center mt-6 neu-flat"
+                disabled={loading}
+                className="w-full py-3 px-4 text-white font-semibold flex items-center justify-center gap-2 mt-6 disabled:opacity-60 neu-btn-brand"
               >
-                {loading ? <span className="inline-block animate-spin mr-2 border-2 border-white/20 border-t-white rounded-full w-5 h-5" /> : null}
+                {loading ? <span className="pg-spin inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full" /> : '✨'}
                 {t('submitLogin')}
               </button>
             </>
@@ -334,80 +354,80 @@ export default function AuthForm() {
             <>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('fullName')}</label>
-                  <input type="text" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} required className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
+                <label className={labelCls} style={{ color: 'var(--pg-text)' }}>{t('fullName')}</label>
+                  <input type="text" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} required className={inputCls} />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('username')}</label>
-                  <input type="text" autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} required className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
+                <label className={labelCls} style={{ color: 'var(--pg-text)' }}>{t('username')}</label>
+                  <input type="text" autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} required className={inputCls} />
                 </div>
               </div>
               
               <div>
                 <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('email')}</label>
-                <input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
+                <input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required className={inputCls} />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('phone')}</label>
-                  <input type="tel" autoComplete="tel" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
+                <label className={labelCls} style={{ color: 'var(--pg-text)' }}>{t('phone')}</label>
+                  <input type="tel" autoComplete="tel" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className={inputCls} />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('dob')}</label>
-                  <input type="date" autoComplete="bday" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
+                <label className={labelCls} style={{ color: 'var(--pg-text)' }}>{t('dob')}</label>
+                  <input type="date" autoComplete="bday" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} className={inputCls} />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('password')}</label>
-                  <input type={showPassword ? "text" : "password"} autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
+                <label className={labelCls} style={{ color: 'var(--pg-text)' }}>{t('password')}</label>
+                  <input type={showPassword ? "text" : "password"} autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className={inputCls} />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('confirmPass')}</label>
-                  <input type={showPassword ? "text" : "password"} autoComplete="new-password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
+                <label className={labelCls} style={{ color: 'var(--pg-text)' }}>{t('confirmPass')}</label>
+                  <input type={showPassword ? "text" : "password"} autoComplete="new-password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} className={inputCls} />
                 </div>
               </div>
 
-              <button type="submit" className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-all mt-4 neu-flat">
-                <span>{t('continueStep2').replace('&rarr;', '→')}</span>
+              <button type="submit" disabled={loading} className="w-full py-3 px-4 text-white font-semibold flex items-center justify-center gap-2 mt-4 disabled:opacity-60 neu-btn-brand">
+                <span>{t('continueStep2')}</span>
               </button>
             </>
           ) : (
             // REGISTER STEP 2 (Channel Profile)
             <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
-              <h3 className="font-semibold text-zinc-800 dark:text-zinc-200 text-sm border-b pb-2 mb-2">{t('setupProfile')}</h3>
+              <h3 className="font-semibold text-sm border-b pb-2 mb-2" style={{ color: 'var(--pg-text)', borderColor: 'var(--pg-shadow-dark)' }}>{t('setupProfile')}</h3>
               
               <div>
                 <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('channelName')}*</label>
-                <input type="text" value={channelName} onChange={(e) => setChannelName(e.target.value)} required className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
+                <input type="text" value={channelName} onChange={(e) => setChannelName(e.target.value)} required className={inputCls} />
               </div>
               
               <div>
                 <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('channelNiche')}</label>
-                <input type="text" value={niche} onChange={(e) => setNiche(e.target.value)} placeholder={t('channelNichePlaceholder')} className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
+                <input type="text" value={niche} onChange={(e) => setNiche(e.target.value)} placeholder={t('channelNichePlaceholder')} className={inputCls} />
               </div>
               
               <div>
                 <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('channelDesc')}</label>
-                <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
+                <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className={inputCls} />
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('cta1')}</label>
-                  <input type="text" value={cta1} onChange={(e) => setCta1(e.target.value)} className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
+                <label className={labelCls} style={{ color: 'var(--pg-text)' }}>{t('cta1')}</label>
+                  <input type="text" value={cta1} onChange={(e) => setCta1(e.target.value)} className={inputCls} />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('cta2')}</label>
-                  <input type="text" value={cta2} onChange={(e) => setCta2(e.target.value)} className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
+                <label className={labelCls} style={{ color: 'var(--pg-text)' }}>{t('cta2')}</label>
+                  <input type="text" value={cta2} onChange={(e) => setCta2(e.target.value)} className={inputCls} />
                 </div>
               </div>
               
               <div>
                 <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('visualAesthetic')}</label>
-                <input type="text" value={visualAesthetic} onChange={(e) => setVisualAesthetic(e.target.value)} className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
+                <input type="text" value={visualAesthetic} onChange={(e) => setVisualAesthetic(e.target.value)} className={inputCls} />
               </div>
               
               <div>
@@ -419,21 +439,21 @@ export default function AuthForm() {
                 </div>
               </div>
               
-              <div className="pt-2 border-t border-zinc-200 dark:border-zinc-800">
+              <div className="pt-2 border-t" style={{ borderColor: 'var(--pg-shadow-dark)' }}>
                 <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-2">{t('socialMedia')} (Opsional)</label>
                 <div className="space-y-2">
-                  <input type="text" value={socialTiktok} onChange={(e) => setSocialTiktok(e.target.value)} placeholder="TikTok Username/URL" className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
-                  <input type="text" value={socialInstagram} onChange={(e) => setSocialInstagram(e.target.value)} placeholder="Instagram Username/URL" className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
-                  <input type="text" value={socialYoutube} onChange={(e) => setSocialYoutube(e.target.value)} placeholder="YouTube Channel URL" className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
-                  <input type="text" value={socialFacebook} onChange={(e) => setSocialFacebook(e.target.value)} placeholder="Facebook Page URL" className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
-                  <input type="text" value={socialWebsite} onChange={(e) => setSocialWebsite(e.target.value)} placeholder="Website URL" className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md outline-none neu-flat" />
+                  <input type="text" value={socialTiktok} onChange={(e) => setSocialTiktok(e.target.value)} placeholder="TikTok Username/URL" className={inputCls} />
+                  <input type="text" value={socialInstagram} onChange={(e) => setSocialInstagram(e.target.value)} placeholder="Instagram Username/URL" className={inputCls} />
+                  <input type="text" value={socialYoutube} onChange={(e) => setSocialYoutube(e.target.value)} placeholder="YouTube Channel URL" className={inputCls} />
+                  <input type="text" value={socialFacebook} onChange={(e) => setSocialFacebook(e.target.value)} placeholder="Facebook Page URL" className={inputCls} />
+                  <input type="text" value={socialWebsite} onChange={(e) => setSocialWebsite(e.target.value)} placeholder="Website URL" className={inputCls} />
                 </div>
               </div>
 
-              <div className="flex space-x-2 pt-4">
-                <button type="button" onClick={() => setRegisterStep(1)} className="px-4 py-2 bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-lg text-sm neu-flat">{t('back')}</button>
-                <button type="submit" className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm flex items-center justify-center text-sm neu-flat">
-                  {loading ? <span className="inline-block animate-spin mr-2 border-2 border-white/20 border-t-white rounded-full w-4 h-4" /> : null}
+              <div className="flex gap-2 pt-4">
+                <button type="button" onClick={() => setRegisterStep(1)} className="px-4 py-2.5 text-sm font-semibold rounded-xl neu-btn" style={{ color: 'var(--pg-text-sub)' }}>{t('back')}</button>
+                <button type="submit" disabled={loading} className="flex-1 py-2.5 text-white font-semibold rounded-xl flex items-center justify-center gap-2 text-sm disabled:opacity-60 neu-btn-brand">
+                  {loading ? <span className="pg-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full inline-block" /> : '🚀'}
                   {t('submitRegister')}
                 </button>
               </div>

@@ -44,7 +44,8 @@
     "notifications": "Notifications",
     "guide": "User Guide",
     "support": "CS Support",
-    "scenePromptStudio": "Scene Prompt Studio"
+    "scenePromptStudio": "Scene Prompt Studio",
+    "profile": "Profile"
   },
   "Auth": {
     "login": "Login",
@@ -434,7 +435,9 @@
     "lockedChannels": "Locked Channels (Over Quota)",
     "openTickets": "Open Support Tickets",
     "pendingRegistrations": "Registrations Pending Approval",
-    "activeSubscribers": "Active Subscribers"
+    "activeSubscribers": "Active Subscribers",
+    "announcements": "Broadcast Announcements",
+    "systemNotifications": "System Notifications"
   },
   "AdminUsers": {
     "usersManagement": "Users Management",

@@ -4,10 +4,12 @@ import LogoutButton from "@/components/auth/LogoutButton";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import NotificationBell from "@/components/notifications/NotificationBell";
+import AdminSidebarNav from "@/components/layout/AdminSidebarNav";
+import AdminMobileNav from "@/components/layout/AdminMobileNav";
 
 export default async function AdminLayout({
   children,
-  params
+  params,
 }: {
   children: React.ReactNode;
   params: Promise<{ locale: string }>;
@@ -15,113 +17,99 @@ export default async function AdminLayout({
   const { locale } = await params;
   const session = await requireRole("SUPERADMIN", locale);
 
-  const t = await getTranslations({ locale, namespace: 'Admin' });
+  const t = await getTranslations({ locale, namespace: "Admin" });
 
   const pendingRegistrationsCount = await prisma.user.count({
-    where: { registrationStatus: "PENDING_APPROVAL" }
+    where: { registrationStatus: "PENDING_APPROVAL" },
   });
 
   const openTicketsCount = await prisma.supportTicket.count({
-    where: { status: "OPEN" }
+    where: { status: "OPEN" },
   });
 
+  const adminNavLinks = [
+    { href: `/${locale}/admin`,               icon: "📊", label: t("overview"),          badge: 0 },
+    { href: `/${locale}/admin/users`,         icon: "👥", label: t("users"),              badge: 0 },
+    { href: `/${locale}/admin/registrations`, icon: "📋", label: t("registrations"),      badge: pendingRegistrationsCount },
+    { href: `/${locale}/admin/payments`,      icon: "💰", label: t("paymentApproval"),    badge: 0 },
+    { href: `/${locale}/admin/support`,       icon: "🎫", label: t("support"),            badge: openTicketsCount },
+    { href: `/${locale}/admin/plans`,         icon: "💎", label: t("subscriptionPlans"),  badge: 0 },
+    { href: `/${locale}/admin/announcements`, icon: "📣", label: t("announcements"),      badge: 0 },
+    { href: `/${locale}/admin/notifications`, icon: "🔔", label: t("systemNotifications"),badge: 0 },
+    { href: `/${locale}/admin/settings`,      icon: "⚙️", label: t("systemSettings"),     badge: 0 },
+    { href: `/${locale}/admin/panduan`,       icon: "📖", label: t("guide"),              badge: 0 },
+  ];
+
+  const adminInitial = session.user.name?.[0]?.toUpperCase() || "A";
+
   return (
-    <div className="flex h-screen bg-zinc-50 dark:bg-zinc-950">
-      {/* Sidebar */}
-      <aside className="w-64 bg-zinc-900 border-r border-zinc-800 flex flex-col text-white">
-        <div className="h-16 flex items-center px-6 border-b border-zinc-800">
-          <Link href={`/${locale}/admin`} className="font-bold text-lg text-purple-400">
-            Admin Gen
-          </Link>
-        </div>
-        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-          <div className="pt-2 pb-2">
-            <p className="px-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-              {t('systemManagement')}
+    <div className="flex h-screen" style={{ background: "var(--pg-bg)" }}>
+      {/* ── Desktop Sidebar ─────────────────────────────────────────── */}
+      <aside
+        className="hidden md:flex w-64 flex-col flex-shrink-0"
+        style={{
+          background: "var(--pg-admin-bg)",
+          boxShadow: "4px 0 20px rgba(0,0,0,0.35)",
+        }}
+      >
+        {/* Brand Header */}
+        <div
+          className="h-16 flex items-center px-5 gap-3 flex-shrink-0"
+          style={{ borderBottom: "1px solid var(--pg-admin-border)" }}
+        >
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
+            style={{
+              background: "linear-gradient(135deg, var(--pg-brand) 0%, #c94d00 100%)",
+              boxShadow: "0 2px 10px var(--pg-brand-glow)",
+            }}
+          >
+            ⚡
+          </div>
+          <div>
+            <Link
+              href={`/${locale}/admin`}
+              className="font-bold text-sm tracking-tight leading-none"
+              style={{ color: "#ffffff" }}
+            >
+              Admin Portal
+            </Link>
+            <p className="text-[10px] mt-0.5 font-medium" style={{ color: "var(--pg-brand)" }}>
+              Prompt Gen
             </p>
           </div>
-          <Link 
-            href={`/${locale}/admin`}
-            className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-white"
-          >
-            {t('overview')}
-          </Link>
-          <Link 
-            href={`/${locale}/admin/users`}
-            className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-white"
-          >
-            {t('users')}
-          </Link>
-          <Link 
-            href={`/${locale}/admin/registrations`}
-            className="flex items-center justify-between px-3 py-2 text-sm font-medium rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-white"
-          >
-            <span>{t('registrations')}</span>
-            {pendingRegistrationsCount > 0 && (
-              <span className="px-2 py-0.5 text-xs font-bold bg-amber-500 text-zinc-950 rounded-full">
-                {pendingRegistrationsCount}
-              </span>
-            )}
-          </Link>
-          <Link 
-            href={`/${locale}/admin/payments`}
-            className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-white"
-          >
-            {t('paymentApproval')}
-          </Link>
-          <Link 
-            href={`/${locale}/admin/support`}
-            className="flex items-center justify-between px-3 py-2 text-sm font-medium rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-white"
-          >
-            <span>{t('support')}</span>
-            {openTicketsCount > 0 && (
-              <span className="px-2 py-0.5 text-xs font-bold bg-blue-500 text-white rounded-full">
-                {openTicketsCount}
-              </span>
-            )}
-          </Link>
-          <Link 
-            href={`/${locale}/admin/plans`}
-            className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-white"
-          >
-            {t('subscriptionPlans')}
-          </Link>
-          <Link 
-            href={`/${locale}/admin/announcements`}
-            className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-purple-300 hover:bg-zinc-800 hover:text-white"
-          >
-            Broadcast Pengumuman
-          </Link>
-          <Link 
-            href={`/${locale}/admin/notifications`}
-            className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-white"
-          >
-            Notifikasi System
-          </Link>
+        </div>
 
-          <Link 
-            href={`/${locale}/admin/settings`}
-            className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-white"
-          >
-            {t('systemSettings')}
-          </Link>
-          <Link 
-            href={`/${locale}/admin/panduan`}
-            className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-white"
-          >
-            {t('guide')}
-          </Link>
-        </nav>
-        <div className="p-4 border-t border-zinc-800 bg-zinc-950">
-          <div className="flex items-center space-x-3 mb-4">
-            <div className="w-8 h-8 rounded-full bg-purple-900 flex items-center justify-center text-purple-300 font-bold">
-              A
+        {/* Section Label */}
+        <div className="px-4 pt-4 pb-1">
+          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--pg-admin-sub)" }}>
+            {t("systemManagement")}
+          </p>
+        </div>
+
+        {/* Nav Links — client component handles active state */}
+        <AdminSidebarNav links={adminNavLinks} />
+
+        {/* User Footer */}
+        <div
+          className="p-4 flex-shrink-0"
+          style={{ borderTop: "1px solid var(--pg-admin-border)" }}
+        >
+          <div className="flex items-center gap-3 mb-3">
+            <div
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
+              style={{
+                background: "linear-gradient(135deg, var(--pg-brand) 0%, #c94d00 100%)",
+                boxShadow: "2px 2px 8px var(--pg-brand-glow)",
+              }}
+            >
+              {adminInitial}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">
+              <p className="text-sm font-semibold truncate" style={{ color: "#e8eaf6" }}>
                 {session.user.name}
               </p>
-              <p className="text-xs text-purple-400 truncate">
+              <p className="text-[10px] font-bold uppercase tracking-wide truncate" style={{ color: "var(--pg-brand)" }}>
                 {session.user.role}
               </p>
             </div>
@@ -130,17 +118,33 @@ export default async function AdminLayout({
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto focus:outline-none flex flex-col">
-        <header className="h-16 px-8 flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-900/50 backdrop-blur sticky top-0 z-40">
-          <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+      {/* ── Main Content ─────────────────────────────────────────── */}
+      <main className="flex-1 overflow-y-auto focus:outline-none flex flex-col min-w-0">
+        {/* Mobile Nav — hamburger + slide-in drawer */}
+        <AdminMobileNav
+          links={adminNavLinks}
+          adminName={session.user.name || "Admin"}
+          adminInitial={adminInitial}
+          adminRole={session.user.role || "SUPERADMIN"}
+        />
+
+        {/* Desktop Topbar */}
+        <header
+          className="hidden md:flex h-16 flex-shrink-0 px-8 items-center justify-between sticky top-0 z-40"
+          style={{
+            background: "var(--pg-card)",
+            boxShadow: "0 2px 10px var(--pg-shadow-dark)",
+          }}
+        >
+          <div className="text-sm font-semibold" style={{ color: "var(--pg-text-sub)" }}>
             Prompt Gen Admin Portal
           </div>
           <div className="flex items-center gap-4">
             <NotificationBell />
           </div>
         </header>
-        <div className="py-6 px-8 flex-1">
+
+        <div className="py-6 px-4 md:px-8 flex-1 pg-fade-in custom-scrollbar">
           {children}
         </div>
       </main>

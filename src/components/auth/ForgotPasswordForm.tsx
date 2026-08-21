@@ -2,11 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 
 export default function ForgotPasswordForm() {
   const t = useTranslations("ForgotPassword");
   const router = useRouter();
+  const params = useParams();
+  const locale = (params?.locale as string) || "id";
   const [identifier, setIdentifier] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -38,38 +41,58 @@ export default function ForgotPasswordForm() {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto p-6 bg-white dark:bg-zinc-900 rounded-xl shadow-xl border border-zinc-200 dark:border-zinc-800">
-      <div className="mb-6">
-        <button
-          onClick={() => router.push(`/${document.documentElement.lang || "id"}/auth`)}
-          className="text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 flex items-center"
+    <div>
+      {/* Back link */}
+      <button
+        onClick={() => router.push(`/${locale}/auth`)}
+        className="flex items-center gap-1.5 text-xs font-semibold mb-6"
+        style={{ color: "var(--pg-text-sub)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+        </svg>
+        {t("backToLogin")}
+      </button>
+
+      {/* Header */}
+      <div className="text-center mb-6">
+        <div
+          className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl text-white mx-auto mb-3"
+          style={{ background: "var(--pg-brand)", boxShadow: "0 4px 16px var(--pg-brand-glow)" }}
         >
-          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          {t("backToLogin")}
-        </button>
+          🔑
+        </div>
+        <h2 className="text-lg font-bold mb-1" style={{ color: "var(--pg-text)" }}>
+          {t("title")}
+        </h2>
+        <p className="text-xs" style={{ color: "var(--pg-text-sub)" }}>
+          {t("subtitle")}
+        </p>
       </div>
 
-      <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">{t("title")}</h2>
-      <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">{t("subtitle")}</p>
-
+      {/* Message */}
       {message && (
         <div
-          className={`mb-6 p-4 rounded-lg text-sm border ${
-            message.type === "success"
-              ? "bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400"
-              : "bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400"
-          }`}
+          className="mb-5 p-4 rounded-xl text-sm font-medium pg-fade-in"
+          style={{
+            background: message.type === "success" ? "rgba(0,184,148,0.12)" : "rgba(225,112,85,0.12)",
+            color: message.type === "success" ? "var(--pg-success)" : "var(--pg-danger)",
+            boxShadow: "var(--pg-neu-sm)",
+          }}
         >
-          {message.text}
+          {message.type === "success" ? "✅" : "⚠️"} {message.text}
         </div>
       )}
 
+      {/* Form */}
       <form autoComplete="off" onSubmit={handleSubmit}>
         <fieldset disabled={loading} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+            <label
+              className="block text-xs font-semibold mb-1.5"
+              style={{ color: "var(--pg-text-sub)" }}
+              htmlFor="forgot-password-identifier"
+            >
               {t("label")}
             </label>
             <input
@@ -79,18 +102,21 @@ export default function ForgotPasswordForm() {
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
               required
-              className="w-full px-4 py-2 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all dark:text-white"
+              className="w-full px-4 py-2.5 text-sm font-medium outline-none transition-all neu-input"
               placeholder={t("placeholder")}
             />
           </div>
 
           <button
             type="submit"
-            className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-all focus:ring-4 focus:ring-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center mt-6"
+            disabled={loading}
+            className="w-full py-3 px-4 text-white font-semibold flex items-center justify-center gap-2 mt-6 disabled:opacity-60 neu-btn-brand"
           >
             {loading ? (
-              <span className="inline-block animate-spin mr-2 border-2 border-white/20 border-t-white rounded-full w-5 h-5" />
-            ) : null}
+              <span className="pg-spin inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
+            ) : (
+              "📩"
+            )}
             {t("submit")}
           </button>
         </fieldset>

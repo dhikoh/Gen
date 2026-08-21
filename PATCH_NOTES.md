@@ -425,3 +425,152 @@ Penyelesaian audit batch ketiga: eliminasi total hardcoded strings pada 5 kompon
 - **Blueprint Synchronization (FIND-1.3 & FIND-1.4):** 
   - Added the `DEMO` plan to the Pricing Table in Section 5.7.2 of `Project Prompt Gen.txt` (with a note that it is `isPubliclyPurchasable: false`).
   - Corrected false file path claims in `AUDIT_REPORT_FINAL.md` regarding payment provider logics.
+
+## Phase 22: Visual Redesign — XPDC HUB Design System Integration
+**Date:** 2026-08-21
+**Status:** ✅ COMPLETE
+**Summary:** Migrasi total tampilan aplikasi Prompt Gen ke bahasa desain XPDC HUB: identitas brand orange konsisten, tipografi Poppins, pure neumorphism, dan pola navigasi mobile-native (Bottom Nav + Profile Drawer). Seluruh logika bisnis, API, dan keamanan tidak diubah.
+
+### Scope Perubahan (UI Shell Only)
+
+#### 1. Design System Foundation — `globals.css`
+- **Tipografi:** Geist → **Poppins** (Google Fonts — humanist, warm, konsisten dengan XPDC HUB).
+- **Brand Color:** Indigo generic → `#ff7600` orange (`--pg-brand`). Dark mode: `#ff8c1a`.
+- **Background:** `#ecf0f3` (light neumorphic warm-grey) / `#1a1f2e` (dark navy).
+- **Neumorphic Tokens:** `--pg-neu-out` (lifted shadow), `--pg-neu-in` (inset shadow), `--pg-neu-sm` (subtle shadow).
+- **Utility Classes:** `neu-flat`, `neu-pressed`, `neu-sm`, `neu-btn-brand`, `neu-btn`, `neu-input`.
+- **Animasi:** `pg-fadeIn`, `pg-slideUp`, `pg-shake` (error state), `pg-pulse` (FAB ring orange).
+- **Legacy Compatibility:** Alias `--glass-*`, `--neu-*` dipertahankan untuk komponen lama.
+
+#### 2. Root Layout — `src/app/[locale]/layout.tsx`
+- Import `next/font/google` Poppins menggantikan Geist.
+
+#### 3. Komponen Baru — `src/components/layout/MobileDashboardNav.tsx`
+- **Bottom Nav 5 slot:** Home | Drafts | [✨ Generator FAB] | Channels | Profil.
+- **Generator** → Center FAB orange (`neu-btn-brand`) dengan `pg-pulse` ring animation.
+- **Profil** → membuka **slide-up Profile Drawer** (tidak route langsung).
+- **Profile Drawer:** berisi navigasi sekunder (Scene Studio, Billing, Notifications, Support, Panduan, Logout) + user info card.
+- Backdrop click & ESC untuk menutup drawer. iOS safe-area support.
+
+#### 4. Dashboard Layout — `src/app/[locale]/dashboard/layout.tsx`
+- **Desktop sidebar:** Dark Navy (`#1e2a3a`), orange accent, branded user footer.
+- **Mobile:** Topbar minimal + `MobileDashboardNav` (bottom nav + drawer).
+- **Fix:** Logout diubah dari non-functional `<Link>` ke `<LogoutButton>` yang benar.
+
+#### 5. Admin Layout — `src/app/[locale]/admin/layout.tsx`
+- Dark Navy sidebar, gradient orange logo "⚡ Admin Portal".
+- Badge counter pending registration & open tickets → orange brand.
+- Admin user footer dengan initial avatar gradient orange.
+
+#### 6. Auth Page — `src/app/[locale]/auth/page.tsx`
+- Background `var(--pg-bg)` neumorphic.
+- Brand hero card: icon `✨` orange dengan `pg-slideUp` animation.
+- Auth form dibungkus `neu-flat` card (border-radius 22px).
+
+#### 7. AuthForm — `src/components/auth/AuthForm.tsx`
+- Tab switcher: `neu-pressed` container, active tab → orange fill.
+- Input fields: `neu-input` (inset shadow, orange focus ring).
+- Submit buttons (Login, Register step 1 & 2): `neu-btn-brand`.
+- Error banner: orange-red neumorphic + `pg-shake`. Success: green neumorphic + `pg-fade-in`.
+- Password visibility toggle: warna `var(--pg-brand)`.
+
+#### 8. ForgotPasswordForm — `src/components/auth/ForgotPasswordForm.tsx`
+- Centered `🔑` icon orange sebagai header visual.
+- `neu-input` + `neu-btn-brand` konsisten.
+- Back link styled dengan `--pg-text-sub`.
+
+#### 9. Translation Fix — `messages/id.json` & `messages/en.json`
+- Menambahkan key `"profile"` di namespace `Dashboard` (sebelumnya hilang, digunakan oleh `MobileDashboardNav`).
+
+### Yang TIDAK Berubah
+- Semua API routes (`/api/...`)
+- Prisma schema & database logic
+- NextAuth config & session management
+- i18n routing & middleware
+- Business logic (generator, billing, channels, drafts, CS, notifications)
+- TypeScript types — 0 error tipe data
+
+### Build Verification
+- `npm run build` → ✅ **Exit code: 0** — 38 halaman, 65+ API routes, 0 error.
+- `tsc --noEmit` → ✅ **100% Clean (Zero Errors)**.
+
+---
+
+## Phase 23 — Post-Redesign UI/UX Deep Audit & Remediation (August 2026)
+
+### Latar Belakang
+Audit mendalam terhadap semua perubahan Phase 22 untuk memverifikasi integritas tombol, routing, styling consistency, dan aksesibilitas. Ditemukan 7 anomali (2 critical, 5 warning) yang berpotensi menyebabkan masalah visual dan fungsional di production.
+
+### Komponen Baru Dibuat
+
+#### 1. `src/components/layout/DashboardSidebarNav.tsx` [NEW]
+- **Problem:** Sidebar desktop tidak memiliki active state — `data-active-class="sidebar-active"` bukan pattern Next.js valid.
+- **Fix:** Client Component menggunakan `usePathname()` untuk mendeteksi rute aktif.
+- **Active Style:** Orange left-border (3px) + `rgba(255,118,0,0.18)` background pada item aktif.
+
+#### 2. `src/components/layout/AdminSidebarNav.tsx` [NEW]
+- Client Component active state untuk sidebar admin, identik dengan `DashboardSidebarNav`.
+- Fix: Hapus `useState` import yang tidak terpakai (ESLint warning prevention).
+
+#### 3. `src/components/layout/AdminMobileNav.tsx` [NEW]
+- **Problem:** Admin portal tidak memiliki mobile navigation — sidebar `w-64` tanpa `hidden md:` prefix akan memenuhi layar mobile.
+- **Fix:** Hamburger button (3-line icon) + slide-in drawer dari kiri (translateX animation).
+- **Fitur:** ESC key close, backdrop click close, auto-close on route change, admin user footer dengan Logout.
+
+### Bug Fixes
+
+#### 4. `src/components/auth/LogoutButton.tsx`
+- **Problem:** Styling `border-zinc-300, bg-white, focus:ring-blue-500` — Tailwind vanilla, tidak konsisten dengan design system PG.
+- **Fix:** Migrasi ke `neu-btn` + `color: var(--pg-danger)` + icon `🚪`.
+
+#### 5. `src/components/layout/MobileDashboardNav.tsx`
+- **Problem (Critical):** Topbar mobile menggunakan `<Link>` biasa dengan emoji 🔔 untuk notifikasi — kehilangan fitur real-time unread badge counter.
+- **Fix:** Ganti dengan `<NotificationBell />` component (sama seperti desktop topbar).
+- **Problem (Warning):** `document.documentElement.lang` untuk locale detection — tidak reliable saat SSR/hydration.
+- **Fix:** Pakai `useParams()` untuk mendapatkan locale dari URL.
+
+#### 6. `src/app/[locale]/admin/layout.tsx`
+- **Mobile Nav:** Sidebar `hidden md:flex`, `AdminMobileNav` di-render untuk mobile.
+- **i18n Fix:** 2 label hardcoded ("Broadcast Pengumuman", "Notifikasi System") diganti ke `t("announcements")` & `t("systemNotifications")`.
+- **Active State:** Sidebar desktop kini menggunakan `AdminSidebarNav` client component.
+- **Padding:** Content area `px-4 md:px-8` untuk mobile-friendly spacing.
+
+#### 7. `src/app/[locale]/dashboard/layout.tsx`
+- **Active State:** Sidebar desktop menggunakan `DashboardSidebarNav` client component.
+- **i18n Fix:** Hardcoded `"Dashboard"` di desktop topbar diganti ke `{t("overview")}`.
+
+#### 8. `src/components/auth/AuthForm.tsx` — Multi-Fix
+- **Critical:** 15+ label menggunakan `text-zinc-700 dark:text-zinc-300` (Tailwind lama) → di dark mode menjadi **tidak terbaca** (teks gelap di atas bg gelap).
+  - Fix: Semua label kini pakai `labelCls` variable + `style={{ color: 'var(--pg-text)' }}`.
+- **Critical:** Variable `labelCls` sudah didefinisikan dari Phase 22 tapi **tidak pernah dipakai** di seluruh form.
+  - Fix: Semua label sekarang menggunakan `labelCls` secara konsisten.
+- **Warning:** Double arrow — `{t('continueStep2').replace('&rarr;', '→')} →` menghasilkan `Lanjut → →`.
+  - Fix: Sederhanakan ke `{t('continueStep2')}`.
+- **Warning:** Step 2 heading `text-zinc-800 dark:text-zinc-200` → ganti ke `var(--pg-text)`.
+- **Warning:** Step 2 social divider `border-zinc-200 dark:border-zinc-800` → ganti ke `var(--pg-shadow-dark)`.
+- **Warning:** `document.documentElement.lang` di forgot password button → ganti ke `useParams()` locale.
+
+#### 9. `src/components/auth/ForgotPasswordForm.tsx`
+- **Warning:** `document.documentElement.lang` di back button → ganti ke `useParams()` locale.
+
+#### 10. `messages/en.json` & `messages/id.json`
+- Tambah key `announcements` dan `systemNotifications` di namespace `Admin` (sebelumnya digunakan hardcoded di admin layout).
+  - EN: `"announcements": "Broadcast Announcements"`, `"systemNotifications": "System Notifications"`
+  - ID: `"announcements": "Broadcast Pengumuman"`, `"systemNotifications": "Notifikasi Sistem"`
+
+### Ringkasan Anomali yang Ditemukan & Diperbaiki
+
+| # | Severity | File | Masalah | Status |
+|---|----------|------|---------|--------|
+| 1 | 🔴 Critical | AuthForm.tsx | 15+ label tidak terbaca di dark mode | ✅ Fixed |
+| 2 | 🔴 Critical | AuthForm.tsx | `labelCls` variable tidak pernah dipakai | ✅ Fixed |
+| 3 | 🟡 Warning | AuthForm.tsx | Double arrow `→ →` di continue button | ✅ Fixed |
+| 4 | 🟡 Warning | AuthForm.tsx | Step 2 heading & border pakai Tailwind zinc | ✅ Fixed |
+| 5 | 🟡 Warning | AuthForm.tsx + ForgotPasswordForm | `document.documentElement.lang` locale | ✅ Fixed |
+| 6 | 🟡 Warning | AdminSidebarNav.tsx | `useState` import tidak terpakai | ✅ Fixed |
+| 7 | 🟡 Warning | dashboard/layout.tsx | "Dashboard" string hardcoded | ✅ Fixed |
+
+### Build Verification
+- `npx tsc --noEmit` → ✅ **Exit code: 0** (Zero TypeScript errors).
+- `npm run build` → ✅ **Exit code: 0**, compiled in 9.0s.
+

@@ -44,7 +44,8 @@
     "notifications": "Notifikasi",
     "guide": "Panduan Penggunaan",
     "support": "Dukungan CS",
-    "scenePromptStudio": "Scene Prompt Studio"
+    "scenePromptStudio": "Scene Prompt Studio",
+    "profile": "Profil"
   },
   "Auth": {
     "login": "Masuk",
@@ -434,7 +435,9 @@
     "lockedChannels": "Channel Terkunci (Over Quota)",
     "openTickets": "Tiket Support Terbuka",
     "pendingRegistrations": "Registrasi Menunggu Persetujuan",
-    "activeSubscribers": "Subscriber Aktif"
+    "activeSubscribers": "Subscriber Aktif",
+    "announcements": "Broadcast Pengumuman",
+    "systemNotifications": "Notifikasi Sistem"
   },
   "AdminUsers": {
     "usersManagement": "Manajemen Pengguna",
