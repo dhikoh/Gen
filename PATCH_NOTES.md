@@ -601,3 +601,27 @@ Penambahan fitur minor yang meningkatkan pengalaman pengguna (UX) berdasarkan ha
 
 ### Build Verification
 - `npx tsc --noEmit` → ✅ **Exit code: 0** (Zero TypeScript errors).
+
+---
+
+## Phase J — Generator Output Language Localization (August 2026)
+
+### Latar Belakang
+Audit fitur "Generator Studio" menunjukkan tidak adanya kendali bahasa output yang eksplisit bagi pengguna. Walaupun UI tersedia dalam bahasa Inggris dan Indonesia, output AI (naskah video/gambar) tidak sepenuhnya taat pada bahasa target tanpa instruksi spesifik. Pembaruan ini memastikan *Output Language* secara dinamis ditambahkan ke *system instructions* (Master Prompt) untuk memaksa LLM menghasilkan teks dalam bahasa yang diinginkan.
+
+### Pembaruan Fitur
+#### 1. `src/components/generator/GeneratorForm.tsx`
+- **Fitur Baru:** Menambahkan komponen `PresetSelect` untuk **Output Language** (Indonesian, English, Custom) di bagian pengaturan umum.
+- **State Management:** Menambahkan variabel state `outputLanguage` dan mengaitkannya ke dalam `localStorage` (`generatorFormState`) untuk memastikan preferensi pengguna tetap *persistent* antar-sesi.
+- **Payload API:** Menyertakan `outputLanguage` pada JSON payload ke endpoint `/api/generate`.
+
+#### 2. `src/app/api/generate/route.ts`
+- **Validasi Schema:** Memperbarui `generateSchema` dengan `outputLanguage: z.string().optional().nullable()`.
+- **Eksekusi:** Meneruskan parameter `outputLanguage` ke fungsi internal `generateMasterPrompt` dan `generateImagePrompt`.
+
+#### 3. `src/lib/promptGenerator.ts` & `src/lib/imagePromptGenerator.ts`
+- **Prompt Engineering:** Memodifikasi logika perakitan prompt. Jika `outputLanguage` tersedia, sistem akan menyuntikkan perintah wajib (misal: `"WAJIB: Seluruh naskah narasi, dialog, teks overlay, dan tulisan ide lainnya HARUS ditulis dalam bahasa [Bahasa Pilihan]."`) secara dinamis ke variabel `systemInstruction`.
+
+### Build Verification
+- `npx tsc --noEmit` → ✅ **Exit code: 0** (Zero TypeScript errors).
+- `npm run build` → ✅ **Exit code: 0**, production ready.

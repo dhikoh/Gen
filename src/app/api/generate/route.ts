@@ -72,6 +72,7 @@ const generateSchema = z.object({
   additionalContext: z.string().optional().nullable(),
   videoConfig: videoConfigSchema.optional().nullable(),
   imageConfig: imageConfigSchema.optional().nullable(),
+  outputLanguage: z.string().optional().nullable(),
 }).refine(data => {
   if (data.type === "VIDEO" && data.videoConfig?.composition) {
     const { education, entertainment, marketing } = data.videoConfig.composition;
@@ -106,7 +107,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: t("invalidData") }, { status: 400 });
     }
 
-    let { type, channelId, topic, additionalContext, videoConfig, imageConfig } = parsedData.data;
+    let { type, channelId, outputLanguage, topic, additionalContext, videoConfig, imageConfig } = parsedData.data;
 
     // Fetch system prompt settings
     const promptSettings = await prisma.promptSettings.findUnique({
@@ -200,11 +201,11 @@ export async function POST(req: Request) {
         selectedProduct,
       };
 
-      const result = generateMasterPrompt(channel as unknown as ProfileChannelData, effectiveTopic, additionalContext || "", fullVideoConfig, promptSettings, previousTitles);
+      const result = generateMasterPrompt(channel as unknown as ProfileChannelData, effectiveTopic, additionalContext || "", fullVideoConfig, promptSettings, previousTitles, outputLanguage);
       masterPrompt = result.masterPrompt;
       systemInstruction = result.systemInstruction;
     } else if (type === "IMAGE" && imageConfig) {
-      const result = generateImagePrompt(channel as unknown as ProfileChannelData, effectiveTopic, additionalContext || "", imageConfig, promptSettings, previousTitles);
+      const result = generateImagePrompt(channel as unknown as ProfileChannelData, effectiveTopic, additionalContext || "", imageConfig, promptSettings, previousTitles, outputLanguage);
       masterPrompt = result.masterPrompt;
       systemInstruction = result.systemInstruction;
       finalJson = result.finalJson;

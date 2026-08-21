@@ -19,7 +19,8 @@ export function generateImagePrompt(
   additionalContext: string,
   imageConfig: ImageConfigData,
   promptSettings?: (PromptSettingsData & { defaultNegativePrompt?: string | null }) | null,
-  excludeTitles?: string[]
+  excludeTitles?: string[],
+  outputLanguage?: string | null
 ): { masterPrompt: string; systemInstruction: string; finalJson?: string } {
   const variations = [];
   const numVars = imageConfig?.variations || 4;
@@ -82,6 +83,9 @@ export function generateImagePrompt(
   let systemInstruction = "Direct generation successful.";
   if (promptSettings?.imageSystemInstruction?.trim()) {
     systemInstruction = promptSettings.imageSystemInstruction.trim();
+  }
+  if (outputLanguage && outputLanguage.trim().length > 0) {
+    systemInstruction += `\nWAJIB: Jika ada prompt teks overlay atau ide caption, tulis dalam bahasa ${outputLanguage.trim()}. Note: Visual prompt untuk Midjourney tetap dalam bahasa Inggris.`;
   }
 
   return { 

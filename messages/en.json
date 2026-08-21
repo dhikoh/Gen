@@ -233,6 +233,8 @@
     "imagePrompt": "🖼️ Image Prompt",
     "mainTopic": "Main Topic",
     "mainTopicPlaceholder": "E.g., How to learn Next.js quickly",
+    "outputLanguage": "Output Language",
+    "outputLanguagePlaceholder": "Custom (e.g. Spanish, Sundanese)",
     "additionalContext": "Additional Context (Optional)",
     "additionalContextPlaceholder": "Specific details, main points to cover...",
     "videoSettings": "Specific Video Settings",

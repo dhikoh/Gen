@@ -66,13 +66,17 @@ export function generateMasterPrompt(
   additionalContext: string,
   videoConfig: VideoConfigData,
   promptSettings?: PromptSettingsData | null,
-  excludeTitles?: string[]
+  excludeTitles?: string[],
+  outputLanguage?: string | null
 ): { masterPrompt: string; systemInstruction: string } {
 
   // ── System Instruction ─────────────────────────────────────────────────
   let systemInstruction = `Kamu adalah AI Content Strategist dan Scriptwriter profesional yang berpengalaman dalam membuat naskah konten video pendek viral.`;
   if (promptSettings?.videoSystemInstruction?.trim()) {
     systemInstruction += `\n${promptSettings.videoSystemInstruction.trim()}`;
+  }
+  if (outputLanguage && outputLanguage.trim().length > 0) {
+    systemInstruction += `\nWAJIB: Seluruh naskah narasi, dialog, teks overlay, dan tulisan ide lainnya HARUS ditulis dalam bahasa ${outputLanguage.trim()}.`;
   }
 
   // ── Audio Config ───────────────────────────────────────────────────────

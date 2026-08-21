@@ -233,6 +233,8 @@
     "imagePrompt": "🖼️ Image Prompt",
     "mainTopic": "Topik Utama",
     "mainTopicPlaceholder": "Misal: Cara cepat belajar Next.js",
+    "outputLanguage": "Bahasa Output",
+    "outputLanguagePlaceholder": "Kustom (misal: Jawa, Sunda, Spanyol)",
     "additionalContext": "Konteks Tambahan (Opsional)",
     "additionalContextPlaceholder": "Detail spesifik, poin utama yang harus dibahas...",
     "videoSettings": "Pengaturan Spesifik Video",

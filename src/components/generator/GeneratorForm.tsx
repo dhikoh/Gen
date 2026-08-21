@@ -69,6 +69,7 @@ export default function GeneratorForm({
   const [type, setType] = useState<"VIDEO" | "IMAGE">("VIDEO");
   const [channelId, setChannelId] = useState(channels.length > 0 ? channels[0].id : "");
   const [topic, setTopic] = useState("");
+  const [outputLanguage, setOutputLanguage] = useState("Indonesian");
   const [additionalContext, setAdditionalContext] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -237,6 +238,7 @@ export default function GeneratorForm({
         const p = JSON.parse(saved);
         if (p.type) setType(p.type);
         if (p.channelId) setChannelId(p.channelId);
+        if (p.outputLanguage) setOutputLanguage(p.outputLanguage);
         if (p.topic) setTopic(p.topic);
         if (p.additionalContext) setAdditionalContext(p.additionalContext);
         if (p.rolePOV) setRolePOV(p.rolePOV);
@@ -263,6 +265,7 @@ export default function GeneratorForm({
           const p = data.generatorPreferences.generatorFormState;
           if (p.type) setType(p.type);
           if (p.channelId) setChannelId(p.channelId);
+          if (p.outputLanguage) setOutputLanguage(p.outputLanguage);
           if (p.topic) setTopic(p.topic);
           if (p.additionalContext) setAdditionalContext(p.additionalContext);
           if (p.rolePOV) setRolePOV(p.rolePOV);
@@ -296,7 +299,7 @@ export default function GeneratorForm({
   }, []);
 
   useEffect(() => {
-    const stateObj = { type, channelId, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, cameraMovementEnabled, cameraMovementPresets, cameraMovementCustom, videoConfig, imageConfig, step, generatedPrompt, aiResultJson, manualTitle };
+    const stateObj = { type, channelId, outputLanguage, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, cameraMovementEnabled, cameraMovementPresets, cameraMovementCustom, videoConfig, imageConfig, step, generatedPrompt, aiResultJson, manualTitle };
     localStorage.setItem("generatorFormState", JSON.stringify(stateObj));
 
     const timeoutId = setTimeout(() => {
@@ -308,7 +311,7 @@ export default function GeneratorForm({
     }, 3000); // 3 seconds debounce
 
     return () => clearTimeout(timeoutId);
-  }, [type, channelId, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, cameraMovementEnabled, cameraMovementPresets, cameraMovementCustom, videoConfig, imageConfig, step, generatedPrompt, aiResultJson, manualTitle]);
+  }, [type, channelId, outputLanguage, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, cameraMovementEnabled, cameraMovementPresets, cameraMovementCustom, videoConfig, imageConfig, step, generatedPrompt, aiResultJson, manualTitle]);
 
   // Fetch presets on mount
   useEffect(() => {
@@ -462,6 +465,7 @@ export default function GeneratorForm({
       const payload = {
         type,
         channelId,
+        outputLanguage,
         topic: effectiveTopic,
         additionalContext,
         videoConfig: type === "VIDEO" ? {
@@ -714,6 +718,19 @@ export default function GeneratorForm({
                   onChange={(e) => setTopic(e.target.value)}
                   placeholder={t("mainTopicPlaceholder")}
                   className="w-full px-4 py-2 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none dark:text-white"
+                />
+              </div>
+
+              <div className="w-full">
+                <PresetSelect
+                  label={t("outputLanguage")}
+                  value={outputLanguage}
+                  onChange={(val) => setOutputLanguage(String(val))}
+                  options={[
+                    { value: "Indonesian", label: "Indonesian" },
+                    { value: "English", label: "English" },
+                  ]}
+                  placeholder={t("outputLanguagePlaceholder")}
                 />
               </div>
 
