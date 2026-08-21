@@ -91,13 +91,6 @@ export async function POST(req: Request) {
 
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Auto-Demo Plan assignment
-    const demoPlan = await prisma.plan.findUnique({
-      where: { code: "DEMO" }
-    });
-    
-    const demoExpiresAt = demoPlan ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) : null;
-
     // Atomic transaction
     const newUser = await prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
@@ -110,10 +103,10 @@ export async function POST(req: Request) {
           dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
           role: "USER",
           registrationStatus: "PENDING_APPROVAL",
-          subscriptionStatus: demoPlan ? "ACTIVE" : "INACTIVE",
-          subscriptionExpiresAt: demoExpiresAt,
-          currentPlanId: demoPlan ? demoPlan.id : null,
-          hasUsedTrial: !!demoPlan,
+          subscriptionStatus: "INACTIVE",
+          subscriptionExpiresAt: null,
+          currentPlanId: null,
+          hasUsedTrial: false,
           preferredLocale: userLocale
         }
       });

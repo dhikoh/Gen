@@ -75,12 +75,12 @@ export default function ScenePromptStudioClient({ channels, locale }: Props) {
       });
       if (res.ok) {
         setMarkedTitles(prev => [...prev, title]);
-        toast.success("Judul ditandai terpakai.");
+        toast.success(t("markTitleSuccess"));
       } else {
-        toast.error("Gagal menandai judul.");
+        toast.error(t("markTitleFail"));
       }
     } catch (e) {
-      toast.error("Terjadi kesalahan.");
+      toast.error(t("generalError"));
     }
   };
 
@@ -349,10 +349,10 @@ export default function ScenePromptStudioClient({ channels, locale }: Props) {
                             <button
                               onClick={() => handleMarkAsUsed(title)}
                               disabled={isMarked || isActiveDraft}
-                              title={isActiveDraft ? "Sedang dipakai sebagai Draft" : "Tandai sebagai judul terpakai (exclude)"}
+                              title={isActiveDraft ? t("activeDraftTooltip") : t("markTitleTooltip")}
                               className="text-xs text-emerald-600 hover:underline disabled:text-zinc-400 disabled:no-underline"
                             >
-                              {isMarked ? "✓ Terpakai" : "Tandai"}
+                              {isMarked ? t("markedAsUsed") : t("mark")}
                             </button>
                           </div>
                         </div>

@@ -555,7 +555,7 @@ export default function GeneratorForm({
 
       if (res.ok) {
         setResult(t("draftSavedSuccess"));
-        toast.success("Draft berhasil disimpan!");
+        toast.success(t("draftSavedSuccess"));
         router.push(`/${document.documentElement.lang || "id"}/dashboard/drafts`);
       } else {
         setError(data.error || t("saveDraftFail"));
@@ -605,7 +605,7 @@ export default function GeneratorForm({
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    toast.success("File JSON Prompt berhasil diunduh!");
+    toast.success(t("downloadPromptSuccess"));
   };
 
   return (
@@ -705,7 +705,7 @@ export default function GeneratorForm({
                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
                   {t("mainTopic")}{" "}
                   <span className="text-xs text-zinc-400 font-normal">
-                    (Opsional, otomatis menggunakan Niche Channel jika dikosongkan)
+                    {t("optionalNicheChannel")}
                   </span>
                 </label>
                 <input
@@ -750,7 +750,7 @@ export default function GeneratorForm({
                       { value: "YouTube Shorts", label: "YouTube Shorts" },
                       { value: "YouTube Long", label: "YouTube Long" },
                     ]}
-                    placeholder="Platform kustom..."
+                    placeholder={t("customPlatformPlaceholder")}
                   />
 
                   <PresetSelect
@@ -762,7 +762,7 @@ export default function GeneratorForm({
                       { value: "Energetic Reviewer (Review Produk)", label: "Energetic Reviewer (Review Produk)" },
                       { value: "Casual Friend (Santai & Relatable)", label: "Casual Friend (Santai & Relatable)" },
                     ]}
-                    placeholder="Ketik Persona Kustom..."
+                    placeholder={t("customPersonaPlaceholder")}
                   />
                 </div>
 
@@ -1127,7 +1127,7 @@ export default function GeneratorForm({
                       {cameraMovementPresets.length > 0 && (
                         <div className="flex items-center justify-between">
                           <p className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">
-                            ✓ {cameraMovementPresets.length} gerakan dipilih — AI akan menggunakan variasi dari daftar ini.
+                            {t("cameraMovementPresetsSelected", { count: cameraMovementPresets.length })}
                           </p>
                           <button
                             type="button"
@@ -1142,13 +1142,13 @@ export default function GeneratorForm({
                       {/* Custom camera movement concept input */}
                       <div className="space-y-1">
                         <label className="block text-[10px] font-medium text-zinc-500 dark:text-zinc-400">
-                          ✏️ Konsep Kamera Kustom (Opsional)
+                          {t("cameraMovementCustomConcept")}
                         </label>
                         <input
                           type="text"
                           value={cameraMovementCustom}
                           onChange={(e) => setCameraMovementCustom(e.target.value)}
-                          placeholder="e.g. whip pan to reveal, underwater flowing glide, first-person dash..."
+                          placeholder={t("cameraMovementCustomConceptPlaceholder")}
                           className="w-full px-3 py-1.5 text-xs bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white placeholder-zinc-400"
                         />
                         <p className="text-[10px] text-zinc-400">Deskripsikan konsep gerakan kamera unik yang ingin dipadukan ke dalam setiap visual prompt scene.</p>
@@ -1329,7 +1329,7 @@ export default function GeneratorForm({
                       { value: "Neon Cyberpunk (Futuristis & High-Contrast)", label: "Neon Cyberpunk" },
                       { value: "Minimalist Clean (Soft Colors & Modern)", label: "Minimalist Clean" },
                     ]}
-                    placeholder="Gaya visual kustom..."
+                    placeholder={t("customAestheticPlaceholder")}
                   />
 
                   <div className="col-span-2">
@@ -1392,6 +1392,7 @@ export default function GeneratorForm({
                 )}
               </button>
             )}
+          </fieldset>
 
             {step === 2 && (
               <div className="grid grid-cols-2 gap-3 mt-6">
@@ -1416,7 +1417,6 @@ export default function GeneratorForm({
                 </button>
               </div>
             )}
-          </fieldset>
         </form>
       </div>
 
@@ -1463,7 +1463,7 @@ export default function GeneratorForm({
 
               {/* Action Panel — Title + Save */}
               <div className="border border-blue-200 dark:border-blue-900 rounded-lg bg-blue-50/30 dark:bg-blue-900/10 p-4 space-y-3 shrink-0">
-                <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wider">💾 Simpan & Lanjutkan</p>
+                <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wider">{t("saveAndContinueBtn")}</p>
                 <div>
                   <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                     {t("optionalTitle")}
@@ -1603,7 +1603,7 @@ export default function GeneratorForm({
                   disabled={addingProduct}
                   className="px-4 py-2 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-md"
                 >
-                  {addingProduct ? "Menyimpan..." : "Simpan Produk"}
+                  {addingProduct ? t("savingBtn") : t("saveProductBtn")}
                 </button>
               </div>
             </form>
