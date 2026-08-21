@@ -5,6 +5,12 @@ import { prisma } from "@/lib/db";
 import { getApiTranslator } from "@/lib/apiI18n";
 import { notifyUser, notifyAllSuperadmins } from "@/lib/notifications";
 import { applyRateLimit } from "@/lib/rateLimit";
+import { z } from "zod";
+
+// 4.4 fix: Zod schema for message body — max 5000 chars
+const messageSchema = z.object({
+  body: z.string().trim().min(1).max(5000),
+});
 
 export async function POST(
   req: Request,
@@ -24,10 +30,7 @@ export async function POST(
       return NextResponse.json({ error: t("rateLimit") }, { status: 429 });
     }
 
-    const ticket = await prisma.supportTicket.findUnique({
-      where: { id: ticketId }
-    });
-
+    const ticket = await prisma.supportTicket.findUnique({ where: { id: ticketId } });
     if (!ticket) {
       return NextResponse.json({ error: t("notFound") }, { status: 404 });
     }
@@ -37,8 +40,9 @@ export async function POST(
       return NextResponse.json({ error: t("unauthorized") }, { status: 403 });
     }
 
-    const { body } = await req.json();
-    if (!body || typeof body !== "string" || body.trim().length === 0) {
+    const rawBody = await req.json();
+    const parsed = messageSchema.safeParse(rawBody);
+    if (!parsed.success) {
       return NextResponse.json({ error: t("invalidInput") }, { status: 400 });
     }
 
@@ -50,7 +54,7 @@ export async function POST(
         data: {
           ticketId,
           senderRole,
-          body: body.trim()
+          body: parsed.data.body
         }
       });
 

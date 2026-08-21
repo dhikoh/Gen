@@ -3,6 +3,20 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { getApiTranslator } from "@/lib/apiI18n";
+import { z } from "zod";
+
+// 4.4 fix: Explicit schema for prompt settings update
+const promptSettingsSchema = z.object({
+  videoSystemInstruction: z.string().max(20000).optional().nullable(),
+  imageSystemInstruction: z.string().max(20000).optional().nullable(),
+  defaultSpeechRate: z.string().max(50).optional().nullable(),
+  defaultNegativePrompt: z.string().max(5000).optional().nullable(),
+  // Accepts array of strings OR comma-separated string (both normalised to string[])
+  bannedWords: z.union([
+    z.array(z.string()),
+    z.string(),
+  ]).optional().nullable(),
+});
 
 export async function GET() {
   const t = await getApiTranslator();
@@ -13,9 +27,7 @@ export async function GET() {
   }
 
   try {
-    let promptSettings = await prisma.promptSettings.findUnique({
-      where: { id: "singleton" }
-    });
+    let promptSettings = await prisma.promptSettings.findUnique({ where: { id: "singleton" } });
 
     if (!promptSettings) {
       promptSettings = await prisma.promptSettings.create({
@@ -25,8 +37,8 @@ export async function GET() {
           imageSystemInstruction: "",
           defaultSpeechRate: "medium",
           defaultNegativePrompt: "",
-          bannedWords: []
-        }
+          bannedWords: [],
+        },
       });
     }
 
@@ -46,14 +58,20 @@ export async function PUT(req: Request) {
   }
 
   try {
-    const body = await req.json();
+    const rawBody = await req.json();
+    const parsedBody = promptSettingsSchema.safeParse(rawBody);
+    if (!parsedBody.success) {
+      return NextResponse.json({ error: t("invalidData") }, { status: 400 });
+    }
+
     const {
       videoSystemInstruction,
       imageSystemInstruction,
       defaultSpeechRate,
       defaultNegativePrompt,
-      bannedWords
-    } = body;
+      bannedWords,
+    } = parsedBody.data;
+
 
     // Process bannedWords array or string input
     let sanitizedBannedWords: string[] = [];

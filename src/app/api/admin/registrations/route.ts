@@ -7,6 +7,13 @@ import { getApiTranslator } from "@/lib/apiI18n";
 import { getTranslations } from "next-intl/server";
 import { sendEmail } from "@/lib/email";
 import { notifyUser } from "@/lib/notifications";
+import { z } from "zod";
+
+// 4.4 fix: Explicit Zod schema replacing manual string checks
+const registrationActionSchema = z.object({
+  userId: z.string().min(1),
+  action: z.enum(["APPROVE", "REJECT"]),
+});
 
 export async function GET(req: Request) {
   const t = await getApiTranslator();
@@ -55,11 +62,12 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { userId, action } = await req.json();
-
-    if (!userId || !["APPROVE", "REJECT"].includes(action)) {
+    const body = await req.json();
+    const parsed = registrationActionSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json({ error: t("invalidInput") }, { status: 400 });
     }
+    const { userId, action } = parsed.data;
 
     const targetUser = await prisma.user.findUnique({
       where: { id: userId }

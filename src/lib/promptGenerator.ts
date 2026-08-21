@@ -206,6 +206,12 @@ export function generateMasterPrompt(
     formatOutputWajib += `\n## THUMBNAIL STUDIO\nTEKS OVERLAY SEO: [3-4 kata memicu rasa ingin tahu, huruf kapital semua, SEO-friendly]\nOPSI 1 PROMPT: [Shot Type, Subject/Action, Environment, Emotion, Lighting, Style. Visual dramatis, kontras tinggi. Bahasa Inggris.]${arSuffix}\nOPSI 1 TEKS OVERLAY: [Teks singkat ditempel pada gambar Opsi 1 (maks 3-4 kata)]\nOPSI 2 PROMPT: [Visual prompt alternatif yang kontras dengan Opsi 1. Bahasa Inggris.]${arSuffix}\nOPSI 2 TEKS OVERLAY: [Teks singkat ditempel pada gambar Opsi 2 (maks 3-4 kata)]\nREKOMENDASI WARNA & ELEMEN: [Palet warna kontras, penempatan teks, elemen visual utama]\n`;
   }
 
+  // Fix 2.1: htmlBlog section — paid feature gate; must appear in output when enabled
+  const hasHtmlBlog = videoConfig.htmlBlog === true;
+  if (hasHtmlBlog) {
+    formatOutputWajib += `\n## HTML BLOG\nTulis sebuah artikel blog berbasis naskah video di atas dengan ketentuan berikut:\n1. Panjang artikel: 400–600 kata, SEO-friendly, dengan sub-heading menggunakan tag <h2> dan <h3>.\n2. Meta Description: Tulis meta description 150-160 karakter di bawah judul artikel (label: META DESCRIPTION:).\n3. Judul Artikel (H1): Tulis judul artikel blog yang mengandung kata kunci utama, menarik untuk diklik.\n4. Isi Artikel: Kembangkan narasi video menjadi artikel lengkap. Gunakan paragraf pendek (2-4 kalimat), tambahkan contoh konkret, statistik fiktif yang masuk akal, dan CTA di akhir.\n5. Format output WAJIB HTML murni (bukan Markdown), siap ditempel ke CMS. Mulai dari <h1> hingga paragraf penutup.\n`;
+  }
+
   // ── All Guidelines (Push-ported) ───────────────────────────────────────
   const allGuidelines = `
 [PANDUAN STRATEGI DAN REKAYASA PROMPT]

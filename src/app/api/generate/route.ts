@@ -99,7 +99,7 @@ export async function POST(req: Request) {
 
     if (!parsedData.success) {
       console.error("Generate API validation error:", parsedData.error.flatten());
-      return NextResponse.json({ error: t("invalidData"), details: parsedData.error.flatten() }, { status: 400 });
+      return NextResponse.json({ error: t("invalidData") }, { status: 400 });
     }
 
     let { type, channelId, topic, additionalContext, videoConfig, imageConfig } = parsedData.data;

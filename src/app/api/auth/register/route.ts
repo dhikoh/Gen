@@ -8,14 +8,14 @@ import { applyRateLimit } from "@/lib/rateLimit";
 import { notifyAllSuperadmins } from "@/lib/notifications";
 
 const registerSchema = z.object({
-  name: z.string().trim().min(1, "Nama lengkap wajib diisi"),
-  username: z.string().trim().min(3, "Username minimal 3 karakter").regex(/^[a-zA-Z0-9_.-]+$/, "Username hanya boleh huruf, angka, underscore, titik, dan strip"),
-  email: z.string().trim().toLowerCase().email("Format email tidak valid"),
+  name: z.string().trim().min(1, "NAME_REQUIRED"),
+  username: z.string().trim().min(3, "USERNAME_TOO_SHORT").regex(/^[a-zA-Z0-9_.-]+$/, "USERNAME_INVALID"),
+  email: z.string().trim().toLowerCase().email("EMAIL_INVALID"),
   phoneNumber: z.string().optional().nullable().or(z.literal("")),
   dateOfBirth: z.string().optional().nullable().or(z.literal("")),
-  password: z.string().min(8, "Password minimal 8 karakter"),
+  password: z.string().min(8, "PASSWORD_TOO_SHORT"),
   // Step 2 Data
-  channelName: z.string().trim().min(1, "Nama channel wajib diisi"),
+  channelName: z.string().trim().min(1, "CHANNEL_REQUIRED"),
   niche: z.string().optional().nullable(),
   description: z.string().optional().nullable(),
   cta1: z.string().optional().nullable(),
@@ -26,6 +26,16 @@ const registerSchema = z.object({
   audioVO: z.boolean().default(true),
   socialLinks: z.record(z.string(), z.string()).optional().nullable(),
 });
+
+// Fix 2.8: Map Zod error codes to i18n keys so EN users receive English messages
+const ZOD_ERROR_MAP: Record<string, string> = {
+  NAME_REQUIRED: "NAME_REQUIRED",
+  USERNAME_TOO_SHORT: "USERNAME_TOO_SHORT",
+  USERNAME_INVALID: "USERNAME_INVALID",
+  EMAIL_INVALID: "EMAIL_INVALID",
+  PASSWORD_TOO_SHORT: "PASSWORD_TOO_SHORT",
+  CHANNEL_REQUIRED: "CHANNEL_REQUIRED",
+};
 
 export async function POST(req: Request) {
   const t = await getApiTranslator();
@@ -44,9 +54,12 @@ export async function POST(req: Request) {
     const parsedData = registerSchema.safeParse(body);
 
     if (!parsedData.success) {
-      const firstIssueMsg = parsedData.error.issues[0]?.message || t("invalidData");
+      const rawCode = parsedData.error.issues[0]?.message || "invalidData";
+      const i18nKey = ZOD_ERROR_MAP[rawCode] || "invalidData";
+      // Try translating; fall back to rawCode if key not found
+      const translatedMsg = t(i18nKey as Parameters<typeof t>[0]) || rawCode;
       console.warn("Register Zod validation error:", parsedData.error.flatten());
-      return NextResponse.json({ error: firstIssueMsg }, { status: 400 });
+      return NextResponse.json({ error: translatedMsg }, { status: 400 });
     }
 
     const {

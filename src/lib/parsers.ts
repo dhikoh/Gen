@@ -472,3 +472,31 @@ export function parseImageContent(text: string): ImageContentData {
     carouselSlides: extractCarouselSlides(text),
   };
 }
+
+// ── HTML Blog Extraction (Fix 2.4) ───────────────────────────────────────────
+
+/**
+ * Extract the ## HTML BLOG section from a video generator Markdown output.
+ * Returns the raw HTML string (which may contain <h1>, <p>, <h2>, <h3> tags)
+ * ready to be stored in parsedData.html_blog and rendered via sanitize-html.
+ *
+ * Stops at the next ## header or end-of-string.
+ */
+export function extractHtmlBlog(text: string): string {
+  if (!text) return "";
+
+  // Find the HTML BLOG section header
+  const match = text.match(/##\s*HTML\s*BLOG\s*/i);
+  if (!match || match.index === undefined) return "";
+
+  const startIdx = match.index + match[0].length;
+  // Stop at the next ## header (case-insensitive) or end of text
+  const afterSection = text.substring(startIdx);
+  const nextHeader = afterSection.search(/\n##\s+/i);
+  const rawBlock = nextHeader !== -1
+    ? afterSection.substring(0, nextHeader).trim()
+    : afterSection.trim();
+
+  return rawBlock;
+}
+

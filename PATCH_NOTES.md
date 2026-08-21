@@ -255,3 +255,64 @@ Pembaruan ini mencakup seluruh perbaikan bug dan arsitektur yang teridentifikasi
 
 **i18n:**
 - Menambahkan key `resultReady` pada `messages/en.json` dan `messages/id.json`.
+
+---
+
+## 39. Audit Independen — Remediasi Batch 2 (2026-08-21)
+
+**Auditor:** Lead QA Engineer (Sesi Audit #2 — independent third-party review)  
+**tsc Build:** ✅ 0 Error (post-fix verified)  
+**Prisma Generate:** ✅ Sukses dengan field baru `broadcastGroupId`
+
+### [Fix 2.1] HTML Blog Export — Paid Feature Gap
+- **File:** `src/lib/promptGenerator.ts`
+- **Fix:** Menambahkan logika inject `## HTML BLOG` ke dalam prompt jika `videoConfig.htmlBlog === true`. Fitur berbayar kini menghasilkan output nyata.
+
+### [Fix 2.2] Estimasi Durasi — Zero-Duration Bug
+- **File:** `src/app/api/drafts/route.ts`
+- **Fix:** Parser `wordCount` kini mendukung dua schema: `segments[].caption` (legacy) DAN `scenes[].narasi` (Scene Prompt Studio). Draft durasi tidak lagi 0.
+
+### [Fix 2.4] HTML Blog Parser — parsers.ts + ScenePromptStudioClient
+- **File:** `src/lib/parsers.ts`, `src/app/[locale]/dashboard/scene-prompt/ScenePromptStudioClient.tsx`
+- **Fix:** Menambahkan `extractHtmlBlog()` ke parsers.ts. ScenePromptStudioClient kini mengekstrak `html_blog` dari rawText dan menyimpannya ke `parsedData` saat Save Draft.
+
+### [Fix 2.5] Preferences Route — Zod + Rate Limit + Payload Guard
+- **File:** `src/app/api/user/preferences/route.ts`
+- **Fix:** Menulis ulang seluruh route. Menambahkan Zod schema ketat (`strict()`) untuk seluruh namespace preferences. Rate limit 60 req/mnt per user ID. Payload size limit 150 KB.
+
+### [Fix 2.7] i18n Hardcoded — ForgotPasswordForm, ResetPasswordForm, AnnouncementsClient
+- **Files:** `ForgotPasswordForm.tsx`, `ResetPasswordForm.tsx`, `AnnouncementsClient.tsx`
+- **i18n:** Menambahkan namespace `ForgotPassword`, `ResetPassword`, `Announcements` ke `messages/id.json` dan `messages/en.json`.
+- **Fix:** Seluruh string hardcode bahasa Indonesia diganti dengan `useTranslations()` calls.
+
+### [Fix 2.8] Register Zod — Error Code via i18n
+- **File:** `src/app/api/auth/register/route.ts`
+- **Fix:** Pesan Zod sebelumnya hardcoded dalam bahasa Indonesia. Kini menggunakan kode (`NAME_REQUIRED`, `USERNAME_TOO_SHORT`, dll.) yang dipetakan melalui `t()` — user berbahasa EN kini menerima pesan dalam bahasa Inggris.
+- **i18n:** Menambahkan 6 key Zod error code ke `messages/id.json` + `messages/en.json`.
+
+### [Fix 2.10] Broadcast Deduplication — broadcastGroupId
+- **Schema:** `prisma/schema.prisma` — field `broadcastGroupId String?` + `@@index([broadcastGroupId])` pada model `Notification`.
+- **File:** `src/app/api/admin/announcements/route.ts`
+- **Fix POST:** Satu UUID `broadcastGroupId` di-generate sekali per broadcast dan di-inject ke semua row `createMany`. 
+- **Fix GET:** Menggunakan `groupBy broadcastGroupId` — riwayat kini menampilkan 1 entri per broadcast, bukan 1 per penerima.
+- **UI:** `AnnouncementsClient.tsx` diperbarui untuk menampilkan `recipientCount` per broadcast.
+
+### [Fix 2.11] Zod Leak — generate + parsed-outputs
+- **Files:** `src/app/api/generate/route.ts`, `src/app/api/parsed-outputs/route.ts`
+- **Fix:** Menghapus `details: parsed.error.flatten()` dari respons client. Internal Zod structure tidak lagi terekspos ke luar.
+
+### [Fix 2.12] Admin Plans — POST + DELETE + extended PUT
+- **File:** `src/app/api/admin/plans/route.ts`
+- **Fix POST:** Handler create plan baru dengan validasi kode unik (`PlanCode` enum). Return 409 jika kode sudah ada.
+- **Fix DELETE:** Handler dengan safety guard — menolak hapus plan jika masih ada user aktif di plan tersebut.
+- **Fix PUT:** Diperluas untuk mendukung field `isPubliclyPurchasable`, `name`, `sortOrder`.
+
+### [Audit Closure 4.3] Zod Leak Scan — Clean
+- Scan seluruh API routes untuk `error.flatten()` atau `error.issues` yang dikirim ke client.
+- **Sisa:** 1 false-positive di `register/route.ts:57` — BUKAN leak; hanya membaca `issues[0].message` sebagai kode i18n, tidak dikirim mentah.
+
+### [Audit Closure 4.4] Routes Tanpa Zod — Semua Ditangani
+- `admin/registrations/route.ts` — Zod schema `registrationActionSchema` ditambahkan.
+- `admin/prompt-settings/route.ts` — Zod schema `promptSettingsSchema` dengan max-length per field ditambahkan.
+- `support/tickets/[id]/messages/route.ts` — Zod schema `messageSchema` max 5000 chars ditambahkan.
+- `support/tickets/[id]/route.ts` — Zod schema `ticketPatchSchema` (enum) ditambahkan.

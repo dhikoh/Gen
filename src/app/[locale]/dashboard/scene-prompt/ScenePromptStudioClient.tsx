@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
-import { extractAudioCues, extractVisualAudioHint, cleanParsedValue, parseVoiceGuidelines, extractTitles, extractChosenTitle, extractThumbnailData, extractCaption, extractHashtags } from "@/lib/parsers";
+import { extractAudioCues, extractVisualAudioHint, cleanParsedValue, parseVoiceGuidelines, extractTitles, extractChosenTitle, extractThumbnailData, extractCaption, extractHashtags, extractHtmlBlog } from "@/lib/parsers";
 import type { ThumbnailData } from "@/lib/parsers";
 
 interface Scene { id: number; sceneNumber: string; narasi: string; visual: string; durasi: string; bgmCues?: string[]; sfxCues?: string[]; voiceGuidelines?: { sampleContext?: string; directorsNote?: string; traits?: string }; }
@@ -141,7 +141,23 @@ export default function ScenePromptStudioClient({ channels, locale }: Props) {
     if (!scenes.length) return;
     setSaving(true); setSaveMsg(null);
     try {
-      const res = await fetch("/api/drafts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ channelId: selectedChannelId || undefined, type: "VIDEO", title: draftTitle, rawJson: JSON.stringify({ scenes, caption, hashtags, thumbnailData }), parsedData: { scenes, caption, hashtags } }) });
+      // Fix 2.4: Extract html_blog from rawText and include in parsedData
+      const htmlBlogContent = extractHtmlBlog(rawText);
+      const parsedData: Record<string, unknown> = { scenes, caption, hashtags };
+      if (thumbnailData) parsedData.thumbnailData = thumbnailData;
+      if (htmlBlogContent) parsedData.html_blog = htmlBlogContent;
+
+      const res = await fetch("/api/drafts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          channelId: selectedChannelId || undefined,
+          type: "VIDEO",
+          title: draftTitle,
+          rawJson: JSON.stringify({ scenes, caption, hashtags, thumbnailData }),
+          parsedData,
+        }),
+      });
       const data = await res.json();
       setSaveMsg(res.ok ? t("draftSaved") : (data.error || t("draftError")));
     } catch { setSaveMsg(t("draftError")); } finally { setSaving(false); setTimeout(() => setSaveMsg(null), 4000); }

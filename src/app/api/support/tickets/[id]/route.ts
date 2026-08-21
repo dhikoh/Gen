@@ -4,6 +4,13 @@ import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { getApiTranslator } from "@/lib/apiI18n";
 import { notifyUser } from "@/lib/notifications";
+import { z } from "zod";
+
+// 4.4 fix: Zod schema for ticket status update
+const ticketPatchSchema = z.object({
+  status: z.enum(["OPEN", "REPLIED", "CLOSED"]),
+});
+
 
 export async function GET(
   req: Request,
@@ -52,11 +59,12 @@ export async function PATCH(
       return NextResponse.json({ error: t("unauthorized") }, { status: 403 });
     }
 
-    const { status } = await req.json();
-
-    if (!["OPEN", "REPLIED", "CLOSED"].includes(status)) {
+    const rawBody = await req.json();
+    const patchParsed = ticketPatchSchema.safeParse(rawBody);
+    if (!patchParsed.success) {
       return NextResponse.json({ error: t("invalidInput") }, { status: 400 });
     }
+    const { status } = patchParsed.data;
 
     const updatedTicket = await prisma.supportTicket.update({
       where: { id },

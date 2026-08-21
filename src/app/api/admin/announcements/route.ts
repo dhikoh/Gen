@@ -6,6 +6,7 @@ import { applyRateLimit } from "@/lib/rateLimit";
 import { NotificationType, PlanCode } from "@prisma/client";
 import { z } from "zod";
 import { getApiTranslator } from "@/lib/apiI18n";
+import { randomUUID } from "crypto";
 
 const announcementSchema = z.object({
   title: z.string().trim().min(1),
@@ -21,18 +22,12 @@ export async function POST(req: Request) {
   const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
   const limitRes = await applyRateLimit(ip, 10, 60);
   if (!limitRes) {
-    return NextResponse.json(
-      { error: t("rateLimit") },
-      { status: 429 }
-    );
+    return NextResponse.json({ error: t("rateLimit") }, { status: 429 });
   }
 
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== "SUPERADMIN") {
-    return NextResponse.json(
-      { error: t("forbidden") },
-      { status: 403 }
-    );
+    return NextResponse.json({ error: t("forbidden") }, { status: 403 });
   }
 
   try {
@@ -59,11 +54,12 @@ export async function POST(req: Request) {
     }
 
     if (recipientUserIds.length === 0) {
-      return NextResponse.json(
-        { error: t("noRecipientsFound") },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: t("noRecipientsFound") }, { status: 400 });
     }
+
+    // Fix 2.10: One broadcastGroupId per POST — shared by all recipient rows
+    // This lets the GET handler deduplicate: show 1 entry per broadcast, not 1 per recipient
+    const broadcastGroupId = randomUUID();
 
     const notificationsData = recipientUserIds.map((userId) => ({
       userId,
@@ -71,28 +67,18 @@ export async function POST(req: Request) {
       title: parsed.title,
       message: parsed.message,
       link: parsed.link && parsed.link.length > 0 ? parsed.link : null,
+      broadcastGroupId,
     }));
 
-    await prisma.notification.createMany({
-      data: notificationsData,
-    });
+    await prisma.notification.createMany({ data: notificationsData });
 
-    return NextResponse.json({
-      success: true,
-      recipientCount: recipientUserIds.length,
-    });
+    return NextResponse.json({ success: true, recipientCount: recipientUserIds.length });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: t("invalidInput") },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: t("invalidInput") }, { status: 400 });
     }
     console.error("POST /api/admin/announcements error:", error);
-    return NextResponse.json(
-      { error: t("serverError") },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: t("serverError") }, { status: 500 });
   }
 }
 
@@ -104,28 +90,29 @@ export async function GET(req: Request) {
   }
 
   try {
-    const announcements = await prisma.notification.findMany({
+    // Fix 2.10: Group by broadcastGroupId — take ONE representative row per broadcast.
+    // Uses groupBy to get distinct broadcastGroupIds, then fetches the metadata row.
+    // Notifications without a broadcastGroupId (legacy rows) are shown individually.
+    const grouped = await prisma.notification.groupBy({
+      by: ["broadcastGroupId", "title", "message", "link", "createdAt"],
       where: { type: NotificationType.SYSTEM_ANNOUNCEMENT },
       orderBy: { createdAt: "desc" },
       take: 50,
-      select: {
-        id: true,
-        title: true,
-        message: true,
-        link: true,
-        createdAt: true,
-        user: {
-          select: { name: true, email: true },
-        },
-      },
+      _count: { userId: true },
     });
+
+    const announcements = grouped.map((g) => ({
+      broadcastGroupId: g.broadcastGroupId,
+      title: g.title,
+      message: g.message,
+      link: g.link,
+      createdAt: g.createdAt,
+      recipientCount: g._count.userId,
+    }));
 
     return NextResponse.json({ success: true, announcements });
   } catch (error) {
     console.error("GET /api/admin/announcements error:", error);
-    return NextResponse.json(
-      { error: t("serverError") },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: t("serverError") }, { status: 500 });
   }
 }

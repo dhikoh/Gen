@@ -83,17 +83,34 @@ export async function POST(req: Request) {
     let estimatedDurationSec = 0;
     let title = manualTitle || parsedData.judul_konten || `Draft ${type}: ${topic.substring(0, 30)}`;
 
-    if (type === "VIDEO" && parsedData.segments && Array.isArray(parsedData.segments)) {
+    if (type === "VIDEO") {
       let totalWords = 0;
-      parsedData.segments.forEach((segment: Record<string, unknown>) => {
-        if (segment.caption && typeof segment.caption === "string") {
-          totalWords += segment.caption.split(/\s+/).filter(Boolean).length;
-        }
-      });
+
+      // Schema lama: segments[].caption (alur Generator langsung)
+      if (parsedData.segments && Array.isArray(parsedData.segments)) {
+        parsedData.segments.forEach((segment: Record<string, unknown>) => {
+          if (segment.caption && typeof segment.caption === "string") {
+            totalWords += segment.caption.split(/\s+/).filter(Boolean).length;
+          }
+        });
+      }
+
+      // Schema baru: scenes[].narasi (alur Scene Prompt Studio — fix audit 2.2)
+      if (parsedData.scenes && Array.isArray(parsedData.scenes)) {
+        parsedData.scenes.forEach((scene: Record<string, unknown>) => {
+          if (scene.narasi && typeof scene.narasi === "string") {
+            totalWords += scene.narasi.split(/\s+/).filter(Boolean).length;
+          }
+          // Fallback: beberapa parser mungkin masih memakai 'caption' di dalam scene
+          if (scene.caption && typeof scene.caption === "string") {
+            totalWords += scene.caption.split(/\s+/).filter(Boolean).length;
+          }
+        });
+      }
+
       wordCount = totalWords;
-      // Calculate duration using exact words per second derived from speechRate (words per minute)
       const wordsPerSecond = speechRate / 60;
-      estimatedDurationSec = Math.round(totalWords / wordsPerSecond);
+      estimatedDurationSec = totalWords > 0 ? Math.round(totalWords / wordsPerSecond) : 0;
     } else if (type === "IMAGE" && parsedData.variations && Array.isArray(parsedData.variations)) {
       let totalWords = 0;
       parsedData.variations.forEach((v: Record<string, unknown>) => {
@@ -103,6 +120,7 @@ export async function POST(req: Request) {
       });
       wordCount = totalWords;
     }
+
 
     const draft = await prisma.$transaction(async (tx) => {
       await tx.profileChannel.update({
