@@ -90,7 +90,7 @@ export default function FloatingCsWidget() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-24 md:bottom-6 right-4 md:right-6 z-50">
       {/* Slide up Ticket Modal */}
       {isOpen && settings.csMode === "TICKET" && (
         <div className="mb-4 w-80 sm:w-96 glass-panel rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95 p-5 backdrop-blur-lg animate-in slide-in-from-bottom-5 duration-200">
