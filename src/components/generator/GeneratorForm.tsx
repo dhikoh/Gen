@@ -966,7 +966,7 @@ export default function GeneratorForm({
  {/* ── Push Enrichment: Role/POV AI ── */}
  <div className="space-y-2 pt-2 border-t pg-border">
  <label className="block text-xs font-semibold pg-text-sub">
- 🎭 Role &amp; POV AI
+ 🎭 Role & POV AI
  </label>
  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
  {[

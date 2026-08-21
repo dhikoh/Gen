@@ -4,8 +4,8 @@
   "description": "Generator Master Prompt Berbasis AI untuk Kreator",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#2563eb",
+  "background_color": "#f4f5fb",
+  "theme_color": "#6366f1",
   "icons": [
     {
       "src": "/favicon.ico",

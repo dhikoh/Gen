@@ -59,7 +59,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
  </p>
  )}
  <Link href={`/${locale}/dashboard/billing`} className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium">
- {t('upgradePlan')} &rarr;
+ {t('upgradePlan')} →
  </Link>
  </div>
 
@@ -75,7 +75,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
  {currentChannel.description || t('noDescription')}
  </p>
  <Link href={`/${locale}/dashboard/channels`} className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium">
- {t('manageChannels')} &rarr;
+ {t('manageChannels')} →
  </Link>
  </div>
  ) : (

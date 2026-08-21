@@ -34,7 +34,7 @@ export default async function AdminGuidePage({ params }: { params: Promise<{ loc
           href={`/${locale}/admin`}
           className="px-4 py-2 text-sm font-medium text-purple-300 bg-purple-950/60 border border-purple-800/80 rounded-lg hover:bg-purple-900/80 transition-all shadow-sm"
         >
-          &larr; {t('backToAdmin')}
+          ← {t('backToAdmin')}
         </Link>
       </div>
 
@@ -53,7 +53,7 @@ export default async function AdminGuidePage({ params }: { params: Promise<{ loc
           </div>
           <div className="pt-4 border-t pg-border/60">
             <Link href={`/${locale}/admin/registrations`} className="text-xs font-semibold text-amber-600 dark:text-amber-400 hover:underline">
-              Persetujuan Pendaftaran &rarr;
+              Persetujuan Pendaftaran →
             </Link>
           </div>
         </div>
@@ -71,7 +71,7 @@ export default async function AdminGuidePage({ params }: { params: Promise<{ loc
           </div>
           <div className="pt-4 border-t pg-border/60">
             <Link href={`/${locale}/admin/payments`} className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline">
-              Verifikasi Pembayaran &rarr;
+              Verifikasi Pembayaran →
             </Link>
           </div>
         </div>
@@ -89,7 +89,7 @@ export default async function AdminGuidePage({ params }: { params: Promise<{ loc
           </div>
           <div className="pt-4 border-t pg-border/60">
             <Link href={`/${locale}/admin/settings`} className="text-xs font-semibold text-purple-600 dark:text-purple-400 hover:underline">
-              Pengaturan Prompt & Banned Words &rarr;
+              Pengaturan Prompt & Banned Words →
             </Link>
           </div>
         </div>

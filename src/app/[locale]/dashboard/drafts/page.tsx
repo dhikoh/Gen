@@ -115,7 +115,7 @@ export default async function DraftsPage({
  href={`/${locale}/dashboard/drafts/${draft.id}`}
  className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 w-full text-center"
  >
- {t('useTemplate')} &rarr;
+ {t('useTemplate')} →
  </Link>
  </div>
  </div>
@@ -162,7 +162,7 @@ export default async function DraftsPage({
  href={`/${locale}/dashboard/drafts/${draft.id}`}
  className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
  >
- {t('open')} &rarr;
+ {t('open')} →
  </Link>
  </div>
  </div>

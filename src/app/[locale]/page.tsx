@@ -34,7 +34,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
  return (
  <div className="min-h-screen pg-bg-page font-sans selection:bg-blue-200 dark:selection:bg-blue-900/50">
  {/* Navigation Bar */}
- <nav className="sticky top-0 z-50 w-full border-b pg-border bg-white/80 /80 backdrop-blur-md">
+ <nav className="sticky top-0 z-50 w-full border-b pg-border bg-white/80 dark:bg-black/80 backdrop-blur-md">
  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
  <div className="flex justify-between items-center h-16">
  <div className="flex items-center space-x-2">
@@ -51,14 +51,14 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
  href={`/${locale}/dashboard`} 
  className="text-sm font-medium pg-text-sub hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
  >
- {tNav("dashboard")} &rarr;
+ {tNav("dashboard")} →
  </Link>
  ) : (
  <>
  <Link href={`/${locale}/auth`} className="text-sm font-medium pg-text-sub dark:pg-text-muted hover:pg-text-heading dark:hover:text-white transition-colors">
  {tNav("login")}
  </Link>
- <Link href={`/${locale}/auth`} className="text-sm font-medium pg-surface dark:bg-white text-white px-4 py-2 rounded-full hover:pg-surface-dim dark:hover:pg-surface-dim transition-colors shadow-sm">
+ <Link href={`/${locale}/auth`} className="text-sm font-medium neu-btn-brand text-white px-4 py-2 rounded-full transition-colors shadow-sm">
  {tNav("register")}
  </Link>
  </>
@@ -96,7 +96,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
  </section>
 
  {/* Features Section */}
- <section className="py-24 bg-white ">
+ <section className="py-24 pg-bg-page">
  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
  <div className="text-center mb-16">
  <h2 className="text-sm font-bold text-blue-600 tracking-wide uppercase">{tLanding("featuresTitle")}</h2>
@@ -255,10 +255,10 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
  </section>
 
  {/* Footer */}
- <footer className="bg-white py-12 border-t pg-border">
+ <footer className="pg-bg-page py-12 border-t pg-border">
  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
  <div className="flex items-center space-x-2">
- <div className="w-6 h-6 rounded pg-surface dark:bg-white flex items-center justify-center">
+ <div className="w-6 h-6 rounded neu-btn-brand flex items-center justify-center">
  <span className="text-white font-bold text-[10px]">PG</span>
  </div>
  <span className="font-semibold pg-text-heading">Prompt Gen</span>

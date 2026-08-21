@@ -197,7 +197,7 @@ export default async function AdminPage({ params }: { params: Promise<{ locale: 
             <p className="text-xl font-bold text-amber-900 dark:text-amber-200 mt-1">{pendingRegistrationsCount}</p>
           </div>
           <a href={`/${locale}/admin/registrations`} className="text-xs font-semibold text-amber-700 dark:text-amber-400 hover:underline">
-            Lihat &rarr;
+            Lihat →
           </a>
         </div>
 
@@ -207,7 +207,7 @@ export default async function AdminPage({ params }: { params: Promise<{ locale: 
             <p className="text-xl font-bold text-blue-900 dark:text-blue-200 mt-1">{openTicketsCount}</p>
           </div>
           <a href={`/${locale}/admin/support`} className="text-xs font-semibold text-blue-700 dark:text-blue-400 hover:underline">
-            Buka CS &rarr;
+            Buka CS →
           </a>
         </div>
 

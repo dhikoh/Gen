@@ -73,7 +73,7 @@ export default async function DraftDetailPage({
  {/* Header */}
  <div className="mb-6">
  <Link href={`/${locale}/dashboard/drafts`} className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 mb-4 inline-block">
- &larr; {t('backToHistory')}
+ ← {t('backToHistory')}
  </Link>
  <div className="flex justify-between items-start">
  <div>

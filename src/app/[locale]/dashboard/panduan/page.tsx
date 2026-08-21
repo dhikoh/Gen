@@ -25,7 +25,7 @@ export default async function UserGuidePage({ params }: { params: Promise<{ loca
  href={`/${locale}/dashboard`}
  className="px-4 py-2 text-sm font-medium pg-text-sub bg-white border pg-border rounded-lg hover:pg-surface-dim /80 transition-all shadow-sm"
  >
- &larr; {t('backToDashboard')}
+ ← {t('backToDashboard')}
  </Link>
  </div>
 
