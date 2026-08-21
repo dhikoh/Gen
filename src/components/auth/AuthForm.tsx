@@ -364,7 +364,7 @@ export default function AuthForm() {
               </div>
               
               <div>
-                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('email')}</label>
+                <label className={labelCls} style={{ color: 'var(--pg-text)' }}>{t('email')}</label>
                 <input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required className={inputCls} />
               </div>
 
@@ -400,17 +400,17 @@ export default function AuthForm() {
               <h3 className="font-semibold text-sm border-b pb-2 mb-2" style={{ color: 'var(--pg-text)', borderColor: 'var(--pg-shadow-dark)' }}>{t('setupProfile')}</h3>
               
               <div>
-                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('channelName')}*</label>
+                <label className={labelCls} style={{ color: 'var(--pg-text)' }}>{t('channelName')}*</label>
                 <input type="text" value={channelName} onChange={(e) => setChannelName(e.target.value)} required className={inputCls} />
               </div>
               
               <div>
-                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('channelNiche')}</label>
+                <label className={labelCls} style={{ color: 'var(--pg-text)' }}>{t('channelNiche')}</label>
                 <input type="text" value={niche} onChange={(e) => setNiche(e.target.value)} placeholder={t('channelNichePlaceholder')} className={inputCls} />
               </div>
               
               <div>
-                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('channelDesc')}</label>
+                <label className={labelCls} style={{ color: 'var(--pg-text)' }}>{t('channelDesc')}</label>
                 <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className={inputCls} />
               </div>
               
@@ -426,12 +426,12 @@ export default function AuthForm() {
               </div>
               
               <div>
-                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t('visualAesthetic')}</label>
+                <label className={labelCls} style={{ color: 'var(--pg-text)' }}>{t('visualAesthetic')}</label>
                 <input type="text" value={visualAesthetic} onChange={(e) => setVisualAesthetic(e.target.value)} className={inputCls} />
               </div>
               
               <div>
-                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-2">{t('audioUsage')}</label>
+                <label className={labelCls} style={{ color: 'var(--pg-text)' }}>{t('audioUsage')}</label>
                 <div className="flex space-x-4">
                   <label className="flex items-center space-x-2"><input type="checkbox" checked={audioBGM} onChange={(e) => setAudioBGM(e.target.checked)} /> <span className="text-xs">BGM</span></label>
                   <label className="flex items-center space-x-2"><input type="checkbox" checked={audioSFX} onChange={(e) => setAudioSFX(e.target.checked)} /> <span className="text-xs">SFX</span></label>
@@ -440,7 +440,7 @@ export default function AuthForm() {
               </div>
               
               <div className="pt-2 border-t" style={{ borderColor: 'var(--pg-shadow-dark)' }}>
-                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-2">{t('socialMedia')} (Opsional)</label>
+                <label className={labelCls} style={{ color: 'var(--pg-text)' }}>{t('socialMedia')} ({t('optional')})</label>
                 <div className="space-y-2">
                   <input type="text" value={socialTiktok} onChange={(e) => setSocialTiktok(e.target.value)} placeholder="TikTok Username/URL" className={inputCls} />
                   <input type="text" value={socialInstagram} onChange={(e) => setSocialInstagram(e.target.value)} placeholder="Instagram Username/URL" className={inputCls} />

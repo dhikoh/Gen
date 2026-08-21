@@ -18,7 +18,7 @@ interface NotificationData {
 }
 
 export default function AdminNotificationsClient() {
-  const t = useTranslations("Dashboard.Notifications");
+  const t = useTranslations("AdminNotifications");
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -40,35 +40,35 @@ export default function AdminNotificationsClient() {
   }, []);
 
   if (loading) {
-    return <div className="p-8 text-zinc-500">Loading...</div>;
+    return <div className="p-8" style={{ color: 'var(--pg-text-sub)' }}>{t("loading")}</div>;
   }
 
   return (
     <div className="p-8 max-w-4xl">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Semua Notifikasi Platform</h1>
-        <p className="text-zinc-500 dark:text-zinc-400">Menampilkan semua notifikasi sistem yang dikirimkan ke user.</p>
+        <h1 className="text-2xl font-bold" style={{ color: 'var(--pg-text)' }}>{t("title")}</h1>
+        <p className="mt-1" style={{ color: 'var(--pg-text-sub)' }}>{t("desc")}</p>
       </div>
 
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden shadow-sm">
+      <div className="neu-flat rounded-xl overflow-hidden">
         {notifications.length === 0 ? (
-          <div className="p-8 text-center text-zinc-500 dark:text-zinc-400">
+          <div className="p-8 text-center" style={{ color: 'var(--pg-text-sub)' }}>
             {t("noNotifications")}
           </div>
         ) : (
-          <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
+          <ul className="divide-y" style={{ borderColor: 'var(--pg-shadow-dark)' }}>
             {notifications.map((n) => (
-              <li key={n.id} className="p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+              <li key={n.id} className="p-4 transition-colors hover:bg-black/5 dark:hover:bg-white/5">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="font-semibold text-zinc-900 dark:text-white">
+                    <h3 className="font-semibold" style={{ color: 'var(--pg-text)' }}>
                       {n.title}
                     </h3>
-                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+                    <p className="text-sm mt-1" style={{ color: 'var(--pg-text-sub)' }}>
                       {n.message}
                     </p>
-                    <p className="text-xs text-zinc-400 mt-2 flex gap-2">
-                      <span className="font-medium text-blue-600 dark:text-blue-400">
+                    <p className="text-xs mt-2 flex gap-2" style={{ color: 'var(--pg-text-muted)' }}>
+                      <span className="font-medium" style={{ color: 'var(--pg-brand)' }}>
                         {n.user.name} ({n.user.email})
                       </span>
                       <span>•</span>

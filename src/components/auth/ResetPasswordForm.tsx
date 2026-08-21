@@ -58,13 +58,17 @@ export default function ResetPasswordForm() {
     }
   };
 
+  const inputCls = "w-full px-4 py-2.5 text-sm font-medium outline-none transition-all neu-input pr-10";
+  const labelCls = "block text-xs font-semibold mb-1.5";
+
   if (!token) {
     return (
-      <div className="w-full max-w-md mx-auto p-6 bg-white dark:bg-zinc-900 rounded-xl shadow-xl border border-zinc-200 dark:border-zinc-800 text-center">
-        <p className="text-red-600 dark:text-red-400 mb-4">{message?.text}</p>
+      <div className="w-full max-w-md mx-auto p-6 neu-flat rounded-xl text-center">
+        <p className="mb-4" style={{ color: 'var(--pg-danger)' }}>{message?.text}</p>
         <button
           onClick={() => router.push(`/${document.documentElement.lang || "id"}/auth`)}
-          className="text-blue-600 hover:underline"
+          className="text-sm font-semibold"
+          style={{ color: 'var(--pg-brand)' }}
         >
           {t("backToLogin")}
         </button>
@@ -73,17 +77,18 @@ export default function ResetPasswordForm() {
   }
 
   return (
-    <div className="w-full max-w-md mx-auto p-6 bg-white dark:bg-zinc-900 rounded-xl shadow-xl border border-zinc-200 dark:border-zinc-800">
-      <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">{t("title")}</h2>
-      <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">{t("subtitle")}</p>
+    <div className="w-full max-w-md mx-auto p-6 neu-flat rounded-xl">
+      <h2 className="text-xl font-bold mb-2" style={{ color: 'var(--pg-text)' }}>{t("title")}</h2>
+      <p className="text-sm mb-6" style={{ color: 'var(--pg-text-sub)' }}>{t("subtitle")}</p>
 
       {message && (
         <div
-          className={`mb-6 p-4 rounded-lg text-sm border ${
-            message.type === "success"
-              ? "bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400"
-              : "bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400"
-          }`}
+          className="mb-6 p-4 rounded-xl text-sm font-medium pg-fade-in"
+          style={{
+            background: message.type === "success" ? 'rgba(0,184,148,0.12)' : 'rgba(225,112,85,0.12)',
+            color: message.type === "success" ? 'var(--pg-success)' : 'var(--pg-danger)',
+            boxShadow: 'var(--pg-neu-sm)',
+          }}
         >
           {message.text}
         </div>
@@ -92,7 +97,7 @@ export default function ResetPasswordForm() {
       <form autoComplete="off" onSubmit={handleSubmit}>
         <fieldset disabled={loading || message?.type === "success"} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+            <label className={labelCls} style={{ color: 'var(--pg-text)' }}>
               {t("labelNew")}
             </label>
             <div className="relative">
@@ -104,12 +109,13 @@ export default function ResetPasswordForm() {
                 onChange={(e) => setNewPassword(e.target.value)}
                 required
                 minLength={8}
-                className="w-full px-4 py-2 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all dark:text-white pr-10"
+                className={inputCls}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold"
+                style={{ color: 'var(--pg-brand)' }}
               >
                 {showPassword ? t("hide") : t("show")}
               </button>
@@ -117,7 +123,7 @@ export default function ResetPasswordForm() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+            <label className={labelCls} style={{ color: 'var(--pg-text)' }}>
               {t("labelConfirm")}
             </label>
             <input
@@ -128,17 +134,18 @@ export default function ResetPasswordForm() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
               minLength={8}
-              className="w-full px-4 py-2 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all dark:text-white"
+              className="w-full px-4 py-2.5 text-sm font-medium outline-none transition-all neu-input"
             />
           </div>
 
           <button
             type="submit"
-            className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-all focus:ring-4 focus:ring-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center mt-6"
+            disabled={loading}
+            className="w-full py-3 px-4 text-white font-semibold flex items-center justify-center gap-2 mt-6 disabled:opacity-60 neu-btn-brand"
           >
-            {loading ? (
-              <span className="inline-block animate-spin mr-2 border-2 border-white/20 border-t-white rounded-full w-5 h-5" />
-            ) : null}
+            {loading && (
+              <span className="pg-spin inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
+            )}
             {t("submit")}
           </button>
         </fieldset>

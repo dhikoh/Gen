@@ -33,8 +33,8 @@ export default async function AdminPaymentsPage({ params }: { params: Promise<{ 
   return (
     <div className="p-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">{t('title')}</h1>
-        <p className="text-zinc-500 dark:text-zinc-400">{t('description')}</p>
+        <h1 className="text-2xl font-bold pg-text-heading">{t('title')}</h1>
+        <p className="pg-text-muted">{t('description')}</p>
       </div>
 
       <AdminPaymentsClient invoices={pendingInvoices} />

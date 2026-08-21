@@ -164,27 +164,27 @@ export default async function AdminPage({ params }: { params: Promise<{ locale: 
     <div className="max-w-6xl mx-auto py-8 px-4">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">{t('title')}</h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('description')}</p>
+          <h1 className="text-2xl font-bold pg-text-heading">{t('title')}</h1>
+          <p className="text-sm pg-text-muted">{t('description')}</p>
         </div>
       </div>
 
       {/* Top 4 Key Financial Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div className="glass-panel p-6 rounded-xl shadow-lg border border-zinc-200 dark:border-zinc-800">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{t('totalActiveUsers')}</h3>
+        <div className="glass-panel p-6 rounded-xl shadow-lg border pg-border">
+          <h3 className="text-xs font-semibold uppercase tracking-wider pg-text-muted">{t('totalActiveUsers')}</h3>
           <p className="text-3xl font-bold text-blue-600 dark:text-blue-400 mt-2">{activeUsersCount}</p>
         </div>
-        <div className="glass-panel p-6 rounded-xl shadow-lg border border-zinc-200 dark:border-zinc-800">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{t('monthlyRevenue')}</h3>
+        <div className="glass-panel p-6 rounded-xl shadow-lg border pg-border">
+          <h3 className="text-xs font-semibold uppercase tracking-wider pg-text-muted">{t('monthlyRevenue')}</h3>
           <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400 mt-2">Rp {currentMonthRevenue.toLocaleString('id-ID')}</p>
         </div>
-        <div className="glass-panel p-6 rounded-xl shadow-lg border border-zinc-200 dark:border-zinc-800">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{t('totalRevenue')}</h3>
+        <div className="glass-panel p-6 rounded-xl shadow-lg border pg-border">
+          <h3 className="text-xs font-semibold uppercase tracking-wider pg-text-muted">{t('totalRevenue')}</h3>
           <p className="text-3xl font-bold text-purple-600 dark:text-purple-400 mt-2">Rp {totalRevenue.toLocaleString('id-ID')}</p>
         </div>
-        <div className="glass-panel p-6 rounded-xl shadow-lg border border-zinc-200 dark:border-zinc-800">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{t('pendingInvoices')}</h3>
+        <div className="glass-panel p-6 rounded-xl shadow-lg border pg-border">
+          <h3 className="text-xs font-semibold uppercase tracking-wider pg-text-muted">{t('pendingInvoices')}</h3>
           <p className="text-3xl font-bold text-amber-600 dark:text-amber-400 mt-2">{pendingInvoicesCount}</p>
         </div>
       </div>

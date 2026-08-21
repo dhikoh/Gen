@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+
 function IconAlertTriangle({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -71,52 +72,51 @@ export function CsEscalationBanner({
     switch (urgency) {
       case 'error':
         return {
-          bg: 'bg-rose-500/10 border-rose-500/30 text-rose-200',
-          badge: 'bg-rose-500/20 text-rose-300 border-rose-500/30',
-          button: 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/20',
-          icon: <IconAlertTriangle className="w-5 h-5 text-rose-400 shrink-0" />,
+          bg: { background: 'rgba(225,112,85,0.12)', borderColor: 'rgba(225,112,85,0.3)' },
+          badgeStyle: { background: 'rgba(225,112,85,0.2)', color: 'var(--pg-danger)', borderColor: 'rgba(225,112,85,0.3)' },
+          iconColor: 'var(--pg-danger)',
+          icon: <span style={{ color: 'var(--pg-danger)', display:'contents' }}><IconAlertTriangle className="w-5 h-5 shrink-0" /></span>,
         }
       case 'warning':
         return {
-          bg: 'bg-amber-500/10 border-amber-500/30 text-amber-200',
-          badge: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
-          button: 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20',
-          icon: <IconAlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />,
+          bg: { background: 'rgba(253,177,29,0.10)', borderColor: 'rgba(253,177,29,0.3)' },
+          badgeStyle: { background: 'rgba(253,177,29,0.2)', color: 'var(--pg-warn)', borderColor: 'rgba(253,177,29,0.3)' },
+          iconColor: 'var(--pg-warn)',
+          icon: <span style={{ color: 'var(--pg-warn)', display:'contents' }}><IconAlertTriangle className="w-5 h-5 shrink-0" /></span>,
         }
       case 'info':
       default:
         return {
-          bg: 'bg-cyan-500/10 border-cyan-500/30 text-cyan-200',
-          badge: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
-          button: 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-cyan-600/20',
-          icon: <IconInfo className="w-5 h-5 text-cyan-400 shrink-0" />,
+          bg: { background: 'rgba(99,102,241,0.10)', borderColor: 'rgba(99,102,241,0.3)' },
+          badgeStyle: { background: 'rgba(99,102,241,0.2)', color: 'var(--pg-brand)', borderColor: 'rgba(99,102,241,0.3)' },
+          iconColor: 'var(--pg-brand)',
+          icon: <span style={{ color: 'var(--pg-brand)', display:'contents' }}><IconInfo className="w-5 h-5 shrink-0" /></span>,
         }
     }
   }
 
-  const style = getUrgencyStyles()
+  const s = getUrgencyStyles()
 
   return (
     <div
-      className={`relative w-full p-4 rounded-xl border backdrop-blur-md transition-all shadow-lg ${style.bg}`}
+      className="relative w-full p-4 rounded-xl border transition-all"
+      style={{ ...s.bg, boxShadow: 'var(--pg-neu-sm)' }}
     >
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-start gap-3 flex-1">
-          {style.icon}
+          {s.icon}
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h4 className="font-semibold text-sm sm:text-base text-white">
+              <h4 className="font-semibold text-sm sm:text-base" style={{ color: 'var(--pg-text)' }}>
                 {title}
               </h4>
               {badgeText && (
-                <span
-                  className={`text-xs px-2 py-0.5 rounded-full border font-medium ${style.badge}`}
-                >
+                <span className="text-xs px-2 py-0.5 rounded-full border font-medium" style={s.badgeStyle}>
                   {badgeText}
                 </span>
               )}
             </div>
-            <p className="text-xs sm:text-sm opacity-90 leading-relaxed text-slate-300">
+            <p className="text-xs sm:text-sm leading-relaxed" style={{ color: 'var(--pg-text-sub)' }}>
               {displayMessage}
             </p>
           </div>
@@ -128,7 +128,7 @@ export function CsEscalationBanner({
               href={waLink}
               target="_blank"
               rel="noopener noreferrer"
-              className={`inline-flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-medium rounded-lg shadow-md transition-all ${style.button}`}
+              className="neu-btn-brand inline-flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-medium rounded-lg text-white transition-all"
             >
               <IconMessageSquare className="w-4 h-4" />
               <span>{displayButtonText}</span>
@@ -138,7 +138,8 @@ export function CsEscalationBanner({
           {dismissible && (
             <button
               onClick={() => setDismissed(true)}
-              className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors"
+              className="p-1.5 rounded-lg transition-colors"
+              style={{ color: 'var(--pg-text-muted)' }}
               aria-label="Tutup"
             >
               <IconX className="w-4 h-4" />

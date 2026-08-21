@@ -14,7 +14,8 @@ export default function CopyButton({ textToCopy, label = "Copy" }: { textToCopy:
   return (
     <button
       onClick={handleCopy}
-      className="text-xs px-3 py-1 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded transition-colors"
+      className="text-xs px-3 py-1 rounded neu-btn transition-colors"
+      style={{ color: copied ? 'var(--pg-success)' : 'var(--pg-text-sub)' }}
     >
       {copied ? "Copied!" : label}
     </button>

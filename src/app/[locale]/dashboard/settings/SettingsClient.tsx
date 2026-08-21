@@ -62,16 +62,16 @@ export default function SettingsClient() {
   return (
     <div className="space-y-8">
       {/* Profile Section */}
-      <section className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6 shadow-sm">
-        <h2 className="text-xl font-semibold text-zinc-900 dark:text-white mb-4">Profil Pengguna</h2>
+      <section className="pg-surface border pg-border rounded-xl p-6 shadow-sm">
+        <h2 className="text-xl font-semibold pg-text-heading mb-4">Profil Pengguna</h2>
         <form onSubmit={handleProfileSubmit} className="space-y-4 max-w-md">
           <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Nama Baru</label>
+            <label className="block text-sm font-medium pg-text-sub mb-1">Nama Baru</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-transparent text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border pg-border rounded-lg bg-transparent pg-text-heading focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Masukkan nama baru"
               required
             />
@@ -88,26 +88,26 @@ export default function SettingsClient() {
       </section>
 
       {/* Password Section */}
-      <section className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6 shadow-sm">
-        <h2 className="text-xl font-semibold text-zinc-900 dark:text-white mb-4">Ubah Kata Sandi</h2>
+      <section className="pg-surface border pg-border rounded-xl p-6 shadow-sm">
+        <h2 className="text-xl font-semibold pg-text-heading mb-4">Ubah Kata Sandi</h2>
         <form onSubmit={handlePasswordSubmit} className="space-y-4 max-w-md">
           <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Kata Sandi Saat Ini</label>
+            <label className="block text-sm font-medium pg-text-sub mb-1">Kata Sandi Saat Ini</label>
             <input
               type="password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-transparent text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border pg-border rounded-lg bg-transparent pg-text-heading focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Kata Sandi Baru</label>
+            <label className="block text-sm font-medium pg-text-sub mb-1">Kata Sandi Baru</label>
             <input
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-transparent text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border pg-border rounded-lg bg-transparent pg-text-heading focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
           </div>
@@ -118,7 +118,7 @@ export default function SettingsClient() {
           >
             {passwordLoading ? "Menyimpan..." : "Ubah Kata Sandi"}
           </button>
-          {passwordMessage && <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-2">{passwordMessage}</p>}
+          {passwordMessage && <p className="text-sm pg-text-sub mt-2">{passwordMessage}</p>}
         </form>
       </section>
     </div>

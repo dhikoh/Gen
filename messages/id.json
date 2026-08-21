@@ -108,7 +108,8 @@
     "usernameMin": "Username minimal 3 karakter!",
     "usernameInvalid": "Username hanya boleh huruf, angka, underscore (_), titik (.), dan strip (-)",
     "emailInvalid": "Format email tidak valid!",
-    "channelRequired": "wajib diisi!"
+    "channelRequired": "wajib diisi!",
+    "optional": "Opsional"
   },
   "Overview": {
     "welcome": "Selamat Datang, {name}!",
@@ -703,7 +704,13 @@
     "viewAll": "Lihat Semua Notifikasi",
     "loadMore": "Muat Lebih Banyak",
     "filterAll": "Semua Notifikasi",
-    "filterUnread": "Belum Dibaca"
+    "filterUnread": "Belum Dibaca",
+    "loading": "Memuat...",
+    "loadingNotifications": "Memuat notifikasi...",
+    "prevPage": "← Sebelumnya",
+    "nextPage": "Berikutnya →",
+    "pageOf": "Halaman {page} dari {total}",
+    "detail": "Detail →"
   },
   "Guide": {
     "userTitle": "Panduan Pengguna Prompt Gen",
@@ -728,7 +735,17 @@
     "adminSec3Content": "Pada Pengaturan Sistem, Anda dapat menetapkan instruksi sistem global, speech rate default, serta kata terlarang (banned words) yang akan memblokir request generasi ilegal secara otomatis.",
     "backToDashboard": "Kembali ke Dashboard",
     "backToAdmin": "Kembali ke Admin Portal",
-    "navGuide": "Panduan Penggunaan"
+    "navGuide": "Panduan Penggunaan",
+    "ctaGenerator": "Buka Generator →",
+    "ctaChannels": "Kelola Kanal →",
+    "ctaBilling": "Lihat Tagihan & Pembayaran →",
+    "ctaNotifications": "Buka Notifikasi →",
+    "ctaRegistrations": "Persetujuan Pendaftaran →",
+    "ctaPayments": "Verifikasi Pembayaran →",
+    "ctaSettings": "Pengaturan Prompt & Banned Words →",
+    "ctaAdminNotifications": "Buka Notifikasi →",
+    "ctaAdminGuide": "Lihat →",
+    "ctaSupport": "Buka CS →"
   },
   "NotificationContent": {
     "newPendingRegistrationTitle": "Pendaftaran User Baru",
@@ -755,6 +772,11 @@
     "channelLockedMsg": "Kanal '{channelName}' dikunci karena melebihi batas paket aktif.",
     "channelUnlockedTitle": "Kanal Dibuka",
     "channelUnlockedMsg": "Kanal '{channelName}' telah dibuka kembali."
+  },
+  "AdminNotifications": {
+    "title": "Semua Notifikasi Platform",
+    "desc": "Menampilkan semua notifikasi sistem yang dikirimkan ke user.",
+    "loading": "Memuat notifikasi..."
   },
   "Support": {
     "title": "Bantuan & Dukungan CS",

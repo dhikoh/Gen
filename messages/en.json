@@ -108,7 +108,8 @@
     "usernameMin": "Username must be at least 3 characters!",
     "usernameInvalid": "Username may only contain letters, numbers, underscore (_), dot (.), and dash (-)",
     "emailInvalid": "Invalid email format!",
-    "channelRequired": "is required!"
+    "channelRequired": "is required!",
+    "optional": "Optional"
   },
   "Overview": {
     "welcome": "Welcome back, {name}!",
@@ -703,7 +704,13 @@
     "viewAll": "View All Notifications",
     "loadMore": "Load More",
     "filterAll": "All Notifications",
-    "filterUnread": "Unread Only"
+    "filterUnread": "Unread Only",
+    "loading": "Loading...",
+    "loadingNotifications": "Loading notifications...",
+    "prevPage": "← Previous",
+    "nextPage": "Next →",
+    "pageOf": "Page {page} of {total}",
+    "detail": "Detail →"
   },
   "Guide": {
     "userTitle": "Prompt Gen User Guide",
@@ -728,7 +735,17 @@
     "adminSec3Content": "In System Settings, you can configure global system instructions, default speech rates, and banned words that automatically block illegal generation requests.",
     "backToDashboard": "Back to Dashboard",
     "backToAdmin": "Back to Admin Portal",
-    "navGuide": "User Guide"
+    "navGuide": "User Guide",
+    "ctaGenerator": "Open Generator →",
+    "ctaChannels": "Manage Channels →",
+    "ctaBilling": "View Billing & Payment →",
+    "ctaNotifications": "Open Notifications →",
+    "ctaRegistrations": "Registration Approvals →",
+    "ctaPayments": "Verify Payments →",
+    "ctaSettings": "Prompt & Banned Words Settings →",
+    "ctaAdminNotifications": "Open Notifications →",
+    "ctaAdminGuide": "View →",
+    "ctaSupport": "Open CS →"
   },
   "NotificationContent": {
     "newPendingRegistrationTitle": "New User Registration",
@@ -755,6 +772,11 @@
     "channelLockedMsg": "Channel '{channelName}' was locked as it exceeds your active plan limit.",
     "channelUnlockedTitle": "Channel Unlocked",
     "channelUnlockedMsg": "Channel '{channelName}' has been unlocked."
+  },
+  "AdminNotifications": {
+    "title": "All Platform Notifications",
+    "desc": "Showing all system notifications sent to users.",
+    "loading": "Loading notifications..."
   },
   "Support": {
     "title": "Help & Support CS",

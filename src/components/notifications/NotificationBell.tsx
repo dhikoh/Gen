@@ -188,7 +188,8 @@ export default function NotificationBell() {
       {/* Bell Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 rounded-full text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors focus:outline-none"
+        className="relative p-2 rounded-full transition-colors focus:outline-none"
+        style={{ color: 'var(--pg-text-sub)' }}
         aria-label={t("title")}
       >
         <svg
@@ -215,10 +216,10 @@ export default function NotificationBell() {
 
       {/* Dropdown Popover */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl z-50 overflow-hidden">
+        <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-xl shadow-xl z-50 overflow-hidden neu-flat">
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50">
-            <h3 className="text-sm font-semibold text-zinc-900 dark:text-white flex items-center gap-2">
+          <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--pg-shadow-dark)', background: 'var(--pg-surface)' }}>
+            <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: 'var(--pg-text)' }}>
               {t("title")}
               {unreadCount > 0 && (
                 <span className="px-2 py-0.5 text-xs font-semibold bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 rounded-full">
@@ -237,32 +238,31 @@ export default function NotificationBell() {
           </div>
 
           {/* List */}
-          <div className="max-h-80 overflow-y-auto divide-y divide-zinc-100 dark:divide-zinc-800">
+          <div className="max-h-80 overflow-y-auto">
             {loading ? (
-              <div className="p-6 text-center text-xs text-zinc-500">Loading...</div>
+              <div className="p-6 text-center text-xs" style={{ color: 'var(--pg-text-muted)' }}>{t("loading")}</div>
             ) : notifications.length === 0 ? (
-              <div className="p-6 text-center text-xs text-zinc-500">{t("empty")}</div>
+              <div className="p-6 text-center text-xs" style={{ color: 'var(--pg-text-muted)' }}>{t("empty")}</div>
             ) : (
               notifications.map((item) => (
                 <div
                   key={item.id}
                   onClick={() => handleMarkAsRead(item.id, item.link)}
-                  className={`p-4 cursor-pointer transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/60 ${
-                    !item.isRead ? "bg-blue-50/40 dark:bg-blue-950/20" : ""
-                  }`}
+                  className="p-4 cursor-pointer transition-colors"
+                  style={{ background: !item.isRead ? 'rgba(99,102,241,0.06)' : 'transparent' }}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <span className="text-sm font-semibold text-zinc-900 dark:text-white leading-snug">
+                    <span className="text-sm font-semibold leading-snug" style={{ color: 'var(--pg-text)' }}>
                       {item.title}
                     </span>
                     {!item.isRead && (
                       <span className="w-2 h-2 rounded-full bg-blue-600 flex-shrink-0 mt-1" />
                     )}
                   </div>
-                  <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1 line-clamp-2">
+                  <p className="text-xs mt-1 line-clamp-2" style={{ color: 'var(--pg-text-sub)' }}>
                     {item.message}
                   </p>
-                  <span className="text-[10px] text-zinc-400 mt-2 block">
+                  <span className="text-[10px] mt-2 block" style={{ color: 'var(--pg-text-muted)' }}>
                     {new Date(item.createdAt).toLocaleString(locale === "id" ? "id-ID" : "en-US", {
                       dateStyle: "short",
                       timeStyle: "short",
@@ -274,7 +274,7 @@ export default function NotificationBell() {
           </div>
 
           {/* Footer */}
-          <div className="p-3 text-center border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50">
+          <div className="p-3 text-center" style={{ borderTop: '1px solid var(--pg-shadow-dark)', background: 'var(--pg-surface)' }}>
             <button
               onClick={() => {
                 setIsOpen(false);

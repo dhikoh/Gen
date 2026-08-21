@@ -28,8 +28,8 @@ export default async function AdminUsersPage({ params }: { params: Promise<{ loc
   return (
     <div className="max-w-6xl mx-auto py-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">{t('users')}</h1>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('userManagementDescription')}</p>
+        <h1 className="text-2xl font-bold pg-text-heading">{t('users')}</h1>
+        <p className="text-sm pg-text-muted">{t('userManagementDescription')}</p>
       </div>
       <UserManagement initialPlans={plans} />
     </div>

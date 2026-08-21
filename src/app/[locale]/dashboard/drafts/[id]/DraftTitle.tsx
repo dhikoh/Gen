@@ -56,7 +56,7 @@ export default function DraftTitle({ draftId, initialTitle }: { draftId: string,
           onBlur={handleSave}
           autoFocus
           disabled={loading}
-          className="text-2xl font-bold bg-white dark:bg-zinc-900 border border-blue-500 rounded px-2 py-1 outline-none text-zinc-900 dark:text-white flex-1 max-w-lg"
+          className="text-2xl font-bold pg-surface border border-blue-500 rounded px-2 py-1 outline-none pg-text-heading flex-1 max-w-lg"
         />
         {loading && <span className="inline-block animate-spin border-2 border-blue-500 border-t-transparent rounded-full w-5 h-5" />}
       </div>
@@ -65,10 +65,10 @@ export default function DraftTitle({ draftId, initialTitle }: { draftId: string,
 
   return (
     <div className="flex items-center group mb-2">
-      <h1 className="text-2xl font-bold text-zinc-900 dark:text-white mr-3">{title}</h1>
+      <h1 className="text-2xl font-bold pg-text-heading mr-3">{title}</h1>
       <button
         onClick={() => setIsEditing(true)}
-        className="opacity-0 group-hover:opacity-100 transition-opacity text-zinc-400 hover:text-blue-500 p-1"
+        className="opacity-0 group-hover:opacity-100 transition-opacity pg-text-muted hover:text-blue-500 p-1"
         title="Edit Title"
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

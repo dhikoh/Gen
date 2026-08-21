@@ -19,11 +19,9 @@ export default function UsedTitlesDirectory({ channelId }: UsedTitlesDirectoryPr
   const [titles, setTitles] = useState<TitleInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [type, setType] = useState<"VIDEO" | "IMAGE">("VIDEO");
-  
   const [importModal, setImportModal] = useState(false);
   const [importText, setImportText] = useState("");
   const [importing, setImporting] = useState(false);
-  
   const t = useTranslations("UsedTitles");
 
   const fetchTitles = async () => {
@@ -34,15 +32,11 @@ export default function UsedTitlesDirectory({ channelId }: UsedTitlesDirectoryPr
         const data = await res.json();
         setTitles(data.titles || []);
       }
-    } catch (e) {
-      console.error(e);
-    }
+    } catch (e) { console.error(e); }
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchTitles();
-  }, [channelId, type]);
+  useEffect(() => { fetchTitles(); }, [channelId, type]);
 
   const handleExportCSV = () => {
     window.location.href = `/api/drafts/export?channelId=${channelId}&type=${type}&format=csv`;
@@ -52,117 +46,94 @@ export default function UsedTitlesDirectory({ channelId }: UsedTitlesDirectoryPr
     const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(
       JSON.stringify(titles.map(t => t.title), null, 2)
     )}`;
-    const downloadAnchor = document.createElement("a");
-    downloadAnchor.setAttribute("href", jsonString);
-    downloadAnchor.setAttribute("download", `used-titles-${channelId}-${type.toLowerCase()}.json`);
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
+    const a = document.createElement("a");
+    a.setAttribute("href", jsonString);
+    a.setAttribute("download", `used-titles-${channelId}-${type.toLowerCase()}.json`);
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   };
 
   const handleImport = async () => {
     if (!importText.trim()) return toast.error(t("enterTitles"));
-    
     let rawTitles: string[] = [];
     const trimmed = importText.trim();
     if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
       try {
         const parsed = JSON.parse(trimmed);
-        if (Array.isArray(parsed)) {
-          rawTitles = parsed.map(t => String(t).trim()).filter(Boolean);
-        }
+        if (Array.isArray(parsed)) rawTitles = parsed.map(t => String(t).trim()).filter(Boolean);
       } catch {
         rawTitles = trimmed.split("\n").map(t => t.trim()).filter(Boolean);
       }
     } else {
       rawTitles = trimmed.split("\n").map(t => t.trim()).filter(Boolean);
     }
-
     if (rawTitles.length === 0) return toast.error(t("noValidTitles"));
-    
     setImporting(true);
     try {
       const res = await fetch("/api/drafts/import-titles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          channelId,
-          type,
-          titles: rawTitles
-        })
+        body: JSON.stringify({ channelId, type, titles: rawTitles })
       });
       const data = await res.json();
       if (res.ok) {
         toast.success(t("importSuccess", { count: data.importedCount }));
-        setImportModal(false);
-        setImportText("");
-        fetchTitles();
+        setImportModal(false); setImportText(""); fetchTitles();
       } else {
         toast.error(data.error || t("importFailed"));
       }
-    } catch (e) {
-      toast.error(t("networkError"));
-    }
+    } catch { toast.error(t("networkError")); }
     setImporting(false);
   };
 
+  const btnCls = "px-3 py-1.5 text-xs font-medium rounded-lg transition-colors neu-btn";
+
   return (
-    <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 glass-panel">
-      <div className="flex justify-between items-center mb-6">
-        <h3 className="text-lg font-bold text-zinc-900 dark:text-white">{t("title")}</h3>
-        <div className="flex gap-2">
-          <select 
-            value={type} 
+    <div className="neu-flat p-6 rounded-xl">
+      <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
+        <h3 className="text-lg font-bold" style={{ color: 'var(--pg-text)' }}>{t("title")}</h3>
+        <div className="flex flex-wrap gap-2">
+          <select
+            value={type}
             onChange={(e) => setType(e.target.value as "VIDEO" | "IMAGE")}
-            className="px-3 py-1.5 text-sm bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-md"
+            className="px-3 py-1.5 text-xs rounded-lg outline-none neu-input"
           >
             <option value="VIDEO">{t("videoDrafts")}</option>
             <option value="IMAGE">{t("imageDrafts")}</option>
           </select>
-          <button 
-            onClick={handleExportCSV}
-            className="px-3 py-1.5 text-sm bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-700"
-          >
-            {t("exportCsv")}
-          </button>
-          <button 
-            onClick={handleExportJSON}
-            className="px-3 py-1.5 text-sm bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-700"
-          >
-            {t("exportJson")}
-          </button>
-          <button 
-            onClick={() => setImportModal(true)}
-            className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
+          <button onClick={handleExportCSV} className={btnCls} style={{ color: 'var(--pg-text-sub)' }}>{t("exportCsv")}</button>
+          <button onClick={handleExportJSON} className={btnCls} style={{ color: 'var(--pg-text-sub)' }}>{t("exportJson")}</button>
+          <button onClick={() => setImportModal(true)} className="px-3 py-1.5 text-xs font-medium rounded-lg text-white neu-btn-brand">
             {t("importTitles")}
           </button>
         </div>
       </div>
 
-      <div className="overflow-x-auto max-h-96 border border-zinc-200 dark:border-zinc-800 rounded-lg">
+      <div className="overflow-x-auto max-h-96 rounded-xl" style={{ border: '1px solid var(--pg-shadow-dark)' }}>
         {loading ? (
-          <div className="p-4 text-center text-sm text-zinc-500">{t("loading")}</div>
+          <div className="p-4 text-center text-sm" style={{ color: 'var(--pg-text-muted)' }}>{t("loading")}</div>
         ) : titles.length === 0 ? (
-          <div className="p-4 text-center text-sm text-zinc-500">{t("noTitles")}</div>
+          <div className="p-4 text-center text-sm" style={{ color: 'var(--pg-text-muted)' }}>{t("noTitles")}</div>
         ) : (
           <table className="w-full text-sm text-left">
-            <thead className="bg-zinc-50 dark:bg-zinc-800/50 sticky top-0">
+            <thead className="sticky top-0" style={{ background: 'var(--pg-surface)' }}>
               <tr>
-                <th className="px-4 py-2 font-medium">{t("colTitle")}</th>
-                <th className="px-4 py-2 font-medium w-32">{t("colDate")}</th>
-                <th className="px-4 py-2 font-medium text-right w-24">{t("colLink")}</th>
+                <th className="px-4 py-2 font-semibold" style={{ color: 'var(--pg-text-sub)' }}>{t("colTitle")}</th>
+                <th className="px-4 py-2 font-semibold w-32" style={{ color: 'var(--pg-text-sub)' }}>{t("colDate")}</th>
+                <th className="px-4 py-2 font-semibold text-right w-24" style={{ color: 'var(--pg-text-sub)' }}>{t("colLink")}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+            <tbody>
               {titles.map(tData => (
-                <tr key={tData.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
-                  <td className="px-4 py-2 text-zinc-900 dark:text-white truncate max-w-md" title={tData.title}>
+                <tr key={tData.id} className="transition-colors" style={{ borderTop: '1px solid var(--pg-shadow-dark)' }}>
+                  <td className="px-4 py-2 truncate max-w-md" style={{ color: 'var(--pg-text)' }} title={tData.title}>
                     {tData.title || t("untitled")}
                   </td>
-                  <td className="px-4 py-2 text-zinc-500">{new Date(tData.createdAt).toLocaleDateString('id-ID')}</td>
+                  <td className="px-4 py-2" style={{ color: 'var(--pg-text-muted)' }}>{new Date(tData.createdAt).toLocaleDateString('id-ID')}</td>
                   <td className="px-4 py-2 text-right">
-                    <a href={`/dashboard/drafts/${tData.id}`} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline">{t("view")}</a>
+                    <a href={`/dashboard/drafts/${tData.id}`} target="_blank" rel="noreferrer"
+                      className="text-xs font-semibold" style={{ color: 'var(--pg-brand)' }}>{t("view")}</a>
                   </td>
                 </tr>
               ))}
@@ -173,27 +144,21 @@ export default function UsedTitlesDirectory({ channelId }: UsedTitlesDirectoryPr
 
       {importModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-zinc-900 rounded-xl p-6 w-full max-w-lg shadow-xl">
-            <h3 className="font-bold text-lg mb-4">{t("importModalTitle", { type })}</h3>
-            <p className="text-sm text-zinc-500 mb-4">{t("importDesc")}</p>
-            <textarea 
-              className="w-full h-48 p-3 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-md text-sm mb-4 font-mono"
+          <div className="neu-flat rounded-xl p-6 w-full max-w-lg">
+            <h3 className="font-bold text-lg mb-4" style={{ color: 'var(--pg-text)' }}>{t("importModalTitle", { type })}</h3>
+            <p className="text-sm mb-4" style={{ color: 'var(--pg-text-sub)' }}>{t("importDesc")}</p>
+            <textarea
+              className="w-full h-48 p-3 text-sm mb-4 font-mono outline-none resize-none neu-input rounded-lg"
               placeholder={'[\n  "China\'s Flood Just Unleashed a Literal Snake Nightmare",\n  "This Animal Gets Drunk on Purpose — And Scientists Are Jealous"\n]'}
               value={importText}
               onChange={(e) => setImportText(e.target.value)}
             />
             <div className="flex justify-end gap-3">
-              <button 
-                onClick={() => setImportModal(false)}
-                className="px-4 py-2 text-sm text-zinc-600 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-300 rounded"
-              >
+              <button onClick={() => setImportModal(false)} className={btnCls} style={{ color: 'var(--pg-text-sub)' }}>
                 {t("cancel")}
               </button>
-              <button 
-                onClick={handleImport}
-                disabled={importing}
-                className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded disabled:opacity-50"
-              >
+              <button onClick={handleImport} disabled={importing}
+                className="px-4 py-2 text-sm text-white rounded-lg disabled:opacity-50 neu-btn-brand">
                 {importing ? t("importing") : t("import")}
               </button>
             </div>

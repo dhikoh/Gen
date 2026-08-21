@@ -23,10 +23,10 @@ export default async function AdminGuidePage({ params }: { params: Promise<{ loc
   return (
     <div className="max-w-5xl mx-auto space-y-8 py-4">
       {/* Header */}
-      <div className="flex justify-between items-center border-b border-zinc-200 dark:border-zinc-800 pb-6">
+      <div className="flex justify-between items-center border-b pg-border pb-6">
         <div>
-          <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">{t('adminTitle')}</h1>
-          <p className="text-zinc-500 dark:text-zinc-400 mt-2 text-sm leading-relaxed max-w-2xl">
+          <h1 className="text-3xl font-bold pg-text-heading">{t('adminTitle')}</h1>
+          <p className="pg-text-muted mt-2 text-sm leading-relaxed max-w-2xl">
             {t('adminSubtitle')}
           </p>
         </div>
@@ -41,17 +41,17 @@ export default async function AdminGuidePage({ params }: { params: Promise<{ loc
       {/* Guide Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Admin Section 1 */}
-        <div className="glass-panel p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-md flex flex-col justify-between space-y-4">
+        <div className="glass-panel p-6 rounded-xl border pg-border shadow-md flex flex-col justify-between space-y-4">
           <div>
             <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-lg mb-4">
               👤
             </div>
-            <h2 className="text-lg font-bold text-zinc-900 dark:text-white mb-2">{t('adminSec1Title')}</h2>
-            <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
+            <h2 className="text-lg font-bold pg-text-heading mb-2">{t('adminSec1Title')}</h2>
+            <p className="text-sm pg-text-sub leading-relaxed">
               {t('adminSec1Content')}
             </p>
           </div>
-          <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800/60">
+          <div className="pt-4 border-t pg-border/60">
             <Link href={`/${locale}/admin/registrations`} className="text-xs font-semibold text-amber-600 dark:text-amber-400 hover:underline">
               Persetujuan Pendaftaran &rarr;
             </Link>
@@ -59,17 +59,17 @@ export default async function AdminGuidePage({ params }: { params: Promise<{ loc
         </div>
 
         {/* Admin Section 2 */}
-        <div className="glass-panel p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-md flex flex-col justify-between space-y-4">
+        <div className="glass-panel p-6 rounded-xl border pg-border shadow-md flex flex-col justify-between space-y-4">
           <div>
             <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-lg mb-4">
               💰
             </div>
-            <h2 className="text-lg font-bold text-zinc-900 dark:text-white mb-2">{t('adminSec2Title')}</h2>
-            <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
+            <h2 className="text-lg font-bold pg-text-heading mb-2">{t('adminSec2Title')}</h2>
+            <p className="text-sm pg-text-sub leading-relaxed">
               {t('adminSec2Content')}
             </p>
           </div>
-          <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800/60">
+          <div className="pt-4 border-t pg-border/60">
             <Link href={`/${locale}/admin/payments`} className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline">
               Verifikasi Pembayaran &rarr;
             </Link>
@@ -77,17 +77,17 @@ export default async function AdminGuidePage({ params }: { params: Promise<{ loc
         </div>
 
         {/* Admin Section 3 */}
-        <div className="glass-panel p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-md flex flex-col justify-between space-y-4">
+        <div className="glass-panel p-6 rounded-xl border pg-border shadow-md flex flex-col justify-between space-y-4">
           <div>
             <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold text-lg mb-4">
               ⚙️
             </div>
-            <h2 className="text-lg font-bold text-zinc-900 dark:text-white mb-2">{t('adminSec3Title')}</h2>
-            <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
+            <h2 className="text-lg font-bold pg-text-heading mb-2">{t('adminSec3Title')}</h2>
+            <p className="text-sm pg-text-sub leading-relaxed">
               {t('adminSec3Content')}
             </p>
           </div>
-          <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800/60">
+          <div className="pt-4 border-t pg-border/60">
             <Link href={`/${locale}/admin/settings`} className="text-xs font-semibold text-purple-600 dark:text-purple-400 hover:underline">
               Pengaturan Prompt & Banned Words &rarr;
             </Link>

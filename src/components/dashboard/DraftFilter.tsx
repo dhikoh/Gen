@@ -1,7 +1,6 @@
 "use client";
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-
 import { useTranslations } from "next-intl";
 
 interface ChannelOption {
@@ -33,12 +32,14 @@ export default function DraftFilter({
     router.push(`${pathname}?${params.toString()}`);
   };
 
+  const selectCls = "w-full px-3 py-2 rounded-lg text-sm outline-none neu-input";
+
   return (
     <div className="flex flex-col sm:flex-row gap-4 mb-6">
       <div className="flex-1">
-        <label className="block text-xs font-medium text-zinc-500 mb-1">{t('filterType')}</label>
-        <select 
-          className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
+        <label className="block text-xs font-medium mb-1" style={{ color: 'var(--pg-text-sub)' }}>{t('filterType')}</label>
+        <select
+          className={selectCls}
           value={defaultType || ""}
           onChange={(e) => handleFilterChange('type', e.target.value)}
         >
@@ -48,9 +49,9 @@ export default function DraftFilter({
         </select>
       </div>
       <div className="flex-1">
-        <label className="block text-xs font-medium text-zinc-500 mb-1">{t('filterChannel')}</label>
-        <select 
-          className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
+        <label className="block text-xs font-medium mb-1" style={{ color: 'var(--pg-text-sub)' }}>{t('filterChannel')}</label>
+        <select
+          className={selectCls}
           value={defaultChannelId || ""}
           onChange={(e) => handleFilterChange('channelId', e.target.value)}
         >

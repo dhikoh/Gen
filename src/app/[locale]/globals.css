@@ -279,3 +279,21 @@ html, body {
    Bottom Nav Safe Area (iOS notch support)
    ---------------------------------------------------------------- */
 .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+/* ----------------------------------------------------------------
+   Semantic color utility classes (replaces hardcoded zinc/gray/slate)
+   ---------------------------------------------------------------- */
+
+/* Typography */
+.pg-text-heading { color: var(--pg-text); }
+.pg-text-sub     { color: var(--pg-text-sub); }
+.pg-text-muted   { color: var(--pg-text-muted); }
+
+/* Backgrounds */
+.pg-bg-page      { background: var(--pg-bg); }
+.pg-surface      { background: var(--pg-surface); }
+.pg-surface-dim  { background: var(--pg-card); }
+
+/* Borders & dividers */
+.pg-border       { border-color: var(--pg-shadow-dark); }
+.pg-divide > * + * { border-top: 1px solid var(--pg-shadow-dark); }

@@ -193,15 +193,15 @@ export default function EditChannelClient({
       <form
         autoComplete="off"
         onSubmit={handleSubmit}
-        className="space-y-6 bg-white dark:bg-zinc-900 p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 glass-panel"
+        className="space-y-6 pg-surface p-6 rounded-xl border pg-border glass-panel"
       >
-        <h3 className="text-lg font-semibold text-zinc-900 dark:text-white border-b border-zinc-200 dark:border-zinc-800 pb-3">
+        <h3 className="text-lg font-semibold pg-text-heading border-b pg-border pb-3">
           {isNew ? "Buat Channel Profile Baru" : `Pengaturan: ${channel?.channelName}`}
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+            <label className="block text-sm font-medium pg-text-sub mb-1">
               {t("channelName")} <span className="text-red-500">*</span>
             </label>
             <input
@@ -210,7 +210,7 @@ export default function EditChannelClient({
               value={formData.channelName}
               onChange={handleChange}
               placeholder="e.g. TeknoPedia, FinansialSmart"
-              className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none text-zinc-900 dark:text-white"
+              className="w-full p-2.5 pg-surface-dim border pg-border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none pg-text-heading"
               required
             />
           </div>
@@ -291,7 +291,7 @@ export default function EditChannelClient({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+          <label className="block text-sm font-medium pg-text-sub mb-1">
             {t("description")}
           </label>
           <textarea
@@ -300,13 +300,13 @@ export default function EditChannelClient({
             onChange={handleChange}
             rows={2}
             placeholder="Deskripsi singkat mengenai fokus konten channel ini..."
-            className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none text-zinc-900 dark:text-white"
+            className="w-full p-2.5 pg-surface-dim border pg-border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none pg-text-heading"
           />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+            <label className="block text-sm font-medium pg-text-sub mb-1">
               CTA 1 (Call-to-Action Utama)
             </label>
             <input
@@ -315,12 +315,12 @@ export default function EditChannelClient({
               value={formData.cta1}
               onChange={handleChange}
               placeholder="e.g. Klik link di bio untuk info selengkapnya!"
-              className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none text-zinc-900 dark:text-white"
+              className="w-full p-2.5 pg-surface-dim border pg-border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none pg-text-heading"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+            <label className="block text-sm font-medium pg-text-sub mb-1">
               CTA 2 (Call-to-Action Sekunder)
             </label>
             <input
@@ -329,43 +329,43 @@ export default function EditChannelClient({
               value={formData.cta2}
               onChange={handleChange}
               placeholder="e.g. Follow & Simpan video ini agar tidak lupa!"
-              className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none text-zinc-900 dark:text-white"
+              className="w-full p-2.5 pg-surface-dim border pg-border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none pg-text-heading"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+          <label className="block text-sm font-medium pg-text-sub mb-2">
             Pengaturan Audio Bawaan
           </label>
           <div className="flex flex-wrap gap-4">
-            <label className="flex items-center space-x-2 text-sm text-zinc-700 dark:text-zinc-300 cursor-pointer">
+            <label className="flex items-center space-x-2 text-sm pg-text-sub cursor-pointer">
               <input
                 type="checkbox"
                 name="audioBGM"
                 checked={formData.audioBGM}
                 onChange={handleCheckboxChange}
-                className="rounded border-zinc-300 dark:border-zinc-700 text-blue-600 focus:ring-blue-500"
+                className="rounded pg-border text-blue-600 focus:ring-blue-500"
               />
               <span>Sertakan Musik Latar (BGM)</span>
             </label>
-            <label className="flex items-center space-x-2 text-sm text-zinc-700 dark:text-zinc-300 cursor-pointer">
+            <label className="flex items-center space-x-2 text-sm pg-text-sub cursor-pointer">
               <input
                 type="checkbox"
                 name="audioSFX"
                 checked={formData.audioSFX}
                 onChange={handleCheckboxChange}
-                className="rounded border-zinc-300 dark:border-zinc-700 text-blue-600 focus:ring-blue-500"
+                className="rounded pg-border text-blue-600 focus:ring-blue-500"
               />
               <span>Sertakan Efek Suara (SFX)</span>
             </label>
-            <label className="flex items-center space-x-2 text-sm text-zinc-700 dark:text-zinc-300 cursor-pointer">
+            <label className="flex items-center space-x-2 text-sm pg-text-sub cursor-pointer">
               <input
                 type="checkbox"
                 name="audioVO"
                 checked={formData.audioVO}
                 onChange={handleCheckboxChange}
-                className="rounded border-zinc-300 dark:border-zinc-700 text-blue-600 focus:ring-blue-500"
+                className="rounded pg-border text-blue-600 focus:ring-blue-500"
               />
               <span>Sertakan Voice Over (VO) Prompt</span>
             </label>
@@ -373,7 +373,7 @@ export default function EditChannelClient({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+          <label className="block text-sm font-medium pg-text-sub mb-2">
             Tautan Media Sosial
           </label>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -383,7 +383,7 @@ export default function EditChannelClient({
               value={socialLinks.website}
               onChange={handleSocialChange}
               placeholder="🌐 Website URL"
-              className="p-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-xs outline-none text-zinc-900 dark:text-white"
+              className="p-2 pg-surface-dim border pg-border rounded-lg text-xs outline-none pg-text-heading"
             />
             <input
               type="text"
@@ -391,7 +391,7 @@ export default function EditChannelClient({
               value={socialLinks.tiktok}
               onChange={handleSocialChange}
               placeholder="🎵 TikTok URL"
-              className="p-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-xs outline-none text-zinc-900 dark:text-white"
+              className="p-2 pg-surface-dim border pg-border rounded-lg text-xs outline-none pg-text-heading"
             />
             <input
               type="text"
@@ -399,7 +399,7 @@ export default function EditChannelClient({
               value={socialLinks.instagram}
               onChange={handleSocialChange}
               placeholder="📸 Instagram URL"
-              className="p-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-xs outline-none text-zinc-900 dark:text-white"
+              className="p-2 pg-surface-dim border pg-border rounded-lg text-xs outline-none pg-text-heading"
             />
             <input
               type="text"
@@ -407,7 +407,7 @@ export default function EditChannelClient({
               value={socialLinks.facebook}
               onChange={handleSocialChange}
               placeholder="📘 Facebook URL"
-              className="p-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-xs outline-none text-zinc-900 dark:text-white"
+              className="p-2 pg-surface-dim border pg-border rounded-lg text-xs outline-none pg-text-heading"
             />
             <input
               type="text"
@@ -415,7 +415,7 @@ export default function EditChannelClient({
               value={socialLinks.youtube}
               onChange={handleSocialChange}
               placeholder="▶️ YouTube URL"
-              className="p-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-xs outline-none text-zinc-900 dark:text-white"
+              className="p-2 pg-surface-dim border pg-border rounded-lg text-xs outline-none pg-text-heading"
             />
           </div>
         </div>
@@ -433,11 +433,11 @@ export default function EditChannelClient({
 
       {!isNew && channel?.id && (
         <>
-          <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800">
+          <div className="pt-4 border-t pg-border">
             <ProductsClient channelId={channel.id} />
           </div>
 
-          <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800">
+          <div className="pt-4 border-t pg-border">
             <UsedTitlesDirectory channelId={channel.id} channelName={channel.channelName} />
           </div>
         </>

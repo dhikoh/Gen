@@ -32,8 +32,8 @@ export default async function AdminRegistrationsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">{t("title")}</h1>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">{t("description")}</p>
+        <h1 className="text-2xl font-bold pg-text-heading">{t("title")}</h1>
+        <p className="text-sm pg-text-muted mt-1">{t("description")}</p>
       </div>
 
       <AdminRegistrationsClient initialUsers={pendingUsers} />

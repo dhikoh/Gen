@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
 interface User {
@@ -32,7 +31,7 @@ interface Plan {
 export default function UserManagement({ initialPlans }: { initialPlans: Plan[] }) {
   const t = useTranslations("Admin");
   const tu = useTranslations("AdminUsers");
-  
+
   const [users, setUsers] = useState<User[]>([]);
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState("");
@@ -41,24 +40,19 @@ export default function UserManagement({ initialPlans }: { initialPlans: Plan[] 
   const [planFilter, setPlanFilter] = useState("");
   const [page, setPage] = useState(1);
   const pageSize = 20;
-  
   const [loading, setLoading] = useState(true);
-  
-  // Modals state
+
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [userDetail, setUserDetail] = useState<UserDetail | null>(null);
   const [modalAction, setModalAction] = useState<"ROLE" | "DAYS" | "PLAN" | "PASSWORD" | "DELETE" | "PROFILE" | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [stats, setStats] = useState<{videoDraftCount: number, imageDraftCount: number}>({videoDraftCount: 0, imageDraftCount: 0});
-  
-  // Form state
+
   const [newRole, setNewRole] = useState("USER");
   const [daysToAdd, setDaysToAdd] = useState(30);
   const [newPlanId, setNewPlanId] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
-
-  // Profile Form state
   const [profileForm, setProfileForm] = useState({ name: "", username: "", email: "", phoneNumber: "", dateOfBirth: "" });
 
   const fetchUsers = async () => {
@@ -71,28 +65,15 @@ export default function UserManagement({ initialPlans }: { initialPlans: Plan[] 
       if (planFilter) params.set("planId", planFilter);
       params.set("page", page.toString());
       params.set("pageSize", pageSize.toString());
-
       const res = await fetch(`/api/admin/users?${params.toString()}`);
-      if (res.ok) {
-        const data = await res.json();
-        setUsers(data.users);
-        setTotal(data.total);
-      }
-    } catch (e) {
-      console.error(e);
-    }
+      if (res.ok) { const data = await res.json(); setUsers(data.users); setTotal(data.total); }
+    } catch (e) { console.error(e); }
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchUsers();
-  }, [page, roleFilter, statusFilter, planFilter]);
+  useEffect(() => { fetchUsers(); }, [page, roleFilter, statusFilter, planFilter]);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    setPage(1);
-    fetchUsers();
-  };
+  const handleSearch = (e: React.FormEvent) => { e.preventDefault(); setPage(1); fetchUsers(); };
 
   const fetchUserDetail = async (id: string) => {
     setDetailLoading(true);
@@ -110,78 +91,41 @@ export default function UserManagement({ initialPlans }: { initialPlans: Plan[] 
           dateOfBirth: data.user.dateOfBirth ? new Date(data.user.dateOfBirth).toISOString().split('T')[0] : "",
         });
       }
-    } catch (e) {
-      console.error(e);
-      toast.error(tu('systemError'));
-    }
+    } catch (e) { console.error(e); toast.error(tu('systemError')); }
     setDetailLoading(false);
   };
 
   const executeAction = async () => {
     if (!selectedUser || !modalAction) return;
     setActionLoading(true);
-
     try {
       if (modalAction === "DELETE") {
         const res = await fetch(`/api/admin/users/${selectedUser.id}`, { method: "DELETE" });
-        if (res.ok) {
-          fetchUsers();
-          closeModal();
-        } else {
-          const data = await res.json();
-          toast.error(data.error || tu('failDelete'));
-        }
+        if (res.ok) { fetchUsers(); closeModal(); }
+        else { const data = await res.json(); toast.error(data.error || tu('failDelete')); }
       } else {
         const payload: Record<string, unknown> = { action: "" };
-        if (modalAction === "ROLE") {
-          payload.action = "UPDATE_ROLE";
-          payload.role = newRole;
-        } else if (modalAction === "DAYS") {
-          payload.action = "ADD_DAYS";
-          payload.daysToAdd = daysToAdd;
-        } else if (modalAction === "PLAN") {
-          payload.action = "UPDATE_PLAN";
-          payload.planId = newPlanId;
-        } else if (modalAction === "PASSWORD") {
-          payload.action = "RESET_PASSWORD";
-          payload.newPassword = newPassword;
-        } else if (modalAction === "PROFILE") {
-          payload.action = "UPDATE_PROFILE";
-          Object.assign(payload, profileForm);
-        }
-
+        if (modalAction === "ROLE") { payload.action = "UPDATE_ROLE"; payload.role = newRole; }
+        else if (modalAction === "DAYS") { payload.action = "ADD_DAYS"; payload.daysToAdd = daysToAdd; }
+        else if (modalAction === "PLAN") { payload.action = "UPDATE_PLAN"; payload.planId = newPlanId; }
+        else if (modalAction === "PASSWORD") { payload.action = "RESET_PASSWORD"; payload.newPassword = newPassword; }
+        else if (modalAction === "PROFILE") { payload.action = "UPDATE_PROFILE"; Object.assign(payload, profileForm); }
         const res = await fetch(`/api/admin/users/${selectedUser.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
         });
-
-        if (res.ok) {
-          fetchUsers();
-          closeModal();
-          toast.success(tu('successAction'));
-        } else {
-          const data = await res.json();
-          toast.error(data.error || tu('failAction'));
-        }
+        if (res.ok) { fetchUsers(); closeModal(); toast.success(tu('successAction')); }
+        else { const data = await res.json(); toast.error(data.error || tu('failAction')); }
       }
-    } catch (error) {
-      toast.error(tu('systemError'));
-    }
+    } catch { toast.error(tu('systemError')); }
     setActionLoading(false);
   };
 
-  const closeModal = () => {
-    setModalAction(null);
-    setSelectedUser(null);
-    setUserDetail(null);
-    setNewPassword("");
-  };
+  const closeModal = () => { setModalAction(null); setSelectedUser(null); setUserDetail(null); setNewPassword(""); };
 
   const openModal = (user: User, action: typeof modalAction) => {
-    setSelectedUser(user);
-    setModalAction(action);
-    setNewRole(user.role);
+    setSelectedUser(user); setModalAction(action); setNewRole(user.role);
     setNewPlanId(user.currentPlan?.id || "");
     if (action === "PASSWORD") setNewPassword(Math.random().toString(36).slice(-8));
     if (action === "PROFILE") fetchUserDetail(user.id);
@@ -189,143 +133,125 @@ export default function UserManagement({ initialPlans }: { initialPlans: Plan[] 
 
   const getRemainingDays = (expiresAt: string | null) => {
     if (!expiresAt) return null;
-    const now = new Date();
-    const exp = new Date(expiresAt);
-    const diffTime = exp.getTime() - now.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 86400000);
     if (diffDays > 0) return `${diffDays} ${tu('daysLeft')}`;
     if (diffDays === 0) return tu('lastDay');
     return tu('expired');
   };
 
+  const inputCls = "w-full px-3 py-2 text-sm outline-none rounded-lg neu-input";
+  const divider = { borderTop: '1px solid var(--pg-shadow-dark)' };
+  const dividerB = { borderBottom: '1px solid var(--pg-shadow-dark)' };
+
   return (
-    <div className="glass-panel shadow-lg rounded-xl overflow-hidden">
-      <div className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 flex flex-col gap-4">
+    <div className="neu-flat rounded-xl overflow-hidden">
+      {/* Header */}
+      <div className="px-6 py-4 flex flex-col gap-4" style={dividerB}>
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">{tu('usersManagement')}</h2>
+          <h2 className="text-lg font-semibold" style={{ color: 'var(--pg-text)' }}>{tu('usersManagement')}</h2>
           <form onSubmit={handleSearch} className="flex w-full sm:w-auto">
-            <input
-              type="text"
-              placeholder={tu('searchPlaceholder')}
-              className="px-3 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-l-md text-sm w-full sm:w-64 focus:outline-none focus:ring-1 focus:ring-purple-500"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            <button type="submit" className="px-4 py-2 bg-zinc-100 dark:bg-zinc-800 border border-l-0 border-zinc-300 dark:border-zinc-800 rounded-r-md text-sm hover:bg-zinc-200 dark:hover:bg-zinc-700">
+            <input type="text" placeholder={tu('searchPlaceholder')} value={search} onChange={(e) => setSearch(e.target.value)}
+              className="px-3 py-2 text-sm w-full sm:w-64 focus:outline-none rounded-l-lg neu-input" />
+            <button type="submit" className="px-4 py-2 text-sm font-medium rounded-r-lg neu-btn" style={{ color: 'var(--pg-text-sub)' }}>
               {tu('search')}
             </button>
           </form>
         </div>
-        
-        {/* Filters */}
-        <div className="flex flex-wrap gap-2 items-center">
-          <select value={roleFilter} onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }} className="text-sm px-2 py-1 bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded">
-            <option value="">{tu('allRoles')}</option>
-            <option value="USER">USER</option>
-            <option value="SUPERADMIN">SUPERADMIN</option>
-          </select>
-          <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }} className="text-sm px-2 py-1 bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded">
-            <option value="">{tu('allStatus')}</option>
-            <option value="ACTIVE">{tu('statusActive')}</option>
-            <option value="INACTIVE">{tu('statusInactive')}</option>
-          </select>
-          <select value={planFilter} onChange={(e) => { setPlanFilter(e.target.value); setPage(1); }} className="text-sm px-2 py-1 bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded">
+        <div className="flex flex-wrap gap-2">
+          {[
+            { value: roleFilter, onChange: (v: string) => { setRoleFilter(v); setPage(1); }, options: [{ v: "", l: tu('allRoles') }, { v: "USER", l: "USER" }, { v: "SUPERADMIN", l: "SUPERADMIN" }] },
+            { value: statusFilter, onChange: (v: string) => { setStatusFilter(v); setPage(1); }, options: [{ v: "", l: tu('allStatus') }, { v: "ACTIVE", l: tu('statusActive') }, { v: "INACTIVE", l: tu('statusInactive') }] },
+          ].map((sel, i) => (
+            <select key={i} value={sel.value} onChange={(e) => sel.onChange(e.target.value)} className="text-xs px-2 py-1 rounded-lg outline-none neu-input">
+              {sel.options.map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
+            </select>
+          ))}
+          <select value={planFilter} onChange={(e) => { setPlanFilter(e.target.value); setPage(1); }} className="text-xs px-2 py-1 rounded-lg outline-none neu-input">
             <option value="">{tu('allPlans')}</option>
             {initialPlans.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         </div>
       </div>
 
+      {/* Table */}
       <div className="overflow-x-auto min-h-[400px]">
         {loading ? (
-          <div className="p-8 text-center text-zinc-500">{tu('loading')}</div>
+          <div className="p-8 text-center" style={{ color: 'var(--pg-text-muted)' }}>{tu('loading')}</div>
         ) : (
           <table className="w-full text-sm text-left">
-            <thead className="text-xs text-zinc-500 dark:text-zinc-400 uppercase bg-zinc-50 dark:bg-zinc-800/50">
+            <thead className="text-xs uppercase" style={{ background: 'var(--pg-surface)' }}>
               <tr>
-                <th className="px-6 py-3 font-medium">{t('nameEmail')}</th>
-                <th className="px-6 py-3 font-medium">{t('role')}</th>
-                <th className="px-6 py-3 font-medium">{t('subStatus')}</th>
-                <th className="px-6 py-3 font-medium text-right">{tu('actions')}</th>
+                <th className="px-6 py-3 font-semibold" style={{ color: 'var(--pg-text-sub)' }}>{t('nameEmail')}</th>
+                <th className="px-6 py-3 font-semibold" style={{ color: 'var(--pg-text-sub)' }}>{t('role')}</th>
+                <th className="px-6 py-3 font-semibold" style={{ color: 'var(--pg-text-sub)' }}>{t('subStatus')}</th>
+                <th className="px-6 py-3 font-semibold text-right" style={{ color: 'var(--pg-text-sub)' }}>{tu('actions')}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+            <tbody>
               {users.map((u) => (
-                <tr key={u.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
+                <tr key={u.id} className="transition-colors" style={{ borderTop: '1px solid var(--pg-shadow-dark)' }}>
                   <td className="px-6 py-4">
-                    <div className="font-medium text-zinc-900 dark:text-white">{u.name}</div>
-                    <div className="text-zinc-500 dark:text-zinc-400 text-xs">{u.email}</div>
-                    <div className="text-zinc-500 dark:text-zinc-400 text-xs">@{u.username}</div>
+                    <div className="font-semibold" style={{ color: 'var(--pg-text)' }}>{u.name}</div>
+                    <div className="text-xs" style={{ color: 'var(--pg-text-muted)' }}>{u.email}</div>
+                    <div className="text-xs" style={{ color: 'var(--pg-text-muted)' }}>@{u.username}</div>
                   </td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                      u.role === "SUPERADMIN" 
-                        ? "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400" 
-                        : "bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300"
-                    }`}>
+                      u.role === "SUPERADMIN" ? "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400" : ""
+                    }`}
+                      style={u.role !== "SUPERADMIN" ? { background: 'var(--pg-surface)', color: 'var(--pg-text-sub)', border: '1px solid var(--pg-shadow-dark)' } : {}}
+                    >
                       {u.role}
                     </span>
                   </td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                      u.subscriptionStatus === "ACTIVE" 
-                        ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" 
-                        : "bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300"
-                    }`}>
+                      u.subscriptionStatus === "ACTIVE" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : ""
+                    }`}
+                      style={u.subscriptionStatus !== "ACTIVE" ? { background: 'var(--pg-surface)', color: 'var(--pg-text-muted)', border: '1px solid var(--pg-shadow-dark)' } : {}}
+                    >
                       {u.subscriptionStatus}
                     </span>
-                    <div className="text-xs text-zinc-500 mt-1">{u.currentPlan?.name || t('free')}</div>
+                    <div className="text-xs mt-1" style={{ color: 'var(--pg-text-muted)' }}>{u.currentPlan?.name || t('free')}</div>
                     {u.subscriptionExpiresAt && (
-                      <div className="text-xs font-medium mt-0.5 text-orange-600 dark:text-orange-400">
-                        {getRemainingDays(u.subscriptionExpiresAt)}
-                      </div>
+                      <div className="text-xs font-medium mt-0.5" style={{ color: 'var(--pg-warn)' }}>{getRemainingDays(u.subscriptionExpiresAt)}</div>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-right space-x-2">
-                    <button onClick={() => openModal(u, "PROFILE")} className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded text-blue-800 dark:text-blue-500">{tu('profile')}</button>
-                    <button onClick={() => openModal(u, "ROLE")} className="text-xs px-2 py-1 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded text-zinc-700 dark:text-zinc-300">{tu('role')}</button>
-                    <button onClick={() => openModal(u, "DAYS")} className="text-xs px-2 py-1 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded text-zinc-700 dark:text-zinc-300">{tu('addDays')}</button>
-                    <button onClick={() => openModal(u, "PLAN")} className="text-xs px-2 py-1 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded text-zinc-700 dark:text-zinc-300">{tu('plan')}</button>
-                    <button onClick={() => openModal(u, "PASSWORD")} className="text-xs px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-200 dark:hover:bg-yellow-900/50 rounded text-yellow-800 dark:text-yellow-500">{tu('pass')}</button>
-                    <button onClick={() => openModal(u, "DELETE")} className="text-xs px-2 py-1 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 rounded text-red-800 dark:text-red-500">{tu('del')}</button>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex justify-end flex-wrap gap-1">
+                      <button onClick={() => openModal(u, "PROFILE")} className="text-xs px-2 py-1 rounded font-medium" style={{ background: 'rgba(99,102,241,0.12)', color: 'var(--pg-brand)' }}>{tu('profile')}</button>
+                      <button onClick={() => openModal(u, "ROLE")} className="text-xs px-2 py-1 rounded font-medium neu-btn" style={{ color: 'var(--pg-text-sub)' }}>{tu('role')}</button>
+                      <button onClick={() => openModal(u, "DAYS")} className="text-xs px-2 py-1 rounded font-medium neu-btn" style={{ color: 'var(--pg-text-sub)' }}>{tu('addDays')}</button>
+                      <button onClick={() => openModal(u, "PLAN")} className="text-xs px-2 py-1 rounded font-medium neu-btn" style={{ color: 'var(--pg-text-sub)' }}>{tu('plan')}</button>
+                      <button onClick={() => openModal(u, "PASSWORD")} className="text-xs px-2 py-1 rounded font-medium" style={{ background: 'rgba(253,177,29,0.12)', color: 'var(--pg-warn)' }}>{tu('pass')}</button>
+                      <button onClick={() => openModal(u, "DELETE")} className="text-xs px-2 py-1 rounded font-medium" style={{ background: 'rgba(225,112,85,0.12)', color: 'var(--pg-danger)' }}>{tu('del')}</button>
+                    </div>
                   </td>
                 </tr>
               ))}
               {users.length === 0 && !loading && (
-                <tr>
-                  <td colSpan={4} className="px-6 py-8 text-center text-zinc-500">{tu('noUsers')}</td>
-                </tr>
+                <tr><td colSpan={4} className="px-6 py-8 text-center" style={{ color: 'var(--pg-text-muted)' }}>{tu('noUsers')}</td></tr>
               )}
             </tbody>
           </table>
         )}
       </div>
-      
+
       {/* Pagination */}
-      <div className="px-6 py-4 border-t border-zinc-200 dark:border-zinc-800 flex justify-between items-center">
-        <div className="text-sm text-zinc-500 dark:text-zinc-400">
-          {tu('totalUsers')}: {total}
-        </div>
+      <div className="px-6 py-4 flex justify-between items-center" style={divider}>
+        <div className="text-sm" style={{ color: 'var(--pg-text-muted)' }}>{tu('totalUsers')}: {total}</div>
         <div className="flex gap-2">
-          <button 
-            disabled={page === 1} 
-            onClick={() => setPage(p => p - 1)}
-            className="px-3 py-1 bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded disabled:opacity-50"
-          >{tu('prevPage')}</button>
-          <button 
-            disabled={page * pageSize >= total} 
-            onClick={() => setPage(p => p + 1)}
-            className="px-3 py-1 bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded disabled:opacity-50"
-          >{tu('nextPage')}</button>
+          <button disabled={page === 1} onClick={() => setPage(p => p - 1)} className="px-3 py-1 text-sm rounded-lg disabled:opacity-50 neu-btn" style={{ color: 'var(--pg-text-sub)' }}>{tu('prevPage')}</button>
+          <button disabled={page * pageSize >= total} onClick={() => setPage(p => p + 1)} className="px-3 py-1 text-sm rounded-lg disabled:opacity-50 neu-btn" style={{ color: 'var(--pg-text-sub)' }}>{tu('nextPage')}</button>
         </div>
       </div>
 
-      {/* Action Modal */}
+      {/* Modal */}
       {modalAction && selectedUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="glass-panel rounded-xl shadow-xl w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col">
-            <div className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center shrink-0">
-              <h3 className="font-semibold text-zinc-900 dark:text-white">
+          <div className="neu-flat rounded-xl w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col">
+            <div className="px-6 py-4 flex justify-between items-center shrink-0" style={dividerB}>
+              <h3 className="font-semibold" style={{ color: 'var(--pg-text)' }}>
                 {modalAction === "ROLE" && tu('changeRole')}
                 {modalAction === "DAYS" && tu('addActiveDays')}
                 {modalAction === "PLAN" && tu('changePlan')}
@@ -333,120 +259,117 @@ export default function UserManagement({ initialPlans }: { initialPlans: Plan[] 
                 {modalAction === "DELETE" && tu('deleteUser')}
                 {modalAction === "PROFILE" && tu('editProfile')}
               </h3>
-              <button onClick={closeModal} className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300">&times;</button>
+              <button onClick={closeModal} className="text-lg leading-none" style={{ color: 'var(--pg-text-muted)' }}>×</button>
             </div>
-            
+
             <div className="p-6 overflow-y-auto">
-              {modalAction !== "PROFILE" && <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">{tu('target')} <strong className="text-zinc-900 dark:text-white">{selectedUser.email}</strong></p>}
-              
+              {modalAction !== "PROFILE" && (
+                <p className="text-sm mb-4" style={{ color: 'var(--pg-text-sub)' }}>
+                  {tu('target')} <strong style={{ color: 'var(--pg-text)' }}>{selectedUser.email}</strong>
+                </p>
+              )}
+
               {modalAction === "ROLE" && (
-                <select value={newRole} onChange={e => setNewRole(e.target.value)} className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md">
+                <select value={newRole} onChange={e => setNewRole(e.target.value)} className={inputCls}>
                   <option value="USER">USER</option>
                   <option value="SUPERADMIN">SUPERADMIN</option>
                 </select>
               )}
 
               {modalAction === "DAYS" && (
-                <input type="number" value={daysToAdd} onChange={e => setDaysToAdd(parseInt(e.target.value))} className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md" min="1" />
+                <input type="number" value={daysToAdd} onChange={e => setDaysToAdd(parseInt(e.target.value))} className={inputCls} min="1" />
               )}
 
               {modalAction === "PLAN" && (
-                <select value={newPlanId} onChange={e => setNewPlanId(e.target.value)} className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md">
+                <select value={newPlanId} onChange={e => setNewPlanId(e.target.value)} className={inputCls}>
                   <option value="">{tu('choosePlan')}</option>
-                  {initialPlans.map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
+                  {initialPlans.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
               )}
 
               {modalAction === "PASSWORD" && (
                 <div>
-                  <p className="text-xs text-yellow-600 dark:text-yellow-400 mb-2">{tu('savePasswordInfo')}</p>
-                  <input type="text" autoComplete="new-password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md" />
+                  <p className="text-xs mb-2" style={{ color: 'var(--pg-warn)' }}>{tu('savePasswordInfo')}</p>
+                  <input type="text" autoComplete="new-password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className={inputCls} />
                 </div>
               )}
 
               {modalAction === "DELETE" && (
-                <p className="text-red-600 dark:text-red-400 text-sm">{tu('deleteWarning')}</p>
+                <p className="text-sm" style={{ color: 'var(--pg-danger)' }}>{tu('deleteWarning')}</p>
               )}
 
               {modalAction === "PROFILE" && (
-                detailLoading ? <div className="text-center">{tu('loading')}</div> : userDetail && (
+                detailLoading ? <div className="text-center" style={{ color: 'var(--pg-text-muted)' }}>{tu('loading')}</div> : userDetail && (
                   <div className="space-y-6">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs text-zinc-500 mb-1">{tu('name')}</label>
-                        <input type="text" value={profileForm.name} onChange={e => setProfileForm({...profileForm, name: e.target.value})} className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md" />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-zinc-500 mb-1">{tu('username')}</label>
-                        <input type="text" value={profileForm.username} onChange={e => setProfileForm({...profileForm, username: e.target.value})} className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md" />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-zinc-500 mb-1">{tu('email')}</label>
-                        <input type="email" value={profileForm.email} onChange={e => setProfileForm({...profileForm, email: e.target.value})} className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md" />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-zinc-500 mb-1">{tu('phone')}</label>
-                        <input type="text" value={profileForm.phoneNumber} onChange={e => setProfileForm({...profileForm, phoneNumber: e.target.value})} className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md" />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-zinc-500 mb-1">{tu('dob')}</label>
-                        <input type="date" value={profileForm.dateOfBirth} onChange={e => setProfileForm({...profileForm, dateOfBirth: e.target.value})} className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md" />
-                      </div>
+                      {[
+                        { label: tu('name'), key: 'name', type: 'text' },
+                        { label: tu('username'), key: 'username', type: 'text' },
+                        { label: tu('email'), key: 'email', type: 'email' },
+                        { label: tu('phone'), key: 'phoneNumber', type: 'text' },
+                        { label: tu('dob'), key: 'dateOfBirth', type: 'date' },
+                      ].map(({ label, key, type }) => (
+                        <div key={key}>
+                          <label className="block text-xs mb-1" style={{ color: 'var(--pg-text-sub)' }}>{label}</label>
+                          <input type={type} value={profileForm[key as keyof typeof profileForm]}
+                            onChange={e => setProfileForm({ ...profileForm, [key]: e.target.value })} className={inputCls} />
+                        </div>
+                      ))}
                     </div>
-                    
+
                     <div>
-                      <h4 className="font-medium text-sm mb-2">{tu('stats')}</h4>
-                      <div className="flex gap-4 text-sm text-zinc-600 dark:text-zinc-400">
+                      <h4 className="font-medium text-sm mb-2" style={{ color: 'var(--pg-text)' }}>{tu('stats')}</h4>
+                      <div className="flex gap-4 text-sm" style={{ color: 'var(--pg-text-sub)' }}>
                         <div>{tu('videoDrafts')}: {stats.videoDraftCount}</div>
                         <div>{tu('imageDrafts')}: {stats.imageDraftCount}</div>
                       </div>
                     </div>
 
                     <div>
-                      <h4 className="font-medium text-sm mb-2">{tu('channels')}</h4>
+                      <h4 className="font-medium text-sm mb-2" style={{ color: 'var(--pg-text)' }}>{tu('channels')}</h4>
                       {userDetail.channels.length > 0 ? (
                         <div className="space-y-2 max-h-40 overflow-y-auto">
                           {userDetail.channels.map(c => (
-                            <div key={c.id} className="text-sm p-2 bg-zinc-50 dark:bg-zinc-900 rounded border border-zinc-200 dark:border-zinc-800 flex justify-between">
-                              <span>{c.channelName}</span>
-                              <span className="text-zinc-500">
-                                {c.isLocked ? tu('locked') : tu('active')} &bull; {c.usageCount} uses
-                              </span>
+                            <div key={c.id} className="text-sm p-2 rounded-lg flex justify-between" style={{ background: 'var(--pg-surface)', border: '1px solid var(--pg-shadow-dark)' }}>
+                              <span style={{ color: 'var(--pg-text)' }}>{c.channelName}</span>
+                              <span style={{ color: 'var(--pg-text-muted)' }}>{c.isLocked ? tu('locked') : tu('active')} • {c.usageCount} uses</span>
                             </div>
                           ))}
                         </div>
-                      ) : <div className="text-sm text-zinc-500">{tu('noChannels')}</div>}
+                      ) : <div className="text-sm" style={{ color: 'var(--pg-text-muted)' }}>{tu('noChannels')}</div>}
                     </div>
 
                     <div>
-                      <h4 className="font-medium text-sm mb-2">{tu('invoices')}</h4>
+                      <h4 className="font-medium text-sm mb-2" style={{ color: 'var(--pg-text)' }}>{tu('invoices')}</h4>
                       {userDetail.invoices.length > 0 ? (
                         <div className="space-y-2 max-h-40 overflow-y-auto">
                           {userDetail.invoices.map(inv => (
-                            <div key={inv.id} className="text-sm p-2 bg-zinc-50 dark:bg-zinc-900 rounded border border-zinc-200 dark:border-zinc-800 flex justify-between">
-                              <span>{inv.plan.name} - Rp {inv.amount.toLocaleString('id-ID')}</span>
-                              <span className={`text-xs px-1.5 py-0.5 rounded ${inv.status === 'APPROVED' ? 'bg-green-100 text-green-800' : inv.status === 'REJECTED' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                            <div key={inv.id} className="text-sm p-2 rounded-lg flex justify-between" style={{ background: 'var(--pg-surface)', border: '1px solid var(--pg-shadow-dark)' }}>
+                              <span style={{ color: 'var(--pg-text)' }}>{inv.plan.name} - Rp {inv.amount.toLocaleString('id-ID')}</span>
+                              <span className={`text-xs px-1.5 py-0.5 rounded ${
+                                inv.status === 'APPROVED' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                : inv.status === 'REJECTED' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                                : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                              }`}>
                                 {inv.status}
                               </span>
                             </div>
                           ))}
                         </div>
-                      ) : <div className="text-sm text-zinc-500">{tu('noInvoices')}</div>}
+                      ) : <div className="text-sm" style={{ color: 'var(--pg-text-muted)' }}>{tu('noInvoices')}</div>}
                     </div>
-
                   </div>
                 )
               )}
             </div>
 
-            <div className="px-6 py-4 bg-zinc-50 dark:bg-zinc-800/50 border-t border-zinc-200 dark:border-zinc-800 flex justify-end gap-3 shrink-0">
-              <button onClick={closeModal} className="px-4 py-2 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-md">{tu('cancel')}</button>
-              <button 
+            <div className="px-6 py-4 flex justify-end gap-3 shrink-0" style={{ ...divider, background: 'var(--pg-surface)' }}>
+              <button onClick={closeModal} className="px-4 py-2 text-sm rounded-lg neu-btn" style={{ color: 'var(--pg-text-sub)' }}>{tu('cancel')}</button>
+              <button
                 onClick={executeAction}
                 disabled={actionLoading || (modalAction === "PROFILE" && detailLoading)}
-                className={`px-4 py-2 text-sm font-medium rounded-md text-white ${modalAction === "DELETE" ? "bg-red-600 hover:bg-red-700" : "bg-purple-600 hover:bg-purple-700"} disabled:opacity-50`}
+                className={`px-4 py-2 text-sm font-semibold rounded-lg text-white disabled:opacity-50 ${modalAction === "DELETE" ? "" : "neu-btn-brand"}`}
+                style={modalAction === "DELETE" ? { background: 'var(--pg-danger)' } : {}}
               >
                 {actionLoading ? tu('processing') : tu('confirm')}
               </button>

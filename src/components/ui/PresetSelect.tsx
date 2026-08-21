@@ -40,7 +40,6 @@ export const PresetSelect: React.FC<PresetSelectProps> = ({
   helpText,
   required = false,
 }) => {
-  // Check if current value matches any preset option
   const isValueInOptions = options.some(
     (opt: PresetOption) => String(opt.value) === String(value)
   );
@@ -56,7 +55,6 @@ export const PresetSelect: React.FC<PresetSelectProps> = ({
     return isValueInOptions ? "" : String(value ?? "");
   });
 
-  // Sync state when props value change externally
   useEffect(() => {
     const matched = options.some((opt) => String(opt.value) === String(value));
     if (matched) {
@@ -70,9 +68,7 @@ export const PresetSelect: React.FC<PresetSelectProps> = ({
   const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selected = e.target.value;
     setSelectedOption(selected);
-
     if (selected === CUSTOM_PRESET_KEY) {
-      // Switch to custom, pass current customValue or empty
       const initialCustom = customValue || "";
       if (type === "number") {
         onChange(initialCustom ? parseFloat(initialCustom) : "");
@@ -80,10 +76,7 @@ export const PresetSelect: React.FC<PresetSelectProps> = ({
         onChange(initialCustom);
       }
     } else {
-      // Selected a preset
-      const matchedOpt = options.find(
-        (opt) => String(opt.value) === selected
-      );
+      const matchedOpt = options.find((opt) => String(opt.value) === selected);
       if (matchedOpt) {
         onChange(matchedOpt.value);
       } else {
@@ -95,7 +88,6 @@ export const PresetSelect: React.FC<PresetSelectProps> = ({
   const handleCustomInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawVal = e.target.value;
     setCustomValue(rawVal);
-
     if (type === "number") {
       const parsed = parseFloat(rawVal);
       onChange(isNaN(parsed) ? "" : parsed);
@@ -109,8 +101,8 @@ export const PresetSelect: React.FC<PresetSelectProps> = ({
   return (
     <div className={`space-y-2 ${className}`}>
       {label && (
-        <label className="block text-sm font-medium text-slate-200">
-          {label} {required && <span className="text-rose-400">*</span>}
+        <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--pg-text)' }}>
+          {label} {required && <span style={{ color: 'var(--pg-danger)' }}>*</span>}
         </label>
       )}
 
@@ -118,7 +110,7 @@ export const PresetSelect: React.FC<PresetSelectProps> = ({
         <select
           value={selectedOption}
           onChange={handleSelectChange}
-          className="w-full rounded-xl border border-slate-700/60 bg-slate-900/80 px-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-400 transition-all focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+          className="w-full px-4 py-2.5 text-sm font-medium outline-none transition-all neu-input"
         >
           {options.map((opt, idx) => (
             <option key={`${opt.value}-${idx}`} value={String(opt.value)}>
@@ -138,14 +130,15 @@ export const PresetSelect: React.FC<PresetSelectProps> = ({
               value={customValue}
               onChange={handleCustomInputChange}
               placeholder={placeholder}
-              className="w-full rounded-xl border border-indigo-500/50 bg-slate-950/90 px-3.5 py-2.5 text-sm text-indigo-100 placeholder-slate-500 shadow-inner transition-all focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+              className="w-full px-4 py-2.5 text-sm font-medium outline-none transition-all neu-input"
+              style={{ borderColor: 'var(--pg-brand)' }}
               required={required}
             />
           </div>
         )}
       </div>
 
-      {helpText && <p className="text-xs text-slate-400">{helpText}</p>}
+      {helpText && <p className="text-xs" style={{ color: 'var(--pg-text-muted)' }}>{helpText}</p>}
     </div>
   );
 };

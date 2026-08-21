@@ -71,14 +71,14 @@ export default function DraftActions({ draftId, rawJson, locale }: { draftId: st
       </button>
       <button 
         onClick={handleCopy}
-        className="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-md hover:bg-zinc-50 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 dark:hover:bg-zinc-700 shadow-sm transition-colors"
+        className="px-4 py-2 text-sm font-medium rounded-md shadow-sm transition-colors neu-btn pg-text-sub"
       >
         {copied ? t('copied') : t('copyRawJson')}
       </button>
       <button 
         onClick={handleDelete}
         disabled={deleting}
-        className="px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-200 rounded-md hover:bg-red-50 dark:bg-zinc-800 dark:text-red-400 dark:border-red-900/50 dark:hover:bg-red-900/20 shadow-sm transition-colors disabled:opacity-50"
+        className="px-4 py-2 text-sm font-medium rounded-md shadow-sm transition-colors disabled:opacity-50" style={{ color: 'var(--pg-danger)', background: 'rgba(225,112,85,0.08)', border: '1px solid rgba(225,112,85,0.25)' }}
       >
         {deleting ? t('deleting') : t('delete')}
       </button>

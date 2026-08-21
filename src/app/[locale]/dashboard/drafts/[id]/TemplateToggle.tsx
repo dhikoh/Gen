@@ -40,7 +40,7 @@ export default function TemplateToggle({ draftId, initialIsTemplate }: { draftId
       className={`px-4 py-2 text-sm font-medium rounded-md shadow-sm transition-colors ${
         isTemplate 
           ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:hover:bg-yellow-900/50" 
-          : "bg-white text-zinc-700 border border-zinc-300 hover:bg-zinc-50 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 dark:hover:bg-zinc-700"
+          : "neu-btn pg-text-sub"
       }`}
     >
       {loading ? t('saving') : isTemplate ? t('templateSaved') : t('saveAsTemplate')}
