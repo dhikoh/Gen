@@ -371,8 +371,8 @@ export default function GeneratorForm({
     }
   };
 
-  const handleGenerate = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleGenerate = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!channelId) {
       setError(t("channelError"));
       return;
@@ -381,6 +381,7 @@ export default function GeneratorForm({
     setLoading(true);
     setError(null);
     setResult("");
+    setManualTitle("");
 
     const selectedChannel = channels.find((c) => c.id === channelId);
     const effectiveTopic = topic.trim() ? topic.trim() : (selectedChannel?.niche || "Topik Umum");
@@ -1213,17 +1214,27 @@ export default function GeneratorForm({
             )}
 
             {step === 2 && (
-              <button
-                type="button"
-                onClick={() => {
-                  setStep(1);
-                  setGeneratedPrompt("");
-                  setAiResultJson("");
-                }}
-                className="w-full py-3 px-4 bg-zinc-200 hover:bg-zinc-300 text-zinc-800 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700 font-medium rounded-lg shadow-sm transition-all mt-6"
-              >
-                {t("backToEdit")}
-              </button>
+              <div className="grid grid-cols-2 gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep(1);
+                    setGeneratedPrompt("");
+                    setAiResultJson("");
+                  }}
+                  className="w-full py-3 px-4 bg-zinc-200 hover:bg-zinc-300 text-zinc-800 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700 font-medium rounded-lg shadow-sm transition-all"
+                >
+                  {t("backToEdit")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleGenerate()}
+                  disabled={loading}
+                  className="w-full py-3 px-4 bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-800/50 font-medium rounded-lg shadow-sm transition-all disabled:opacity-50"
+                >
+                  {t("regenerateBtn")}
+                </button>
+              </div>
             )}
           </fieldset>
         </form>
@@ -1256,36 +1267,18 @@ export default function GeneratorForm({
           ) : (
             <>
               {/* Generated Prompt Output */}
-              <div className="flex flex-col flex-1 border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden bg-zinc-50 dark:bg-zinc-950 min-h-0">
-                <div className="p-3 bg-zinc-100 dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center shrink-0">
-                  <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
-                    📄 Hasil Prompt AI (Markdown)
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigator.clipboard.writeText(generatedPrompt);
-                        toast.success("Prompt disalin!");
-                      }}
-                      className="px-3 py-1 text-xs font-semibold text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/40 border border-blue-300 dark:border-blue-700 hover:bg-blue-200 dark:hover:bg-blue-800/60 rounded transition-colors flex items-center gap-1"
-                    >
-                      📋 Copy Markdown
-                    </button>
-                    <button
-                      type="button"
-                      onClick={downloadJsonPrompt}
-                      className="px-3 py-1 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded transition-colors shadow-sm flex items-center gap-1"
-                    >
-                      ⬇️ Download JSON
-                    </button>
-                  </div>
-                </div>
-                <textarea
-                  readOnly
-                  value={generatedPrompt}
-                  className="w-full flex-1 p-4 bg-transparent text-sm font-mono text-zinc-800 dark:text-zinc-200 outline-none resize-none custom-scrollbar"
-                />
+              <div className="flex flex-col flex-1 border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden bg-zinc-50 dark:bg-zinc-950 min-h-0 items-center justify-center p-8 text-center space-y-4">
+                <div className="text-4xl">📦</div>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400 max-w-md">
+                  {t("jsonInstruction")}
+                </p>
+                <button
+                  type="button"
+                  onClick={downloadJsonPrompt}
+                  className="px-6 py-2.5 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors shadow-sm flex items-center gap-2 mt-4"
+                >
+                  ⬇️ Download JSON
+                </button>
               </div>
 
               {/* Action Panel — Title + Save */}
@@ -1304,33 +1297,44 @@ export default function GeneratorForm({
                   />
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(generatedPrompt);
-                      toast.success("Prompt disalin! Tempelkan di Scene Prompt Studio.");
-                    }}
-                    className="flex-1 min-w-[140px] px-3 py-2 text-sm font-medium text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-300 dark:border-indigo-700 hover:bg-indigo-100 dark:hover:bg-indigo-800/50 rounded-md transition-colors flex items-center justify-center gap-1.5"
-                  >
-                    🎬 Copy → Scene Studio
-                  </button>
-                  <button
-                    onClick={handleSaveDraft}
-                    disabled={saving}
-                    className="flex-1 min-w-[120px] px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-md transition-colors flex items-center justify-center"
-                  >
-                    {saving ? (
-                      <span className="inline-block animate-spin mr-2 border-2 border-white/20 border-t-white rounded-full w-4 h-4" />
-                    ) : null}
-                    {t("saveDraftBtn")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => router.push(`/${document.documentElement.lang || "id"}/dashboard/drafts`)}
-                    className="px-3 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-md hover:bg-zinc-50 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 dark:hover:bg-zinc-700 transition-colors"
-                  >
-                    {t("viewDraftsBtn")}
-                  </button>
+                  {type === "VIDEO" ? (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await fetch("/api/user/preferences", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ scenePromptState: { rawText: generatedPrompt } })
+                          });
+                        } catch(e) { console.error(e); }
+                        router.push(`/${document.documentElement.lang || "id"}/dashboard/scene-prompt`);
+                      }}
+                      className="flex-1 min-w-[140px] px-3 py-2 text-sm font-medium text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-300 dark:border-indigo-700 hover:bg-indigo-100 dark:hover:bg-indigo-800/50 rounded-md transition-colors flex items-center justify-center gap-1.5"
+                    >
+                      {t("continueToSceneStudioBtn")}
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        onClick={handleSaveDraft}
+                        disabled={saving}
+                        className="flex-1 min-w-[120px] px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-md transition-colors flex items-center justify-center"
+                      >
+                        {saving ? (
+                          <span className="inline-block animate-spin mr-2 border-2 border-white/20 border-t-white rounded-full w-4 h-4" />
+                        ) : null}
+                        {t("saveDraftBtn")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => router.push(`/${document.documentElement.lang || "id"}/dashboard/drafts`)}
+                        className="px-3 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-md hover:bg-zinc-50 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 dark:hover:bg-zinc-700 transition-colors"
+                      >
+                        {t("viewDraftsBtn")}
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             </>

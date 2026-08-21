@@ -33,6 +33,12 @@ export default async function DashboardLayout({
             {t('overview')}
           </Link>
           <Link 
+            href={`/${locale}/dashboard/channels`}
+            className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          >
+            {t('channels')}
+          </Link>
+          <Link 
             href={`/${locale}/dashboard/generator`}
             className="flex items-center px-3 py-2 text-sm font-medium rounded-md bg-blue-50 text-blue-700 dark:bg-blue-900/50 dark:text-blue-200"
           >
@@ -50,12 +56,7 @@ export default async function DashboardLayout({
           >
             {t('drafts')}
           </Link>
-          <Link 
-            href={`/${locale}/dashboard/channels`}
-            className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
-          >
-            {t('channels')}
-          </Link>
+
           <Link 
             href={`/${locale}/dashboard/billing`}
             className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"

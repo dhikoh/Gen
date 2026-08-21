@@ -6,7 +6,7 @@ import { prisma } from "@/lib/db";
 import { z } from "zod";
 import { applyRateLimit } from "@/lib/rateLimit";
 import { requireActiveSubscription } from "@/lib/subscription";
-import { generateMasterPrompt } from "@/lib/promptGenerator";
+import { generateMasterPrompt, ProfileChannelData } from "@/lib/promptGenerator";
 import { generateImagePrompt } from "@/lib/imagePromptGenerator";
 
 const videoConfigSchema = z.object({
@@ -196,11 +196,11 @@ export async function POST(req: Request) {
         selectedProduct,
       };
 
-      const result = generateMasterPrompt(channel, effectiveTopic, additionalContext || "", fullVideoConfig, promptSettings, previousTitles);
+      const result = generateMasterPrompt(channel as unknown as ProfileChannelData, effectiveTopic, additionalContext || "", fullVideoConfig, promptSettings, previousTitles);
       masterPrompt = result.masterPrompt;
       systemInstruction = result.systemInstruction;
     } else if (type === "IMAGE" && imageConfig) {
-      const result = generateImagePrompt(channel, effectiveTopic, additionalContext || "", imageConfig, promptSettings, previousTitles);
+      const result = generateImagePrompt(channel as unknown as ProfileChannelData, effectiveTopic, additionalContext || "", imageConfig, promptSettings, previousTitles);
       masterPrompt = result.masterPrompt;
       systemInstruction = result.systemInstruction;
       finalJson = result.finalJson;

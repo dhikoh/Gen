@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
+import toast from "react-hot-toast";
 import { extractAudioCues, extractVisualAudioHint, cleanParsedValue, parseVoiceGuidelines, extractTitles, extractChosenTitle, extractThumbnailData, extractCaption, extractHashtags, extractHtmlBlog } from "@/lib/parsers";
 import type { ThumbnailData } from "@/lib/parsers";
 
@@ -58,6 +59,30 @@ export default function ScenePromptStudioClient({ channels, locale }: Props) {
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"scenes"|"thumbnail"|"platform">("scenes");
+  const [markedTitles, setMarkedTitles] = useState<string[]>([]);
+
+  const handleMarkAsUsed = async (title: string) => {
+    if (!selectedChannelId) return;
+    try {
+      const res = await fetch("/api/drafts/import-titles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          channelId: selectedChannelId,
+          type: "VIDEO",
+          titles: [title]
+        })
+      });
+      if (res.ok) {
+        setMarkedTitles(prev => [...prev, title]);
+        toast.success("Judul ditandai terpakai.");
+      } else {
+        toast.error("Gagal menandai judul.");
+      }
+    } catch (e) {
+      toast.error("Terjadi kesalahan.");
+    }
+  };
 
   // Server-Side Sync & LocalStorage Persistence
   useEffect(() => {
@@ -313,12 +338,26 @@ export default function ScenePromptStudioClient({ channels, locale }: Props) {
                 <div>
                   <p className="text-xs font-semibold text-zinc-500 mb-2">{t("titlesFound")}</p>
                   <div className="space-y-1">
-                    {parsedTitles.map((title, i) => (
-                      <div key={i} className="flex items-center justify-between bg-zinc-50 dark:bg-zinc-900 rounded px-3 py-2">
-                        <span className="text-sm text-zinc-700 dark:text-zinc-300 flex-1">{title}</span>
-                        <button onClick={() => copy(`t-${i}`, title)} className="text-xs text-blue-500 hover:underline ml-2">{copiedId === `t-${i}` ? "✓" : "Copy"}</button>
-                      </div>
-                    ))}
+                    {parsedTitles.map((title, i) => {
+                      const isActiveDraft = title === draftTitle;
+                      const isMarked = markedTitles.includes(title);
+                      return (
+                        <div key={i} className={`flex items-center justify-between bg-zinc-50 dark:bg-zinc-900 rounded px-3 py-2 ${isActiveDraft ? 'ring-1 ring-blue-500' : ''}`}>
+                          <span className="text-sm text-zinc-700 dark:text-zinc-300 flex-1">{title}</span>
+                          <div className="flex items-center gap-3 ml-2 shrink-0">
+                            <button onClick={() => copy(`t-${i}`, title)} className="text-xs text-blue-500 hover:underline">{copiedId === `t-${i}` ? "✓" : "Copy"}</button>
+                            <button
+                              onClick={() => handleMarkAsUsed(title)}
+                              disabled={isMarked || isActiveDraft}
+                              title={isActiveDraft ? "Sedang dipakai sebagai Draft" : "Tandai sebagai judul terpakai (exclude)"}
+                              className="text-xs text-emerald-600 hover:underline disabled:text-zinc-400 disabled:no-underline"
+                            >
+                              {isMarked ? "✓ Terpakai" : "Tandai"}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}

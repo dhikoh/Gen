@@ -11,6 +11,7 @@ export interface ProfileChannelData {
   audioSFX?: boolean | null;
   audioVO?: boolean | null;
   products?: Array<{ name: string; price: number; description?: string | null }>;
+  socialLinks?: Array<{ platform: string; url: string }> | null;
 }
 
 export interface VideoConfigData {
@@ -182,7 +183,13 @@ export function generateMasterPrompt(
 
   if (hasCaption || hasHashtag) {
     formatOutputWajib += `\n## KONTEN PLATFORM\n`;
-    if (hasCaption) formatOutputWajib += `CAPTION: [Teks caption menarik. Sertakan link sosial media dari profil channel jika ada, dalam format RAW URL bukan markdown link.]\n`;
+    if (hasCaption) {
+      let socialLinksStr = "";
+      if (channel.socialLinks && channel.socialLinks.length > 0) {
+        socialLinksStr = " (Sertakan link berikut: " + channel.socialLinks.map(s => s.url).join(" ") + ")";
+      }
+      formatOutputWajib += `CAPTION: [Teks caption menarik.${socialLinksStr} Sertakan link sosial media dari profil channel jika ada, dalam format RAW URL bukan markdown link.]\n`;
+    }
     if (hasHashtag) formatOutputWajib += `HASHTAGS: [Kumpulan hashtag optimasi jangkauan viral]\n`;
   }
 
@@ -214,9 +221,12 @@ export function generateMasterPrompt(
 
   // ── All Guidelines (Push-ported) ───────────────────────────────────────
   const allGuidelines = `
-[PANDUAN STRATEGI DAN REKAYASA PROMPT]
-1. Arsitektur Konten & Tren: Buat narasi autentik, rentan, retro, dan organik. Hindari gaya bahasa terlampau formal. Hubungkan secara relatable ke audiens modern.
-2. Psikologi Copywriting: Gunakan kerangka PAS (Problem → Agitate → Solution) atau AIDA (Attention → Interest → Desire → Action).
+[PANDUAN STRATEGI & VIRALITAS KONTEN]
+1. Hook & Retensi: 3 detik pertama WAJIB memiliki visual/auditori hook yang kuat (pertanyaan provokatif, statemen kontroversial).
+2. Open Loops: Sisipkan 'open loops' (rasa penasaran yang ditunda) di tengah narasi agar penonton bertahan.
+3. Spesifikasi Platform: Optimalkan pacing cepat, hindari jeda diam (dead air) lebih dari 1 detik.
+4. Arsitektur Konten & Tren: Buat narasi autentik, rentan, retro, dan organik. Hindari gaya bahasa terlampau formal. Hubungkan secara relatable ke audiens modern.
+5. Psikologi Copywriting: Gunakan kerangka PAS (Problem → Agitate → Solution) atau AIDA (Attention → Interest → Desire → Action).
 
 [PANDUAN PEMERKAYAAN VISUAL PROMPT]
 1. Baca NARASI per scene terlebih dahulu, lalu buat Visual Prompt secara dinamis, metaforis, dan sangat ilustratif (HINDARI penerjemahan harfiah/literal).

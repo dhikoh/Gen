@@ -359,3 +359,16 @@ Penyelesaian audit batch ketiga: eliminasi total hardcoded strings pada 5 kompon
 - `src/components/cs/FloatingCsWidget.tsx`
 - `src/components/support/UserSupportClient.tsx`
 - `Project Prompt Gen.txt` (Blueprint +52 lines)
+
+
+## Phase 18: Final SaaS Audit & Generator Studio Workflow Refinement
+**Date:** 2026-08-21
+**Status:** ✅ COMPLETION
+**Summary:** Resolved final UX friction points and standardized all generator pipelines for an idempotent, JSON-centric output. 
+- **Idempotency Refactoring**: Restructured `GeneratorForm.handleGenerate` to support "Regenerate" operations seamlessly without resetting form progress.
+- **Output Purity**: Removed Markdown preview and raw copy functionality in favor of a clear, singular "Download JSON" mechanism.
+- **Workflow Routing**: Segmented draft-saving behavior (VIDEO pipelines auto-save state and route to Scene Studio, IMAGE pipelines retain explicit "Save Draft").
+- **Deduplication Engine**: Upgraded `POST /api/drafts` to `upsert` stub entries preventing duplicated drafts in the Scene Studio pipeline.
+- **Social Integration**: Augmented `promptGenerator.ts` to natively inject `socialLinks` from `ProfileChannelData` into AI instructions for enhanced automated captioning.
+- **Viral Engineering**: Updated Master Prompt guidelines with advanced pacing, open loop, and retention hooks instructions for algorithm optimization.
+- **Layout Alignment**: Reordered sidebar navigation linking "Channels" immediately below "Overview" for logical administrative flow.

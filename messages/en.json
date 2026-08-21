@@ -305,7 +305,10 @@
     "productNameRequired": "Product name is required.",
     "productAddFail": "Failed to add product",
     "productAddSuccess": "Product added successfully!",
-    "systemError": "An error occurred."
+    "systemError": "An error occurred.",
+    "regenerateBtn": "🔄 Regenerate",
+    "jsonInstruction": "This JSON file contains a ready-to-use prompt. You do not need to read its contents — simply upload/paste this file into your preferred external AI (ChatGPT, Claude, Gemini, etc.) to get the script/image result.",
+    "continueToSceneStudioBtn": "🎬 Continue to Scene Prompt Studio"
   },
   "Drafts": {
     "pageTitleTab": "Prompt History",

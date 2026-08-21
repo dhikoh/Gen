@@ -128,6 +128,34 @@ export async function POST(req: Request) {
         data: { usageCount: { increment: 1 }, lastUsedAt: new Date() }
       });
 
+      const existingStub = await tx.draft.findFirst({
+        where: {
+          userId: session.user.id,
+          channelId: channel.id,
+          type: type,
+          title: { equals: String(title), mode: "insensitive" },
+          wordCount: 0,
+          estimatedDurationSec: 0,
+        }
+      });
+
+      if (existingStub) {
+        return tx.draft.update({
+          where: { id: existingStub.id },
+          data: {
+            rawJson: rawJson,
+            parsedData: parsedData as Prisma.InputJsonValue,
+            wordCount: wordCount,
+            estimatedDurationSec: estimatedDurationSec,
+            targetDurationSec: targetDurationSec || 0,
+            targetSceneCount: targetSceneCount || null,
+            narrativeLoopStyle: narrativeLoopStyle || null,
+            visualLoopStyle: visualLoopStyle || null,
+            isTemplate: false
+          }
+        });
+      }
+
       return tx.draft.create({
         data: {
           userId: session.user.id,

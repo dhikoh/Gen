@@ -305,7 +305,10 @@
     "productNameRequired": "Nama produk wajib diisi.",
     "productAddFail": "Gagal menambah produk",
     "productAddSuccess": "Produk berhasil ditambahkan!",
-    "systemError": "Terjadi kesalahan."
+    "systemError": "Terjadi kesalahan.",
+    "regenerateBtn": "🔄 Generate Ulang",
+    "jsonInstruction": "File JSON ini berisi prompt siap pakai. Anda tidak perlu membaca isinya — cukup unggah/tempel file ini ke AI eksternal pilihan Anda (ChatGPT, Claude, Gemini, dsb.) untuk mendapatkan hasil naskah/gambar.",
+    "continueToSceneStudioBtn": "🎬 Lanjutkan ke Scene Prompt Studio"
   },
   "Drafts": {
     "pageTitleTab": "Riwayat Prompt",
