@@ -625,3 +625,85 @@ Audit fitur "Generator Studio" menunjukkan tidak adanya kendali bahasa output ya
 ### Build Verification
 - `npx tsc --noEmit` → ✅ **Exit code: 0** (Zero TypeScript errors).
 - `npm run build` → ✅ **Exit code: 0**, production ready.
+
+---
+
+## Phase K — Neumorphic Design System Migration: Full Codebase (21 Agustus 2026)
+
+### Latar Belakang
+Audit UI/UX mendeteksi 1.305 penggunaan kelas warna hardcoded Tailwind (`zinc-*`, `gray-*`, `slate-*`) tersebar di 55+ file. Kelas-kelas ini menyebabkan inkonsistensi tema (dark/light mode) dan tidak mengikuti sistem token `pg-*` yang sudah ditetapkan sebagai standar desain neumorphic platform. Fase ini menyelesaikan migrasi total dari seluruh kelas legacy ke token semantik.
+
+### Fase A — i18n Hardening
+#### `messages/en.json` & `messages/id.json`
+- Tambah kunci lokalisasi untuk: pagination (`prevPage`, `nextPage`, `totalUsers`), status loading, detail links, dan CTA navigasi halaman panduan.
+
+#### Komponen Notifikasi & Navigasi
+- **`NotificationsClient.tsx`** — Refactor 4 label hardcoded ke `t()` hooks.
+- **`NotificationBell.tsx`** — Refactor `'Loading...'` / `'No notifications'` ke `t('loading')` / `t('empty')`.
+- **`AdminNotificationsClient.tsx`** — Fix namespace ke `AdminNotifications`, sinkronisasi semua label.
+- **`panduan/page.tsx`** — 4 tombol CTA navigasi dimigrasikan ke sistem `t()` terpusat.
+
+### Fase B — Migrasi Komponen Inti (15 File)
+File-file berikut sepenuhnya dimigrasikan dari kelas zinc/gray/slate ke token `pg-*` dan utility class `neu-*`:
+
+| File | Deskripsi Perubahan |
+|------|---------------------|
+| `ToastProvider.tsx` | bg/text zinc → `pg-surface` / `pg-text` |
+| `CopyButton.tsx` | zinc → `pg-text` / `pg-brand` |
+| `DraftFilter.tsx` | zinc → `neu-input` / `pg-text-sub` |
+| `PresetSelect.tsx` | slate-900 → `pg-*` vars |
+| `CompositionSliderGroup.tsx` | zinc + hardcoded → `pg-*` + i18n |
+| `AuthForm.tsx` | 7 label zinc → `pg-text` centralized |
+| `ResetPasswordForm.tsx` | Full rewrite → `pg-*` |
+| `CsEscalationBanner.tsx` | rose/amber/cyan → `pg-danger`/`pg-warn`/`pg-brand` |
+| `FloatingCsWidget.tsx` | zinc → `neu-flat` / `pg-*` |
+| `NotificationBell.tsx` | zinc → `pg-*` inline styles |
+| `UserSupportClient.tsx` | zinc + glass-panel → `neu-flat` / `pg-*` |
+| `AdminSupportClient.tsx` | zinc + glass-panel → `neu-flat` / `pg-*` |
+| `UsedTitlesDirectory.tsx` | zinc + glass-panel → `neu-flat` / `pg-*` |
+| `UserManagement.tsx` | zinc + glass-panel → `neu-flat` / `pg-*` |
+| `AdminAnalyticsCharts.tsx` | zinc + `#3b82f6` → `pg-brand` (#6366f1), tooltip via CSS vars |
+
+### Fase C — Migrasi App Pages & Large Clients (40 File)
+#### Utility Classes Baru — `globals.css`
+Ditambahkan 8 semantic utility classes baru untuk menggantikan pasangan zinc/dark secara langsung:
+```css
+.pg-text-heading  { color: var(--pg-text); }
+.pg-text-sub      { color: var(--pg-text-sub); }
+.pg-text-muted    { color: var(--pg-text-muted); }
+.pg-bg-page       { background: var(--pg-bg); }
+.pg-surface       { background: var(--pg-surface); }
+.pg-surface-dim   { background: var(--pg-card); }
+.pg-border        { border-color: var(--pg-shadow-dark); }
+.pg-divide > * + * { border-top: 1px solid var(--pg-shadow-dark); }
+```
+
+#### File yang Dimigrasi (Top 10 berdasarkan volume)
+| File | Hits Sebelum | Hits Sesudah |
+|------|:-----------:|:------------:|
+| `GeneratorForm.tsx` | 257 | 0 |
+| `AdminSettingsClient.tsx` | 140 | 0 |
+| `drafts/[id]/page.tsx` | 98 | 0 |
+| `page.tsx` (landing) | 86 | 0 |
+| `EditChannelClient.tsx` | 79 | 0 |
+| `ScenePromptStudioClient.tsx` | 67 | 0 |
+| `AnnouncementsClient.tsx` | 62 | 0 |
+| `NotificationsClient.tsx` | 49 | 0 |
+| `ProductsClient.tsx` | 48 | 0 |
+| `panduan/page.tsx` | 40 | 0 |
+
+- Total file dimigrasi: **55+ file**
+- Total kelas legacy dihapus: **~1.218 occurrences**
+
+### Metodologi
+Migrasi menggunakan 3-layer approach:
+1. **Automated batch** — 20 regex rules untuk pasangan `zinc-X dark:zinc-Y` yang paling umum (1.036 hits)
+2. **Extended singleton rules** — 42 rules untuk kelas dark-only dan hover variants (182 hits)
+3. **Targeted manual fixes** — 15 baris yang membutuhkan penanganan konteks spesifik
+
+### Build Verification
+- Grep `zinc|gray|slate` di seluruh `src/` → ✅ **0 residual** di semua file TSX/TS
+- `npx tsc --noEmit` → ✅ **Exit code: 0** (Zero TypeScript errors)
+- Git commit: `e97fc42` — 59 files changed, 5.586 insertions, 5.847 deletions
+
+---

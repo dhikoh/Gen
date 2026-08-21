@@ -117,3 +117,34 @@ Setelah `seed.js` berhasil dieksekusi:
 Seluruh kode dalam repository `dhikoh-gen` berada dalam kondisi stabil, bersih dari temporary logs/scratch files, dan siap untuk dideploy ke lingkungan produksi. 
 
 Dokumen ini disusun sebagai bukti sah penyelesaian serah terima pekerjaan (Definition of Done) sesuai Bagian 9 & 10 *Project Blueprint*.
+
+---
+
+## 6. UPDATE — Neumorphic Design System Migration (21 Agustus 2026)
+
+### Status
+Seluruh codebase telah dimigrasi penuh dari kelas warna hardcoded Tailwind (`zinc-*`, `gray-*`, `slate-*`) ke sistem token CSS `pg-*` terpusat.
+
+| Metrik | Nilai |
+|--------|-------|
+| Total file dimigrasi | 55+ file |
+| Total kelas legacy dihapus | ~1.218 occurrences |
+| Utility classes baru (`globals.css`) | 8 classes |
+| TypeScript check pasca-migrasi | ✅ 0 errors |
+| Residual zinc/gray/slate di `src/` | ✅ 0 |
+| Git commit | `e97fc42` (59 files changed) |
+
+### Aturan Wajib untuk Pengembangan Selanjutnya
+> **WAJIB**: Komponen UI baru harus menggunakan token `pg-*` dan utility `neu-*`. Dilarang kelas warna hardcoded Tailwind. Gunakan `grep "zinc-\|gray-\|slate-" src/` untuk audit berkala.
+
+### Referensi Token Cepat
+| Kategori | Token |
+|----------|-------|
+| Teks | `pg-text-heading` · `pg-text-sub` · `pg-text-muted` |
+| Background | `pg-bg-page` · `pg-surface` · `pg-surface-dim` |
+| Border | `pg-border` · `pg-divide` |
+| Panel | `neu-flat` · `neu-sm` · `neu-pressed` |
+| Button | `neu-btn` · `neu-btn-brand` |
+| Brand vars | `var(--pg-brand)` · `var(--pg-danger)` · `var(--pg-warn)` |
+
+Detail lengkap: lihat **Phase K** di `PATCH_NOTES.md`.
