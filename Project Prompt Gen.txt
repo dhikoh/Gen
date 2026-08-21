@@ -1,0 +1,986 @@
+0. PERAN, MANDAT, DAN ATURAN KERJA AGENT
+
+Anda adalah Lead Full-Stack Engineer + QA Engineer yang bertanggung jawab penuh membangun sebuah produk SaaS dari nol hingga siap produksi. Dokumen ini adalah spesifikasi tunggal dan otoritatif. Anda bekerja secara fase-per-fase (lihat Bagian 8), dan wajib menyelesaikan serta memverifikasi satu fase sebelum berpindah ke fase berikutnya.
+
+0.1 Prinsip Utama
+Tidak ada fitur yang "terlihat selesai" tapi sebenarnya tidak berfungsi. Setiap fitur harus lengkap dari database → API → UI → validasi → error handling, dan benar-benar bisa diuji end-to-end oleh manusia.
+Selesai = terbukti, bukan diklaim. Anda tidak boleh menulis "selesai" di laporan progres untuk sesuatu yang belum Anda uji secara nyata (jalankan, klik, kirim request, lihat hasil di database).
+Tidak ada jalan pintas yang disembunyikan di balik UI yang rapi. Tampilan yang meyakinkan tapi tidak terhubung ke logika nyata adalah pelanggaran serius terhadap spesifikasi ini.
+Jika sebuah instruksi di dokumen ini ambigu, ambil keputusan teknis terbaik berdasarkan praktik industri, catat asumsi Anda secara eksplisit di laporan progres, dan lanjutkan bekerja — jangan berhenti menunggu konfirmasi kecuali benar-benar blocking (lihat 0.4).
+0.2 LARANGAN MUTLAK (Hard Rules)
+
+Pelanggaran terhadap salah satu aturan berikut membuat pekerjaan dianggap tidak selesai, walau kelihatan berjalan:
+
+Dilarang membuat tombol, form, atau kontrol UI apa pun yang tidak terhubung ke logika nyata (tanpa onClick/onSubmit yang memanggil API sungguhan, tanpa efek pada database). Setiap tombol "Simpan" WAJIB benar-benar menyimpan.
+Dilarang menandai sebuah fitur selesai jika salah satu dari lapisan berikut belum utuh: model database → endpoint API dengan validasi → state management frontend → UI dengan loading/error state → pengujian manual nyata.
+Dilarang meninggalkan teks placeholder seperti "sedang dikembangkan", "coming soon", "fitur akan hadir", atau komentar // TODO pada fitur yang tercantum sebagai wajib di dokumen ini. Jika sebuah fitur benar-benar tidak dapat diselesaikan dalam sesi ini, wajib dilaporkan eksplisit di laporan progres beserta alasan teknisnya — dilarang menyembunyikannya di balik tampilan yang terlihat selesai.
+Dilarang membuat model Prisma yang direferensikan oleh UI mana pun tanpa endpoint API CRUD yang lengkap dan benar-benar dipanggil oleh UI tersebut. Model tanpa API yang memanggilnya = fitur mati.
+Dilarang menduplikasi sumber kebenaran data. Semua nilai yang bisa berubah sewaktu-waktu (harga paket, limit channel per paket, nomor rekening, teks landing page/CMS) wajib berasal dari satu tabel database yang sama, dan dibaca dari sana oleh setiap bagian aplikasi yang membutuhkannya (halaman publik, halaman billing, panel admin). Tidak boleh ada nilai yang di-hardcode di satu komponen sementara ada "halaman pengaturan" terpisah yang berpura-pura mengatur nilai yang sama.
+Dilarang menerapkan proteksi keamanan (rate limiting, validasi) hanya di endpoint yang mudah, sambil melewatkan endpoint paling kritikal. Endpoint login (proses authorize di NextAuth) WAJIB mendapat rate limiting yang sama ketatnya dengan endpoint registrasi — ini sering terlewat karena tidak melalui route handler API biasa, jadi butuh perhatian eksplisit.
+Dilarang mempercayai nilai harga/tier/kuota yang dikirim dari client dalam body request. Server wajib menghitung ulang dan memvalidasi terhadap data resmi di tabel Plan, bukan mempercayai apa yang dikirim frontend.
+Dilarang menyisakan state frontend (useState, checkbox, toggle) yang tidak memiliki efek fungsional nyata terhadap perilaku aplikasi (misalnya checkbox yang terlihat interaktif tapi tidak pernah dibaca ulang di tempat lain).
+Dilarang mengklaim lokalisasi (i18n) selesai jika hanya sebagian kecil halaman (misalnya landing page) yang benar-benar memakai sistem terjemahan, sementara komponen lain (auth, dashboard, studio, admin) berisi string hardcoded satu bahasa. Jika next-intl dipasang, seluruh teks yang terlihat pengguna wajib melalui sistem itu.
+Dilarang membuat laporan serah terima akhir yang berisi klaim yang tidak bisa ditelusuri ke file dan baris kode nyata. Setiap baris di laporan akhir harus bisa dibuktikan.
+Dilarang melakukan deduksi kredit/saldo penggunaan dalam bentuk apapun. Model bisnis aplikasi ini adalah sewa bulanan murni — akses dibuka/ditutup berdasarkan status langganan aktif, BUKAN berdasarkan jumlah pemakaian. Lihat Bagian 5.7.
+Dilarang menaruh secret/API key (termasuk STITCH_API_KEY, DATABASE_URL, NEXTAUTH_SECRET, kredensial email) langsung di kode. Semua wajib lewat environment variable, divalidasi ada isinya saat aplikasi start, dan tidak pernah di-log atau dikomit ke git (.env wajib ada di .gitignore).
+0.3 Metodologi Kerja per Fase
+
+Untuk setiap fase di Bagian 8, dan idealnya untuk setiap fitur di dalamnya, ikuti siklus ini tanpa dipersingkat:
+
+Rancang — tentukan skema data, kontrak API (request/response), dan alur UI sebelum menulis kode.
+Implementasikan — backend dulu (model → migrasi → API dengan validasi input, misalnya pakai zod), baru frontend (state → pemanggilan API → UI dengan status loading/sukses/error).
+Uji nyata — jalankan aplikasi, lakukan alur pengujian manual end-to-end sungguhan (bukan asumsi), termasuk skenario gagal (input salah, sesi kadaluarsa, race condition submit ganda).
+Verifikasi statis — jalankan npx tsc --noEmit, npm run lint, dan npm run build. Semua harus lulus tanpa error baru sebelum lanjut.
+Audit-diri terhadap Bagian 0.2 — cek satu per satu apakah ada larangan yang terlanggar pada fitur yang baru dikerjakan.
+Catat di log progres — tulis ringkasan singkat: apa yang dibangun, file mana saja yang terlibat, bagaimana cara mengujinya, dan status akhirnya (Selesai / Selesai dengan catatan / Belum selesai + alasan).
+0.4 Kapan Boleh Bertanya ke Manusia
+
+Anda bekerja mandiri sejauh mungkin. Hanya berhenti dan bertanya ke pengguna jika:
+
+Dibutuhkan kredensial/akun pihak ketiga yang benar-benar tidak bisa Anda buat sendiri (misalnya API key layanan email transaksional, kredensial database produksi, nomor rekening bank asli).
+Ada keputusan bisnis yang berdampak finansial langsung ke pengguna (mengubah struktur harga final) dan belum diisi di Bagian 5.7. Selain dua hal itu, ambil keputusan teknis terbaik sendiri dan lanjutkan.
+1. RINGKASAN PRODUK
+Nama produk: Prompt Gen.
+Kategori: SaaS untuk Content Creator (TikTok, Instagram Reels, YouTube Shorts) yang membantu menyusun Master Prompt AI (untuk ChatGPT/Claude/Gemini) dan Image Prompt (untuk Midjourney/DALL-E/Stable Diffusion) secara terstruktur, spesifik per-channel, dan konsisten.
+Model bisnis: Langganan bulanan (subscription/sewa). Pengguna membayar per bulan untuk mengakses fitur sesuai paketnya. Tidak ada mekanisme kredit atau saldo yang berkurang karena pemakaian. Selama langganan aktif, pengguna bebas menggunakan fitur generate sesuai batas wajar anti-abuse teknis (rate limit generik untuk mencegah spam server, lihat Bagian 6 poin 1 — ini murni proteksi infrastruktur, bukan bagian dari model bisnis/kredit), bukan dibatasi kredit.
+Pembeda antar paket: jumlah Profile Channel yang bisa dikelola, dan akses ke fitur tertentu (misalnya Image Prompt Studio hanya untuk paket tertentu — dapat diatur lewat panel admin, lihat Bagian 5.8).
+Alur pembayaran saat ini: manual — transfer bank lalu unggah bukti, diverifikasi admin. Sistem wajib dirancang agar payment gateway otomatis (Midtrans/Xendit/Stripe, dipilih belakangan) bisa ditambahkan tanpa perombakan skema database atau alur inti — lihat Bagian 5.7.3.
+2. TECH STACK & VERSI
+
+Gunakan stack berikut (versi minimum; boleh naik ke patch/minor terbaru yang stabil saat pengerjaan, tapi jangan turun versi major):
+
+Layer	Pilihan
+Framework	Next.js 16+ (App Router, TypeScript strict mode)
+Bahasa	TypeScript (strict: true, tanpa any yang tidak perlu)
+Database	PostgreSQL
+ORM	Prisma ORM 6.x
+Autentikasi	NextAuth.js (Credentials Provider, strategi JWT) + bcrypt untuk hashing password
+Validasi input	zod di setiap route API tanpa kecuali
+Styling	Tailwind CSS v4 + design token kustom (lihat Bagian 5.9)
+Lokalisasi	next-intl (Bahasa Indonesia sebagai default, Bahasa Inggris sebagai alternatif) — wajib dipakai di semua komponen yang menampilkan teks ke pengguna, bukan hanya landing page
+PWA	next-pwa
+Email transaksional	Provider apa pun yang tersedia di lingkungan Anda (Resend/SMTP/Postmark) — wajib benar-benar mengirim email, lihat 0.2 poin 3
+Desain	Stitch Design System — API key tersedia di environment variable STITCH_API_KEY (isi sendiri di .env, jangan pernah menuliskan nilainya langsung di kode atau commit ke git)
+3. ARSITEKTUR & PRINSIP DESAIN SISTEM
+
+Terapkan prinsip-prinsip berikut sejak awal — ini bukan opsional, ini fondasi yang mencegah aplikasi berakhir dengan celah:
+
+3.1 Pisahkan Otorisasi (Role) dari Model Bisnis (Plan/Langganan)
+
+Jangan menggabungkan "siapa yang boleh mengakses panel admin" dengan "paket langganan apa yang dimiliki user" ke dalam satu enum yang sama. Gunakan dua konsep terpisah:
+
+Role — hanya untuk kontrol akses sistem: SUPERADMIN atau USER.
+Plan (tabel database) + subscriptionStatus + subscriptionExpiresAt pada User — untuk kontrol akses fitur/komersial.
+
+Ini membuat superadmin tidak perlu "berpura-pura" punya paket termahal, dan menghindari kebingungan antara hak akses sistem dan hak akses fitur berbayar.
+
+3.2 Satu Sumber Kebenaran untuk Data yang Bisa Berubah
+
+Harga paket, limit channel per paket, informasi rekening bank, dan konten CMS landing page wajib disimpan di tabel database (Plan, AppSettings), dikelola lewat panel admin yang benar-benar berfungsi, dan dibaca secara real-time oleh: halaman pricing publik, halaman billing pengguna, dan proses validasi di server. Tidak ada array/objek harga yang di-hardcode di komponen React mana pun.
+
+3.3 Abstraksi Pembayaran yang Siap untuk Otomatisasi
+
+Buat sebuah interface/abstraksi pembayaran di src/lib/payments/, misalnya:
+
+ts
+// src/lib/payments/types.ts
+export interface CreateInvoiceInput {
+  userId: string;
+  planId: string;
+}
+
+export interface PaymentProvider {
+  method: "MANUAL_TRANSFER" | "AUTOMATIC_GATEWAY";
+  createInvoice(input: CreateInvoiceInput): Promise<{ invoiceId: string }>;
+}
+
+Implementasikan ManualTransferProvider sekarang (sesuai Bagian 5.7). Jangan implementasikan gateway otomatis apa pun sekarang — cukup pastikan model data (Invoice.method, Invoice.externalRef, Invoice.status yang mencakup PAID/FAILED) dan struktur folder ini membuat penambahan MidtransProvider/XenditProvider/StripeProvider di masa depan hanya butuh menambah satu file baru + satu webhook route, tanpa mengubah skema inti atau alur ProfileChannel/Draft/dashboard sama sekali. Tulis komentar singkat di file ini yang menjelaskan titik ekstensi tersebut.
+
+3.4 Validasi Akses Berlangganan di Satu Tempat, Dipakai di Semua Tempat
+
+Buat satu fungsi utilitas, misalnya src/lib/subscription.ts:
+
+ts
+export async function getSubscriptionState(userId: string) {
+  // Ambil user, cek subscriptionStatus & subscriptionExpiresAt terhadap waktu sekarang.
+  // Jika sudah lewat expiresAt tapi status masih ACTIVE, update jadi EXPIRED
+  // dan jalankan enforceChannelLimits(userId) di sini (background, atomic).
+  // Return { isActive: boolean, plan, expiresAt }
+}
+
+export async function requireActiveSubscription(userId: string) {
+  // Panggil getSubscriptionState, lempar error terstandar jika tidak aktif.
+  // Superadmin selalu dianggap aktif tanpa syarat.
+}
+
+Fungsi ini wajib dipanggil di setiap endpoint yang memerlukan langganan aktif (generate prompt, buat channel baru, dst) — jangan duplikasi logika pengecekan tanggal kadaluarsa di banyak tempat dengan cara yang berbeda-beda.
+
+4. SKEMA DATABASE (Prisma) — Siap Pakai
+
+Gunakan skema berikut sebagai titik awal prisma/schema.prisma. Boleh disesuaikan namanya mengikuti konvensi Anda, tapi seluruh relasi dan field wajib tetap ada karena setiap field di bawah ini mendukung salah satu fitur di Bagian 5:
+
+prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPERADMIN
+  USER
+}
+
+enum PlanCode {
+  STANDARD
+  PRO
+  ULTRA
+}
+
+enum SubscriptionStatus {
+  INACTIVE
+  ACTIVE
+  EXPIRED
+}
+
+enum PaymentMethod {
+  MANUAL_TRANSFER
+  AUTOMATIC_GATEWAY
+}
+
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PAID
+  FAILED
+}
+
+enum DraftType {
+  VIDEO
+  IMAGE
+}
+
+model User {
+  id                    String              @id @default(cuid())
+  name                  String
+  username              String              @unique
+  email                 String              @unique
+  phoneNumber           String?
+  passwordHash          String
+  dateOfBirth           DateTime?
+  role                  Role                @default(USER)
+
+  currentPlanId         String?
+  currentPlan           Plan?               @relation(fields: [currentPlanId], references: [id])
+  subscriptionStatus    SubscriptionStatus  @default(INACTIVE)
+  subscriptionExpiresAt DateTime?
+
+  createdAt             DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+
+  channels              ProfileChannel[]
+  invoices              Invoice[]
+  drafts                Draft[]
+  resetTokens           PasswordResetToken[]
+}
+
+model Plan {
+  id           String   @id @default(cuid())
+  code         PlanCode @unique
+  name         String
+  priceMonthly Int      // dalam Rupiah utuh, tanpa desimal
+  currency     String   @default("IDR")
+  maxChannels  Int
+  features     Json?    // contoh: { "imagePromptStudio": true, "htmlBlogExport": true }
+  isActive     Boolean  @default(true)
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  users        User[]
+  invoices     Invoice[]
+}
+
+model ProfileChannel {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channelName     String
+  niche           String?
+  description     String?
+  cta1            String?
+  cta2            String?
+  visualAesthetic String?
+  audioBGM        Boolean  @default(true)
+  audioSFX        Boolean  @default(true)
+  audioVO         Boolean  @default(true)
+  socialLinks     Json?
+  usageCount      Int      @default(0) // statistik saja, TIDAK memengaruhi akses/kredit
+  lastUsedAt      DateTime @default(now())
+  isLocked        Boolean  @default(false)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  products        Product[]
+  drafts          Draft[]
+}
+
+model Product {
+  id          String         @id @default(cuid())
+  channelId   String
+  channel     ProfileChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  price       Int
+  link        String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+model Invoice {
+  id           String        @id @default(cuid())
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId       String
+  plan         Plan          @relation(fields: [planId], references: [id])
+  amount       Int
+  currency     String        @default("IDR")
+  method       PaymentMethod @default(MANUAL_TRANSFER)
+  status       PaymentStatus @default(PENDING)
+  proofUrl     String?       // khusus MANUAL_TRANSFER
+  externalRef  String?       // cadangan untuk gateway otomatis di masa depan
+  periodDays   Int           @default(30)
+  reviewedById String?
+  reviewedAt   DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Draft {
+  id                   String    @id @default(cuid())
+  userId               String
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channelId            String?
+  channel              ProfileChannel? @relation(fields: [channelId], references: [id], onDelete: SetNull)
+  type                 DraftType
+  title                String?
+  rawJson              String    @db.Text
+  parsedData           Json?
+  targetDurationSec    Int?
+  wordCount            Int?
+  estimatedDurationSec Int?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model AppSettings {
+  id              String   @id @default("singleton")
+  bankName        String?
+  bankAccountNo   String?
+  bankAccountName String?
+  heroTitle       String?
+  heroSubtitle    String?
+  updatedAt       DateTime @updatedAt
+}
+
+Catatan wajib:
+
+usageCount/lastUsedAt pada ProfileChannel dipertahankan hanya untuk statistik/dashboard ("channel paling aktif"), bukan untuk pengurangan kredit apa pun. Jangan tambahkan logika decrement saldo di mana pun.
+Draft wajib punya endpoint CRUD lengkap (lihat 5.6) — jangan biarkan model ini tanpa API seperti yang sering terjadi jika terburu-buru.
+AppSettings memakai pola singleton row (id selalu "singleton") supaya panel admin punya satu baris pasti untuk diupdate.
+5. SPESIFIKASI FITUR PER MODUL
+5.1 Autentikasi & Onboarding
+
+Registrasi — Multi-step (2 langkah), wajib keduanya tersimpan dalam satu transaksi database:
+
+Step 1 — Data Diri: Nama, Username, Email, No. HP, Tanggal Lahir, Password, Konfirmasi Password.
+Validasi ketersediaan username/email/no HP secara case-insensitive (mode: 'insensitive' di query Prisma) via endpoint pengecekan real-time, dengan pesan error yang jelas ("Email sudah digunakan").
+Password di-hash dengan bcrypt (cost factor ≥ 10) sebelum disimpan — tidak pernah disimpan plain text di log maupun database.
+Step 2 — Profile Channel Pertama: Nama Channel, Niche, Deskripsi, CTA 1 & 2, Estetika Visual, pengaturan Audio (BGM/SFX/VO on-off), Social Links (TikTok/IG/YouTube/Facebook/Website).
+Setelah submit step 2, buat User + ProfileChannel pertama dalam satu transaksi Prisma ($transaction) — jangan sampai ada user tanpa channel atau sebaliknya.
+Status awal: subscriptionStatus: INACTIVE, currentPlanId: null. User baru tidak otomatis dapat channel gratis tanpa batas — arahkan ke halaman billing untuk mulai berlangganan (lihat 5.7).
+Setelah registrasi sukses, tampilkan pesan jelas: akun dibuat, silakan pilih paket langganan untuk mulai menggunakan fitur generate.
+
+Login:
+
+Bisa pakai Username / Email / No. HP + Password, pencarian case-insensitive.
+Show/Hide Password pada input password.
+Ingat Saya (Remember Me) — WAJIB benar-benar berefek pada durasi sesi, bukan sekadar checkbox dekoratif:
+Kirim rememberMe sebagai bagian dari credentials ke signIn('credentials', { ..., rememberMe }).
+Di authorize(), teruskan nilai ini agar bisa dibaca callback jwt.
+Di callback jwt, set token.exp secara eksplisit: sekitar 30 hari jika rememberMe benar, sekitar 1 hari (atau session cookie yang hilang saat browser ditutup) jika tidak. Pastikan perilaku ini benar-benar teruji: login tanpa centang, tutup browser, buka lagi → sesi berakhir/lebih pendek.
+Atribut autoComplete sesuai standar W3C di semua input (username, current-password, new-password, email) agar tidak ada warning password manager di console.
+Form dibungkus pola loading lock (misalnya <fieldset disabled={loading}>) untuk mencegah submit ganda saat koneksi lambat.
+
+Lupa Password — WAJIB alur nyata end-to-end, bukan tampilan sukses palsu:
+
+POST /api/auth/forgot-password menerima identifier (email/username). Cari user case-insensitive. Apa pun hasilnya (ketemu atau tidak), selalu balas pesan sukses generik ("Jika akun terdaftar, tautan reset telah dikirim") — ini mencegah user enumeration, jangan bocorkan apakah akun ada.
+Jika user ditemukan: generate token acak (crypto.randomBytes(32).toString('hex')), simpan hash token (bukan token mentah) + expiresAt (15–30 menit) ke tabel PasswordResetToken, kirim email sungguhan berisi tautan /{locale}/auth/reset-password?token=....
+Endpoint ini wajib dibatasi rate limit yang sama ketatnya dengan endpoint registrasi.
+Halaman reset: form password baru + konfirmasi → POST /api/auth/reset-password dengan { token, newPassword }. Server hash ulang token yang diterima, cocokkan ke database, cek belum kedaluwarsa & belum dipakai, update passwordHash, tandai token usedAt, dan invalidasi token-token lain milik user tersebut.
+Token bersifat sekali pakai. Setelah reset berhasil, arahkan ke halaman login dengan notifikasi sukses.
+5.2 Middleware & Arsitektur Proteksi Akses (RBAC)
+Arsitektur proteksi akses dan pengalihan rute dibagi menjadi dua lapisan utama untuk mencegah infinite redirect loop dan kegagalan status i18n:
+
+1. Layer Middleware (`middleware.ts`):
+   - Difokuskan khusus untuk menangani routing internasionalisasi (`next-intl`) berbasis cookie `NEXT_LOCALE` atau header `Accept-Language`.
+   - Menjamin seluruh URL memiliki prefix locale yang valid (`/id/` atau `/en/`) tanpa memicu pengalihan berulang (infinite redirect) saat sesi NextAuth berakhir atau token kedaluwarsa.
+
+2. Layer Server Component Layout Wrappers (`requireRole`, `requireActiveSubscription`):
+   - Proteksi Peran Pengguna (RBAC - `SUPERADMIN` vs `USER`) diselenggarakan secara aman dan dinamis pada Server Component Layout (`src/app/[locale]/admin/layout.tsx` dan `src/app/[locale]/dashboard/layout.tsx`).
+   - Tanpa token / Sesi habis + akses `/dashboard*` atau `/admin*` -> Redirect ke `/auth` dengan parameter `callbackUrl`.
+   - Token ada, role `USER`, akses `/admin*` -> Redirect otomatis ke `/dashboard`.
+   - Token ada, role `SUPERADMIN`, akses `/dashboard*` -> Redirect otomatis ke `/admin`.
+   - Token ada, akses `/auth` -> Redirect otomatis ke rute utama sesuai peran (`/admin` untuk SUPERADMIN, `/dashboard` untuk USER).
+   - Wajib divalidasi bahwa `NEXTAUTH_SECRET` tersedia di environment variable saat build/start.
+5.3 Manajemen Profile Channel
+CRUD penuh untuk ProfileChannel (tambah/edit/hapus/lihat), termasuk manajemen Product (katalog produk) di dalam tiap channel.
+Jumlah channel yang boleh dibuat dibatasi oleh plan.maxChannels milik user (dibaca dari database, bukan hardcode).
+Penguncian channel (isLocked) berjalan otomatis lewat fungsi enforceChannelLimits(userId) yang dipanggil setiap kali: langganan disetujui/berubah paket, langganan kedaluwarsa terdeteksi (lewat getSubscriptionState), atau admin mengubah paket user secara manual.
+Urutkan channel berdasarkan lastUsedAt menurun; jumlah maxChannels teratas tetap aktif, sisanya dikunci (isLocked: true).
+Channel terkunci tetap terlihat (read-only) di UI dengan indikator jelas, tidak dihapus, supaya user bisa membuka kunci begitu upgrade/perpanjang.
+5.4 AI Prompt Studio
+
+Dua mode dalam satu halaman Studio, keduanya wajib berfungsi penuh (tidak ada yang menjadi "coming soon"):
+
+A. Video Prompt Generator
+
+Form input: Profile Channel, POV/Persona, judul manual atau topik utama (dengan daftar judul yang sudah pernah dipakai — diambil otomatis dari riwayat Draft tersimpan milik channel tersebut, bukan input manual paste), Topik/Ide, Target Platform, Aspect Ratio, Durasi (detik), Laju Bicara (kata/detik), bagian naskah yang di-include (Hook/CTA/Caption/Thumbnail), Komposisi naskah (Edukasi/Hiburan/Marketing — validasi jumlah wajib 100%), Hook Style, Ending Style, opsi sertakan HTML blog.
+Fungsi generator (generateMasterPrompt) merakit prompt 2-Tahap (2-Stage AI Interaction Flow) selaras dengan aplikasi Push:
+  - Tahap 1: Jika judul spesifik belum ditentukan user, AI menawarkan 10 rekomendasi judul berpotensi viral beserta persentase potensi viralitasnya di chat box AI eksternal, lalu berhenti sementara meminta konfirmasi nomor pilihan (1-10) dari user.
+  - Tahap 2: Setelah user membalas nomor pilihan di chat box AI, AI mengeksekusi dan mengeluarkan output JSON valid murni (tanpa markdown fence) dengan skema: opsi_judul (10 judul rekomendasi Tahap 1), judul_konten (judul terpilih), caption_medsos, ide_thumbnail, html_blog, segments[] (tipe, visual, audio, narasi, durasi_estimasi).
+  - Direktori Judul Terpakai: Hanya judul yang terpilih (draft.title) yang dimasukkan ke dalam direktori judul terpakai untuk excludeTitles pada prompt berikutnya; 9 opsi judul lainnya yang tidak dipilih tetap bersih dan tidak dikunci.
+Sanitasi prompt: pastikan tidak ada instruksi developer yang bocor ke output (tidak ada judul yang di-hardcode secara kaku), sehingga hasilnya bisa langsung dipakai user ke ChatGPT/Claude/Gemini tanpa perlu diedit ulang.
+
+B. Image Prompt Generator — WAJIB dibangun penuh, bukan placeholder
+
+Form input terpisah: Profile Channel, Estetika Visual, Subjek/deskripsi utama gambar, Camera Type (DSLR/Mirrorless/Smartphone/Drone/Film), Shot Type (close-up/wide/macro/aerial), Lighting (natural/studio/golden hour/neon/dramatic), Mood, Color Grading, Visual Style (photorealistic/3D render/ilustrasi/claymotion/anime), Aspect Ratio, Negative Prompt (opsional), jumlah variasi prompt yang diinginkan.
+Generator merakit prompt siap pakai untuk Midjourney/DALL-E/Stable Diffusion: gabungan tag deskriptif ringkas (dipisah koma) dan versi paragraf naratif, plus saran parameter (--ar, gaya) dan blok negative prompt bila diisi.
+Hasil generate tersimpan sebagai Draft dengan type: IMAGE, sama seperti video.
+
+Kedua mode berbagi komponen modal hasil (tampilkan teks, tombol salin ke clipboard, tombol simpan sebagai Draft).
+
+5.5 Estimasi Durasi — Fitur Nyata, Dihitung dari Hasil AI
+
+Ini bukan sekadar target input, tapi perhitungan pasca-generate yang sesungguhnya:
+
+Saat user menempel/menyimpan hasil JSON dari AI eksternal ke Drafts, sistem mem-parsing seluruh field narasi di setiap scene, menjumlahkan total kata (wordCount), lalu menghitung estimatedDurationSec = wordCount / speakingRate (memakai speakingRate dari konfigurasi awal yang tersimpan bersama draft).
+Tampilkan perbandingan jelas di UI: target durasi (dari form) vs estimasi durasi hasil AI (dihitung sistem), dengan indikator peringatan bila selisihnya signifikan (misalnya > 20%), agar user tahu naskahnya perlu dipangkas/ditambah.
+5.6 Drafts / Riwayat — CRUD Penuh
+GET /api/drafts (list milik user, dengan filter channel & type), POST /api/drafts (simpan hasil parse, termasuk wordCount/estimatedDurationSec dari 5.5), GET /api/drafts/:id, DELETE /api/drafts/:id. Tambahkan PATCH bila perlu edit judul/isi.
+UI Drafts: tetap pertahankan AI JSON Parser (tempel JSON hasil dari AI eksternal, sistem mem-parsing ke editor scene per scene) tapi hasilnya benar-benar tersimpan ke database lewat endpoint di atas — bukan hanya di state lokal yang hilang saat refresh.
+Daftar judul yang sudah pernah dipakai (untuk fitur "exclude judul" di Studio, 5.4) diambil otomatis dari Draft.title/parsedData.judul_konten milik channel terkait.
+5.7 Langganan & Pembayaran
+
+5.7.1 Model Bisnis
+
+Tidak ada saldo/kredit apa pun. Akses ke Studio dan pembuatan channel baru ditentukan murni oleh getSubscriptionState(userId).isActive (Bagian 3.4).
+Saat langganan kedaluwarsa: status otomatis menjadi EXPIRED, channel melebihi batas dikunci (5.3), user diarahkan ke halaman billing dengan pesan jelas — tanpa pengecekan saldo apa pun.
+
+5.7.2 Paket Langganan (dikelola dari tabel Plan, bukan hardcode) Isi awal (seed) sebagai titik mulai — sesuaikan lewat panel admin (5.8) setelah aplikasi jalan:
+
+Kode	Nama	Harga/bulan	Maks. Channel
+DEMO	Trial (3 Hari)	Rp 0		1
+STANDARD	Standard	Rp 10.000 	1
+PRO	Pro	Rp 25.000 3
+ULTRA	Ultra	Rp 50.000	10
+
+5.7.3 Alur Pembayaran Manual (aktif sekarang)
+
+User memilih paket di halaman Billing → sistem menampilkan instruksi transfer memakai data dari AppSettings (nama bank, no rekening, atas nama — bukan hardcode di komponen).
+User unggah bukti transfer (JPG/PNG, maks 2MB) → dikonversi base64 di client, divalidasi ulang di server (format MIME regex, ukuran ulang dihitung dari panjang base64, bukan cuma dipercaya dari client) → simpan sebagai Invoice dengan status: PENDING, method: MANUAL_TRANSFER, amount & planId diambil ulang dari tabel Plan di server, bukan dari body request (cegah user memanipulasi harga lewat devtools).
+Endpoint ini wajib rate-limited per user.
+Admin melihat daftar invoice pending (5.8), bisa lihat bukti transfer lewat endpoint khusus yang mendekode base64 jadi gambar, lalu Approve atau Reject.
+Saat Approve (dalam satu transaksi Prisma, idempoten — tolak jika status invoice bukan lagi PENDING untuk mencegah approve ganda/race condition):
+Invoice.status → APPROVED.
+User.currentPlanId → invoice.planId, subscriptionStatus → ACTIVE.
+subscriptionExpiresAt = jika sebelumnya masih aktif, tambahkan periodDays (default 30) ke tanggal expired lama (akumulatif); jika sudah expired/belum pernah, mulai dari sekarang + periodDays.
+Panggil enforceChannelLimits(userId) untuk membuka kunci channel sesuai paket baru.
+Saat Reject: Invoice.status → REJECTED, tidak ada perubahan apapun ke user.
+
+5.7.4 Kesiapan Otomatisasi (untuk nanti, jangan implementasikan sekarang)
+
+Ikuti abstraksi di Bagian 3.3. Saat gateway otomatis ditambahkan nanti, alurnya menjadi: gateway membuat Invoice dengan method: AUTOMATIC_GATEWAY, externalRef diisi ID transaksi gateway, dan webhook gateway langsung mengubah status → PAID lalu menjalankan logika di langkah 5 di atas (tanpa perlu tombol approve admin). Pastikan sekarang logika "aktivasi langganan setelah pembayaran sukses" ditulis sebagai satu fungsi yang bisa dipanggil ulang dari webhook nanti (activateSubscription(invoiceId)), bukan ditulis inline hanya di dalam route admin approve.
+5.8 Panel Admin (/admin, khusus SUPERADMIN)
+Dashboard ringkas: statistik nyata dari query database (total user aktif, total pendapatan bulan berjalan dari invoice approved/paid, jumlah invoice pending, dst) — bukan angka dekoratif.
+Manajemen User: cari/filter user, ubah role, perpanjang masa aktif langganan manual (tambah hari), ubah paket langsung, reset password paksa. Tidak ada aksi terkait kredit/saldo (dihapus total dari model bisnis ini).
+Verifikasi Pembayaran: daftar invoice PENDING dengan pratinjau bukti transfer, tombol Approve/Reject sesuai 5.7.3.
+Pengaturan (Settings) — WAJIB benar-benar tersambung ke database, bukan form statis:
+Form harga & maksimal channel per paket → baca dari & tulis ke tabel Plan lewat GET/PUT /api/admin/plans.
+Form rekening bank → baca/tulis AppSettings lewat GET/PUT /api/admin/settings.
+Form konten landing page (hero title/subtitle, dll) → baca/tulis AppSettings yang sama, dan landing page publik wajib membaca nilai ini, bukan teks hardcode terpisah.
+Setiap tombol "Simpan" di halaman ini wajib memanggil endpoint sungguhan dan menampilkan konfirmasi sukses/gagal nyata.
+5.9 Desain Sistem (Stitch + Glassmorphism/Neumorphism)
+Gunakan STITCH_API_KEY dari environment variable untuk proses generate/ekspor desain di Stitch (bila alur kerja Anda menggunakannya), sesuai dokumentasi Stitch — jangan hardcode key ini di kode maupun commit ke git.
+Terapkan token desain lewat CSS custom properties di :root (warna latar, teks, aksen, shadow neumorphism, warna & blur glassmorphism), mendukung mode terang/gelap.
+Kelas utilitas: efek neumorphism (neu-flat untuk elemen timbul, neu-pressed untuk elemen tertekan/input) dan glassmorphism (glass-panel untuk card/modal/sidebar dengan backdrop-filter: blur).
+Navigasi (topbar + sidebar) persisten tanpa full page reload di seluruh halaman dashboard/admin.
+Pastikan kontras warna teks vs latar tetap memenuhi standar keterbacaan (terutama di mode gelap) — uji manual, jangan asumsi.
+5.10 Lokalisasi (EN/ID) — Diterapkan Menyeluruh
+messages/id.json dan messages/en.json wajib memuat seluruh string yang ditampilkan ke pengguna: landing page, form auth (termasuk label "Ingat Saya", "Lupa password?"), dashboard, studio, billing, admin, pesan error/sukses.
+Setiap komponen client yang menampilkan teks memakai useTranslations() dari next-intl; komponen server memakai getTranslations(). Tidak boleh ada string Bahasa Indonesia yang ditulis langsung di JSX tanpa melalui sistem terjemahan (kecuali nama merek/data dinamis dari database).
+Uji: ganti locale ke en, telusuri seluruh alur (bukan cuma landing page) — pastikan tidak ada teks yang "lupa" diterjemahkan.
+5.11 PWA
+Konfigurasi next-pwa aktif, manifest.json terisi lengkap (nama, ikon berbagai ukuran, warna tema, display: standalone).
+Uji instalasi PWA di browser mobile (Add to Home Screen) benar-benar berfungsi dan ikon/nama muncul sesuai [NAMA_APLIKASI_ANDA].
+6. STANDAR KEAMANAN (Checklist Wajib)
+
+Terapkan semua poin berikut secara merata di seluruh endpoint yang relevan — bukan hanya sebagian:
+
+Rate limiting pada semua endpoint sensitif: registrasi, cek ketersediaan akun, login (authorize() NextAuth), lupa password, reset password, submit pembayaran, generate prompt, pembuatan channel/produk. Kunci pembatas memakai kombinasi identifier + IP.
+Jika hanya bisa memakai rate limiter in-memory (per-instance) untuk MVP, tulis komentar eksplisit di kode yang menjelaskan keterbatasannya (tidak konsisten di lingkungan multi-instance/serverless) dan tetap pasang di titik paling kritikal seperti login. Bila tersedia Redis/Upstash atau tabel database, gunakan penyimpanan persisten agar konsisten lintas instance.
+Proteksi rute berlapis di middleware (5.2) DAN pengecekan ulang session.role/session.user.id di setiap route API — jangan hanya mengandalkan middleware.
+Anti double-submit / race condition: kunci form dengan fieldset disabled={loading} di client, dan gunakan transaksi/updateMany dengan kondisi status di server (seperti pola approve invoice di 5.7.3) agar aksi ganda tidak bisa lolos meski client gagal mengunci.
+Validasi kadaluarsa langganan di server, dieksekusi ulang setiap kali (bukan hanya sekali saat login) melalui requireActiveSubscription (3.4), dipanggil di setiap endpoint yang butuh langganan aktif, bukan hanya satu endpoint saja.
+Uniqueness case-insensitive untuk username/email di query pengecekan maupun constraint aplikasi.
+Kepatuhan atribut DOM/autocomplete standar W3C pada semua input form.
+Validasi input ketat dengan zod (atau setara) di setiap route API — tolak payload yang tidak sesuai skema sebelum menyentuh database.
+Upload file (bukti transfer): validasi MIME type via regex pada data base64, batasi ukuran di server (hitung ulang dari panjang string base64, jangan percaya Content-Length dari client saja), jangan simpan file mentah yang bisa dieksekusi.
+Tidak percaya data harga/tier dari client (lihat 5.7.3 langkah 2).
+Environment variables tervalidasi saat start: DATABASE_URL, NEXTAUTH_SECRET, kredensial email — aplikasi gagal cepat dengan pesan jelas jika salah satu kosong, bukan error samar saat runtime.
+Tidak ada secret di kode atau log, .env* masuk .gitignore, siapkan .env.example tanpa nilai asli.
+Seed data produksi: buat prisma/seed.js/seed.ts yang menginjeksi minimal: 1 akun SUPERADMIN, baris Plan untuk STANDARD/PRO/ULTRA, 1 baris AppSettings awal — agar server produksi tidak "kosong" saat pertama kali deploy (database baru tanpa data akan membuat login pertama gagal jika tidak diantisipasi).
+7. STANDAR KUALITAS KODE
+TypeScript strict, hindari any — jika terpaksa, beri komentar alasan.
+Tidak ada console.log debug yang tertinggal di kode produksi (boleh console.error untuk logging error yang disengaja).
+Semua route API mengembalikan status HTTP yang sesuai (400/401/403/404/409/413/429/500) dengan pesan error yang jelas dan konsisten formatnya ({ error: string }).
+Komponen React: pisahkan Server Component (fetch data awal) dari Client Component (interaktivitas), sesuai konvensi App Router.
+Setiap fase (Bagian 8) wajib lulus: npx tsc --noEmit, npm run lint, npm run build sebelum dianggap selesai.
+Tulis README.md yang benar-benar menjelaskan proyek ini (bukan boilerplate create-next-app bawaan) — cara install, variabel environment yang dibutuhkan, cara migrasi & seed, cara menjalankan.
+8. TAHAPAN PENGEMBANGAN (Kerjakan Berurutan, Verifikasi Sebelum Lanjut)
+
+Setiap fase ditutup dengan gerbang verifikasi di Bagian 9 sebelum lanjut ke fase berikutnya. Jangan melompat fase.
+
+FASE 0 — Fondasi Proyek
+ Inisialisasi proyek Next.js 16 (App Router, TypeScript strict).
+ Pasang & konfigurasi: Tailwind v4, ESLint, next-intl (locale id default, en alternatif), next-pwa, Prisma, NextAuth, bcrypt, zod.
+ Buat struktur folder sesuai Bagian 11.3.
+ Siapkan validasi environment variable saat start (lihat 6 poin 10).
+ .env.example lengkap (lihat Bagian 11.1), .gitignore benar.
+ Tulis README.md awal (akan dilengkapi di akhir).
+ Verifikasi: npm run dev menyala tanpa error, halaman kosong tampil.
+FASE 1 — Database
+ Tulis prisma/schema.prisma lengkap sesuai Bagian 4.
+ Jalankan migrasi (prisma migrate dev atau db push sesuai environment Anda).
+ Tulis prisma/seed.js/.ts sesuai Bagian 6 poin 12 dan Bagian 11.2.
+ Verifikasi: seed berjalan tanpa error, data muncul saat dicek lewat Prisma Studio.
+FASE 2 — Autentikasi & Onboarding
+ Implementasi NextAuth Credentials Provider + authOptions (JWT, callback jwt/session menyertakan role & id).
+ Endpoint cek ketersediaan akun (case-insensitive) + rate limit.
+ Endpoint registrasi 2-step (transaksi atomik User + ProfileChannel pertama) + rate limit.
+ Halaman Auth: tab Login/Register, Show/Hide Password, Remember Me fungsional (5.1), autoComplete lengkap, fieldset disabled={loading}.
+ Alur Lupa Password end-to-end nyata: request token → email terkirim sungguhan → halaman reset → update password → login dengan password baru berhasil.
+ Rate limit dipasang di authorize() login, bukan hanya register.
+ Verifikasi manual: daftar akun baru → logout → login dengan email/username/no HP (variasi huruf besar-kecil) → berhasil. Lupa password → cek email masuk sungguhan → reset → login pakai password baru.
+FASE 3 — Middleware & RBAC
+ Middleware proteksi rute + redirect locale-aware sesuai Bagian 5.2.
+ Verifikasi eksplisit: akses /admin sebagai user biasa via URL langsung → redirect. Akses /dashboard sebagai superadmin via URL langsung → redirect. Akses tanpa login → redirect ke /auth dengan callbackUrl benar.
+FASE 4 — Model Bisnis Langganan
+ Implementasi getSubscriptionState & requireActiveSubscription (Bagian 3.4).
+ Implementasi enforceChannelLimits (Bagian 5.3), dipanggil dari semua titik yang relevan.
+ Endpoint admin Plan (GET/PUT /api/admin/plans) & AppSettings (GET/PUT /api/admin/settings), tersambung penuh ke halaman Settings (5.8) — tidak ada nilai default statis yang tidak tersimpan.
+ Halaman Billing publik membaca paket dari Plan (bukan hardcode), menampilkan info rekening dari AppSettings.
+ Endpoint submit bukti transfer (POST /api/billing) dengan validasi server penuh (5.7.3 langkah 2) + rate limit.
+ Endpoint admin approve/reject invoice (transaksi atomik, idempoten) + endpoint lihat bukti transfer.
+ Fungsi activateSubscription(invoiceId) terpisah dan reusable (siap dipanggil webhook di masa depan, 5.7.4).
+ Verifikasi manual: user baru submit bukti transfer → admin approve → subscriptionExpiresAt bertambah benar, channel yang sebelumnya terkunci (jika ada) terbuka sesuai limit paket. Ajukan lagi sebelum masa aktif habis → tanggal aktif bertambah kumulatif (bukan menimpa). Coba approve invoice yang sama dua kali secara bersamaan → hanya satu yang berhasil.
+FASE 5 — Manajemen Profile Channel & Produk
+ CRUD ProfileChannel + Product lengkap, dibatasi plan.maxChannels.
+ UI channel terkunci (read-only + indikator jelas) untuk channel melebihi limit.
+ Verifikasi: user dengan paket Standard mencoba membuat channel ke-2 → ditolak dengan pesan jelas mengarahkan ke upgrade paket.
+FASE 6 — AI Prompt Studio: Video
+ Form lengkap sesuai 5.4.A, validasi komposisi 100%.
+ generateMasterPrompt menghasilkan prompt terstruktur sesuai skema JSON yang diminta, tanpa kebocoran instruksi developer.
+ Daftar judul terpakai otomatis diambil dari riwayat Draft channel terkait.
+ Verifikasi: generate prompt, salin ke clipboard berfungsi, tempel ke AI eksternal (ChatGPT/Claude) sungguhan menghasilkan JSON valid sesuai skema yang diminta.
+FASE 7 — AI Prompt Studio: Image (fitur yang paling sering terlewat — pastikan benar-benar tuntas)
+ Form lengkap sesuai 5.4.B (semua field: kamera, lighting, mood, color grading, visual style, dst).
+ Fungsi generator prompt gambar terpisah, teruji menghasilkan output yang masuk akal untuk Midjourney/DALL-E.
+ Tersimpan sebagai Draft dengan type: IMAGE.
+ Verifikasi: generate prompt gambar, salin, coba di Midjourney/DALL-E sungguhan (atau tinjau manual bahwa formatnya sesuai konvensi tool tersebut) → hasil relevan dengan input.
+FASE 8 — Estimasi Durasi & Drafts
+ Perhitungan wordCount/estimatedDurationSec nyata dari narasi scene saat draft disimpan (5.5).
+ CRUD Drafts penuh (5.6): list, simpan, lihat detail, hapus.
+ Verifikasi: simpan draft dengan naskah panjang → refresh halaman → draft masih ada (bukan hilang karena hanya di state lokal) → angka estimasi durasi sesuai perhitungan manual Anda sebagai kontrol.
+FASE 9 — Panel Admin
+ Dashboard admin dengan statistik dari query nyata.
+ Manajemen User (ubah role, tambah hari langganan, ubah paket, reset password) — tanpa aksi kredit.
+ Verifikasi Pembayaran (sudah dari Fase 4, pastikan UI lengkap dengan pratinjau bukti).
+ Settings CMS/harga/rekening fungsional penuh (5.8) — ini adalah salah satu titik yang paling sering dibuat sebagai tampilan statis; pastikan setiap tombol Simpan benar-benar memanggil API dan hasilnya langsung terlihat di halaman publik terkait.
+ Verifikasi: ubah harga paket PRO dari panel admin → buka halaman Billing publik di tab lain → harga baru langsung muncul tanpa redeploy.
+FASE 10 — Lokalisasi & PWA
+ Audit seluruh halaman: pastikan tidak ada string hardcoded di luar sistem next-intl (5.10).
+ Ganti locale ke en, telusuri seluruh alur dari registrasi sampai admin.
+ Konfigurasi PWA teruji (5.11).
+FASE 11 — Audit Keamanan & Pengujian Akhir
+ Telusuri ulang seluruh checklist Bagian 6 satu per satu, tandai bukti implementasinya (file + baris).
+ Uji skenario abuse: submit form berkali-kali cepat (double-submit), login gagal berulang (harus terblokir sementara), akses API langsung tanpa lewat UI dengan payload dimanipulasi (harga diubah, role dipalsukan) — semua harus ditolak server.
+ npx tsc --noEmit, npm run lint, npm run build lulus bersih di seluruh proyek.
+FASE 12 — Deployment & Serah Terima
+ Ikuti Bagian 10.
+ Tulis laporan akhir sesuai format Bagian 9.3 — hanya klaim yang bisa dibuktikan.
+9. GERBANG VERIFIKASI (Definition of Done)
+9.1 Definisi "Selesai" untuk Satu Fitur
+
+Sebuah fitur baru boleh disebut Selesai hanya jika semua berikut benar:
+
+Model database (bila ada) sudah dimigrasikan dan punya endpoint API yang memanggilnya.
+Endpoint API memvalidasi input (zod), mengecek otorisasi/kepemilikan data, dan menangani kasus gagal dengan status HTTP yang sesuai.
+UI benar-benar memanggil endpoint tersebut (bukan simulasi), menampilkan status loading, sukses, dan error yang berbeda secara nyata.
+Anda telah menjalankan alur ini secara manual sendiri dan bisa menjelaskan langkah pengujiannya secara konkret (bukan "seharusnya berfungsi").
+Tidak melanggar satu pun larangan di Bagian 0.2.
+npx tsc --noEmit dan npm run lint tidak menambah error baru akibat perubahan ini.
+
+Jika salah satu poin di atas belum terpenuhi, status fitur adalah Belum Selesai — sebutkan secara eksplisit di log progres beserta apa yang masih kurang.
+
+9.2 Log Progres per Fase
+
+Setelah setiap fase di Bagian 8 selesai, tulis ringkasan singkat berformat:
+
+## Fase [nomor] — [nama fase]
+Status: Selesai / Selesai dengan catatan / Belum selesai
+
+Yang dibangun:
+- [daftar singkat, sebutkan file utama yang terlibat]
+
+Cara diuji:
+- [langkah pengujian manual nyata yang dilakukan]
+
+Catatan/asumsi:
+- [jika ada]
+
+Item Bagian 0.2 yang relevan diperiksa: [ya, tidak ada pelanggaran] / [ada, dijelaskan]
+9.3 Laporan Akhir Serah Terima
+
+Di akhir Fase 12, tulis laporan akhir yang formatnya bebas namun setiap klaim fitur harus menyertakan referensi konkret (nama file, nama fungsi/komponen, atau endpoint) yang bisa ditelusuri langsung ke kode — bukan deskripsi umum yang tidak bisa diverifikasi. Jika ada fitur di dokumen ini yang tidak sempat diselesaikan, cantumkan secara eksplisit di bagian tersendiri berjudul "Belum Selesai / Perlu Tindak Lanjut" beserta alasannya — jangan dihilangkan dari laporan.
+
+10. DEPLOYMENT & SERAH TERIMA
+Siapkan server produksi (Coolify/Vercel/VPS) + database PostgreSQL terkelola (Prisma Postgres/Supabase/Neon/RDS, sesuai pilihan Anda).
+Isi seluruh environment variable produksi sesuai Bagian 11.1 dengan nilai asli — jangan pernah deploy dengan DATABASE_URL placeholder.
+Jalankan:
+bash
+   npm install
+   npx prisma generate
+   npx prisma migrate deploy   # atau db push jika belum pakai migration files
+   node prisma/seed.js
+Verifikasi setelah deploy: login dengan akun superadmin hasil seed berhasil, halaman publik memuat harga dari database (bukan cache lama), submit pembayaran manual dan approve berjalan end-to-end di lingkungan produksi.
+Sertakan domain akses final di laporan serah terima.
+11. LAMPIRAN
+11.1 Environment Variables (.env.example)
+env
+DATABASE_URL="postgresql://user:password@host:5432/dbname"
+NEXTAUTH_SECRET="isi-dengan-string-acak-panjang-dan-rahasia"
+NEXTAUTH_URL="http://localhost:3000"
+STITCH_API_KEY="isi-dengan-key-stitch-anda-jangan-commit"
+
+# Email transaksional (pilih salah satu provider dan sesuaikan)
+EMAIL_PROVIDER_API_KEY=""
+EMAIL_FROM="no-reply@[DOMAIN_PRODUKSI_ANDA]"
+11.2 Contoh Isi Seed (prisma/seed.js)
+
+Minimal harus membuat:
+
+1 akun SUPERADMIN (username/email & password sementara yang wajib diganti setelah deploy pertama — sebutkan ini jelas di README, jangan biarkan kredensial default dipakai selamanya di produksi).
+3 baris Plan: STANDARD, PRO, ULTRA sesuai Bagian 5.7.2.
+1 baris AppSettings (id: "singleton") dengan data rekening & hero text awal (boleh placeholder, akan diubah lewat panel admin).
+11.3 Struktur Folder yang Disarankan
+src/
+  app/
+    [locale]/
+      layout.tsx
+      page.tsx                    # landing page
+      auth/
+      dashboard/
+        billing/
+        channels/
+        drafts/
+        studio/
+      admin/
+        payments/
+        settings/
+        users/
+    api/
+      auth/
+        [...nextauth]/
+        check/
+        register/
+        forgot-password/
+        reset-password/
+      billing/
+      channels/
+      drafts/
+      admin/
+        plans/
+        settings/
+        payments/
+        users/
+  components/
+  lib/
+    subscription.ts
+    channelLockLogic.ts
+    promptGenerator.ts             # video
+    imagePromptGenerator.ts        # image
+    rateLimit.ts
+    authOptions.ts
+    payments/
+      types.ts
+      manualTransferProvider.ts
+  types/
+messages/
+  id.json
+  en.json
+prisma/
+  schema.prisma
+  seed.js
+
+Akhir dari spesifikasi. Mulai dari Fase 0 di Bagian 8, dan patuhi Bagian 0 sepanjang seluruh proses pengerjaan.
+
+Sebagai tambahan untuk stitch google apikey adalah [REDACTED_API_KEY] Bisa gunakan Contoh stitch ini sebagai referensi desain
+
+Boleh menambahkan selama untuk kematangan bisnis selama relevan, jika tidak maka tidak boleh menambahkan fitur baru
+
+12. FITUR PASCA-BLUEPRINT (DITAMBAHKAN SELAMA PENGEMBANGAN)
+
+Seluruh fitur di bawah ini ditambahkan untuk kematangan bisnis, keamanan, dan efisiensi operasional SaaS Prompt Gen:
+
+12.1 Sistem Notifikasi Lonceng (`NotificationBell` & Model `Notification`)
+- Model `Notification` pada skema Prisma terhubung ke `User` (onDelete: Cascade) dengan enum `NotificationType` 14 nilai aktual: `PAYMENT_APPROVED` (admin menyetujui pembayaran), `PAYMENT_REJECTED` (admin menolak pembayaran), `REGISTRATION_APPROVED` (registrasi disetujui), `REGISTRATION_REJECTED` (registrasi ditolak), `SUBSCRIPTION_EXPIRING_SOON` (langganan akan habis dlm 3 hari), `SUBSCRIPTION_EXPIRED` (langganan habis), `CHANNEL_LOCKED` (channel dikunci), `CHANNEL_UNLOCKED` (channel dibuka kunci), `NEW_PENDING_PAYMENT` (bukti bayar diunggah), `NEW_PENDING_REGISTRATION` (registrasi baru masuk), `SYSTEM_ANNOUNCEMENT` (pengumuman admin), `SUPPORT_TICKET_NEW` (tiket support baru dibuat), `SUPPORT_TICKET_REPLIED` (balasan tiket support), `SUPPORT_TICKET_CLOSED` (tiket support ditutup).
+- Utilitas `src/lib/notifications.ts` (`notifyUser`, `notifyAllSuperadmins`) dan REST API endpoints (`GET /api/notifications`, `PATCH /api/notifications/[id]`, `POST /api/notifications/mark-all-read`, `GET /api/notifications/unread-count`).
+- UI Topbar `NotificationBell` dengan badge unread count real-time & popover preview cepat pada `DashboardLayout` dan `AdminLayout`.
+
+12.2 Moderasi Konten & `PromptSettings` Singleton
+- Model singleton `PromptSettings` (`id: "singleton"`) untuk menyimpan instruksi sistem AI global (`videoSystemInstruction`, `imageSystemInstruction`), kecepatan bicara default (`defaultSpeechRate`), negative prompt default (`defaultNegativePrompt`), dan daftar kata terlarang (`bannedWords`).
+- Moderasi konten otomatis pada API `/api/generate` yang memblokir eksekusi AI jika prompt memuat kata terlarang, serta menyuntikkan instruksi khusus superadmin secara transparan ke LLM.
+
+12.3 Registration Approval Berjenjang & Auto-Demo Plan
+- Status registrasi pengguna diatur lewat enum `RegistrationStatus` (`PENDING_APPROVAL`, `APPROVED`, `REJECTED`).
+- Pengguna yang baru mendaftar wajib disetujui oleh Superadmin di `/admin/registrations` sebelum dapat melintas auth.
+- Saat disetujui (`APPROVED`), sistem secara otomatis mengasosiasikan paket **DEMO (3 Hari)** secara aktif agar user langsung dapat menggunakan platform tanpa hambatan onboarding.
+
+12.4 In-App Feature Guides & Modul Panduan
+- Halaman panduan penggunaan interaktif di `/dashboard/panduan` (untuk User) dan `/admin/panduan` (untuk Admin) dengan desain kartu glassmorphic responsif yang terhubung langsung di menu navigasi sidebar.
+
+12.5 Preset Models & Mode CS
+- Model Preset bawaan (`PlatformOption`, `PersonaPreset`, `VisualAestheticPreset`, `NicheCategoryPreset`) yang berfungsi menyediakan saran terstruktur pada Studio Generator.
+- Pengaturan Mode CS (`CS_MODE` di `AppSettings` / Support Settings) untuk mengatur jam operasional, visibilitas widget CS WhatsApp, dan eskalasi berbasis durasi.
+
+12.6 Draft Templates & Import/Export Judul Channel
+- Flag `Draft.isTemplate` dan komponen `TemplateToggle.tsx` untuk menandai draft favorit sebagai template reusable.
+- Import dan Export judul channel (CSV/JSON) pada `EditChannelClient.tsx` dan `UsedTitlesDirectory.tsx` untuk efisiensi manajemen judul masal dan pencegahan duplikasi ide.
+
+12.7 Customer Support Ticket System & Time-based CS Escalation
+- Modul tiket support terpadu (`SupportTicket`, `SupportMessage`) untuk komunikasi dua arah antara User dan Admin.
+- Banner eskalasi otomatis (`CsEscalationBanner`) pada UI Auth dan Billing yang menyajikan tautan otomatis ke WhatsApp CS jika verifikasi registrasi (>24 jam) atau verifikasi pembayaran (>12 jam) melebihi threshold batas waktu.
+
+12.8 Precision Generator Integration
+- Parameter presisi generator tambahan (`targetSceneCount`, `aspectRatio`, `narrativeLoopStyle`, `visualLoopStyle`, `selectedProductId`) pada `promptGenerator.ts` dan Studio UI.
+
+12.9 Restrukturisasi Link Media Sosial Channel
+- Skema terstruktur untuk `socialLinks` (`website`, `tiktok`, `instagram`, `facebook`, `youtube`) pada ProfileChannel beserta UI kartu channel dan icon badge.
+
+12.10 Executive Business Analytics Dashboard (`recharts`)
+- Visualisasi data finansial real-time berbasis library `recharts` di rute `/admin`:
+  1. AreaChart: Tren Pendapatan Bulanan (6 Bulan Terakhir).
+  2. PieChart: Distribusi Pendapatan per Paket Langganan.
+  3. BarChart: Tren Pertumbuhan Registrasi User.
+  4. PieChart: Distribusi Status Langganan User (Active, Expired, Inactive).
+
+12.11 PresetSelect Dual-Mode UI, Auto-fill Profil Kanal & Direct Prompt JSON Export
+- Komponen UI `PresetSelect.tsx` yang mendukung *dual-mode* (pilihan preset terstruktur dari database API dengan *fallback system* + sakelar input kustom fleksibel) untuk Target Platform, Persona/POV, Speech Rate, dan Visual Aesthetic.
+- Bidang data profil kanal (`ProfileChannel`) yang diperluas dengan `targetPlatform`, `personaPov`, dan `speechRate` (standar detik/kata 0.25 - 0.50), yang secara otomatis melakukan *auto-fill* ke `GeneratorForm.tsx` ketika kanal dipilih.
+- Alur ekspor hasil generator prompt berbasis tombol **Download JSON Prompt** (`.json` file download) langsung di `GeneratorForm.tsx` dan `DraftActions.tsx`.
+
+12.12 2-Stage Master Prompting & Alignment Workflow Aplikasi Push
+- Refaktorisasi logika `generateMasterPrompt` (`src/lib/promptGenerator.ts`) menjadi alur interaksi 2-Tahap pada AI eksternal (ChatGPT/Gemini/Claude):
+  1. Tahap 1 (Penawaran 10 Judul Viral): Jika judul spesifik belum ditentukan, AI terlebih dahulu menawarkan 10 rekomendasi judul berpotensi viral lengkap dengan indikator persentase potensi viralitasnya, lalu berhenti sejenak dan menanyakan nomor pilihan user (1-10).
+  2. Tahap 2 (Eksekusi JSON Skrip Video): Setelah user mengetik nomor pilihan di chat box AI, AI merilis output murni JSON valid (tanpa teks pembuka/markdown block) berisi `opsi_judul`, `judul_konten`, `segments`, `caption_medsos`, `ide_thumbnail`, dan `html_blog`.
+  3. Direktori Judul Terpakai (Exclusion Rules): Hanya judul yang disetujui/disimpan (`draft.title`) yang dimasukkan ke daftar eksklusi `excludeTitles` pada penciptaan prompt berikutnya; 9 opsi judul yang tidak terpilih tetap tersedia dan tidak dikunci.
+- Parse Engine Platform (`GeneratorForm.tsx` Step 2 & `/api/drafts`): Membaca & mem-parsing JSON dari Tahap 2 ke dalam visualisasi adegan, kalkulasi durasi riil vs target, dan penyimpanan draft yang presisi.
+
+Bagian 13: PUSH ENGINE INTEGRATION (SCENE PROMPT STUDIO)
+================================================================================
+Bagian ini mendokumentasikan integrasi arsitektur "Push Engine" ke dalam Prompt Gen, membawa kemampuan parsing adegan dan injeksi metadata visual/audio tingkat lanjut.
+
+13.1. Visual Style Map (Pustaka Estetika)
+- Lokasi: `src/lib/visualStyleMap.ts`
+- Deskripsi: 15 preset gaya visual (Photorealistic, Pixar 3D, Ghibli, Cyberpunk, dll.) yang mendukung pencocokan (fuzzy match) dan menerjemahkan gaya ke dalam parameter rendering Midjourney yang akurat. Digunakan secara terpusat oleh generator video dan gambar.
+
+13.2. Generator Master Prompt yang Diperkaya
+- Generator kini mengadopsi format output "Push-Style Markdown" yang memisahkan elemen per adegan secara eksplisit: `## SCENE N`, `NARASI`, `PANDUAN SUARA`, `VISUAL PROMPT`, dan `DURASI`.
+- Injeksi Parameter Baru: 
+  1. **Role/POV AI**: Menentukan perspektif pencerita (Kreator, Pendidik, dll).
+  2. **Tone of Voice**: Menentukan gaya bahasa.
+  3. **Audio Guidelines**: Preferensi untuk BGM, SFX, dan Voice Over.
+  4. **Loop Guidelines**: Arahan pembuatan video loop atau narrative loop.
+  5. **Anti-AI Detection**: Injeksi pedoman *burstiness* dan larangan *cliché* kata-kata robotik.
+  6. **Visual Prompt 5-Bagian**: Shot Type, Subject, Environment, Camera Movement, Style.
+  7. **Emotional Arc**: Struktur Hook -> Problem -> Solution -> CTA.
+
+13.3. Skema Data Persistensi ParsedOutput
+- Model `ParsedOutput` pada Prisma digunakan untuk menyimpan hasil parse mentah maupun JSON terstruktur secara persisten.
+- API `/api/parsed-outputs` mendukung auto-cleanup dengan limit 10 entri terbaru per user.
+
+13.4. Scene Prompt Studio (Local Parser)
+- Halaman `/dashboard/scene-prompt` beroperasi sebagai *Client-side Studio* untuk mengimpor skrip AI eksternal dan memecahnya menggunakan regex (`## SCENE N`).
+- UI terbagi dalam 3 Tab Utama:
+  1. **Scene Viewer**: Pratinjau per adegan lengkap dengan badge Audio Cues (BGM/SFX) dan Voice Guidelines.
+  2. **Thumbnail Studio**: Memandu ekstraksi SEO text overlay, ide gambar thumbnail, dan rekomendasi brand color.
+  3. **Platform Content**: Tempat ekstraksi Caption Medsos, Hashtag, dan variasi Judul.
+- Fitur Simpan Draft: Hasil parse dapat disimpan langsung sebagai Draft yang valid di sistem.
+
+Bagian 14: GENERATOR UX PHILOSOPHY (Clean Result Panel)
+================================================================================
+14.1. Alur Konten Resmi (One-Way Pipeline)
+Sistem menganut alur kerja satu arah yang jelas dan tidak ambigu:
+  Generator (INPUT) → Output Markdown → Copy ke Clipboard → Scene Prompt Studio (PARSE) → Save Draft
+
+14.2. Elemen yang Dihapus (Legacy Cleanup)
+- "Paste JSON Output Here": Kolom textarea input JSON manual dihapus karena tergantikan oleh Scene Prompt Studio yang jauh lebih powerful dan terstruktur.
+- Duplikasi tombol Download: Tombol Download JSON yang muncul di beberapa tempat dikonsolidasi menjadi satu area aksi tunggal.
+
+14.3. Struktur Panel Hasil (Result Panel)
+Panel kanan Generator kini terdiri dari 2 zona:
+  1. **Zona Preview (Textarea Read-Only)**: Menampilkan output Markdown mentah dari AI secara penuh dengan tombol [Copy Markdown] dan [Download JSON] di header.
+  2. **Zona Aksi (Action Panel)**: Input judul draft + tombol aksi: [Copy → Scene Studio], [Save Draft], [View Drafts].
+
+14.4. Persistensi State Hasil Generate
+State `step`, `generatedPrompt`, `manualTitle` disertakan dalam sistem auto-save (LocalStorage + Server via `/api/user/preferences`), sehingga hasil generate tidak hilang saat user berpindah halaman/tab dan kembali.
+
+Bagian 15: BROADCAST NOTIFICATION & DEDUPLICATION (Audit Remediation #39)
+================================================================================
+15.1. Field broadcastGroupId pada Model Notification
+- Field tambahan: `broadcastGroupId String?` pada model `Notification` (prisma/schema.prisma).
+- Diisi dengan UUID unik saat admin membroadcast pengumuman (POST /api/admin/announcements) ke seluruh user melalui fungsi `notifyAllSuperadmins`.
+- Tujuan: mengelompokkan entri Notification yang merupakan satu batch broadcast, agar histori pengumuman di Admin Dashboard dapat ditampilkan secara ringkas (groupBy broadcastGroupId + recipientCount), bukan spamming per user.
+- GET /api/admin/announcements: menggunakan Prisma `groupBy` pada `broadcastGroupId` + agregasi `_count` untuk menampilkan satu baris per pengumuman dengan jumlah penerima.
+- Jika `broadcastGroupId` null (notifikasi sistem non-broadcast), entri tersebut tetap tersimpan secara individual.
+
+15.2. Schema Change Changelog
+- Migration: `prisma db push` (schema-first, no migration files — konsisten dengan lingkungan dev/Coolify).
+- Kompatibel mundur: field nullable tidak mempengaruhi notifikasi yang sudah ada.
+
+Bagian 16: HTML BLOG PIPELINE & EXTRACTHTMLBLOG (Audit Remediation #39)
+================================================================================
+16.1. extractHtmlBlog() — Parser Baru di src/lib/parsers.ts
+- Fungsi `extractHtmlBlog(text: string): string | null` ditambahkan untuk mengekstrak konten HTML Blog dari output AI generator.
+- Pattern detection: mencari section `## HTML BLOG` dalam output Markdown push-style, lalu mengambil konten HTML-nya.
+- Jika tidak ditemukan, mengembalikan `null` (backward compatible dengan draft lama).
+
+16.2. Integrasi ke ScenePromptStudioClient
+- `handleSaveDraft` dalam `ScenePromptStudioClient.tsx` memanggil `extractHtmlBlog(rawText)` dan menyertakan hasilnya dalam `parsedData.html_blog` yang dipersist ke database via `POST /api/drafts`.
+- Field `parsedData` pada model Draft (JSON) diperluas dengan key `html_blog: string | null` — tidak ada perubahan schema diperlukan karena sudah `Json?`.
+
+16.3. promptGenerator.ts — Injeksi HTML Blog Section
+- `generateMasterPrompt` menambahkan instruksi eksplisit `## HTML BLOG` pada output Tahap 2 jika opsi `htmlBlog === true`, memastikan AI menghasilkan konten blog berformat HTML yang dapat diekstrak.
+
+Bagian 17: ADMIN CRUD PLANS & ZOD HARDENING (Audit Remediation #39)
+================================================================================
+17.1. Admin Plans CRUD Full
+- `POST /api/admin/plans`: Endpoint create plan baru (sebelumnya hanya PUT/GET) — dibutuhkan untuk onboarding plan baru tanpa hardcode.
+- `DELETE /api/admin/plans/[id]`: Endpoint hapus plan dengan safety guard — menolak penghapusan jika plan masih digunakan oleh user aktif (`_count.users > 0`), mencegah data integrity violation.
+- PUT /api/admin/plans diperluas dengan field `isPubliclyPurchasable` (boolean): menentukan apakah plan dapat dibeli mandiri oleh user di halaman Billing (vs hanya bisa ditetapkan oleh admin secara manual).
+
+17.2. Zod Validation — API Routes Audit 4.4
+- `/api/admin/registrations`: Skema `registrationActionSchema` (Zod) — memvalidasi `{ action: 'APPROVED' | 'REJECTED', userId: string }`.
+- `/api/admin/prompt-settings`: Skema `promptSettingsSchema` (Zod) dengan max-length pada `videoSystemInstruction` (10.000 char), `imageSystemInstruction` (5.000 char), dan `bannedWords` (array string, max 200 item).
+- `/api/support/tickets/[id]/messages`: Skema `messageSchema` — body string wajib, max 5.000 karakter.
+- `/api/support/tickets/[id]`: Skema `ticketPatchSchema` — enum status `OPEN | REPLIED | CLOSED` via Zod, menggantikan manual `.includes()` check.
+
+17.3. Zod Leak Prevention
+- Respons error dari `/api/generate` dan `/api/parsed-outputs` tidak lagi menyertakan `error.flatten()` raw yang membocorkan struktur schema Zod internal ke sisi client.
+- Format error respons distandarisasi ke `{ error: string }` — konsisten dengan standar semua API route lainnya.
+
+17.4. User Preferences API Hardening
+- `/api/user/preferences`: Refactoring total — Zod `strict()` schema, pembatasan payload 150KB, `applyRateLimit` berbasis userId unik (60 req/menit).
+
+17.5. i18n Remediation 3.4 — Hardcoded String Elimination
+- Komponen yang diperbaiki: `DraftActions.tsx`, `AuthForm.tsx`, `GeneratorForm.tsx`, `FloatingCsWidget.tsx`, `UserSupportClient.tsx`.
+- Namespace baru ditambahkan: `CsWidget` (8 keys: ticketCreateFail, submitBtn, successTitle, successDesc, dll.).
+- Key baru di namespace existing: `Drafts` (+downloadSuccess, +downloadError), `Auth` (+fieldRequired, +usernameMin, +usernameInvalid, +emailInvalid, +channelRequired), `Generator` (+selectChannelFirst, +productNameRequired, +productAddFail, +productAddSuccess, +systemError), `Support` (+ticketCreateFail, +cancel, +ticketListHeader, +selectTicketHint, +ticketClosedMsg, +sendTicket, +loadingTickets).
+
+
+## 18. Final SaaS Audit & Generator Studio Workflow Refinement (August 2026)
+- **Generator Studio Purity**: Markdown outputs are removed. Only structured JSON downloads are allowed to minimize hallucination artifacts.
+- **Regenerate Functionality**: Generator form steps are idempotent. Regenerate retains context but resets loading states securely.
+- **Pipeline Segregation**: `VIDEO` drafts automatically populate stub entries and redirect to Scene Prompt Studio; `IMAGE` retains local draft saving.
+- **Draft Deduplication**: Draft stub generation checks for existing titles and updates in-place instead of creating duplicate database rows.
+- **Viral Generation Parameters**: System prompt is augmented with social media linkage via profile data, plus mandatory retention loops and hooks.
+
+## 19. Final Audit Gaps Remediation & Production Stability
+- **Admin Role Guards**: `src/app/[locale]/admin/notifications/page.tsx` and all admin routes enforce strict `SUPERADMIN` role checks server-side via `getServerSession`.
+- **Auto-Demo Plan Onboarding**: New users registering via `/api/auth/register` are automatically assigned the `DEMO` plan if available, with a 7-day expiration and `hasUsedTrial` flag to optimize activation rates.
+- **Support Communication**: Support tickets implement `GET /api/support/tickets/[id]/messages` for asynchronous RESTful message polling by client components.
+- **Draft Idempotency**: `POST /api/drafts` utilizes an `upsert` paradigm matching `channelId`, `type`, and `title` to prevent duplicates, bypassing word count checks for drafts lacking initial content.
+- **Security Hardening**: `PUT /api/user/password` implemented for secure, authenticated password changes without needing email verification hooks (Dashboard BIZ-1 requirement).
+- **Codebase Cleanliness**: Complete removal of orphan logic (e.g., legacy billing APIs and empty dashboard studio routes).
+
+## 20. Post-Phase 19: Final Business Logic Verification (BIZ)
+- **Profile Management**: `PUT /api/user/profile` allows users to edit their `name`. Password editing integrated securely via dashboard.
+- **Admin Announcements**: Broadcasts can now target users by `subscriptionStatus` (Active, Inactive, Expired).
+- **Invoice & Payments API**: `GET /api/user/invoices` and `GET /api/admin/payments` provide fully dynamic, client-fetched invoice histories replacing static SSR tables.
+- **Parsed Output Persistence**: `POST /api/parsed-outputs` ensures Scene Studio results are auto-saved and limited to the 10 most recent entries per user.
+- **Dynamic Rate Limiting**: `rateLimitRequests` and `rateLimitWindowMs` added to the `AppSettings` singleton. `rateLimit.ts` fetches and caches these to override or enforce strict rate limits across endpoints.
+- **Branded Email Templates**: All outgoing notifications (Payments, Registration, Password Reset) are wrapped in a unified, modern HTML template (`emailTemplates.ts`).
+
+## 21. Camera Movement Feature — Generator Studio
+- **UI Panel** (`src/components/generator/GeneratorForm.tsx`): A dedicated "🎥 Camera Movement" section added to the Video Settings form, positioned after Audio Preferences.
+  - **Toggle ON/OFF**: Pill-toggle controls whether camera movement guidance is injected into prompts. Default: ON.
+  - **Grouped Presets (30+ options)**: 5 categories — Pergerakan Dasar, Gerakan Sinematik, Gerakan Dinamis, Aerial & Drone, Khusus & Sinematif. Multi-select chip UI.
+  - **Custom Concept Input**: Free-text field for user-defined camera movement concepts, fed directly into prompts.
+  - **Selection Badge & Reset**: Displays count of selected presets and allows one-click reset.
+- **Prompt Integration** (`src/lib/promptGenerator.ts`): 3-mode injection into master prompt:
+  1. **Disabled**: AI uses `static shot` only.
+  2. **Curated**: Named preset list provided to AI with instructions to distribute variably per scene.
+  3. **Auto**: Scene-type-aware recommendations (hook: push-in/whip pan; emotional: zoom/handheld; action: orbital/tracking; CTA: pull-out/crane).
+- **API Validation** (`src/app/api/generate/route.ts`): `videoConfigSchema` extended with `cameraMovementEnabled`, `cameraMovementPresets` (string[]), `cameraMovementCustom` (string, max 500).
+- **State Persistence**: All camera movement preferences persist via localStorage and server-side `PUT /api/user/preferences`.
+
+## 22. XPDC HUB Visual Design System Integration (Phase 22)
+================================================================================
+Migrasi total tampilan aplikasi Prompt Gen ke bahasa desain XPDC HUB. Seluruh perubahan bersifat UI Shell Only — logika bisnis, API, keamanan, dan database tidak diubah.
+
+### 22.1 Design System Tokens (globals.css)
+- **Tipografi:** Poppins (Google Fonts) menggantikan Geist. Diaplikasikan via `--font-poppins` CSS variable pada `body`.
+- **Brand Color:** `--pg-brand: #ff7600` (light mode) / `#ff8c1a` (dark mode) — konsisten dengan identitas XPDC HUB.
+- **Background:** `--pg-bg: #ecf0f3` (light neumorphic warm-grey) / `#1a1f2e` (dark navy).
+- **Card:** `--pg-card: #ecf0f3` / `#1e2438` (dark).
+- **Neumorphic Shadow Tokens:**
+  - `--pg-neu-out`: Shadow lifted (elemen timbul / `neu-flat`).
+  - `--pg-neu-in`: Shadow inset (elemen tertekan / `neu-pressed`, `neu-input`).
+  - `--pg-neu-sm`: Shadow subtle kecil untuk elemen sekunder.
+- **Utility Classes:**
+  - `neu-flat` — elemen timbul (card, panel).
+  - `neu-pressed` — elemen tertekan (container tab switcher, section aktif).
+  - `neu-sm` — shadow kecil untuk elemen sekunder.
+  - `neu-btn-brand` — tombol CTA utama (gradient orange + glow shadow).
+  - `neu-btn` — tombol sekunder netral.
+  - `neu-input` — input field (inset shadow, orange focus ring).
+- **Animasi:** `pg-fadeIn`, `pg-slideUp`, `pg-shake` (error state), `pg-pulse` (FAB ring orange).
+- **Legacy Compatibility:** Alias `--glass-*`, `--neu-*` dipertahankan agar komponen lama tidak rusak.
+
+### 22.2 Komponen Baru: MobileDashboardNav
+- **Lokasi:** `src/components/layout/MobileDashboardNav.tsx` (Client Component).
+- **Pattern:** Bottom Navigation 5 slot:
+  ```
+  🏠 Home | 📄 Drafts | [✨ Generator FAB] | 📺 Channels | 👤 Profil
+  ```
+- **Generator FAB:** Center button orange (`neu-btn-brand`) dengan `pg-pulse` ring animation — entry point utama ke fitur core.
+- **Profile Slot:** Membuka slide-up Profile Drawer (tidak route langsung).
+- **Profile Drawer (slide-up):** Berisi navigasi sekunder (Scene Studio, Billing, Notifications, Support, Panduan, Logout) + user info card (nama, email, role badge).
+- **Behaviour:** Backdrop click & ESC key menutup drawer. iOS safe-area support via `env(safe-area-inset-bottom)`.
+- **Active Indicator:** Orange underline pada slot aktif + icon scale transition.
+
+### 22.3 Dashboard Layout Update
+- **Desktop sidebar:** Dark Navy (`#1e2a3a`), orange accent highlights, branded user footer card.
+- **Mobile:** Topbar minimal + `MobileDashboardNav` (bottom nav + profile drawer).
+- **Bug Fix:** Logout button diubah dari non-functional `<Link>` menjadi `<LogoutButton>` yang memanggil `signOut()` dengan benar.
+
+### 22.4 Admin Layout Update
+- Dark Navy sidebar, gradient orange logo "⚡ Admin Portal".
+- Badge counter real-time: pending registrations & open tickets → warna `--pg-brand`.
+- Admin user footer: initial avatar gradient orange.
+
+### 22.5 Auth Pages Update
+- **`auth/page.tsx`:** Background `var(--pg-bg)` neumorphic. Brand hero card: icon `✨` orange dengan `pg-slideUp`. Auth form card: `neu-flat` (border-radius 22px).
+- **`AuthForm.tsx`:** Tab switcher `neu-pressed`; active tab → orange fill. Input `neu-input`. Buttons (`neu-btn-brand`). Error `pg-shake` + success `pg-fade-in` banners.
+- **`ForgotPasswordForm.tsx`:** Header icon `🔑` orange. `neu-input` + `neu-btn-brand` konsisten.
+
+### 22.6 Translation Fix
+- Key `"profile"` ditambahkan ke namespace `Dashboard` di `messages/id.json` dan `messages/en.json` untuk mendukung `MobileDashboardNav`.
+
+### 22.7 Build Verification
+- `npm run build` → Exit code: 0 (38 halaman, 65+ API routes, 0 error).
+- `npx tsc --noEmit` → 100% Clean (Zero Errors).
+- Semua API routes, Prisma schema, NextAuth, middleware, i18n tidak berubah.
+
+## 23. Post-Redesign UI/UX Deep Audit & Remediation (Phase 23)
+================================================================================
+Audit mendalam pasca-Phase 22 untuk memverifikasi integritas tombol, routing, styling consistency, dan aksesibilitas mobile. Ditemukan 7 anomali (2 critical, 5 warning) dan diperbaiki seluruhnya.
+
+### 23.1 Komponen Baru
+
+| Komponen | Deskripsi |
+|----------|-----------|
+| `src/components/layout/DashboardSidebarNav.tsx` | Client Component — active state sidebar dashboard via `usePathname()`. Orange left-border + bg highlight pada item aktif. |
+| `src/components/layout/AdminSidebarNav.tsx` | Client Component — active state sidebar admin, pattern identik. |
+| `src/components/layout/AdminMobileNav.tsx` | Mobile hamburger + slide-in drawer untuk admin portal. ESC/backdrop close, auto-close on route change. |
+
+### 23.2 Bug Fixes Kritis
+
+1. **AuthForm.tsx — Dark Mode Label Invisible (Critical)**
+   - 15+ label memakai `text-zinc-700 dark:text-zinc-300` (Tailwind lama) bukan `var(--pg-text)`.
+   - Di dark mode: teks `#374151` di atas bg `#1a1f2e` — tidak terbaca sama sekali.
+   - Fix: Semua label migrasi ke `labelCls` variable + `style={{ color: 'var(--pg-text)' }}`.
+
+2. **`labelCls` Tidak Digunakan (Critical)**
+   - Variable `labelCls` didefinisikan sejak Phase 22 tapi tidak pernah dipakai (dead code).
+   - Fix: Seluruh form auth kini menggunakan `labelCls` secara konsisten.
+
+3. **Admin Portal — Tidak Ada Mobile Nav (Critical → Fixed di Phase 23)**
+   - Sidebar admin `w-64` tanpa `hidden md:` — memenuhi layar mobile.
+   - Fix: `hidden md:flex` pada sidebar desktop + `AdminMobileNav` untuk mobile.
+
+4. **NotificationBell Mobile Hilang (Critical → Fixed di Phase 23)**
+   - Topbar mobile pakai `<Link>` biasa + emoji 🔔, kehilangan unread badge real-time.
+   - Fix: Ganti dengan `<NotificationBell />` component.
+
+### 23.3 Warning Fixes
+
+- **Double arrow** `→ →` di continue button Register Step 1 → disederhanakan.
+- **`document.documentElement.lang`** di `AuthForm` dan `ForgotPasswordForm` → ganti `useParams()`.
+- **Admin sidebar** 2 label hardcoded → `t("announcements")` + `t("systemNotifications")`.
+- **Dashboard topbar** hardcoded `"Dashboard"` → `{t("overview")}`.
+- **AdminSidebarNav.tsx** unused `useState` import → dihapus.
+
+### 23.4 i18n Keys Baru
+
+Namespace `Admin` di `en.json` & `id.json`:
+- `announcements`: "Broadcast Announcements" / "Broadcast Pengumuman"
+- `systemNotifications`: "System Notifications" / "Notifikasi Sistem"
+
+### 23.5 Prinsip Desain yang Ditegakkan
+
+- **Zero Tailwind zinc/raw classes** di komponen yang telah dimigrasi ke design system PG.
+- **Semua locale detection** wajib via `useParams()`, bukan `document.documentElement.lang`.
+- **Server Component Layout** menggunakan Client Component wrapper (sidebar nav) untuk fitur yang memerlukan `usePathname()`/`useState`.
+- **Mobile-first parity:** Setiap fitur di desktop (active state, notification badge, mobile nav) wajib tersedia setara di mobile.
+
+### 23.6 Build Verification
+- `npx tsc --noEmit` → Exit code: 0 (Zero Errors).
+- `npm run build` → Exit code: 0, compiled in 9.0s.
+
+## 24. Post-Audit Minor Feature & UX Polishing (Phase 24)
+================================================================================
+Penambahan fitur minor UX dan penyempurnaan UI layout di mobile pasca-audit tahap akhir.
+
+### 24.1 Fitur Dual Language (Language Switcher)
+
+- **Komponen:** `src/components/layout/LanguageSwitcher.tsx`
+- **Fungsi:** Menyediakan toggle visual (ikon globe 🌐) agar pengguna dapat mengganti bahasa antarmuka (ID/EN) kapan saja secara instan.
+- **Teknologi:** Menggunakan `<Link>` bawaan dari `next-intl` routing untuk replace URL secara aman tanpa state *hydration error*.
+- **Integrasi Topbar:** Komponen disisipkan di sebelah lonceng notifikasi pada:
+  1. Desktop Dashboard (`src/app/[locale]/dashboard/layout.tsx`)
+  2. Mobile Dashboard (`src/components/layout/MobileDashboardNav.tsx`)
+  3. Admin Portal Desktop & Mobile (`src/app/[locale]/admin/layout.tsx` & `AdminMobileNav.tsx`)
+
+### 24.2 UX Optimization: CS Widget Mobile Overlap
+
+- **Problem:** Di layar mobile, posisi Floating Action Button (FAB) Customer Service berada di pojok kanan bawah, menimpa tombol "Profile" pada navigasi bawah yang berukuran tetap (fixed).
+- **Fix (CSS Responsif):** Memindahkan posisi widget ke atas saat layar berukuran kecil.
+  - `bottom-24 right-4` (Mobile): Widget dinaikkan setinggi 6rem agar mengambang tepat di atas navigasi bawah.
+  - `md:bottom-6 md:right-6` (Desktop): Posisi tetap normal di sudut karena ketiadaan navigasi bawah.

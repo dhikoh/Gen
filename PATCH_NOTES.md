@@ -574,3 +574,30 @@ Audit mendalam terhadap semua perubahan Phase 22 untuk memverifikasi integritas 
 - `npx tsc --noEmit` → ✅ **Exit code: 0** (Zero TypeScript errors).
 - `npm run build` → ✅ **Exit code: 0**, compiled in 9.0s.
 
+---
+
+## Phase 24 — Post-Audit Minor Feature & UX Polishing (August 2026)
+
+### Latar Belakang
+Penambahan fitur minor yang meningkatkan pengalaman pengguna (UX) berdasarkan hasil temuan pasca-audit Phase 23, serta perbaikan *overlap* pada tampilan mobile.
+
+### Komponen Baru
+#### 1. `src/components/layout/LanguageSwitcher.tsx` [NEW]
+- **Tujuan:** Memberikan toggle visual (ikon 🌐) bagi pengguna untuk berpindah bahasa (ID/EN).
+- **Implementasi:** 
+  - Menggunakan `<Link>` dari `next-intl` (`@/i18n/routing`).
+  - Mendeteksi `currentLocale` dan me-replace rute saat ini secara *in-place*.
+  - Di-inject langsung di sebelah `NotificationBell` pada 3 topbar utama:
+    - Desktop Dashboard (`src/app/[locale]/dashboard/layout.tsx`)
+    - Mobile Dashboard (`src/components/layout/MobileDashboardNav.tsx`)
+    - Admin Portal (`src/app/[locale]/admin/layout.tsx` & `src/components/layout/AdminMobileNav.tsx`)
+
+### Bug Fixes & UX Optimization
+#### 2. `src/components/cs/FloatingCsWidget.tsx`
+- **Problem:** Tombol Floating Action Button (FAB) Customer Service di layar mobile menutupi tombol "Profile" pada navigasi bawah (`MobileDashboardNav`).
+- **Fix:** Merubah posisi responsif CSS dari `bottom-6 right-6` menjadi `bottom-24 md:bottom-6 right-4 md:right-6`.
+  - Di Mobile: Tombol naik 6rem (`bottom-24`) agar mengambang tepat di atas *bottom navigation bar*.
+  - Di Desktop: Tetap di `bottom-6` standar industri.
+
+### Build Verification
+- `npx tsc --noEmit` → ✅ **Exit code: 0** (Zero TypeScript errors).
