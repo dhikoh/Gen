@@ -58,8 +58,9 @@ export default function ScenePromptStudioClient({ channels, locale }: Props) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"scenes"|"thumbnail"|"platform">("scenes");
+  const [activeTab, setActiveTab] = useState<"scenes"|"thumbnail"|"platform"|"htmlBlog">("scenes");
   const [markedTitles, setMarkedTitles] = useState<string[]>([]);
+  const [htmlBlog, setHtmlBlog] = useState("");
 
   const handleMarkAsUsed = async (title: string) => {
     if (!selectedChannelId) return;
@@ -168,6 +169,7 @@ export default function ScenePromptStudioClient({ channels, locale }: Props) {
     try {
       // Fix 2.4: Extract html_blog from rawText and include in parsedData
       const htmlBlogContent = extractHtmlBlog(rawText);
+      setHtmlBlog(htmlBlogContent);
       const parsedData: Record<string, unknown> = { scenes, caption, hashtags };
       if (thumbnailData) parsedData.thumbnailData = thumbnailData;
       if (htmlBlogContent) parsedData.html_blog = htmlBlogContent;
@@ -198,7 +200,6 @@ export default function ScenePromptStudioClient({ channels, locale }: Props) {
         <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">{t("subtitle")}</p>
       </div>
 
-      {/* Input Panel */}
       <div className="glass-panel rounded-xl p-6 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
@@ -229,16 +230,17 @@ export default function ScenePromptStudioClient({ channels, locale }: Props) {
 
       {scenes.length > 0 && (
         <>
-          {/* Tabs */}
-          <div className="flex gap-2">
-            {(["scenes","thumbnail","platform"] as const).map(tab => (
-              <button key={tab} onClick={() => setActiveTab(tab)} className={btn(activeTab === tab)}>
-                {tab === "scenes" ? `🎬 ${t("sceneViewerTab")}` : tab === "thumbnail" ? `🖼️ ${t("thumbnailTab")}` : `📱 ${t("platformTab")}`}
-              </button>
-            ))}
+          <div className="flex gap-2 flex-wrap">
+            {(["scenes","thumbnail","platform","htmlBlog"] as const).map(tab => {
+               if (tab === "htmlBlog" && !htmlBlog) return null;
+               return (
+                <button key={tab} onClick={() => setActiveTab(tab)} className={btn(activeTab === tab)}>
+                  {tab === "scenes" ? `🎬 ${t("sceneViewerTab")}` : tab === "thumbnail" ? `🖼️ ${t("thumbnailTab")}` : tab === "htmlBlog" ? `📝 HTML Blog` : `📱 ${t("platformTab")}`}
+                </button>
+              );
+            })}
           </div>
 
-          {/* Scene Viewer */}
           {activeTab === "scenes" && (
             <div className="space-y-4">
               {scenes.map(scene => (
@@ -361,6 +363,18 @@ export default function ScenePromptStudioClient({ channels, locale }: Props) {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {activeTab === "htmlBlog" && htmlBlog && (
+            <div className="glass-panel rounded-xl p-6 space-y-4">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-bold text-zinc-900 dark:text-white">📝 HTML Blog Article</h2>
+                <button onClick={() => copy("blog", htmlBlog)} className="text-xs px-4 py-1.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-white rounded transition-colors shadow-sm">
+                  {copiedId === "blog" ? "✓ Copied!" : "Copy HTML"}
+                </button>
+              </div>
+              <div className="bg-white dark:bg-zinc-950 p-6 rounded-lg border border-zinc-200 dark:border-zinc-800 shadow-inner overflow-y-auto max-h-[60vh] prose dark:prose-invert max-w-none text-sm" dangerouslySetInnerHTML={{ __html: htmlBlog }} />
             </div>
           )}
 
