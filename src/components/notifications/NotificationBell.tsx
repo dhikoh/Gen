@@ -57,9 +57,87 @@ export default function NotificationBell() {
   };
 
   useEffect(() => {
-    fetchUnreadCount();
-    const interval = setInterval(fetchUnreadCount, 30000); // poll every 30s
-    return () => clearInterval(interval);
+    // ── Resilient polling with exponential backoff ──────────────────────────
+    // Stops after MAX_FAILURES consecutive errors; backs off up to INTERVAL_CAP ms.
+    const BASE_INTERVAL = 30_000;   // 30 s
+    const INTERVAL_CAP  = 300_000;  // 5 min max
+    const MAX_FAILURES  = 5;        // stop polling after 5 consecutive failures
+
+    let timeoutId: ReturnType<typeof setTimeout>;
+    let failCount = 0;
+    let stopped = false;
+
+    const poll = async () => {
+      if (stopped || document.hidden) {
+        // Tab hidden — skip this tick, reschedule at base interval
+        if (!stopped) {
+          timeoutId = setTimeout(poll, BASE_INTERVAL);
+        }
+        return;
+      }
+
+      try {
+        const controller = new AbortController();
+        const signal = controller.signal;
+
+        // Abort the fetch if it takes > 10 s (prevents hanging requests)
+        const hangGuard = setTimeout(() => controller.abort(), 10_000);
+
+        const res = await fetch("/api/notifications/unread-count", { signal });
+        clearTimeout(hangGuard);
+
+        if (res.ok) {
+          const data = await res.json();
+          setUnreadCount(data.unreadCount || 0);
+          failCount = 0; // reset on success
+        } else {
+          failCount++;
+        }
+      } catch (err: unknown) {
+        // AbortError = intentional timeout/unmount — don't count as failure
+        const isAbort = err instanceof DOMException && err.name === "AbortError";
+        if (!isAbort) {
+          failCount++;
+          console.error("Error fetching unread count:", err);
+        }
+      }
+
+      if (stopped) return;
+
+      if (failCount >= MAX_FAILURES) {
+        // Server appears down — stop polling silently
+        console.warn(
+          `NotificationBell: pausing polling after ${MAX_FAILURES} consecutive failures.`
+        );
+        return;
+      }
+
+      // Exponential backoff: 30s, 60s, 120s, 240s, 300s (cap)
+      const delay = failCount === 0
+        ? BASE_INTERVAL
+        : Math.min(BASE_INTERVAL * Math.pow(2, failCount), INTERVAL_CAP);
+
+      timeoutId = setTimeout(poll, delay);
+    };
+
+    // Start immediately then schedule
+    poll();
+
+    // Resume polling when tab becomes visible again (reset failure counter)
+    const handleVisibility = () => {
+      if (!document.hidden && failCount >= MAX_FAILURES) {
+        failCount = 0;
+        stopped = false;
+        poll();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      stopped = true;
+      clearTimeout(timeoutId);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, []);
 
   useEffect(() => {
