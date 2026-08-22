@@ -151,13 +151,13 @@ export default function MobileDashboardNav({ userName, userEmail, userRole, user
               <Link
                 key={key}
                 href={href}
-                className="flex flex-col items-center justify-center flex-1 h-full gap-0.5 transition-all"
+                className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] gap-0.5 transition-all"
                 style={{ color: active ? "var(--pg-brand)" : "var(--pg-text-sub)" }}
               >
                 <span className={active ? "scale-110 transition-transform" : "transition-transform"}>
                   <Icon />
                 </span>
-                <span className="text-[10px] font-semibold">{label}</span>
+                <span className="text-[10px] sm:text-xs font-semibold whitespace-nowrap truncate px-1 max-w-full text-center">{label}</span>
                 {active && (
                   <span
                     className="absolute bottom-0 w-6 h-0.5 rounded-full"
@@ -192,13 +192,13 @@ export default function MobileDashboardNav({ userName, userEmail, userRole, user
               <Link
                 key={key}
                 href={href}
-                className="flex flex-col items-center justify-center flex-1 h-full gap-0.5 transition-all"
+                className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] gap-0.5 transition-all"
                 style={{ color: active ? "var(--pg-brand)" : "var(--pg-text-sub)" }}
               >
                 <span className={active ? "scale-110 transition-transform" : "transition-transform"}>
                   <Icon />
                 </span>
-                <span className="text-[10px] font-semibold">{label}</span>
+                <span className="text-[10px] sm:text-xs font-semibold whitespace-nowrap truncate px-1 max-w-full text-center">{label}</span>
                 {active && (
                   <span
                     className="absolute bottom-0 w-6 h-0.5 rounded-full"
@@ -212,11 +212,11 @@ export default function MobileDashboardNav({ userName, userEmail, userRole, user
           {/* Profile — opens drawer */}
           <button
             onClick={() => setDrawerOpen(true)}
-            className="flex flex-col items-center justify-center flex-1 h-full gap-0.5 transition-all border-none bg-transparent"
+            className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] gap-0.5 transition-all border-none bg-transparent"
             style={{ color: drawerOpen ? "var(--pg-brand)" : "var(--pg-text-sub)" }}
           >
             <UserIcon />
-            <span className="text-[10px] font-semibold">{t("profile") || "Profil"}</span>
+            <span className="text-[10px] sm:text-xs font-semibold whitespace-nowrap truncate px-1 max-w-full text-center">{t("profile") || "Profil"}</span>
           </button>
         </div>
       </nav>
@@ -232,7 +232,7 @@ export default function MobileDashboardNav({ userName, userEmail, userRole, user
 
       {/* ── Profile Drawer ─────────────────────────────── */}
       <div
-        className="md:hidden fixed bottom-0 left-0 right-0 z-[70] transition-all duration-300"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-[70] transition-all duration-300 max-h-[85vh] flex flex-col"
         style={{
           transform: drawerOpen ? "translateY(0)" : "translateY(110%)",
           background: "var(--pg-card)",
@@ -278,48 +278,51 @@ export default function MobileDashboardNav({ userName, userEmail, userRole, user
           </div>
         </div>
 
-        {/* Drawer Items */}
-        <div className="px-4 py-3 space-y-1">
-          {DRAWER_ITEMS.map((item) => {
-            const href = item.href(locale);
-            const active = pathname.startsWith(href);
-            return (
-              <Link
-                key={item.key}
-                href={href}
-                className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium transition-all"
-                style={{
-                  background: active ? "var(--pg-brand-light)" : "transparent",
-                  color: active ? "var(--pg-brand)" : "var(--pg-text)",
-                  boxShadow: active ? "var(--pg-neu-sm)" : "none",
-                }}
-              >
-                <span className="text-lg w-6 text-center">{item.icon}</span>
-                <span>{t(item.labelKey as any) || item.labelKey}</span>
-                {active && (
-                  <span className="ml-auto w-1.5 h-1.5 rounded-full" style={{ background: "var(--pg-brand)" }} />
-                )}
-              </Link>
-            );
-          })}
-        </div>
+        {/* Scrollable Content */}
+        <div className="overflow-y-auto custom-scrollbar flex-1 pb-safe">
+          {/* Drawer Items */}
+          <div className="px-4 py-3 space-y-1">
+            {DRAWER_ITEMS.map((item) => {
+              const href = item.href(locale);
+              const active = pathname.startsWith(href);
+              return (
+                <Link
+                  key={item.key}
+                  href={href}
+                  className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium transition-all"
+                  style={{
+                    background: active ? "var(--pg-brand-light)" : "transparent",
+                    color: active ? "var(--pg-brand)" : "var(--pg-text)",
+                    boxShadow: active ? "var(--pg-neu-sm)" : "none",
+                  }}
+                >
+                  <span className="text-lg w-6 text-center">{item.icon}</span>
+                  <span>{t(item.labelKey as any) || item.labelKey}</span>
+                  {active && (
+                    <span className="ml-auto w-1.5 h-1.5 rounded-full" style={{ background: "var(--pg-brand)" }} />
+                  )}
+                </Link>
+              );
+            })}
+          </div>
 
-        {/* Logout */}
-        <div className="px-4 pb-4">
-          <div className="border-t my-2" style={{ borderColor: "var(--pg-shadow-dark)" }} />
-          <button
-            onClick={() => signOut({ callbackUrl: `/${locale}/auth` })}
-            className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-semibold transition-all"
-            style={{
-              color: "var(--pg-danger)",
-              background: "transparent",
-              border: "none",
-              cursor: "pointer",
-            }}
-          >
-            <span className="text-lg w-6 text-center">🚪</span>
-            <span>{t("logout")}</span>
-          </button>
+          {/* Logout */}
+          <div className="px-4 pb-4">
+            <div className="border-t my-2" style={{ borderColor: "var(--pg-shadow-dark)" }} />
+            <button
+              onClick={() => signOut({ callbackUrl: `/${locale}/auth` })}
+              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-semibold transition-all"
+              style={{
+                color: "var(--pg-danger)",
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+              }}
+            >
+              <span className="text-lg w-6 text-center">🚪</span>
+              <span>{t("logout")}</span>
+            </button>
+          </div>
         </div>
       </div>
     </>
