@@ -1,7 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Download } from "lucide-react";
+
+const XIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+    <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+  </svg>
+);
+
+const DownloadIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>
+  </svg>
+);
 
 export default function InstallPWABanner() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -70,7 +81,7 @@ export default function InstallPWABanner() {
   return (
     <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-xl rounded-xl p-4 flex items-start gap-4 z-[100] animate-in slide-in-from-bottom-5 fade-in duration-300">
       <div className="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 p-2 rounded-lg shrink-0">
-        <Download className="w-6 h-6" />
+        <DownloadIcon />
       </div>
       <div className="flex-1">
         <h3 className="font-semibold text-gray-900 dark:text-white text-sm">
@@ -99,7 +110,7 @@ export default function InstallPWABanner() {
         className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 absolute top-3 right-3"
         aria-label="Tutup"
       >
-        <X className="w-4 h-4" />
+        <XIcon />
       </button>
     </div>
   );
