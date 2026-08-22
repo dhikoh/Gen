@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { getTranslations } from "next-intl/server";
 import { formatWaLink } from "@/lib/csContact";
+import InstallPWABanner from "@/components/InstallPWABanner";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
  const { locale } = await params;
@@ -283,6 +284,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
  </p>
  </div>
  </footer>
+ <InstallPWABanner />
  </div>
  );
 }

@@ -25,7 +25,6 @@ import { authOptions } from "@/lib/authOptions";
 import NextAuthProvider from "@/components/providers/NextAuthProvider";
 import FloatingCsWidget from "@/components/cs/FloatingCsWidget";
 
-import InstallPWABanner from "@/components/InstallPWABanner";
 
 export default async function RootLayout({
   children,
@@ -52,7 +51,6 @@ export default async function RootLayout({
           <NextAuthProvider>
             <ToastProvider />
             {children}
-            <InstallPWABanner />
             <FloatingCsWidget />
           </NextAuthProvider>
         </NextIntlClientProvider>

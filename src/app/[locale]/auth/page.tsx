@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/authOptions";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { getTranslations } from "next-intl/server";
+import InstallPWABanner from "@/components/InstallPWABanner";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -85,6 +86,8 @@ export default async function AuthPage({ params }: { params: Promise<{ locale: s
       <p className="mt-8 text-xs text-center" style={{ color: "var(--pg-text-muted)" }}>
         © {new Date().getFullYear()} Prompt Gen. All rights reserved.
       </p>
+      
+      <InstallPWABanner />
     </div>
   );
 }
