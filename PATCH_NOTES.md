@@ -716,7 +716,12 @@ Migrasi menggunakan 3-layer approach:
 
 ### 2. Presisi UI Mobile (Dashboard Nav)
 - Memperbaiki komponen MobileDashboardNav untuk isu presisi tampilan pada perangkat mobile.
-- Menerapkan fluid typography (	ext-[10px] sm:text-xs) dan 	runcate pada label navigasi.
+- Menerapkan fluid typography (text-[10px] sm:text-xs) dan truncate pada label navigasi.
 - Mengatur minimum touch target (min-w-[44px]) untuk aksesibilitas navigasi.
 - Mengatur overflow dan max-height pada profil Drawer (termasuk tombol Logout) agar proporsional di layar handphone kecil.
 - Menambahkan safe area padding untuk *home indicator* di sistem operasi mobile.
+
+### 3. Perbaikan Feature Gating (HTML Blog Export)
+- Menambal bug di backend `api/generate/route.ts` dan frontend `GeneratorPage` yang menyebabkan fitur "HTML Blog Export" terkunci meskipun sudah diaktifkan di admin.
+- Mengintegrasikan `KNOWN_PLAN_FEATURES` sebagai nilai fallback bawaan jika konfigurasi JSON `features` pada data paket lama tidak memuat flag tersebut secara spesifik.
+- Memperbaiki validasi variabel form `includeHtmlBlog` dengan skema Zod di backend.

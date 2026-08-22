@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-
+import { KNOWN_PLAN_FEATURES } from "@/lib/planFeatures";
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'Dashboard' });
@@ -30,9 +30,17 @@ export default async function GeneratorPage({ params }: { params: Promise<{ loca
 
   const isSuperadmin = session.user.role === "SUPERADMIN";
   const rawFeatures = (dbUser?.currentPlan?.features as Record<string, boolean> | null) || {};
+  
+  const getFeatureValue = (key: string) => {
+    if (isSuperadmin) return true;
+    if (typeof rawFeatures[key] === "boolean") return rawFeatures[key];
+    const def = KNOWN_PLAN_FEATURES.find(f => f.key === key)?.defaultValue;
+    return def === true;
+  };
+
   const planFeatures = {
-    imagePromptStudio: isSuperadmin || rawFeatures.imagePromptStudio === true,
-    htmlBlogExport: isSuperadmin || rawFeatures.htmlBlogExport === true,
+    imagePromptStudio: getFeatureValue("imagePromptStudio"),
+    htmlBlogExport: getFeatureValue("htmlBlogExport"),
   };
 
   const promptSettings = await prisma.promptSettings.findFirst();

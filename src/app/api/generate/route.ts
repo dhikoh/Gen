@@ -8,7 +8,7 @@ import { applyRateLimit } from "@/lib/rateLimit";
 import { requireActiveSubscription } from "@/lib/subscription";
 import { generateMasterPrompt, ProfileChannelData } from "@/lib/promptGenerator";
 import { generateImagePrompt } from "@/lib/imagePromptGenerator";
-
+import { KNOWN_PLAN_FEATURES } from "@/lib/planFeatures";
 const videoConfigSchema = z.object({
   targetPlatform: z.string().optional().nullable(),
   targetDurationSec: z.coerce.number().optional().nullable(),
@@ -143,18 +143,24 @@ export async function POST(req: Request) {
     }
 
     if (dbUser.role !== "SUPERADMIN") {
-      const features = (plan?.features || {}) as Record<string, boolean>;
+      const rawFeatures = (plan?.features || {}) as Record<string, boolean>;
+      
+      const getFeatureValue = (key: string) => {
+        if (typeof rawFeatures[key] === "boolean") return rawFeatures[key];
+        const def = KNOWN_PLAN_FEATURES.find(f => f.key === key)?.defaultValue;
+        return def === true;
+      };
 
       // Validasi fitur Image Prompt Studio (Bagian 5.5.B)
       if (type === "IMAGE") {
-        if (!features || features.imagePromptStudio !== true) {
+        if (!getFeatureValue("imagePromptStudio")) {
           return NextResponse.json({ error: t("imageStudioLocked") }, { status: 403 });
         }
       }
 
       // Validasi fitur HTML Blog Export [K1]
-      if (type === "VIDEO" && videoConfig?.htmlBlog === true) {
-        if (!features || features.htmlBlogExport !== true) {
+      if (type === "VIDEO" && (videoConfig?.htmlBlog === true || videoConfig?.includeHtmlBlog === true)) {
+        if (!getFeatureValue("htmlBlogExport")) {
           return NextResponse.json({ error: t("htmlBlogLocked") }, { status: 403 });
         }
       }
