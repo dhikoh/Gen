@@ -2,6 +2,46 @@
 
 ---
 
+## [v4.1.1] — 2026-08-25 — Camera Movement PRO Toggle (Opsi B)
+
+### UX IMPROVEMENT
+- **[NEW] Toggle PRO Mode per user** — Sebelumnya, Camera Movement PRO aktif otomatis (transparan). Kini user paket PRO/ULTRA dapat **memilih** sendiri kapan mengaktifkan Mode Profesional:
+  - Toggle `✨ Mode Profesional (PRO)` hanya muncul jika user **memiliki entitlement** `cameraMovementPro` — tidak ada clutter untuk user non-PRO.
+  - Toggle PRO OFF → Preset & custom concept **tetap tampil** (mode Standar / KURASI USER seperti biasa).
+  - Toggle PRO ON → Preset & custom concept **disembunyikan** otomatis; PRO mode diaktifkan. Preset yang sudah dipilih direset saat PRO diaktifkan.
+  - Toggle Camera Movement OFF → PRO mode ikut direset ke `false`.
+
+### KEAMANAN (TIDAK BERUBAH)
+- Server menggunakan **AND logic**: `cameraMovementProEnabled = serverHasEntitlement && clientOptedIn`.
+  - User non-PRO yang memanipulasi body request dengan `cameraMovementProMode: true` tetap mendapat instruksi Standar, karena `serverHasEntitlement = false`.
+  - SUPERADMIN selalu bypass (tidak berubah).
+
+### AUTO-SAVE
+- State `cameraMovementProMode` ditambahkan ke `stateObj` (localStorage + server preferences), deps array, dan restore logic (localStorage + server) — auto-save berjalan persis seperti field lain.
+
+### PERUBAHAN PER FILE
+- `src/components/generator/GeneratorForm.tsx`:
+  - State baru: `cameraMovementProMode` (boolean, default `false`)
+  - Auto-save/restore: ditambahkan ke stateObj, deps, dan 2 restore block (localStorage + server)
+  - Payload: `cameraMovementProMode` dikirim ke API; `cameraMovementPresets` dan `cameraMovementCustom` dikosongkan jika PRO aktif
+  - UI: PRO toggle (blue card, hanya muncul jika `planFeatures.cameraMovementPro`), preset section disembunyikan saat PRO ON
+  - Fix minor: `bg-white` pada input custom concept diganti `bg-transparent`
+- `src/app/api/generate/route.ts`:
+  - Zod schema: tambah `cameraMovementProMode: z.boolean().optional().nullable()`
+  - Entitlement: AND logic `serverHasProEntitlement && clientOptedInProMode`
+- `messages/en.json` + `messages/id.json`: 4 key baru (cameraMovementProModeLabel, cameraMovementProModeDesc, cameraMovementAutoStandardWithPro, cameraMovementCustomConceptHint). Paritas EN=ID=947 keys.
+
+### VERIFIKASI
+- User PRO, PRO toggle OFF → preset tampil, generate → master_prompt AUTO Standar ✓
+- User PRO, PRO toggle ON → preset disembunyikan, generate → master_prompt AUTO PRO ✓
+- User STANDARD → PRO toggle tidak muncul, hanya auto-standar + upsell hint ✓
+- Client manipulasi `cameraMovementProMode: true` tanpa entitlement → tetap AUTO Standar (AND logic) ✓
+- Auto-save: toggle PRO tersimpan setelah refresh ✓
+- `npm run build`: TypeScript clean, exit 0, 947/947 i18n parity ✓
+
+
+---
+
 ## [v4.0.1-bugfix] — 2026-08-25 — Perbaikan Copy UI Toggle Camera Movement
 
 ### BUG FIX (UI Copy)

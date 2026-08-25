@@ -1018,3 +1018,12 @@ Ketika kondisi AUTO yang sama terpenuhi dan plan user memiliki entitlement `came
 
 **File Terkait:** `src/lib/planFeatures.ts`, `src/app/api/generate/route.ts`, `src/lib/promptGenerator.ts`, `src/components/generator/GeneratorForm.tsx`, `prisma/seed.js`.
 
+
+
+### Addendum v4.1.1 — Toggle PRO per User (Camera Movement)
+
+Berdasarkan masukan UX, PRO mode kini **user-controlled** (bukan otomatis transparan):
+- Toggle `✨ Mode Profesional (PRO)` muncul di dalam section Camera Movement, **hanya untuk user dengan entitlement `cameraMovementPro`**.
+- Saat PRO ON: preset dan custom concept disembunyikan (PRO auto murni). Saat PRO OFF: preset/custom tampil normal (Standar/KURASI USER).
+- Server menggunakan AND logic: entitlement server HARUS true DAN client harus opt-in — tidak bisa dipalsukan dari sisi client.
+- State tersimpan via auto-save (localStorage + server preferences) seperti semua field lain di GeneratorForm.

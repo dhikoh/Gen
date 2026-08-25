@@ -31,6 +31,7 @@ const videoConfigSchema = z.object({
   socialCaption: z.boolean().optional().nullable(),
   thumbnailIdea: z.boolean().optional().nullable(),
   htmlBlog: z.boolean().optional().nullable(),
+  cameraMovementProMode: z.boolean().optional().nullable(),
   includeCaption: z.boolean().optional().nullable(),
   includeThumbnail: z.boolean().optional().nullable(),
   includeHtmlBlog: z.boolean().optional().nullable(),
@@ -169,8 +170,11 @@ export async function POST(req: Request) {
       }
 
       // Resolusi entitlement Camera Movement Pro — BUKAN gate blokir, hanya menentukan versi instruksi.
-      // Nilai ini SELALU berasal dari server, tidak pernah dari body request client.
-      cameraMovementProEnabled = getFeatureValue("cameraMovementPro");
+      // Server WAJIB punya entitlement AND user harus opt-in via toggle PRO (cameraMovementProMode).
+      // cameraMovementProMode dari client hanya sebagai INTENT — server tetap penentu akhir.
+      const serverHasProEntitlement = getFeatureValue("cameraMovementPro");
+      const clientOptedInProMode = videoConfig?.cameraMovementProMode === true;
+      cameraMovementProEnabled = serverHasProEntitlement && clientOptedInProMode;
     }
 
     const channel = await prisma.profileChannel.findUnique({

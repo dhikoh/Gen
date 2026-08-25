@@ -102,6 +102,7 @@ export default function GeneratorForm({
  const [cameraMovementEnabled, setCameraMovementEnabled] = useState<boolean>(true);
  const [cameraMovementPresets, setCameraMovementPresets] = useState<string[]>([]);
  const [cameraMovementCustom, setCameraMovementCustom] = useState<string>("");
+ const [cameraMovementProMode, setCameraMovementProMode] = useState<boolean>(false); // Opsi B: PRO auto toggle
 
  // Visual style options (from visualStyleMap)
  const visualStyleOptions: PresetOption[] = [
@@ -253,6 +254,7 @@ export default function GeneratorForm({
  if (p.cameraMovementEnabled !== undefined) setCameraMovementEnabled(p.cameraMovementEnabled);
  if (p.cameraMovementPresets !== undefined) setCameraMovementPresets(p.cameraMovementPresets);
  if (p.cameraMovementCustom !== undefined) setCameraMovementCustom(p.cameraMovementCustom);
+ if (p.cameraMovementProMode !== undefined) setCameraMovementProMode(p.cameraMovementProMode);
  if (p.videoConfig) setVideoConfig(prev => ({ ...prev, ...p.videoConfig }));
  if (p.imageConfig) setImageConfig(prev => ({ ...prev, ...p.imageConfig }));
  } catch (e) {}
@@ -280,6 +282,7 @@ export default function GeneratorForm({
  if (p.cameraMovementEnabled !== undefined) setCameraMovementEnabled(p.cameraMovementEnabled);
  if (p.cameraMovementPresets !== undefined) setCameraMovementPresets(p.cameraMovementPresets);
  if (p.cameraMovementCustom !== undefined) setCameraMovementCustom(p.cameraMovementCustom);
+ if (p.cameraMovementProMode !== undefined) setCameraMovementProMode(p.cameraMovementProMode);
  if (p.videoConfig) setVideoConfig(prev => ({ ...prev, ...p.videoConfig }));
  if (p.imageConfig) setImageConfig(prev => ({ ...prev, ...p.imageConfig }));
  }
@@ -300,7 +303,7 @@ export default function GeneratorForm({
  }, []);
 
  useEffect(() => {
- const stateObj = { type, channelId, outputLanguage, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, cameraMovementEnabled, cameraMovementPresets, cameraMovementCustom, videoConfig, imageConfig, step, generatedPrompt, aiResultJson, manualTitle };
+ const stateObj = { type, channelId, outputLanguage, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, cameraMovementEnabled, cameraMovementPresets, cameraMovementCustom, cameraMovementProMode, videoConfig, imageConfig, step, generatedPrompt, aiResultJson, manualTitle };
  localStorage.setItem("generatorFormState", JSON.stringify(stateObj));
 
  const timeoutId = setTimeout(() => {
@@ -312,7 +315,7 @@ export default function GeneratorForm({
  }, 3000); // 3 seconds debounce
 
  return () => clearTimeout(timeoutId);
- }, [type, channelId, outputLanguage, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, cameraMovementEnabled, cameraMovementPresets, cameraMovementCustom, videoConfig, imageConfig, step, generatedPrompt, aiResultJson, manualTitle]);
+ }, [type, channelId, outputLanguage, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, cameraMovementEnabled, cameraMovementPresets, cameraMovementCustom, cameraMovementProMode, videoConfig, imageConfig, step, generatedPrompt, aiResultJson, manualTitle]);
 
  // Fetch presets on mount
  useEffect(() => {
@@ -486,8 +489,9 @@ export default function GeneratorForm({
  sfxPreference,
  voPreference,
  cameraMovementEnabled,
- cameraMovementPresets: cameraMovementEnabled ? cameraMovementPresets : [],
- cameraMovementCustom: cameraMovementEnabled ? cameraMovementCustom : undefined,
+ cameraMovementPresets: (cameraMovementEnabled && !cameraMovementProMode) ? cameraMovementPresets : [],
+ cameraMovementCustom: (cameraMovementEnabled && !cameraMovementProMode) ? cameraMovementCustom : undefined,
+ cameraMovementProMode: cameraMovementEnabled ? cameraMovementProMode : false,
  isVideoPlatform: selectedChannel?.targetPlatform ? !/blog|podcast|article|web/i.test(selectedChannel.targetPlatform) : true,
  } : undefined,
  imageConfig: type === "IMAGE" ? imageConfig : undefined,
@@ -1076,7 +1080,7 @@ export default function GeneratorForm({
 
  {/* ── Camera Movement Section ── */}
  <div className="space-y-3 pt-2 border-t pg-border">
- {/* Header + Toggle */}
+ {/* Header + Main Toggle */}
  <div className="flex items-center justify-between">
  <label className="block text-xs font-semibold pg-text-sub">
  🎥 Camera Movement
@@ -1088,6 +1092,7 @@ export default function GeneratorForm({
  if (cameraMovementEnabled) {
  setCameraMovementPresets([]);
  setCameraMovementCustom("");
+ setCameraMovementProMode(false);
  }
  }}
  className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none ${
@@ -1105,7 +1110,54 @@ export default function GeneratorForm({
  </button>
  </div>
 
- {cameraMovementEnabled && (
+ {/* Camera OFF hint */}
+ {!cameraMovementEnabled && (
+ <p className="text-[10px] pg-text-muted italic">{t("cameraMovementDisabledHint")}</p>
+ )}
+
+ {/* Camera ON: PRO toggle (Opsi B — only shown if user has entitlement) */}
+ {cameraMovementEnabled && planFeatures.cameraMovementPro && (
+ <div className="flex items-center justify-between py-1.5 px-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
+ <div className="flex items-center gap-2">
+ <span className="text-[11px] font-semibold text-blue-700 dark:text-blue-300">
+ ✨ {t("cameraMovementProModeLabel")}
+ </span>
+ <span className="text-[10px] pg-text-muted">{t("cameraMovementProModeDesc")}</span>
+ </div>
+ <button
+ type="button"
+ onClick={() => {
+ const next = !cameraMovementProMode;
+ setCameraMovementProMode(next);
+ if (next) {
+ // Clear presets + custom when PRO mode is activated
+ setCameraMovementPresets([]);
+ setCameraMovementCustom("");
+ }
+ }}
+ className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none ${
+ cameraMovementProMode ? "bg-blue-600" : "pg-surface-dim"
+ }`}
+ aria-label="Toggle PRO camera movement mode"
+ >
+ <span
+ className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
+ cameraMovementProMode ? "translate-x-5" : "translate-x-1"
+ }`}
+ />
+ </button>
+ </div>
+ )}
+
+ {/* Camera ON + PRO ON: show PRO active message, hide presets */}
+ {cameraMovementEnabled && cameraMovementProMode && (
+ <div className="text-[10px] pg-text-muted italic px-1">
+ ✨ {t("cameraMovementAutoProActive")}
+ </div>
+ )}
+
+ {/* Camera ON + PRO OFF: show presets + custom (standard / KURASI USER mode) */}
+ {cameraMovementEnabled && !cameraMovementProMode && (
  <div className="space-y-3">
  {/* Grouped preset chips */}
  {CAMERA_MOVEMENT_CATEGORIES.map((cat) => (
@@ -1167,26 +1219,22 @@ export default function GeneratorForm({
  value={cameraMovementCustom}
  onChange={(e) => setCameraMovementCustom(e.target.value)}
  placeholder={t("cameraMovementCustomConceptPlaceholder")}
- className="w-full px-3 py-1.5 text-xs bg-white border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none pg-text-heading"
+ className="w-full px-3 py-1.5 text-xs bg-transparent border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none pg-text-heading"
  />
- <p className="text-[10px] pg-text-muted">Deskripsikan konsep gerakan kamera unik yang ingin dipadukan ke dalam setiap visual prompt scene.</p>
+ <p className="text-[10px] pg-text-muted">{t("cameraMovementCustomConceptHint")}</p>
  </div>
+
+ {/* Auto Standard hint (non-PRO user) or upsell (PRO available but not enabled) */}
+ {cameraMovementPresets.length === 0 && !cameraMovementCustom.trim() && (
+ <div className="text-[10px] pg-text-muted italic">
+ {planFeatures.cameraMovementPro
+ ? t("cameraMovementAutoStandardWithPro")
+ : <span>{t("cameraMovementAutoStandard")} <span className="text-amber-500 font-semibold not-italic">🔒 {t("cameraMovementAutoProLocked")}</span></span>
+ }
  </div>
  )}
-
-   {cameraMovementEnabled && cameraMovementPresets.length === 0 && !cameraMovementCustom.trim() && (
-  <div className="flex items-start gap-1.5 text-[10px] pg-text-muted italic">
-    {planFeatures.cameraMovementPro ? (
-      <span>✨ {t("cameraMovementAutoProActive")}</span>
-    ) : (
-      <span>{t("cameraMovementAutoStandard")} <span className="text-amber-500 font-semibold not-italic">🔒 {t("cameraMovementAutoProLocked")}</span></span>
-    )}
-  </div>
-  )}
-
-  {!cameraMovementEnabled && (
-  <p className="text-[10px] pg-text-muted italic">{t("cameraMovementDisabledHint")}</p>
-  )}
+ </div>
+ )}
  </div>
 
  {/* Composition Sliders */}

@@ -341,7 +341,11 @@
     "cameraMovementAutoProActive": "Mode Otomatis Profesional aktif — AI akan merancang gerakan kamera setara sinematografer profesional untuk setiap scene.",
     "cameraMovementAutoStandard": "Mode Otomatis: AI akan memilih gerakan kamera secara umum.",
     "cameraMovementAutoProLocked": "Upgrade paket untuk Mode Otomatis Profesional",
-    "cameraMovementDisabledHint": "Camera movement dinonaktifkan — AI akan menggunakan static shot / gerakan minimal."
+    "cameraMovementDisabledHint": "Camera movement dinonaktifkan — AI akan menggunakan static shot / gerakan minimal.",
+    "cameraMovementProModeLabel": "Mode Profesional (PRO)",
+    "cameraMovementProModeDesc": "AI merancang kamera setara DoP profesional",
+    "cameraMovementAutoStandardWithPro": "Mode Otomatis Standar — aktifkan ✨ Mode Profesional di atas untuk instruksi DoP tingkat lanjut.",
+    "cameraMovementCustomConceptHint": "Deskripsikan konsep gerakan kamera unik yang ingin dipadukan ke dalam setiap visual prompt scene."
   },
   "Drafts": {
     "pageTitleTab": "Riwayat Prompt",

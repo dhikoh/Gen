@@ -341,7 +341,11 @@
     "cameraMovementAutoProActive": "Professional Auto Mode active — AI will design camera movement to a professional cinematographer standard for every scene.",
     "cameraMovementAutoStandard": "Auto Mode: AI will pick camera movement generically.",
     "cameraMovementAutoProLocked": "Upgrade your plan for Professional Auto Mode",
-    "cameraMovementDisabledHint": "Camera movement disabled — AI will use static shot / minimal movement."
+    "cameraMovementDisabledHint": "Camera movement disabled — AI will use static shot / minimal movement.",
+    "cameraMovementProModeLabel": "Professional Mode (PRO)",
+    "cameraMovementProModeDesc": "AI designs camera as a professional DoP",
+    "cameraMovementAutoStandardWithPro": "Standard Auto Mode — enable ✨ Professional Mode above for advanced DoP-level instructions.",
+    "cameraMovementCustomConceptHint": "Describe a unique camera movement concept to incorporate into every scene visual prompt."
   },
   "Drafts": {
     "pageTitleTab": "Prompt History",
