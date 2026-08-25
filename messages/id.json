@@ -337,7 +337,11 @@
     "customAestheticPlaceholder": "Gaya visual kustom...",
     "saveAndContinueBtn": "💾 Simpan & Lanjutkan",
     "savingBtn": "Menyimpan...",
-    "saveProductBtn": "Simpan Produk"
+    "saveProductBtn": "Simpan Produk",
+    "cameraMovementAutoProActive": "Mode Otomatis Profesional aktif — AI akan merancang gerakan kamera setara sinematografer profesional untuk setiap scene.",
+    "cameraMovementAutoStandard": "Mode Otomatis: AI akan memilih gerakan kamera secara umum.",
+    "cameraMovementAutoProLocked": "Upgrade paket untuk Mode Otomatis Profesional",
+    "cameraMovementDisabledHint": "Camera movement dinonaktifkan — AI akan menggunakan static shot / gerakan minimal."
   },
   "Drafts": {
     "pageTitleTab": "Riwayat Prompt",
@@ -592,7 +596,8 @@
     "confirmDelete": "Ya, Hapus Paket",
     "deleting": "Menghapus...",
     "codeRequired": "Kode paket harus dipilih",
-    "featureFlagsNewPlanNote": "Semua flag fitur berikut wajib diatur secara eksplisit untuk paket baru ini."
+    "featureFlagsNewPlanNote": "Semua flag fitur berikut wajib diatur secara eksplisit untuk paket baru ini.",
+    "featureCameraMovementPro": "Camera Movement Profesional (PRO)"
   },
   "AdminSettings": {
     "pageTitleTab": "Pengaturan - Admin Prompt Gen",

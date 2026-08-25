@@ -24,5 +24,10 @@ export const KNOWN_PLAN_FEATURES: PlanFeatureDefinition[] = [
     key: "htmlBlogExport",
     labelKey: "featureHtmlBlogExport",
     defaultValue: true
+  },
+  {
+    key: "cameraMovementPro",
+    labelKey: "featureCameraMovementPro",
+    defaultValue: false   // fail-closed: new feature, no backward-compat burden
   }
 ];

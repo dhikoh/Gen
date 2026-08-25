@@ -142,28 +142,35 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: t("inactiveSub") }, { status: 403 });
     }
 
+    // SUPERADMIN always gets PRO tier; otherwise resolve from plan.features
+    let cameraMovementProEnabled = dbUser.role === "SUPERADMIN";
+
     if (dbUser.role !== "SUPERADMIN") {
       const rawFeatures = (plan?.features || {}) as Record<string, boolean>;
-      
+
       const getFeatureValue = (key: string) => {
         if (typeof rawFeatures[key] === "boolean") return rawFeatures[key];
         const def = KNOWN_PLAN_FEATURES.find(f => f.key === key)?.defaultValue;
         return def === true;
       };
 
-      // Validasi fitur Image Prompt Studio (Bagian 5.5.B)
+      // Validasi fitur Image Prompt Studio (Bagian 5.5.B) — TIDAK BERUBAH
       if (type === "IMAGE") {
         if (!getFeatureValue("imagePromptStudio")) {
           return NextResponse.json({ error: t("imageStudioLocked") }, { status: 403 });
         }
       }
 
-      // Validasi fitur HTML Blog Export [K1]
+      // Validasi fitur HTML Blog Export [K1] — TIDAK BERUBAH
       if (type === "VIDEO" && (videoConfig?.htmlBlog === true || videoConfig?.includeHtmlBlog === true)) {
         if (!getFeatureValue("htmlBlogExport")) {
           return NextResponse.json({ error: t("htmlBlogLocked") }, { status: 403 });
         }
       }
+
+      // Resolusi entitlement Camera Movement Pro — BUKAN gate blokir, hanya menentukan versi instruksi.
+      // Nilai ini SELALU berasal dari server, tidak pernah dari body request client.
+      cameraMovementProEnabled = getFeatureValue("cameraMovementPro");
     }
 
     const channel = await prisma.profileChannel.findUnique({
@@ -205,6 +212,7 @@ export async function POST(req: Request) {
       const fullVideoConfig = {
         ...videoConfig,
         selectedProduct,
+        cameraMovementProEnabled, // server-resolved PRO entitlement — never read from client body
       };
 
       const result = generateMasterPrompt(channel as unknown as ProfileChannelData, effectiveTopic, additionalContext || "", fullVideoConfig, promptSettings, previousTitles, outputLanguage);

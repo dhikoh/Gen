@@ -55,13 +55,14 @@ interface GeneratorFormProps {
  planFeatures?: {
  imagePromptStudio?: boolean;
  htmlBlogExport?: boolean;
+ cameraMovementPro?: boolean; // PRO tier camera movement
  };
 }
 
 export default function GeneratorForm({
  channels,
  promptSettings,
- planFeatures = { imagePromptStudio: true, htmlBlogExport: true }
+ planFeatures = { imagePromptStudio: true, htmlBlogExport: true, cameraMovementPro: false }
 }: GeneratorFormProps) {
  const router = useRouter();
  const t = useTranslations("Generator");
@@ -1173,9 +1174,19 @@ export default function GeneratorForm({
  </div>
  )}
 
- {!cameraMovementEnabled && (
- <p className="text-[10px] pg-text-muted italic">Camera movement dinonaktifkan — AI akan memilih gerakan kamera secara otomatis.</p>
- )}
+   {cameraMovementEnabled && cameraMovementPresets.length === 0 && !cameraMovementCustom.trim() && (
+  <div className="flex items-start gap-1.5 text-[10px] pg-text-muted italic">
+    {planFeatures.cameraMovementPro ? (
+      <span>✨ {t("cameraMovementAutoProActive")}</span>
+    ) : (
+      <span>{t("cameraMovementAutoStandard")} <span className="text-amber-500 font-semibold not-italic">🔒 {t("cameraMovementAutoProLocked")}</span></span>
+    )}
+  </div>
+  )}
+
+  {!cameraMovementEnabled && (
+  <p className="text-[10px] pg-text-muted italic">{t("cameraMovementDisabledHint")}</p>
+  )}
  </div>
 
  {/* Composition Sliders */}

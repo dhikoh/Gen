@@ -984,3 +984,37 @@ Penambahan fitur minor UX dan penyempurnaan UI layout di mobile pasca-audit taha
 - **Fix (CSS Responsif):** Memindahkan posisi widget ke atas saat layar berukuran kecil.
   - `bottom-24 right-4` (Mobile): Widget dinaikkan setinggi 6rem agar mengambang tepat di atas navigasi bawah.
   - `md:bottom-6 md:right-6` (Desktop): Posisi tetap normal di sudut karena ketiadaan navigasi bawah.
+
+
+---
+
+### Camera Movement — Tier Standar vs Profesional (PRO)
+
+**Latar Belakang:**
+Fitur Camera Movement tersedia dalam dua tingkatan kualitas berdasarkan paket user:
+
+**1. Mode AUTO Standar (semua paket):**
+Ketika toggle Camera Movement ON dan user tidak memilih preset/konsep kustom, AI bebas memilih gerakan kamera dari daftar referensi sederhana. Perilaku ini tidak berubah dan tetap tersedia untuk semua paket.
+
+**2. Mode AUTO Profesional / PRO (paket PRO & ULTRA, dapat diatur admin):**
+Ketika kondisi AUTO yang sama terpenuhi dan plan user memiliki entitlement `cameraMovementPro: true`, AI bertindak sebagai Director of Photography profesional dengan 8 prinsip:
+1. Motivated Movement — setiap gerakan harus punya alasan naratif/emosional.
+2. Tata Bahasa Gerakan per Peran Scene (Hook/Body/Klimaks/CTA).
+3. Kosakata Gerakan Profesional (dolly, Steadicam, rack focus, dll).
+4. Kontinuitas Antar-Scene — irama gerakan mengikuti busur emosi naskah.
+5. Koordinasi dengan Blocking Subjek.
+6. Kedalaman Visual (depth/parallax dengan foreground-midground-background).
+7. Variasi Disengaja, Bukan Acak.
+8. Format Wajib: [Jenis Gerakan] + [Kualitas/Kecepatan] + [Konteks Naratif].
+
+**Mode KURASI USER** (preset atau custom concept dipilih): Perilaku tidak berubah untuk kedua tier.
+
+**Prinsip Desain & Keamanan:**
+- Entitlement `cameraMovementPro` divalidasi **hanya di server** (`api/generate/route.ts`) — tidak pernah dari body request client (fail-closed by design).
+- Default flag: `false` (fail-closed) — paket tanpa konfigurasi eksplisit TIDAK mendapat PRO.
+- SUPERADMIN selalu mendapat PRO.
+- Admin mengatur entitlement per paket via Admin Panel → Plans → toggle "Camera Movement Profesional (PRO)".
+- Seed default: DEMO=false, STANDARD=false, PRO=true, ULTRA=true.
+
+**File Terkait:** `src/lib/planFeatures.ts`, `src/app/api/generate/route.ts`, `src/lib/promptGenerator.ts`, `src/components/generator/GeneratorForm.tsx`, `prisma/seed.js`.
+

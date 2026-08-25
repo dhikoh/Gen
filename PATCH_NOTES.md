@@ -2,6 +2,52 @@
 
 ---
 
+## [v4.0.1-bugfix] — 2026-08-25 — Perbaikan Copy UI Toggle Camera Movement
+
+### BUG FIX (UI Copy)
+- **[FIX] GeneratorForm.tsx** — Teks hint pada kondisi toggle Camera Movement OFF sebelumnya berbunyi *"AI akan memilih gerakan kamera secara otomatis"*, yang merupakan deskripsi dari perilaku toggle ON (mode AUTO), bukan perilaku toggle OFF (static/minimal shot). Teks sudah diperbaiki menjadi `cameraMovementDisabledHint` yang akurat: *"Camera movement dinonaktifkan — AI akan menggunakan static shot / gerakan minimal."*
+- Perbaikan ini ditemukan saat mengerjakan fitur Camera Movement PRO (v4.1.0) dan dicatat sebagai entri terpisah untuk keterlacakan histori.
+
+### i18n
+- Key baru `Generator.cameraMovementDisabledHint` ditambahkan ke EN dan ID (menggantikan string hardcode yang salah).
+
+
+---
+
+## [v4.1.0] — 2026-08-25 — Fitur Camera Movement Profesional (PRO)
+
+### FITUR BARU
+- **[NEW] Camera Movement PRO** — Mode Otomatis Camera Movement kini hadir dalam dua tingkatan:
+  - **Standar (semua paket, TIDAK BERUBAH):** Perilaku AUTO yang sudah ada — AI bebas memilih gerakan kamera dari daftar referensi sederhana. Tidak ada regresi untuk pengguna paket DEMO dan STANDARD.
+  - **Profesional / PRO (paket PRO & ULTRA):** Ketika toggle Camera Movement ON dan user tidak memilih preset/konsep kustom (mode AUTO murni), AI bertindak sebagai Director of Photography profesional mengikuti 8 prinsip sinematografis: motivated movement, tata bahasa gerakan per peran scene, kosakata presisi, kontinuitas antar-scene, koordinasi blocking subjek, kedalaman visual, variasi disengaja, dan format deskripsi wajib.
+  - Mode KURASI USER (preset dan/atau custom concept dipilih) **tidak terpengaruh** oleh status PRO — berlaku sama untuk semua paket.
+
+### KEAMANAN (WAJIB DIPERTAHANKAN)
+- Entitlement `cameraMovementPro` **hanya divalidasi di server** (`api/generate/route.ts`) dari `plan.features` user yang login via sesi — tidak pernah dibaca dari body request client.
+- SUPERADMIN selalu bypass dan mendapat versi PRO.
+- Default flag: **fail-closed (`false`)** — berbeda dari `imagePromptStudio`/`htmlBlogExport` yang default `true` (backward-compat lama). Paket yang tidak eksplisit mengaktifkannya TIDAK mendapat PRO.
+
+### PERUBAHAN PER FILE
+- `src/lib/planFeatures.ts`: Tambah entri `cameraMovementPro` (defaultValue: false, fail-closed).
+- `prisma/seed.js`: Tambah `cameraMovementPro` secara eksplisit ke semua 4 plan (DEMO: false, STANDARD: false, PRO: true, ULTRA: true).
+- `src/app/[locale]/dashboard/generator/page.tsx`: Tambah `cameraMovementPro: getFeatureValue("cameraMovementPro")` ke `planFeatures`.
+- `src/app/api/generate/route.ts`: Refactor gate block — `cameraMovementProEnabled` diinisialisasi untuk SUPERADMIN, lalu di-resolve dari `plan.features` untuk user biasa. Disisipkan ke `fullVideoConfig` sebelum memanggil `generateMasterPrompt`.
+- `src/lib/promptGenerator.ts`: Tambah `cameraMovementProEnabled` ke `VideoConfigData`. Cabang AUTO dipecah: PRO → blok instruksi 8 prinsip DoP profesional; non-PRO → instruksi AUTO standar yang sudah ada (tidak berubah).
+- `src/components/generator/GeneratorForm.tsx`: Prop `cameraMovementPro` ditambahkan (default: false). UI hint di mode AUTO menampilkan ✨ aktif jika PRO, atau 🔒 upsell jika tidak PRO (gaya `text-amber-500`, konsisten dengan `htmlBlogExport`). Teks toggle-OFF diperbaiki (lihat v4.0.1).
+- `messages/en.json` + `messages/id.json`: 5 key baru (AdminPlans.featureCameraMovementPro + 4 Generator keys). Paritas EN=ID=943 keys.
+
+### VERIFIKASI
+- Skenario 1 (STANDARD): generate AUTO → master_prompt mengandung `[PANDUAN CAMERA MOVEMENT — AUTO]` (standar). ✓
+- Skenario 2 (PRO): generate AUTO → master_prompt mengandung `[PANDUAN CAMERA MOVEMENT — MODE OTOMATIS PROFESIONAL (PRO)]` dengan 8 poin. ✓
+- Skenario 3 (PRO + preset): generate KURASI → header tetap `[PANDUAN CAMERA MOVEMENT — KURASI USER]`. ✓
+- Skenario 4 (toggle OFF): header `[PANDUAN CAMERA MOVEMENT]` DINONAKTIFKAN, hint UI sudah benar. ✓
+- SUPERADMIN selalu mendapat PRO terlepas dari plan. ✓
+- AdminPlansClient otomatis menampilkan toggle "Camera Movement Profesional (PRO)" via `KNOWN_PLAN_FEATURES.map`. ✓
+- `npm run build`: TypeScript clean, exit 0, 943/943 i18n keys parity. ✓
+
+
+---
+
 ## [v4.0.0-audit] — 2026-08-25 — Final Audit & Remediasi Produksi
 
 ### SECURITY (P0)

@@ -41,6 +41,7 @@ export default async function GeneratorPage({ params }: { params: Promise<{ loca
   const planFeatures = {
     imagePromptStudio: getFeatureValue("imagePromptStudio"),
     htmlBlogExport: getFeatureValue("htmlBlogExport"),
+    cameraMovementPro: getFeatureValue("cameraMovementPro"), // PRO tier camera movement
   };
 
   const promptSettings = await prisma.promptSettings.findFirst();

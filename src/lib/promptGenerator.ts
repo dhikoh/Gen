@@ -50,6 +50,7 @@ export interface VideoConfigData {
   cameraMovementEnabled?: boolean | null;
   cameraMovementPresets?: string[] | null;
   cameraMovementCustom?: string | null;
+  cameraMovementProEnabled?: boolean | null; // server-resolved PRO entitlement
 }
 
 export interface PromptSettingsData {
@@ -196,7 +197,36 @@ export function generateMasterPrompt(
       cameraMovementGuide += `WAJIB: Distribusikan gerakan kamera di atas secara bervariasi antar-scene. Hindari pengulangan gerakan yang sama di scene berurutan. Sesuaikan intensitas gerakan dengan mood narasi.`;
     } else {
       // Default ON but no preset selected — give AI creative freedom with guidance
-      cameraMovementGuide = `[PANDUAN CAMERA MOVEMENT — AUTO]\nAI bebas memilih dan memvariasikan gerakan kamera yang paling sinematik dan sesuai dengan mood setiap scene. Referensi pilihan yang disarankan (tidak terbatas):\n- Untuk scene pembuka/hook: slow push-in, whip pan, crane down and tilt up\n- Untuk scene emosional: slow zoom in, handheld shaky, arc shot\n- Untuk scene aksi/dinamis: tracking shot, sweeping orbital, dolly zoom\n- Untuk scene penutup/CTA: slow pull-out, crane up and wide reveal\nWAJIB: Variasikan gerakan kamera antar scene. Hindari static shot berturut-turut kecuali untuk efek dramatis yang disengaja.`;
+      // PRO tier: AI acts as professional DoP | Standard tier: existing free-form auto
+      if (videoConfig.cameraMovementProEnabled) {
+        cameraMovementGuide = `[PANDUAN CAMERA MOVEMENT — MODE OTOMATIS PROFESIONAL (PRO)]
+Kamu bertindak sebagai Director of Photography (DoP) profesional yang merancang pergerakan kamera setara produksi video komersial/sinema untuk SETIAP scene di naskah ini. Jangan hanya memilih gerakan secara acak dari daftar — rancang dengan pertimbangan sinematografis yang menyeluruh, mengikuti seluruh prinsip berikut:
+
+1. PRINSIP MOTIVATED MOVEMENT (WAJIB): Setiap pergerakan kamera HARUS memiliki alasan naratif atau emosional yang jelas — mengikuti aksi subjek, mengungkap informasi baru (reveal), membangun ketegangan, atau memperkuat emosi dominan scene tersebut. DILARANG menyisipkan gerakan kamera hanya sebagai hiasan tanpa tujuan naratif.
+
+2. TATA BAHASA GERAKAN SESUAI PERAN SCENE:
+   - Scene Hook/Pembuka: gerakan cepat & tajam untuk menghentikan scroll — whip pan, snap zoom, crane turun cepat, atau quick push-in.
+   - Scene Body/Pengembangan: gerakan terukur & halus untuk menjaga engagement — slow dolly, tracking shot mengikuti subjek, arc/orbit shot untuk membangun dimensi.
+   - Scene Klimaks/Konflik: gerakan yang membangun intensitas — dolly-in progresif, handheld terkendali (controlled) untuk kesan urgensi, rack focus dipadukan gerakan kamera untuk mengalihkan perhatian secara dramatis.
+   - Scene Penutup/CTA: gerakan menenangkan atau menyimpulkan — slow pull-out, crane naik untuk reveal luas, atau settle statis di akhir agar CTA punya ruang bernapas.
+
+3. KOSAKATA GERAKAN PROFESIONAL (gunakan istilah presisi, hindari istilah generik): dolly in/out, truck left/right, pan, tilt, pedestal up/down, crane/jib movement, Steadicam glide, handheld controlled vs handheld chaotic, whip pan, arc/orbit shot, parallax layering, rack focus pull, push-in/pull-out bertahap (progressive), serta implikasi kecepatan (slow & measured vs quick & snap).
+
+4. KONTINUITAS ANTAR-SCENE (WAJIB): Pertimbangkan posisi akhir gerakan kamera pada satu scene terhadap posisi awal gerakan scene berikutnya, agar transisi terasa mengalir, bukan acak atau patah-patah secara visual. Bangun "irama gerakan" (movement rhythm) yang naik-turun mengikuti busur emosi keseluruhan naskah — DILARANG membuat seluruh scene memiliki intensitas gerakan yang identik dari awal sampai akhir.
+
+5. KOORDINASI DENGAN BLOCKING SUBJEK: Deskripsikan gerakan kamera dalam relasi terhadap aksi/posisi subjek di scene — apakah kamera mengikuti (following), mendahului (leading), bergerak berlawanan arah untuk ketegangan (counter-movement), atau tetap statis sementara subjek bergerak untuk menciptakan kontras.
+
+6. KEDALAMAN VISUAL (DEPTH & PARALLAX): Manfaatkan elemen foreground/midground/background untuk menciptakan kesan kedalaman saat kamera bergerak — sebutkan elemen-elemen lapisan ini secara eksplisit dalam Visual Prompt bila relevan dengan scene.
+
+7. VARIASI YANG DISENGAJA, BUKAN ACAK: Variasikan jenis dan intensitas gerakan antar-scene secara SENGAJA berdasarkan kebutuhan naratif tiap scene (lihat poin 2) — DILARANG dua scene berurutan memiliki jenis dan intensitas gerakan yang identik, kecuali sebagai motif visual berulang yang disengaja untuk efek dramatis tertentu.
+
+8. FORMAT WAJIB DI SETIAP VISUAL PROMPT: Tuliskan gerakan kamera dalam format [Jenis Gerakan] + [Kualitas/Kecepatan] + [Konteks/Tujuan Naratif tersirat lewat deskripsi visual]. Contoh yang BENAR: "slow dolly-in from medium shot to close-up as the product is revealed, camera subtly rising to eye-level for a moment of intimacy". Contoh yang SALAH (terlalu generik, hindari): "push-in" tanpa konteks apa pun.
+
+WAJIB: Terapkan seluruh 8 prinsip di atas secara konsisten pada SETIAP Visual Prompt sepanjang naskah, seolah dirancang oleh satu sinematografer profesional yang memahami keseluruhan alur cerita secara utuh — bukan merancang scene demi scene secara terisolasi.`;
+      } else {
+        // Default ON but no preset selected — give AI creative freedom with guidance (STANDAR, TIDAK BERUBAH)
+        cameraMovementGuide = `[PANDUAN CAMERA MOVEMENT — AUTO]\nAI bebas memilih dan memvariasikan gerakan kamera yang paling sinematik dan sesuai dengan mood setiap scene. Referensi pilihan yang disarankan (tidak terbatas):\n- Untuk scene pembuka/hook: slow push-in, whip pan, crane down and tilt up\n- Untuk scene emosional: slow zoom in, handheld shaky, arc shot\n- Untuk scene aksi/dinamis: tracking shot, sweeping orbital, dolly zoom\n- Untuk scene penutup/CTA: slow pull-out, crane up and wide reveal\nWAJIB: Variasikan gerakan kamera antar scene. Hindari static shot berturut-turut kecuali untuk efek dramatis yang disengaja.`;
+      }
     }
   }
 

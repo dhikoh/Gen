@@ -337,7 +337,11 @@
     "customAestheticPlaceholder": "Custom visual style...",
     "saveAndContinueBtn": "💾 Save & Continue",
     "savingBtn": "Saving...",
-    "saveProductBtn": "Save Product"
+    "saveProductBtn": "Save Product",
+    "cameraMovementAutoProActive": "Professional Auto Mode active — AI will design camera movement to a professional cinematographer standard for every scene.",
+    "cameraMovementAutoStandard": "Auto Mode: AI will pick camera movement generically.",
+    "cameraMovementAutoProLocked": "Upgrade your plan for Professional Auto Mode",
+    "cameraMovementDisabledHint": "Camera movement disabled — AI will use static shot / minimal movement."
   },
   "Drafts": {
     "pageTitleTab": "Prompt History",
@@ -592,7 +596,8 @@
     "confirmDelete": "Yes, Delete Plan",
     "deleting": "Deleting...",
     "codeRequired": "Plan code must be selected",
-    "featureFlagsNewPlanNote": "All feature flags below must be explicitly set for this new plan."
+    "featureFlagsNewPlanNote": "All feature flags below must be explicitly set for this new plan.",
+    "featureCameraMovementPro": "Professional Camera Movement (PRO)"
   },
   "AdminSettings": {
     "pageTitleTab": "Settings - Admin Prompt Gen",
