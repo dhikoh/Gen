@@ -221,7 +221,11 @@
     "audioSFX": "Sound Effects (SFX)",
     "audioVO": "Voice Over (VO)",
     "socialMediaLabel": "Social Media Links",
-    "socialMediaPlaceholder2": "Tiktok: @akun, Instagram: @akun"
+    "socialMediaPlaceholder2": "Tiktok: @akun, Instagram: @akun",
+    "usageLabel": "Penggunaan:",
+    "draftCount": "{count}x draft",
+    "hideSettings": "Sembunyikan Pengaturan ▲",
+    "editChannel": "Edit Channel & Produk ▼"
   },
   "Generator": {
     "pageTitle": "Studio Generator",
@@ -496,7 +500,8 @@
     "allPlans": "Semua Paket",
     "totalUsers": "Total Pengguna",
     "prevPage": "Sebelumnya",
-    "nextPage": "Selanjutnya"
+    "nextPage": "Selanjutnya",
+    "usageCount": "{count} penggunaan"
   },
   "AdminPayments": {
     "pageTitleTab": "Persetujuan Tagihan - Admin",
@@ -570,7 +575,24 @@
     "planIsActive": "Paket Aktif",
     "featureFlags": "Fitur Paket",
     "featureImagePromptStudio": "Akses Image Prompt Studio",
-    "featureHtmlBlogExport": "Export Artikel HTML Blog"
+    "featureHtmlBlogExport": "Export Artikel HTML Blog",
+    "addPlan": "Tambah Paket Baru",
+    "planName": "Nama Tampilan Paket",
+    "planCode": "Kode Paket",
+    "selectCode": "Pilih Kode...",
+    "sortOrder": "Urutan Tampil (Sort)",
+    "publiclyPurchasable": "Bisa Dibeli Publik",
+    "createPlan": "Buat Paket",
+    "createSuccess": "Paket baru berhasil dibuat!",
+    "createFail": "Gagal membuat paket",
+    "deletePlan": "Hapus Paket",
+    "deleteSuccess": "Paket berhasil dihapus!",
+    "deleteFail": "Gagal menghapus paket",
+    "deleteConfirmMsg": "Apakah Anda yakin ingin menghapus paket ini? Tindakan ini tidak dapat dibatalkan. Catatan: Paket yang masih digunakan subscriber aktif tidak dapat dihapus.",
+    "confirmDelete": "Ya, Hapus Paket",
+    "deleting": "Menghapus...",
+    "codeRequired": "Kode paket harus dipilih",
+    "featureFlagsNewPlanNote": "Semua flag fitur berikut wajib diatur secara eksplisit untuk paket baru ini."
   },
   "AdminSettings": {
     "pageTitleTab": "Pengaturan - Admin Prompt Gen",
@@ -956,5 +978,29 @@
     "cancel": "Batal",
     "import": "Impor",
     "importing": "Mengimpor..."
+  },
+  "Settings": {
+    "profileTitle": "Profil Pengguna",
+    "newNameLabel": "Nama Baru",
+    "newNamePlaceholder": "Masukkan nama baru",
+    "savingProfile": "Menyimpan...",
+    "saveProfile": "Simpan Profil",
+    "profileUpdatedSuccess": "Profil berhasil diperbarui. (Silakan refresh halaman untuk melihat perubahan).",
+    "profileUpdateFail": "Gagal memperbarui profil.",
+    "changePasswordTitle": "Ubah Kata Sandi",
+    "currentPasswordLabel": "Kata Sandi Saat Ini",
+    "newPasswordLabel": "Kata Sandi Baru",
+    "savingPassword": "Menyimpan...",
+    "changePassword": "Ubah Kata Sandi",
+    "passwordUpdatedSuccess": "Kata sandi berhasil diperbarui.",
+    "passwordUpdateFail": "Gagal memperbarui kata sandi.",
+    "generalError": "Terjadi kesalahan."
+  },
+  "InstallPWA": {
+    "installTitle": "Install Aplikasi",
+    "installDesc": "Install Prompt Gen ke perangkat Anda untuk akses lebih cepat dan pengalaman terbaik.",
+    "installBtn": "Install",
+    "laterBtn": "Lain kali",
+    "closeLabel": "Tutup"
   }
 }

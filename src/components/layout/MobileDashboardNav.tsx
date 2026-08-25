@@ -297,7 +297,7 @@ export default function MobileDashboardNav({ userName, userEmail, userRole, user
                   }}
                 >
                   <span className="text-lg w-6 text-center">{item.icon}</span>
-                  <span>{t(item.labelKey as any) || item.labelKey}</span>
+                  <span>{t(item.labelKey as Parameters<typeof t>[0]) || item.labelKey}</span>
                   {active && (
                     <span className="ml-auto w-1.5 h-1.5 rounded-full" style={{ background: "var(--pg-brand)" }} />
                   )}

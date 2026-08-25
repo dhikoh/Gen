@@ -1,3 +1,4 @@
+// @deprecated Use /api/cs/contact-info instead. This endpoint is kept for backward compatibility.
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { applyRateLimit } from "@/lib/rateLimit";

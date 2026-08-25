@@ -3,6 +3,10 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
+import { Prisma } from "@prisma/client";
+
+const VALID_STATUSES = ["PENDING", "APPROVED", "REJECTED", "PAID", "FAILED"] as const;
+type ValidStatus = typeof VALID_STATUSES[number];
 
 export async function GET(req: Request) {
   const t = await getApiTranslator();
@@ -15,9 +19,9 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const statusParam = searchParams.get("status");
 
-    const whereClause: any = { userId: session.user.id };
-    if (statusParam && ["PENDING", "APPROVED", "REJECTED", "PAID", "FAILED"].includes(statusParam)) {
-      whereClause.status = statusParam;
+    const whereClause: Prisma.InvoiceWhereInput = { userId: session.user.id };
+    if (statusParam && (VALID_STATUSES as readonly string[]).includes(statusParam)) {
+      whereClause.status = statusParam as ValidStatus;
     }
 
     const invoices = await prisma.invoice.findMany({

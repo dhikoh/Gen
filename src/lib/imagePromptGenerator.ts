@@ -88,6 +88,12 @@ export function generateImagePrompt(
     systemInstruction += `\nWAJIB: Jika ada prompt teks overlay atau ide caption, tulis dalam bahasa ${outputLanguage.trim()}. Note: Visual prompt untuk Midjourney tetap dalam bahasa Inggris.`;
   }
 
+  // P3-2: Inject excludeTitles into systemInstruction so LLM avoids used topics
+  if (excludeTitles && excludeTitles.length > 0) {
+    const titleList = excludeTitles.map((t, i) => `${i + 1}. ${t}`).join('\n');
+    systemInstruction += `\n\nDIREKTIF PENTING - HINDARI TOPIK BERIKUT (sudah pernah digunakan):\n${titleList}\nJangan buat variasi, parafrase, atau topik yang mirip dengan judul-judul di atas.`;
+  }
+
   return { 
     masterPrompt: "Prompt generated directly. You can edit the JSON below.", 
     systemInstruction,

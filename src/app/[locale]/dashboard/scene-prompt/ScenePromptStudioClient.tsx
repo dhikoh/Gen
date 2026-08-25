@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import toast from "react-hot-toast";
+import sanitizeHtml from "sanitize-html";
 import { extractAudioCues, extractVisualAudioHint, cleanParsedValue, parseVoiceGuidelines, extractTitles, extractChosenTitle, extractThumbnailData, extractCaption, extractHashtags, extractHtmlBlog } from "@/lib/parsers";
 import type { ThumbnailData } from "@/lib/parsers";
 
@@ -374,7 +375,8 @@ export default function ScenePromptStudioClient({ channels, locale }: Props) {
  {copiedId === "blog" ? "✓ Copied!" : "Copy HTML"}
  </button>
  </div>
- <div className="bg-white p-6 rounded-lg border pg-border shadow-inner overflow-y-auto max-h-[60vh] prose dark:prose-invert max-w-none text-sm" dangerouslySetInnerHTML={{ __html: htmlBlog }} />
+  {/* P0-1 Security Fix: sanitizeHtml prevents XSS from user-pasted AI output */}
+ <div className="pg-surface p-6 rounded-lg border pg-border shadow-inner overflow-y-auto max-h-[60vh] prose dark:prose-invert max-w-none text-sm" dangerouslySetInnerHTML={{ __html: sanitizeHtml(htmlBlog, { allowedTags: ['h1','h2','h3','h4','h5','h6','p','ul','ol','li','strong','em','b','i','a','br','hr','blockquote','pre','code'], allowedAttributes: { a: ['href', 'target', 'rel'] } }) }} />
  </div>
  )}
 

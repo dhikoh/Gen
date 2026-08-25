@@ -332,7 +332,7 @@ export default function UserManagement({ initialPlans }: { initialPlans: Plan[] 
                           {userDetail.channels.map(c => (
                             <div key={c.id} className="text-sm p-2 rounded-lg flex justify-between" style={{ background: 'var(--pg-surface)', border: '1px solid var(--pg-shadow-dark)' }}>
                               <span style={{ color: 'var(--pg-text)' }}>{c.channelName}</span>
-                              <span style={{ color: 'var(--pg-text-muted)' }}>{c.isLocked ? tu('locked') : tu('active')} • {c.usageCount} uses</span>
+                              <span style={{ color: 'var(--pg-text-muted)' }}>{c.isLocked ? tu('locked') : tu('active')} • {tu('usageCount', { count: c.usageCount })}</span>
                             </div>
                           ))}
                         </div>

@@ -1,3 +1,22 @@
+/**
+ * Rate Limiter — Token Bucket via Prisma (persistent, database-backed)
+ * =======================================================================
+ * Usage:
+ *   const allowed = await applyRateLimit(key, limit, windowSec);
+ *   if (!allowed) return NextResponse.json({ error: t("rateLimit") }, { status: 429 });
+ *
+ * Parameters:
+ *   @param key       - Unique identifier for the rate limit bucket.
+ *                      Convention: `<action>_<userId>_<ip>` e.g. `generate_clxxx_127.0.0.1`
+ *   @param limit     - Maximum number of requests allowed in the window.
+ *   @param windowSec - Sliding window duration in seconds.
+ *
+ * Design notes:
+ *   - Uses upsert on RateLimit model to atomically track hit counts and window resets.
+ *   - Fails open (returns true) if the DB call throws, to avoid blocking users on DB errors.
+ *   - For critical endpoints (auth, register), set lower limits (5/60) than utility endpoints (20/60).
+ *   - Keys are garbage-collected by the DB TTL or via cron on the RateLimit table.
+ */
 import { prisma } from "@/lib/db";
 
 // KETERBATASAN: Rate limiter ini bersifat in-memory dan per-instance. 

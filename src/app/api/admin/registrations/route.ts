@@ -8,6 +8,7 @@ import { getTranslations } from "next-intl/server";
 import { sendEmail } from "@/lib/email";
 import { getBaseEmailTemplate } from "@/lib/emailTemplates";
 import { notifyUser } from "@/lib/notifications";
+import { enforceChannelLimits } from "@/lib/channelLockLogic";
 import { z } from "zod";
 
 // 4.4 fix: Explicit Zod schema replacing manual string checks
@@ -116,6 +117,12 @@ export async function POST(req: Request) {
 
     if (updateResult.count === 0) {
       return NextResponse.json({ error: t("registrationAlreadyProcessed") }, { status: 400 });
+    }
+
+    // P1-1: Call enforceChannelLimits after plan assignment to ensure channel limits are enforced
+    // This is consistent with other plan-assignment paths (admin/users/[id] and activateSubscription)
+    if (action === "APPROVE") {
+      await enforceChannelLimits(userId);
     }
 
     const updatedUser = await prisma.user.findUnique({

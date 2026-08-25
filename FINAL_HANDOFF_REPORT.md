@@ -88,6 +88,8 @@ Setiap klaim fitur di bawah ini diverifikasi dengan referensi file dan endpoint 
 Salin `.env.example` ke `.env` di server dan isi nilai berikut:
 ```env
 DATABASE_URL="postgresql://user:password@host:5432/dbname?sslmode=require"
+SUPERADMIN_EMAIL=superadmin@promptgen.com
+SUPERADMIN_SEED_PASSWORD=  # Strong password used during prisma/seed.js first run
 NEXTAUTH_SECRET="string-acak-panjang-min-32-karakter"
 NEXTAUTH_URL="https://domain-anda.com"
 STITCH_API_KEY="key-stitch-google-anda"

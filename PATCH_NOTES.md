@@ -1,3 +1,51 @@
+# PATCH NOTES — Prompt Gen
+
+---
+
+## [v4.0.0-audit] — 2026-08-25 — Final Audit & Remediasi Produksi
+
+### SECURITY (P0)
+- **[FIX] XSS** `ScenePromptStudioClient.tsx`: Ganti `dangerouslySetInnerHTML={{ __html: htmlBlog }}` dengan `sanitizeHtml()` menggunakan allowlist tag yang ketat. Paket `sanitize-html` ditambahkan sebagai dependency.
+- **[FIX]** Kelas Tailwind `bg-white` pada HTML blog view diganti dengan token desain `pg-surface`.
+
+### FUNCTIONAL GAPS (P1)
+- **[FIX] enforceChannelLimits** `admin/registrations/route.ts`: Panggilan `enforceChannelLimits(userId)` ditambahkan ke alur approve registrasi, konsisten dengan jalur lain (admin/users/[id], activateSubscription).
+- **[FIX] AdminPlansClient.tsx**: UI manajemen paket dibangun ulang dari awal dengan fitur:
+  - Create Plan: modal penuh dengan semua field (code, name, price, maxChannels, sortOrder, isPubliclyPurchasable, feature flags eksplisit).
+  - Delete Plan: tombol delete dengan konfirmasi modal; guard terhadap paket yang masih aktif.
+  - isPubliclyPurchasable & sortOrder kini dapat diedit melalui UI.
+  - Feature flags baru wajib di-set eksplisit saat create (mencegah fail-open tersembunyi).
+- **[FIX] i18n SettingsClient.tsx**: Seluruh string hardcode Indonesia dimigrasi ke namespace `Settings` (en.json + id.json).
+- **[FIX] i18n ChannelManagerClient.tsx**: String hardcode `"Penggunaan: Nx draft"`, `"Sembunyikan Pengaturan"`, `"Edit Channel & Produk"` dan kelas `bg-white` dimigrasi ke i18n + design token.
+
+### TYPE SAFETY (P2)
+- **[FIX]** `user/invoices/route.ts`: `whereClause: any` diganti dengan tipe yang tepat dari Prisma.
+- **[FIX]** `MobileDashboardNav.tsx`: `t(item.labelKey as any)` diganti dengan `as Parameters<typeof t>[0]`.
+- **[FIX]** `UserManagement.tsx`: String hardcode `{c.usageCount} uses` diganti dengan `tu('usageCount', { count })`.
+
+### DESIGN TOKENS (P2)
+- **[FIX] InstallPWABanner.tsx**: Token warna raw Tailwind (`bg-white`, `bg-gray-*`, `text-gray-*`) diganti dengan design token `pg-surface`, `pg-surface-dim`, `pg-text-sub`. `console.log` debugging dihapus. String dimigrasi ke namespace `InstallPWA`.
+
+### ENDPOINT KONSOLIDASI (P2)
+- **[FIX] FloatingCsWidget.tsx**: Endpoint dimigrasi dari `/api/support/settings` ke `/api/cs/contact-info`.
+- **[DEPRECATE]** `/api/support/settings`: Ditandai `@deprecated` dengan comment, dipertahankan untuk backward compatibility.
+
+### DOKUMENTASI (P2-P3)
+- **[FIX] FINAL_HANDOFF_REPORT.md**: Default seed password dikoreksi dari `superadmin123` ke `Admin123!`.
+- **[FIX] .env.example**: Variabel `SUPERADMIN_EMAIL` dan `SUPERADMIN_SEED_PASSWORD` ditambahkan.
+- **[FIX] planFeatures.ts**: Komentar dokumen ditambahkan menjelaskan kebijakan fail-open dan persyaratan explicit flag saat create plan.
+- **[FIX] rateLimit.ts**: Komentar JSDoc lengkap ditambahkan (parameter, konvensi key, design notes).
+
+### IMAGE GENERATOR (P3)
+- **[FIX] imagePromptGenerator.ts**: `excludeTitles` sekarang benar-benar diinjeksi ke `systemInstruction` sebagai direktif "HINDARI TOPIK" kepada LLM, bukan hanya diterima sebagai parameter tanpa digunakan.
+
+### i18n KEYS BARU
+- `AdminPlans`: addPlan, planName, planCode, selectCode, sortOrder, publiclyPurchasable, createPlan, createSuccess, createFail, deletePlan, deleteSuccess, deleteFail, deleteConfirmMsg, confirmDelete, deleting, codeRequired, featureFlagsNewPlanNote
+- `Channels`: usageLabel, draftCount, hideSettings, editChannel
+- `Settings` (namespace baru): profileTitle, newNameLabel, newNamePlaceholder, savingProfile, saveProfile, profileUpdatedSuccess, profileUpdateFail, changePasswordTitle, currentPasswordLabel, newPasswordLabel, savingPassword, changePassword, passwordUpdatedSuccess, passwordUpdateFail, generalError
+- `InstallPWA` (namespace baru): installTitle, installDesc, installBtn, laterBtn, closeLabel
+- `AdminUsers`: usageCount
+
 # Patch Notes - Security & Hardening Audit Remediation
 
 Pembaruan ini mencakup seluruh perbaikan bug dan arsitektur yang teridentifikasi dalam sesi audit keamanan dan kepatuhan sistem (*Security & Hardening Audit*). Seluruh pengerjaan telah diselaraskan dengan dokumen referensi asli (`Project_Prompt_Gen.txt`).

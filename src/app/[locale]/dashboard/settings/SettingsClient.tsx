@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 export default function SettingsClient() {
+  const t = useTranslations("Settings");
   const [name, setName] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -23,12 +25,12 @@ export default function SettingsClient() {
       });
       const data = await res.json();
       if (res.ok) {
-        setProfileMessage("Profil berhasil diperbarui. (Silakan refresh halaman untuk melihat perubahan).");
+        setProfileMessage(t("profileUpdatedSuccess"));
       } else {
-        setProfileMessage(data.error || "Gagal memperbarui profil.");
+        setProfileMessage(data.error || t("profileUpdateFail"));
       }
-    } catch (err) {
-      setProfileMessage("Terjadi kesalahan.");
+    } catch {
+      setProfileMessage(t("generalError"));
     } finally {
       setProfileLoading(false);
     }
@@ -46,14 +48,14 @@ export default function SettingsClient() {
       });
       const data = await res.json();
       if (res.ok) {
-        setPasswordMessage("Kata sandi berhasil diperbarui.");
+        setPasswordMessage(t("passwordUpdatedSuccess"));
         setCurrentPassword("");
         setNewPassword("");
       } else {
-        setPasswordMessage(data.error || "Gagal memperbarui kata sandi.");
+        setPasswordMessage(data.error || t("passwordUpdateFail"));
       }
-    } catch (err) {
-      setPasswordMessage("Terjadi kesalahan.");
+    } catch {
+      setPasswordMessage(t("generalError"));
     } finally {
       setPasswordLoading(false);
     }
@@ -63,16 +65,16 @@ export default function SettingsClient() {
     <div className="space-y-8">
       {/* Profile Section */}
       <section className="pg-surface border pg-border rounded-xl p-6 shadow-sm">
-        <h2 className="text-xl font-semibold pg-text-heading mb-4">Profil Pengguna</h2>
+        <h2 className="text-xl font-semibold pg-text-heading mb-4">{t("profileTitle")}</h2>
         <form onSubmit={handleProfileSubmit} className="space-y-4 max-w-md">
           <div>
-            <label className="block text-sm font-medium pg-text-sub mb-1">Nama Baru</label>
+            <label className="block text-sm font-medium pg-text-sub mb-1">{t("newNameLabel")}</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full px-4 py-2 border pg-border rounded-lg bg-transparent pg-text-heading focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Masukkan nama baru"
+              placeholder={t("newNamePlaceholder")}
               required
             />
           </div>
@@ -81,7 +83,7 @@ export default function SettingsClient() {
             disabled={profileLoading}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
           >
-            {profileLoading ? "Menyimpan..." : "Simpan Profil"}
+            {profileLoading ? t("savingProfile") : t("saveProfile")}
           </button>
           {profileMessage && <p className="text-sm text-green-600 dark:text-green-400 mt-2">{profileMessage}</p>}
         </form>
@@ -89,10 +91,10 @@ export default function SettingsClient() {
 
       {/* Password Section */}
       <section className="pg-surface border pg-border rounded-xl p-6 shadow-sm">
-        <h2 className="text-xl font-semibold pg-text-heading mb-4">Ubah Kata Sandi</h2>
+        <h2 className="text-xl font-semibold pg-text-heading mb-4">{t("changePasswordTitle")}</h2>
         <form onSubmit={handlePasswordSubmit} className="space-y-4 max-w-md">
           <div>
-            <label className="block text-sm font-medium pg-text-sub mb-1">Kata Sandi Saat Ini</label>
+            <label className="block text-sm font-medium pg-text-sub mb-1">{t("currentPasswordLabel")}</label>
             <input
               type="password"
               value={currentPassword}
@@ -102,7 +104,7 @@ export default function SettingsClient() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium pg-text-sub mb-1">Kata Sandi Baru</label>
+            <label className="block text-sm font-medium pg-text-sub mb-1">{t("newPasswordLabel")}</label>
             <input
               type="password"
               value={newPassword}
@@ -116,7 +118,7 @@ export default function SettingsClient() {
             disabled={passwordLoading}
             className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
           >
-            {passwordLoading ? "Menyimpan..." : "Ubah Kata Sandi"}
+            {passwordLoading ? t("savingPassword") : t("changePassword")}
           </button>
           {passwordMessage && <p className="text-sm pg-text-sub mt-2">{passwordMessage}</p>}
         </form>

@@ -1,4 +1,5 @@
 "use client";
+import { useTranslations } from "next-intl";
 
 import { useState, useEffect } from "react";
 
@@ -15,6 +16,7 @@ const DownloadIcon = () => (
 );
 
 export default function InstallPWABanner() {
+  const t = useTranslations("InstallPWA");
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isVisible, setIsVisible] = useState(false);
 
@@ -61,9 +63,7 @@ export default function InstallPWABanner() {
     const { outcome } = await deferredPrompt.userChoice;
     
     if (outcome === "accepted") {
-      console.log("User accepted the install prompt");
     } else {
-      console.log("User dismissed the install prompt");
     }
 
     // We've used the prompt, and can't use it again, throw it away
@@ -79,15 +79,15 @@ export default function InstallPWABanner() {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-xl rounded-xl p-4 flex items-start gap-4 z-[100] animate-in slide-in-from-bottom-5 fade-in duration-300">
+    <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 pg-surface dark:pg-surface-dim border pg-border dark:pg-border shadow-xl rounded-xl p-4 flex items-start gap-4 z-[100] animate-in slide-in-from-bottom-5 fade-in duration-300">
       <div className="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 p-2 rounded-lg shrink-0">
         <DownloadIcon />
       </div>
       <div className="flex-1">
-        <h3 className="font-semibold text-gray-900 dark:text-white text-sm">
+        <h3 className="font-semibold pg-text-sub dark:text-white text-sm">
           Install Aplikasi
         </h3>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+        <p className="text-xs pg-text-sub dark:pg-text-sub mt-1">
           Install Prompt Gen ke perangkat Anda untuk akses lebih cepat dan pengalaman terbaik.
         </p>
         <div className="flex gap-2 mt-3">
@@ -99,7 +99,7 @@ export default function InstallPWABanner() {
           </button>
           <button
             onClick={handleDismiss}
-            className="text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 px-3 py-1.5 rounded-md transition-colors"
+            className="text-xs font-medium pg-text-sub dark:pg-text-sub pg-surface-dim hover:pg-surface-dim dark:pg-surface-dim dark:hover:pg-surface-dim px-3 py-1.5 rounded-md transition-colors"
           >
             Lain kali
           </button>
@@ -107,8 +107,8 @@ export default function InstallPWABanner() {
       </div>
       <button
         onClick={handleDismiss}
-        className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 absolute top-3 right-3"
-        aria-label="Tutup"
+        className="pg-text-sub hover:pg-text-sub dark:hover:pg-text-sub absolute top-3 right-3"
+        aria-label={t("closeLabel")}
       >
         <XIcon />
       </button>

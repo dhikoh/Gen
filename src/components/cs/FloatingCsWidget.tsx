@@ -27,7 +27,7 @@ export default function FloatingCsWidget() {
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    fetch("/api/support/settings")
+    fetch("/api/cs/contact-info")
       .then((res) => res.json())
       .then((data) => setSettings(data))
       .catch((err) => console.error("Failed to fetch CS settings:", err));

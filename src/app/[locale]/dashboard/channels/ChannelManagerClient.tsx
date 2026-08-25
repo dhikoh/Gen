@@ -124,7 +124,7 @@ export default function ChannelManagerClient({ channels, maxChannels }: { channe
  <div key={channel.id} className="relative">
  {channel.isLocked && (
  <div className="absolute inset-0 z-10 pg-surface-dim/60 /60 backdrop-blur-sm rounded-xl flex items-center justify-center">
- <div className="bg-white p-4 rounded-lg shadow-lg text-center max-w-sm">
+ <div className="pg-surface p-4 rounded-lg shadow-lg text-center max-w-sm">
  <span className="text-2xl mb-2 block">🔒</span>
  <h4 className="font-bold pg-text-heading">{t('channelLocked')}</h4>
  <p className="text-sm pg-text-muted mt-1">{t('lockedDesc')}</p>
@@ -147,7 +147,7 @@ export default function ChannelManagerClient({ channels, maxChannels }: { channe
  )}
  </div>
  <p className="text-xs pg-text-muted mt-1">
- {t('addedOn')} {new Date(channel.createdAt).toLocaleDateString('id-ID')} • Penggunaan: {channel.usageCount || 0}x draft
+ {t('addedOn')} {new Date(channel.createdAt).toLocaleDateString('id-ID')} • {t('usageLabel')} {t('draftCount', { count: channel.usageCount || 0 })}
  </p>
  {renderSocialBadges(channel.socialLinks)}
  </div>
@@ -157,7 +157,7 @@ export default function ChannelManagerClient({ channels, maxChannels }: { channe
  onClick={() => setExpandedId(isExpanded ? null : channel.id)}
  className="px-3 py-1.5 text-xs font-medium pg-surface-dim pg-text-sub rounded-lg transition-colors"
  >
- {isExpanded ? "Sembunyikan Pengaturan ▲" : "Edit Channel & Produk ▼"}
+ {isExpanded ? t('hideSettings') : t('editChannel')}
  </button>
 
  {channels.length > 1 && (
