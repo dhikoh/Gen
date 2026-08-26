@@ -922,7 +922,9 @@
     "activeDraftTooltip": "Sedang dipakai sebagai Draft",
     "markTitleTooltip": "Tandai sebagai judul terpakai (exclude)",
     "markedAsUsed": "✓ Terpakai",
-    "mark": "Tandai"
+    "mark": "Tandai",
+    "selectTitle": "Pilih Judul",
+    "selectedTitle": "Judul Terpilih"
   },
   "ForgotPassword": {
     "title": "Lupa Password?",

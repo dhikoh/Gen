@@ -315,14 +315,7 @@ export default function ScenePromptStudioClient({ channels, locale }: Props) {
       </button>
     )}
     <button onClick={() => copy(`t-${i}`, title)} className="text-xs text-slate-500 hover:underline">{copiedId === `t-${i}` ? "✓" : "Copy"}</button>
-    <button
-      onClick={() => handleMarkAsUsed(title)}
-      disabled={isMarked || isActiveDraft}
-      title={isActiveDraft ? t("activeDraftTooltip") : t("markTitleTooltip")}
-      className="text-xs text-emerald-600 hover:underline disabled:pg-text-muted disabled:no-underline"
-    >
-      {isMarked ? t("markedAsUsed") : t("mark")}
-    </button>
+
   </div>
   </div>
  );

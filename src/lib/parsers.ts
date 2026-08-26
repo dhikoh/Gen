@@ -243,7 +243,8 @@ export function extractTitles(text: string): string[] {
       continue;
     } else if (
       (line.startsWith("#") && !lowerLine.includes("judul") && !lowerLine.includes("title")) ||
-      (line.startsWith("**") && line.endsWith("**") && !lowerLine.includes("judul") && !lowerLine.includes("title"))
+      (line.startsWith("**") && line.endsWith("**") && !lowerLine.includes("judul") && !lowerLine.includes("title")) ||
+      /^[A-Z0-9\s&]+:/.test(line.replace(/^(?:\d+[.\-)]|-|\*)?\s*/, "").replace(/[[\]*#]/g, "").trim()) // Ex: "PANDUAN SUARA:", "TEKS OVERLAY:"
     ) {
       inTitleSection = false;
     }

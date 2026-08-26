@@ -922,7 +922,9 @@
     "activeDraftTooltip": "Currently used as Draft",
     "markTitleTooltip": "Mark as used title (exclude)",
     "markedAsUsed": "✓ Used",
-    "mark": "Mark"
+    "mark": "Mark",
+    "selectTitle": "Select Title",
+    "selectedTitle": "Selected Title"
   },
   "ForgotPassword": {
     "title": "Forgot Password?",
