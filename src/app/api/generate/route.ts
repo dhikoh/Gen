@@ -8,7 +8,7 @@ import { applyRateLimit } from "@/lib/rateLimit";
 import { requireActiveSubscription } from "@/lib/subscription";
 import { generateMasterPrompt, ProfileChannelData } from "@/lib/promptGenerator";
 import { generateImagePrompt } from "@/lib/imagePromptGenerator";
-import { KNOWN_PLAN_FEATURES } from "@/lib/planFeatures";
+import { hasFeature } from "@/lib/planFeatures";
 const videoConfigSchema = z.object({
   targetPlatform: z.string().optional().nullable(),
   targetDurationSec: z.coerce.number().optional().nullable(),
@@ -149,11 +149,8 @@ export async function POST(req: Request) {
     if (dbUser.role !== "SUPERADMIN") {
       const rawFeatures = (plan?.features || {}) as Record<string, boolean>;
 
-      const getFeatureValue = (key: string) => {
-        if (typeof rawFeatures[key] === "boolean") return rawFeatures[key];
-        const def = KNOWN_PLAN_FEATURES.find(f => f.key === key)?.defaultValue;
-        return def === true;
-      };
+      // Fix audit 5.1: gunakan hasFeature() dari planFeatures.ts, hapus duplikat closure lokal
+      const getFeatureValue = (key: string) => hasFeature(rawFeatures, key);
 
       // Validasi fitur Image Prompt Studio (Bagian 5.5.B) — TIDAK BERUBAH
       if (type === "IMAGE") {

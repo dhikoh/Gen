@@ -109,7 +109,13 @@
     "usernameInvalid": "Username hanya boleh huruf, angka, underscore (_), titik (.), dan strip (-)",
     "emailInvalid": "Format email tidak valid!",
     "channelRequired": "wajib diisi!",
-    "optional": "Opsional"
+    "optional": "Opsional",
+    "checkingAvailability": "Memeriksa ketersediaan...",
+    "usernameAvailable": "Username tersedia",
+    "usernameTaken": "Username sudah digunakan",
+    "emailAvailable": "Email tersedia",
+    "emailTaken": "Email sudah terdaftar",
+    "resetPasswordTitle": "Atur Ulang Password"
   },
   "Overview": {
     "welcome": "Selamat Datang, {name}!",
@@ -225,7 +231,10 @@
     "usageLabel": "Penggunaan:",
     "draftCount": "{count}x draft",
     "hideSettings": "Sembunyikan Pengaturan ▲",
-    "editChannel": "Edit Channel & Produk ▼"
+    "editChannel": "Edit Channel & Produk ▼",
+    "typeCustomNiche": "Ketik Niche Kustom...",
+    "typeCustomPersona": "Ketik Persona Kustom...",
+    "channelDescPlaceholder": "Deskripsi singkat mengenai fokus konten channel ini..."
   },
   "Generator": {
     "pageTitle": "Studio Generator",
@@ -345,7 +354,16 @@
     "cameraMovementProModeLabel": "Mode Profesional (PRO)",
     "cameraMovementProModeDesc": "AI merancang kamera setara DoP profesional",
     "cameraMovementAutoStandardWithPro": "Mode Otomatis Standar — aktifkan ✨ Mode Profesional di atas untuk instruksi DoP tingkat lanjut.",
-    "cameraMovementCustomConceptHint": "Deskripsikan konsep gerakan kamera unik yang ingin dipadukan ke dalam setiap visual prompt scene."
+    "cameraMovementCustomConceptHint": "Deskripsikan konsep gerakan kamera unik yang ingin dipadukan ke dalam setiap visual prompt scene.",
+    "quickAddProductTitle": "+ Tambah Produk Cepat",
+    "productName": "Nama Produk *",
+    "productNamePlaceholder": "Contoh: E-Book Panduan Prompt AI",
+    "productPrice": "Harga Produk (Rp)",
+    "productDesc": "Deskripsi Singkat",
+    "productDescPlaceholder": "Penjelasan keunggulan produk...",
+    "productLink": "Link Pembelian / Landing Page",
+    "addProductBtn": "+ Tambah Produk",
+    "cancelBtn": "Batal"
   },
   "Drafts": {
     "pageTitleTab": "Riwayat Prompt",
@@ -452,7 +470,8 @@
     "pendingRegistrations": "Registrasi Menunggu Persetujuan",
     "activeSubscribers": "Subscriber Aktif",
     "announcements": "Broadcast Pengumuman",
-    "systemNotifications": "Notifikasi Sistem"
+    "systemNotifications": "Notifikasi Sistem",
+    "adminPortalLabel": "Admin Portal"
   },
   "AdminUsers": {
     "usersManagement": "Manajemen Pengguna",
@@ -741,7 +760,14 @@
     "prevPage": "← Sebelumnya",
     "nextPage": "Berikutnya →",
     "pageOf": "Halaman {page} dari {total}",
-    "detail": "Detail →"
+    "detail": "Detail →",
+    "filterPaymentApproved": "Pembayaran Disetujui",
+    "filterPaymentRejected": "Pembayaran Ditolak",
+    "filterRegistrationApproved": "Registrasi Disetujui",
+    "filterSupportReplied": "Jawaban Tiket Support",
+    "filterExpiringSoon": "Langganan Segera Expired",
+    "filterExpired": "Langganan Expired",
+    "filterSystemAnnouncement": "Pengumuman Sistem"
   },
   "Guide": {
     "userTitle": "Panduan Pengguna Prompt Gen",
@@ -1011,5 +1037,8 @@
     "installBtn": "Install",
     "laterBtn": "Lain kali",
     "closeLabel": "Tutup"
+  },
+  "AdminSupport": {
+    "replyPlaceholder": "Ketik balasan resmi admin di sini..."
   }
 }

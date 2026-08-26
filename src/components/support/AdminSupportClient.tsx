@@ -230,7 +230,7 @@ export default function AdminSupportClient() {
 
               <form onSubmit={handleSendReply} className="pt-4 flex gap-2" style={divider}>
                 <input type="text" required value={replyBody} onChange={(e) => setReplyBody(e.target.value)}
-                  placeholder="Ketik balasan resmi admin di sini..."
+                  placeholder={t("replyPlaceholder")}
                   className="flex-1 px-4 py-2.5 text-sm outline-none neu-input rounded-lg" />
                 <button type="submit" disabled={replying}
                   className="px-5 py-2.5 text-white font-medium rounded-lg text-sm disabled:opacity-50 flex items-center neu-btn-brand">

@@ -31,3 +31,28 @@ export const KNOWN_PLAN_FEATURES: PlanFeatureDefinition[] = [
     defaultValue: false   // fail-closed: new feature, no backward-compat burden
   }
 ];
+
+/**
+ * Fix audit 5.1: Implementasi `hasFeature()` yang selama ini direferensikan di komentar header
+ * tapi tidak pernah di-export. Menggantikan duplikasi closure `getFeatureValue` di:
+ * - dashboard/generator/page.tsx
+ * - api/generate/route.ts
+ *
+ * @param features  Objek fitur mentah dari Plan.features (bisa null/undefined)
+ * @param key       Kunci fitur, misal "imagePromptStudio"
+ * @param isSuperadmin  Superadmin selalu mendapatkan akses penuh
+ * @returns boolean sesuai FAIL-OPEN policy
+ */
+export function hasFeature(
+  features: Record<string, boolean> | null | undefined,
+  key: string,
+  isSuperadmin = false
+): boolean {
+  if (isSuperadmin) return true;
+  const rawFeatures = features ?? {};
+  if (typeof rawFeatures[key] === "boolean") return rawFeatures[key];
+  // Kunci tidak ditemukan — cek defaultValue dari KNOWN_PLAN_FEATURES
+  const knownFeature = KNOWN_PLAN_FEATURES.find((f) => f.key === key);
+  // FAIL-OPEN: jika tidak dikenal sama sekali, return true (tidak memblokir fitur baru)
+  return knownFeature ? knownFeature.defaultValue : true;
+}

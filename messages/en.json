@@ -109,7 +109,13 @@
     "usernameInvalid": "Username may only contain letters, numbers, underscore (_), dot (.), and dash (-)",
     "emailInvalid": "Invalid email format!",
     "channelRequired": "is required!",
-    "optional": "Optional"
+    "optional": "Optional",
+    "checkingAvailability": "Checking availability...",
+    "usernameAvailable": "Username is available",
+    "usernameTaken": "Username is already taken",
+    "emailAvailable": "Email is available",
+    "emailTaken": "Email is already registered",
+    "resetPasswordTitle": "Reset Password"
   },
   "Overview": {
     "welcome": "Welcome back, {name}!",
@@ -225,7 +231,10 @@
     "usageLabel": "Usage:",
     "draftCount": "{count}x draft",
     "hideSettings": "Hide Settings ▲",
-    "editChannel": "Edit Channel & Products ▼"
+    "editChannel": "Edit Channel & Products ▼",
+    "typeCustomNiche": "Type Custom Niche...",
+    "typeCustomPersona": "Type Custom Persona...",
+    "channelDescPlaceholder": "Brief description of this channel's content focus..."
   },
   "Generator": {
     "pageTitle": "Generator Studio",
@@ -345,7 +354,16 @@
     "cameraMovementProModeLabel": "Professional Mode (PRO)",
     "cameraMovementProModeDesc": "AI designs camera as a professional DoP",
     "cameraMovementAutoStandardWithPro": "Standard Auto Mode — enable ✨ Professional Mode above for advanced DoP-level instructions.",
-    "cameraMovementCustomConceptHint": "Describe a unique camera movement concept to incorporate into every scene visual prompt."
+    "cameraMovementCustomConceptHint": "Describe a unique camera movement concept to incorporate into every scene visual prompt.",
+    "quickAddProductTitle": "+ Quick Add Product",
+    "productName": "Product Name *",
+    "productNamePlaceholder": "Example: AI Prompt Guide E-Book",
+    "productPrice": "Product Price (Rp)",
+    "productDesc": "Short Description",
+    "productDescPlaceholder": "Brief explanation of product advantages...",
+    "productLink": "Purchase Link / Landing Page",
+    "addProductBtn": "+ Add Product",
+    "cancelBtn": "Cancel"
   },
   "Drafts": {
     "pageTitleTab": "Prompt History",
@@ -452,7 +470,8 @@
     "pendingRegistrations": "Registrations Pending Approval",
     "activeSubscribers": "Active Subscribers",
     "announcements": "Broadcast Announcements",
-    "systemNotifications": "System Notifications"
+    "systemNotifications": "System Notifications",
+    "adminPortalLabel": "Admin Portal"
   },
   "AdminUsers": {
     "usersManagement": "Users Management",
@@ -741,7 +760,14 @@
     "prevPage": "← Previous",
     "nextPage": "Next →",
     "pageOf": "Page {page} of {total}",
-    "detail": "Detail →"
+    "detail": "Detail →",
+    "filterPaymentApproved": "Payment Approved",
+    "filterPaymentRejected": "Payment Rejected",
+    "filterRegistrationApproved": "Registration Approved",
+    "filterSupportReplied": "Support Ticket Reply",
+    "filterExpiringSoon": "Subscription Expiring Soon",
+    "filterExpired": "Subscription Expired",
+    "filterSystemAnnouncement": "System Announcement"
   },
   "Guide": {
     "userTitle": "Prompt Gen User Guide",
@@ -1011,5 +1037,8 @@
     "installBtn": "Install",
     "laterBtn": "Later",
     "closeLabel": "Close"
+  },
+  "AdminSupport": {
+    "replyPlaceholder": "Type official admin reply here..."
   }
 }

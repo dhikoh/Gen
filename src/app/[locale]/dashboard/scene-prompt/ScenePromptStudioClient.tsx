@@ -165,31 +165,62 @@ export default function ScenePromptStudioClient({ channels, locale }: Props) {
  };
 
  const handleSaveDraft = async () => {
- if (!scenes.length) return;
- setSaving(true); setSaveMsg(null);
- try {
- // Fix 2.4: Extract html_blog from rawText and include in parsedData
- const htmlBlogContent = extractHtmlBlog(rawText);
- setHtmlBlog(htmlBlogContent);
- const parsedData: Record<string, unknown> = { scenes, caption, hashtags };
- if (thumbnailData) parsedData.thumbnailData = thumbnailData;
- if (htmlBlogContent) parsedData.html_blog = htmlBlogContent;
+  if (!scenes.length) return;
+  setSaving(true); setSaveMsg(null);
+  try {
+  // Fix 2.4: Extract html_blog from rawText and include in parsedData
+  const htmlBlogContent = extractHtmlBlog(rawText);
+  setHtmlBlog(htmlBlogContent);
 
- const res = await fetch("/api/drafts", {
- method: "POST",
- headers: { "Content-Type": "application/json" },
- body: JSON.stringify({
- channelId: selectedChannelId || undefined,
- type: "VIDEO",
- title: draftTitle,
- rawJson: JSON.stringify({ scenes, caption, hashtags, thumbnailData }),
- parsedData,
- }),
- });
- const data = await res.json();
- setSaveMsg(res.ok ? t("draftSaved") : (data.error || t("draftError")));
- } catch { setSaveMsg(t("draftError")); } finally { setSaving(false); setTimeout(() => setSaveMsg(null), 4000); }
- };
+  // Fix audit 3.1: Turunkan topic dari draftTitle atau niche channel terpilih
+  const selectedChannel = channels.find(c => c.id === selectedChannelId);
+  const effectiveTopic = draftTitle || selectedChannel?.niche || "Draft Video";
+
+  // Fix audit 3.2: Tulis parsedData dengan field canonical yang dibaca DraftDetailPage
+  // - segments: field canonical (dibaca page.tsx L192)
+  // - caption_medsos: field canonical (dibaca page.tsx L153)
+  // - ide_thumbnail: field canonical (dibaca page.tsx L165)
+  // - opsi_judul: field canonical (dibaca page.tsx L127)
+  // Alias lama (scenes, caption) juga disertakan untuk backward compat & wordCount API
+  const ideThumbText = thumbnailData
+    ? [
+        thumbnailData.seoText && `SEO: ${thumbnailData.seoText}`,
+        thumbnailData.opsi1Prompt && `Opsi 1: ${thumbnailData.opsi1Prompt}`,
+        thumbnailData.opsi2Prompt && `Opsi 2: ${thumbnailData.opsi2Prompt}`,
+        thumbnailData.recommendations && `Rekomendasi: ${thumbnailData.recommendations}`,
+      ].filter(Boolean).join("\n\n")
+    : undefined;
+
+  const parsedData: Record<string, unknown> = {
+    // Canonical fields (dibaca DraftDetailPage)
+    segments: scenes,                              // alias dari scenes ke segments
+    caption_medsos: caption || undefined,          // alias dari caption
+    ide_thumbnail: ideThumbText,                   // alias dari thumbnailData (dikonversi teks)
+    opsi_judul: parsedTitles.length > 0 ? parsedTitles : undefined, // data yang selama ini hilang!
+    html_blog: htmlBlogContent || undefined,
+    // Alias mentah untuk backward compat & kalkulasi wordCount di drafts/route.ts
+    scenes,
+    caption: caption || undefined,
+    hashtags: hashtags || undefined,
+    thumbnailData: thumbnailData ?? undefined,
+  };
+
+  const res = await fetch("/api/drafts", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    channelId: selectedChannelId || undefined,
+    type: "VIDEO",
+    topic: effectiveTopic,  // Fix audit 3.1: field wajib sekarang disertakan
+    title: draftTitle,
+    rawJson: JSON.stringify({ scenes, caption, hashtags, thumbnailData }),
+    parsedData,
+  }),
+  });
+  const data = await res.json();
+  setSaveMsg(res.ok ? t("draftSaved") : (data.error || t("draftError")));
+  } catch { setSaveMsg(t("draftError")); } finally { setSaving(false); setTimeout(() => setSaveMsg(null), 4000); }
+  };
 
  const cls = "w-full px-3 py-1.5 text-sm bg-white border pg-border rounded-md outline-none dark:text-white";
  const btn = (active?: boolean) => `px-3 py-1.5 text-sm font-medium rounded-lg border transition-colors ${active ? "bg-blue-600 text-white border-blue-600" : "pg-surface pg-border pg-text-sub hover:pg-surface-dim"}`;

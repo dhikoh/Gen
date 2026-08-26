@@ -1,6 +1,6 @@
 /**
- * Rate Limiter — Token Bucket via Prisma (persistent, database-backed)
- * =======================================================================
+ * Rate Limiter — In-Memory Sliding Window (per-process)
+ * =======================================================
  * Usage:
  *   const allowed = await applyRateLimit(key, limit, windowSec);
  *   if (!allowed) return NextResponse.json({ error: t("rateLimit") }, { status: 429 });
@@ -8,14 +8,20 @@
  * Parameters:
  *   @param key       - Unique identifier for the rate limit bucket.
  *                      Convention: `<action>_<userId>_<ip>` e.g. `generate_clxxx_127.0.0.1`
- *   @param limit     - Maximum number of requests allowed in the window.
- *   @param windowSec - Sliding window duration in seconds.
+ *   @param limit     - Maximum number of requests allowed in the window (fallback if global limit is stricter).
+ *   @param windowSec - Sliding window duration in seconds (fallback if global window is larger).
  *
- * Design notes:
- *   - Uses upsert on RateLimit model to atomically track hit counts and window resets.
- *   - Fails open (returns true) if the DB call throws, to avoid blocking users on DB errors.
- *   - For critical endpoints (auth, register), set lower limits (5/60) than utility endpoints (20/60).
- *   - Keys are garbage-collected by the DB TTL or via cron on the RateLimit table.
+ * Implementasi:
+ *   - State disimpan di in-memory `Map` per Node.js process.
+ *   - Global limit config dibaca dari `AppSettings` via Prisma (bukan state — hanya konfigurasi).
+ *   - Limit aktual = Math.min(globalLimit, fallbackLimit) → selalu ambil yang lebih ketat.
+ *   - Fails open (returns true) jika AppSettings throw, agar tidak memblokir user.
+ *   - Probabilistic cleanup (1% chance) mencegah memory leak dari key yang expired.
+ *
+ * KETERBATASAN (lihat komentar baris 22-25):
+ *   - Tidak persistent antar restart process.
+ *   - Tidak konsisten di lingkungan multi-instance / serverless / Vercel edge.
+ *   - Untuk produksi skala besar, gunakan Redis (Upstash) atau tabel DB dengan TTL.
  */
 import { prisma } from "@/lib/db";
 

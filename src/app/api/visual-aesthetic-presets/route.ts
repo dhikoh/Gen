@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
 import { getApiTranslator } from "@/lib/apiI18n";
+import { applyRateLimit } from "@/lib/rateLimit";
 
 const createSchema = z.object({
   label: z.string().trim().min(1),
@@ -57,6 +58,11 @@ export async function POST(req: Request) {
   if (!session) {
     return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
   }
+
+  // Fix audit 6.2: tambah rate limit ke POST endpoint preset (20 req/60s)
+  const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
+  const isAllowed = await applyRateLimit(`preset_create_${session.user.id}_${ip}`, 20, 60);
+  if (!isAllowed) return NextResponse.json({ error: t("rateLimit") }, { status: 429 });
 
   try {
     const body = await req.json();

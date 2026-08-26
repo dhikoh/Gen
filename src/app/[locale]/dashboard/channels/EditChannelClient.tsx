@@ -224,7 +224,7 @@ export default function EditChannelClient({
               { value: "Bisnis & Finance", label: "Bisnis & Finance" },
               { value: "Edukasi & Karir", label: "Edukasi & Karir" },
             ]}
-            placeholder="Ketik Niche Kustom..."
+            placeholder={t("typeCustomNiche")}
           />
         </div>
 
@@ -255,7 +255,7 @@ export default function EditChannelClient({
               { value: "Energetic Reviewer (Review Produk)", label: "Energetic Reviewer (Review Produk)" },
               { value: "Casual Friend (Santai & Relatable)", label: "Casual Friend (Santai & Relatable)" },
             ]}
-            placeholder="Ketik Persona Kustom..."
+            placeholder={t("typeCustomPersona")}
           />
         </div>
 
@@ -299,7 +299,7 @@ export default function EditChannelClient({
             value={formData.description}
             onChange={handleChange}
             rows={2}
-            placeholder="Deskripsi singkat mengenai fokus konten channel ini..."
+            placeholder={t("channelDescPlaceholder")}
             className="w-full p-2.5 pg-surface-dim border pg-border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none pg-text-heading"
           />
         </div>

@@ -11,7 +11,9 @@ import { applyRateLimit } from "@/lib/rateLimit";
 const saveDraftSchema = z.object({
   channelId: z.string(),
   type: z.enum(["VIDEO", "IMAGE"]),
-  topic: z.string(),
+  // topic opsional untuk defense-in-depth — fix audit 3.1: ScenePromptStudio tidak punya
+  // konsep topic eksplisit; backend membuat fallback agar pemanggil manapun aman
+  topic: z.string().optional(),
   rawJson: z.string(),
   speechRate: z.number().default(130),
   title: z.string().optional(),
@@ -81,7 +83,9 @@ export async function POST(req: Request) {
     // Calculate word count and estimated duration
     let wordCount = 0;
     let estimatedDurationSec = 0;
-    let title = manualTitle || parsedData.judul_konten || `Draft ${type}: ${topic.substring(0, 30)}`;
+    // Fix audit 3.1: topic sekarang optional — fallback ke manualTitle, parsedData, atau default
+    const effectiveTopic = topic || manualTitle || (typeof parsedData.judul_konten === "string" ? parsedData.judul_konten : "") || `Draft ${type}`;
+    let title = manualTitle || (typeof parsedData.judul_konten === "string" ? parsedData.judul_konten : "") || `Draft ${type}: ${effectiveTopic.substring(0, 30)}`;
 
     if (type === "VIDEO") {
       let totalWords = 0;

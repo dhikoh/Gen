@@ -64,6 +64,55 @@ export default function AuthForm() {
   const [socialFacebook, setSocialFacebook] = useState("");
   const [socialWebsite, setSocialWebsite] = useState("");
 
+  // Fix audit 4.1: Debounced availability check state
+  type AvailStatus = "idle" | "checking" | "available" | "taken";
+  const [usernameStatus, setUsernameStatus] = useState<AvailStatus>("idle");
+  const [emailStatus, setEmailStatus] = useState<AvailStatus>("idle");
+
+  // Debounce check username
+  useEffect(() => {
+    if (isLogin || !username || username.length < 3) {
+      setUsernameStatus("idle");
+      return;
+    }
+    setUsernameStatus("checking");
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/auth/check", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username }),
+        });
+        setUsernameStatus(res.status === 409 ? "taken" : "available");
+      } catch {
+        setUsernameStatus("idle");
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [username, isLogin]);
+
+  // Debounce check email
+  useEffect(() => {
+    if (isLogin || !email || !email.includes('@')) {
+      setEmailStatus("idle");
+      return;
+    }
+    setEmailStatus("checking");
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/auth/check", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+        setEmailStatus(res.status === 409 ? "taken" : "available");
+      } catch {
+        setEmailStatus("idle");
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [email, isLogin]);
+
   const handleNextStep = () => {
     if (!name.trim()) {
       setError(t('fullName') + " " + t('fieldRequired'));
@@ -357,15 +406,21 @@ export default function AuthForm() {
                 <label className={labelCls} style={{ color: 'var(--pg-text)' }}>{t('fullName')}</label>
                   <input type="text" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} required className={inputCls} />
                 </div>
-                <div>
+              <div>
                 <label className={labelCls} style={{ color: 'var(--pg-text)' }}>{t('username')}</label>
-                  <input type="text" autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} required className={inputCls} />
-                </div>
+                  <input type="text" autoComplete="username" value={username} onChange={(e) => { setUsername(e.target.value); setUsernameStatus("idle"); }} required className={inputCls} />
+                  {usernameStatus === "checking" && <p className="text-xs mt-1" style={{ color: 'var(--pg-text-muted)' }}>⏳ {t('checkingAvailability')}</p>}
+                  {usernameStatus === "available" && <p className="text-xs mt-1" style={{ color: 'var(--pg-success)' }}>✓ {t('usernameAvailable')}</p>}
+                  {usernameStatus === "taken" && <p className="text-xs mt-1" style={{ color: 'var(--pg-danger)' }}>✗ {t('usernameTaken')}</p>}
+              </div>
               </div>
               
               <div>
                 <label className={labelCls} style={{ color: 'var(--pg-text)' }}>{t('email')}</label>
-                <input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required className={inputCls} />
+                <input type="email" autoComplete="email" value={email} onChange={(e) => { setEmail(e.target.value); setEmailStatus("idle"); }} required className={inputCls} />
+                {emailStatus === "checking" && <p className="text-xs mt-1" style={{ color: 'var(--pg-text-muted)' }}>⏳ {t('checkingAvailability')}</p>}
+                {emailStatus === "available" && <p className="text-xs mt-1" style={{ color: 'var(--pg-success)' }}>✓ {t('emailAvailable')}</p>}
+                {emailStatus === "taken" && <p className="text-xs mt-1" style={{ color: 'var(--pg-danger)' }}>✗ {t('emailTaken')}</p>}
               </div>
 
               <div className="grid grid-cols-2 gap-4">

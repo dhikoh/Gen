@@ -2,6 +2,54 @@
 
 ---
 
+## [#41] — 2026-08-26 | Audit Independen P0+P1 — Save Draft Fix & Real-Time Auth Check
+
+### Temuan & Perbaikan (Diverifikasi dari Kode Langsung)
+
+**P0 — Bug Save Draft VIDEO (100% Failure Rate)**
+- **Masalah:** `ScenePromptStudioClient` tidak menyertakan field `topic` dalam payload `POST /api/drafts`, sedangkan `saveDraftSchema` mewajibkan field ini. Akibatnya 100% simpan draft VIDEO gagal dengan 400 Bad Request.
+- **Fix 1:** `saveDraftSchema` diubah dari `topic: z.string()` → `topic: z.string().optional()` dengan fallback chain: `manualTitle → parsedData.judul_konten → "Draft {type}"`.
+- **Fix 2:** `handleSaveDraft` kini menyertakan `topic: effectiveTopic` (diturunkan dari `draftTitle` atau `channel.niche`).
+
+**P0 — Schema Mismatch Penulis vs Pembaca Draft VIDEO**
+- **Masalah:** `DraftDetailPage` membaca `segments`, `caption_medsos`, `ide_thumbnail`, `opsi_judul` — tetapi `ScenePromptStudioClient` menulis `scenes`, `caption`, `thumbnailData`. Hanya `html_blog` yang cocok.
+- **Fix:** `handleSaveDraft` kini menulis canonical field names + alias lama (hybrid approach).
+- **Fix:** `DraftParsedData` interface di `DraftDetailPage` diperluas untuk mendukung kedua schema (backward compat). Rendering menggunakan fallback priority: `segments` > `scenes`.
+- **Bonus Fix:** `parsedTitles` (state yang ada tapi tidak pernah dikirim) kini disertakan sebagai `opsi_judul`. `ThumbnailData` dikonversi ke string teks yang dapat di-copy.
+
+**P1 — Orphan Endpoint /api/auth/check**
+- **Masalah:** Endpoint `POST /api/auth/check` fungsional 100% tapi tidak pernah dipanggil.
+- **Fix:** `AuthForm.tsx` kini melakukan debounced fetch (400ms) ke `/api/auth/check` saat field `username` atau `email` diubah pada step 1 registrasi. Menampilkan indikator inline: ⏳ checking / ✓ available / ✗ taken.
+
+**P1 — Hardcoded String (6 File)**
+- `GeneratorForm.tsx`: Quick Add Product modal (7 string → `t()`)
+- `EditChannelClient.tsx`: 3 placeholder niche/persona/desc → `t()`
+- `AdminSupportClient.tsx`: placeholder reply admin → `t("replyPlaceholder")`
+- `reset-password/page.tsx`: diupgrade ke async server component + `getTranslations` untuk Suspense fallback
+- `NotificationsClient.tsx`: 8 option filter jenis notifikasi → `t()`
+- `admin/layout.tsx`: "Admin Portal" (sidebar + header) → `t("adminPortalLabel")`
+- **Total keys baru ditambahkan:** 24 keys di kedua `messages/id.json` dan `messages/en.json`. Parity: 974/974 ✅
+
+---
+
+## [#42] — 2026-08-26 | Audit Independen P2+P3 — Code Quality & Security Hardening
+
+**P2 — Duplikasi hasFeature() (Fix Audit 5.1)**
+- `planFeatures.ts`: Fungsi `hasFeature(features, key, isSuperadmin?)` kini di-export sebagai implementasi tunggal.
+- `generator/page.tsx` + `generate/route.ts`: Duplikat closure `getFeatureValue` dihapus; diganti dengan import dari `planFeatures.ts`. FAIL-OPEN policy dipertahankan.
+
+**P2 — Komentar Menyesatkan rateLimit.ts (Fix Audit 5.2)**
+- Header baris 1–19 mengklaim "Token Bucket via Prisma (persistent, database-backed)" dan "Uses upsert on RateLimit model" — keduanya salah.
+- Ditulis ulang dengan deskripsi akurat: in-memory `Map` per-process, sliding window, config dibaca dari `AppSettings` via Prisma (hanya konfigurasi, bukan state).
+
+**P3 — .env.example Password Literal (Fix Audit 6.1)**
+- `SUPERADMIN_SEED_PASSWORD=Admin123!` → `"ganti-dengan-password-kuat-min-12-karakter"`
+
+**P3 — 4 Preset POST Routes Tanpa Rate Limit (Fix Audit 6.2)**
+- `persona-presets`, `niche-category-presets`, `visual-aesthetic-presets`, `platform-options` — semua POST endpoint kini menggunakan `applyRateLimit(..., 20, 60)` setelah autentikasi session.
+
+---
+
 ## [v4.1.1] — 2026-08-25 — Camera Movement PRO Toggle (Opsi B)
 
 ### UX IMPROVEMENT

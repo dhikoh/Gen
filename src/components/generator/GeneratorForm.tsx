@@ -799,7 +799,7 @@ export default function GeneratorForm({
  onClick={() => setShowProductModal(true)}
  className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
  >
- + Tambah Produk Cepat
+ {t("quickAddProductTitle")}
  </button>
  </div>
  <select
@@ -1603,7 +1603,7 @@ export default function GeneratorForm({
  <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
  <div className="pg-surface border pg-border rounded-xl p-6 max-w-md w-full space-y-4 shadow-xl">
  <div className="flex justify-between items-center">
- <h3 className="text-lg font-bold pg-text-heading">+ Tambah Produk Cepat</h3>
+ <h3 className="text-lg font-bold pg-text-heading">{t("quickAddProductTitle")}</h3>
  <button
  type="button"
  onClick={() => setShowProductModal(false)}
@@ -1615,13 +1615,13 @@ export default function GeneratorForm({
  <form onSubmit={handleAddProduct} className="space-y-3">
  <div>
  <label className="block text-xs font-medium pg-text-sub mb-1">
- Nama Produk *
+ {t("productName")} *
  </label>
  <input
  type="text"
  value={newProductName}
  onChange={(e) => setNewProductName(e.target.value)}
- placeholder="Contoh: E-Book Panduan Prompt AI"
+ placeholder={t("productNamePlaceholder")}
  className="w-full px-3 py-1.5 text-sm bg-white border pg-border rounded-md outline-none dark:text-white"
  required
  />
@@ -1629,7 +1629,7 @@ export default function GeneratorForm({
 
  <div>
  <label className="block text-xs font-medium pg-text-sub mb-1">
- Harga Produk (Rp)
+ {t("productPrice")}
  </label>
  <input
  type="number"
@@ -1642,20 +1642,20 @@ export default function GeneratorForm({
 
  <div>
  <label className="block text-xs font-medium pg-text-sub mb-1">
- Deskripsi Singkat
+ {t("productDesc")}
  </label>
  <textarea
  rows={2}
  value={newProductDesc}
  onChange={(e) => setNewProductDesc(e.target.value)}
- placeholder="Penjelasan keunggulan produk..."
+ placeholder={t("productDescPlaceholder")}
  className="w-full px-3 py-1.5 text-sm bg-white border pg-border rounded-md outline-none dark:text-white"
  />
  </div>
 
  <div>
  <label className="block text-xs font-medium pg-text-sub mb-1">
- Link Pembelian / Landing Page
+ {t("productLink")}
  </label>
  <input
  type="url"
@@ -1672,7 +1672,7 @@ export default function GeneratorForm({
  onClick={() => setShowProductModal(false)}
  className="px-4 py-2 text-xs font-medium pg-text-sub hover:neu-flat rounded-md"
  >
- Batal
+ {t("cancelBtn")}
  </button>
  <button
  type="submit"

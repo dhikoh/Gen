@@ -24,6 +24,17 @@ interface VideoSegment {
  caption?: string;
 }
 
+// Schema baru dari Scene Prompt Studio (scenes[].narasi)
+interface SceneItem {
+ id?: number;
+ sceneNumber?: string;
+ narasi?: string;
+ visual?: string;
+ durasi?: string;
+ bgmCues?: string[];
+ sfxCues?: string[];
+}
+
 interface ImageVariation {
  id?: number;
  aspect_ratio?: string;
@@ -32,13 +43,21 @@ interface ImageVariation {
  negative_prompt?: string;
 }
 
+// Fix audit 3.2: DraftParsedData mendukung KEDUA schema:
+// - schema lama (alur Generator langsung): segments[], caption_medsos, ide_thumbnail, opsi_judul
+// - schema baru (alur Scene Prompt Studio): scenes[], caption, thumbnailData
+// Field canonical selalu diprioritaskan; alias lama sebagai fallback
 interface DraftParsedData {
+ // Canonical fields (ditulis oleh semua jalur sejak audit 3.2)
  opsi_judul?: string[];
  caption_medsos?: string;
  ide_thumbnail?: string;
  html_blog?: string;
- segments?: VideoSegment[];
+ segments?: VideoSegment[]; // canonical (Generator) + alias dari scenes (Scene Studio)
  variations?: ImageVariation[];
+ // Alias backup dari Scene Prompt Studio (sebelum fix audit 3.2)
+ scenes?: SceneItem[];
+ caption?: string; // alias dari caption_medsos
 }
 
 export default async function DraftDetailPage({ 
@@ -189,13 +208,19 @@ export default async function DraftDetailPage({
  </div>
  )}
 
- {parsedData?.segments && parsedData.segments.length > 0 && (
+ {/* Fix audit 3.2: Tampilkan segments (dari Generator) ATAU scenes (dari Scene Studio pra-fix)
+ Prioritas: parsedData.segments (canonical) > parsedData.scenes (alias backup) */}
+ {(() => {
+ const canonicalSegments = parsedData?.segments && parsedData.segments.length > 0 ? parsedData.segments : null;
+ const scenesFallback = parsedData?.scenes && parsedData.scenes.length > 0 ? parsedData.scenes : null;
+ if (canonicalSegments) {
+ return (
  <div className="glass-panel shadow-lg rounded-xl p-0 overflow-hidden">
  <div className="px-6 py-4 border-b pg-border pg-bg-page">
  <h2 className="text-sm font-bold uppercase tracking-wider pg-text-muted">{t('segments')}</h2>
  </div>
  <div className="divide-y pg-divide">
- {parsedData.segments.map((segment: VideoSegment, idx: number) => (
+ {canonicalSegments.map((segment: VideoSegment, idx: number) => (
  <div key={idx} className="p-6 hover:pg-surface-dim/50 dark:hover:pg-surface/50 transition-colors">
  <div className="flex items-center space-x-3 mb-4">
  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 text-xs font-bold">
@@ -235,6 +260,64 @@ export default async function DraftDetailPage({
  </div>
  ))}
  </div>
+ </div>
+ );
+ }
+ if (scenesFallback) {
+ // Render scene items dari schema Scene Studio lama (pra-fix audit 3.2)
+ return (
+ <div className="glass-panel shadow-lg rounded-xl p-0 overflow-hidden">
+ <div className="px-6 py-4 border-b pg-border pg-bg-page">
+ <h2 className="text-sm font-bold uppercase tracking-wider pg-text-muted">{t('segments')}</h2>
+ </div>
+ <div className="divide-y pg-divide">
+ {scenesFallback.map((scene: SceneItem, idx: number) => (
+ <div key={idx} className="p-6 hover:pg-surface-dim/50 dark:hover:pg-surface/50 transition-colors">
+ <div className="flex items-center space-x-3 mb-4">
+ <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 text-xs font-bold">
+ {idx + 1}
+ </span>
+ {scene.sceneNumber && (
+ <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium pg-surface-dim pg-text-heading dark:pg-text-muted">
+ {scene.sceneNumber}
+ </span>
+ )}
+ {scene.durasi && (
+ <span className="text-xs pg-text-muted font-medium">{scene.durasi}</span>
+ )}
+ </div>
+ <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+ {scene.narasi && (
+ <div className="pg-bg-page p-3 rounded border pg-border">
+ <p className="text-xs font-bold pg-text-muted mb-1">🎤 Narasi</p>
+ <p className="text-sm pg-text-heading">{scene.narasi}</p>
+ </div>
+ )}
+ {scene.visual && (
+ <div className="pg-bg-page p-3 rounded border pg-border">
+ <p className="text-xs font-bold pg-text-muted mb-1">🎨 Visual Prompt</p>
+ <p className="text-sm pg-text-heading">{scene.visual}</p>
+ </div>
+ )}
+ </div>
+ </div>
+ ))}
+ </div>
+ </div>
+ );
+ }
+ return null;
+ })()}
+ {/* caption_medsos fallback: jika tidak ada, cek alias caption dari schema lama */}
+ {!parsedData?.caption_medsos && parsedData?.caption && (
+ <div className="glass-panel shadow-lg rounded-xl p-6">
+ <div className="flex justify-between items-start mb-4">
+ <h2 className="text-sm font-bold uppercase tracking-wider pg-text-muted">Caption Medsos</h2>
+ <CopyButton textToCopy={parsedData.caption} />
+ </div>
+ <p className="pg-text-heading whitespace-pre-wrap pg-bg-page p-4 rounded-lg border pg-border">
+ {parsedData.caption}
+ </p>
  </div>
  )}
  {parsedData?.variations && parsedData.variations.length > 0 && (

@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { KNOWN_PLAN_FEATURES } from "@/lib/planFeatures";
+import { hasFeature } from "@/lib/planFeatures";
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'Dashboard' });
@@ -31,17 +31,11 @@ export default async function GeneratorPage({ params }: { params: Promise<{ loca
   const isSuperadmin = session.user.role === "SUPERADMIN";
   const rawFeatures = (dbUser?.currentPlan?.features as Record<string, boolean> | null) || {};
   
-  const getFeatureValue = (key: string) => {
-    if (isSuperadmin) return true;
-    if (typeof rawFeatures[key] === "boolean") return rawFeatures[key];
-    const def = KNOWN_PLAN_FEATURES.find(f => f.key === key)?.defaultValue;
-    return def === true;
-  };
-
+  // Fix audit 5.1: gunakan hasFeature() dari planFeatures.ts, hapus duplikat closure lokal
   const planFeatures = {
-    imagePromptStudio: getFeatureValue("imagePromptStudio"),
-    htmlBlogExport: getFeatureValue("htmlBlogExport"),
-    cameraMovementPro: getFeatureValue("cameraMovementPro"), // PRO tier camera movement
+    imagePromptStudio: hasFeature(rawFeatures, "imagePromptStudio", isSuperadmin),
+    htmlBlogExport: hasFeature(rawFeatures, "htmlBlogExport", isSuperadmin),
+    cameraMovementPro: hasFeature(rawFeatures, "cameraMovementPro", isSuperadmin), // PRO tier camera movement
   };
 
   const promptSettings = await prisma.promptSettings.findFirst();

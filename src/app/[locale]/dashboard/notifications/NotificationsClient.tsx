@@ -157,14 +157,14 @@ export default function NotificationsClient() {
  }}
  className="px-3 py-1.5 text-xs font-medium border pg-border rounded-lg bg-white pg-text-heading"
  >
- <option value="ALL">Semua Jenis Notifikasi</option>
- <option value="SYSTEM_ANNOUNCEMENT">Pengumuman Sistem</option>
- <option value="PAYMENT_APPROVED">Pembayaran Disetujui</option>
- <option value="PAYMENT_REJECTED">Pembayaran Ditolak</option>
- <option value="REGISTRATION_APPROVED">Registrasi Disetujui</option>
- <option value="SUPPORT_TICKET_REPLIED">Jawaban Tiket Support</option>
- <option value="SUBSCRIPTION_EXPIRING_SOON">Langganan Segera Expired</option>
- <option value="SUBSCRIPTION_EXPIRED">Langganan Expired</option>
+  <option value="ALL">{t("filterAll")}</option>
+  <option value="SYSTEM_ANNOUNCEMENT">{t("filterSystemAnnouncement")}</option>
+  <option value="PAYMENT_APPROVED">{t("filterPaymentApproved")}</option>
+  <option value="PAYMENT_REJECTED">{t("filterPaymentRejected")}</option>
+  <option value="REGISTRATION_APPROVED">{t("filterRegistrationApproved")}</option>
+  <option value="SUPPORT_TICKET_REPLIED">{t("filterSupportReplied")}</option>
+  <option value="SUBSCRIPTION_EXPIRING_SOON">{t("filterExpiringSoon")}</option>
+  <option value="SUBSCRIPTION_EXPIRED">{t("filterExpired")}</option>
  </select>
  </div>
 

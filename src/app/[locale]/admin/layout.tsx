@@ -73,7 +73,7 @@ export default async function AdminLayout({
               className="font-bold text-sm tracking-tight leading-none"
               style={{ color: "#ffffff" }}
             >
-              Admin Portal
+              {t("adminPortalLabel")}
             </Link>
             <p className="text-[10px] mt-0.5 font-medium" style={{ color: "var(--pg-brand)" }}>
               Prompt Gen
@@ -138,7 +138,7 @@ export default async function AdminLayout({
           }}
         >
           <div className="text-sm font-semibold" style={{ color: "var(--pg-text-sub)" }}>
-            Prompt Gen Admin Portal
+            Prompt Gen {t("adminPortalLabel")}
           </div>
           <div className="flex items-center gap-4">
             <LanguageSwitcher />
