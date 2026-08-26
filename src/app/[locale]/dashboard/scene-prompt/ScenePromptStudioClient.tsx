@@ -281,6 +281,58 @@ export default function ScenePromptStudioClient({ channels, locale }: Props) {
  })}
  </div>
 
+ {parsedTitles.length > 0 && (
+  <div className="glass-panel rounded-xl p-5 mb-5 border border-blue-100 dark:border-blue-900 shadow-sm">
+  <h2 className="text-sm font-bold text-blue-700 dark:text-blue-300 mb-3 flex items-center gap-2">✨ {t("titlesFound")}</h2>
+ <div className="space-y-1">
+ {parsedTitles.map((title, i) => {
+ const isActiveDraft = title === draftTitle;
+ const isMarked = markedTitles.includes(title);
+ return (
+ <div
+    key={i}
+    onClick={() => !isActiveDraft && handleSelectTitle(title)}
+    className={`flex items-center justify-between rounded px-3 py-2 transition-colors cursor-pointer
+      ${isActiveDraft
+        ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
+        : 'pg-surface-dim hover:bg-blue-50/60 dark:hover:bg-blue-900/10'}`}
+  >
+  <div className="flex items-center gap-2 flex-1 min-w-0">
+    {isActiveDraft && (
+      <span className="text-blue-600 dark:text-blue-400 text-xs font-bold shrink-0">✓</span>
+    )}
+    <span className="text-sm pg-text-sub truncate">{title}</span>
+  </div>
+  <div className="flex items-center gap-2 ml-2 shrink-0" onClick={e => e.stopPropagation()}>
+    {isActiveDraft ? (
+      <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">{t("selectedTitle")}</span>
+    ) : (
+      <button
+        onClick={() => handleSelectTitle(title)}
+        className="text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
+      >
+        {t("selectTitle")}
+      </button>
+    )}
+    <button onClick={() => copy(`t-${i}`, title)} className="text-xs text-slate-500 hover:underline">{copiedId === `t-${i}` ? "✓" : "Copy"}</button>
+    <button
+      onClick={() => handleMarkAsUsed(title)}
+      disabled={isMarked || isActiveDraft}
+      title={isActiveDraft ? t("activeDraftTooltip") : t("markTitleTooltip")}
+      className="text-xs text-emerald-600 hover:underline disabled:pg-text-muted disabled:no-underline"
+    >
+      {isMarked ? t("markedAsUsed") : t("mark")}
+    </button>
+  </div>
+  </div>
+ );
+ })}
+ </div>
+ </div>
+ )}
+
+
+
  {activeTab === "scenes" && (
  <div className="space-y-4">
  {scenes.map(scene => (
@@ -376,57 +428,9 @@ export default function ScenePromptStudioClient({ channels, locale }: Props) {
  <p className="text-sm pg-text-sub pg-surface-dim rounded p-3">{hashtags}</p>
  </div>
  )}
- {parsedTitles.length > 0 && (
- <div>
- <p className="text-xs font-semibold pg-text-muted mb-2">{t("titlesFound")}</p>
- <div className="space-y-1">
- {parsedTitles.map((title, i) => {
- const isActiveDraft = title === draftTitle;
- const isMarked = markedTitles.includes(title);
- return (
- <div
-    key={i}
-    onClick={() => !isActiveDraft && handleSelectTitle(title)}
-    className={`flex items-center justify-between rounded px-3 py-2 transition-colors cursor-pointer
-      ${isActiveDraft
-        ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
-        : 'pg-surface-dim hover:bg-blue-50/60 dark:hover:bg-blue-900/10'}`}
-  >
-  <div className="flex items-center gap-2 flex-1 min-w-0">
-    {isActiveDraft && (
-      <span className="text-blue-600 dark:text-blue-400 text-xs font-bold shrink-0">✓</span>
-    )}
-    <span className="text-sm pg-text-sub truncate">{title}</span>
+
   </div>
-  <div className="flex items-center gap-2 ml-2 shrink-0" onClick={e => e.stopPropagation()}>
-    {isActiveDraft ? (
-      <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">{t("selectedTitle")}</span>
-    ) : (
-      <button
-        onClick={() => handleSelectTitle(title)}
-        className="text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
-      >
-        {t("selectTitle")}
-      </button>
-    )}
-    <button onClick={() => copy(`t-${i}`, title)} className="text-xs text-slate-500 hover:underline">{copiedId === `t-${i}` ? "✓" : "Copy"}</button>
-    <button
-      onClick={() => handleMarkAsUsed(title)}
-      disabled={isMarked || isActiveDraft}
-      title={isActiveDraft ? t("activeDraftTooltip") : t("markTitleTooltip")}
-      className="text-xs text-emerald-600 hover:underline disabled:pg-text-muted disabled:no-underline"
-    >
-      {isMarked ? t("markedAsUsed") : t("mark")}
-    </button>
-  </div>
-  </div>
- );
- })}
- </div>
- </div>
- )}
- </div>
- )}
+  )}
 
  {activeTab === "htmlBlog" && htmlBlog && (
  <div className="glass-panel rounded-xl p-6 space-y-4">
