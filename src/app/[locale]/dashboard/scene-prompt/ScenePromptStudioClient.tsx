@@ -86,6 +86,14 @@ export default function ScenePromptStudioClient({ channels, locale }: Props) {
  }
  };
 
+ // Fix arsitektur: "Pilih" = set draftTitle + langsung kirim ke UsedTitle (permanen)
+ // Judul tetap tersimpan di Used Titles Directory meski draft dihapus nantinya.
+ const handleSelectTitle = async (title: string) => {
+ setDraftTitle(title);
+ await handleMarkAsUsed(title);
+ };
+
+
  // Server-Side Sync & LocalStorage Persistence
  useEffect(() => {
  // 1. Local Storage load
@@ -378,7 +386,7 @@ export default function ScenePromptStudioClient({ channels, locale }: Props) {
  return (
  <div
     key={i}
-    onClick={() => !isActiveDraft && setDraftTitle(title)}
+    onClick={() => !isActiveDraft && handleSelectTitle(title)}
     className={`flex items-center justify-between rounded px-3 py-2 transition-colors cursor-pointer
       ${isActiveDraft
         ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
@@ -395,7 +403,7 @@ export default function ScenePromptStudioClient({ channels, locale }: Props) {
       <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">{t("selectedTitle")}</span>
     ) : (
       <button
-        onClick={() => setDraftTitle(title)}
+        onClick={() => handleSelectTitle(title)}
         className="text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
       >
         {t("selectTitle")}

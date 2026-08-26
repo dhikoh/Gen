@@ -364,7 +364,7 @@ Form input: Profile Channel, POV/Persona, judul manual atau topik utama (dengan 
 Fungsi generator (generateMasterPrompt) merakit prompt 2-Tahap (2-Stage AI Interaction Flow) selaras dengan aplikasi Push:
   - Tahap 1: Jika judul spesifik belum ditentukan user, AI menawarkan 10 rekomendasi judul berpotensi viral beserta persentase potensi viralitasnya di chat box AI eksternal, lalu berhenti sementara meminta konfirmasi nomor pilihan (1-10) dari user.
   - Tahap 2: Setelah user membalas nomor pilihan di chat box AI, AI mengeksekusi dan mengeluarkan output JSON valid murni (tanpa markdown fence) dengan skema: opsi_judul (10 judul rekomendasi Tahap 1), judul_konten (judul terpilih), caption_medsos, ide_thumbnail, html_blog, segments[] (tipe, visual, audio, narasi, durasi_estimasi).
-  - Direktori Judul Terpakai: Hanya judul yang terpilih (draft.title) yang dimasukkan ke dalam direktori judul terpakai untuk excludeTitles pada prompt berikutnya; 9 opsi judul lainnya yang tidak dipilih tetap bersih dan tidak dikunci.
+  - Direktori Judul Terpakai: Judul yang TERPILIH oleh user (via tombol "Pilih" di Scene Prompt Studio) ditulis langsung ke tabel `UsedTitle` yang TERPISAH dari `Draft`. Artinya judul tetap terkunci meski draft dihapus. 9 opsi judul lainnya yang tidak dipilih tetap bersih dan tidak dikunci.
 Sanitasi prompt: pastikan tidak ada instruksi developer yang bocor ke output (tidak ada judul yang di-hardcode secara kaku), sehingga hasilnya bisa langsung dipakai user ke ChatGPT/Claude/Gemini tanpa perlu diedit ulang.
 
 B. Image Prompt Generator — WAJIB dibangun penuh, bukan placeholder
@@ -384,7 +384,7 @@ Tampilkan perbandingan jelas di UI: target durasi (dari form) vs estimasi durasi
 5.6 Drafts / Riwayat — CRUD Penuh
 GET /api/drafts (list milik user, dengan filter channel & type), POST /api/drafts (simpan hasil parse, termasuk wordCount/estimatedDurationSec dari 5.5), GET /api/drafts/:id, DELETE /api/drafts/:id. Tambahkan PATCH bila perlu edit judul/isi.
 UI Drafts: tetap pertahankan AI JSON Parser (tempel JSON hasil dari AI eksternal, sistem mem-parsing ke editor scene per scene) tapi hasilnya benar-benar tersimpan ke database lewat endpoint di atas — bukan hanya di state lokal yang hilang saat refresh.
-Daftar judul yang sudah pernah dipakai (untuk fitur "exclude judul" di Studio, 5.4) diambil otomatis dari Draft.title/parsedData.judul_konten milik channel terkait.
+Daftar judul yang sudah pernah dipakai (untuk fitur "exclude judul" di Studio, 5.4) dibaca dari tabel `UsedTitle` (sumber utama, permanen) dan tabel `Draft` (fallback historis untuk data sebelum migrasi schema 2026-08-26). Judul di tabel `UsedTitle` TIDAK ikut terhapus saat draft dihapus.
 5.7 Langganan & Pembayaran
 
 5.7.1 Model Bisnis
@@ -682,6 +682,10 @@ Seluruh fitur di bawah ini ditambahkan untuk kematangan bisnis, keamanan, dan ef
 12.6 Draft Templates & Import/Export Judul Channel
 - Flag `Draft.isTemplate` dan komponen `TemplateToggle.tsx` untuk menandai draft favorit sebagai template reusable.
 - Import dan Export judul channel (CSV/JSON) pada `EditChannelClient.tsx` dan `UsedTitlesDirectory.tsx` untuk efisiensi manajemen judul masal dan pencegahan duplikasi ide.
+- **[UPDATE 2026-08-26] Arsitektur UsedTitle Permanen:** Endpoint `import-titles` kini menulis ke tabel `UsedTitle` (bukan ke `Draft` dengan wordCount=0). Klik "Pilih" di Scene Prompt Studio menulis ke `UsedTitle` secara atomik bersama mengisi field judul draft. Tabel `UsedTitle` tidak terpengaruh oleh penghapusan `Draft`.
+  - Schema: `model UsedTitle { id, userId, channelId, type, title, createdAt; @@unique([channelId, type, title]) }`
+  - Migration: `prisma/migrations/20260826_add_used_title_table/migration.sql`
+  - Data migration script: `prisma/migrations/20260826_add_used_title_table/migrate_data.js`
 
 12.7 Customer Support Ticket System & Time-based CS Escalation
 - Modul tiket support terpadu (`SupportTicket`, `SupportMessage`) untuk komunikasi dua arah antara User dan Admin.
@@ -709,7 +713,7 @@ Seluruh fitur di bawah ini ditambahkan untuk kematangan bisnis, keamanan, dan ef
 - Refaktorisasi logika `generateMasterPrompt` (`src/lib/promptGenerator.ts`) menjadi alur interaksi 2-Tahap pada AI eksternal (ChatGPT/Gemini/Claude):
   1. Tahap 1 (Penawaran 10 Judul Viral): Jika judul spesifik belum ditentukan, AI terlebih dahulu menawarkan 10 rekomendasi judul berpotensi viral lengkap dengan indikator persentase potensi viralitasnya, lalu berhenti sejenak dan menanyakan nomor pilihan user (1-10).
   2. Tahap 2 (Eksekusi JSON Skrip Video): Setelah user mengetik nomor pilihan di chat box AI, AI merilis output murni JSON valid (tanpa teks pembuka/markdown block) berisi `opsi_judul`, `judul_konten`, `segments`, `caption_medsos`, `ide_thumbnail`, dan `html_blog`.
-  3. Direktori Judul Terpakai (Exclusion Rules): Hanya judul yang disetujui/disimpan (`draft.title`) yang dimasukkan ke daftar eksklusi `excludeTitles` pada penciptaan prompt berikutnya; 9 opsi judul yang tidak terpilih tetap tersedia dan tidak dikunci.
+  3. Direktori Judul Terpakai (Exclusion Rules): Hanya judul yang disetujui/disimpan dan dipilih via tombol "Pilih" di Scene Prompt Studio yang dimasukkan ke tabel `UsedTitle` permanen. Tabel ini terpisah dari Draft — hapus draft tidak menghapus entri UsedTitle. Generate API membaca excludeTitles dari UsedTitle (utama) + Draft (fallback historis), deduplicated.
 - Parse Engine Platform (`GeneratorForm.tsx` Step 2 & `/api/drafts`): Membaca & mem-parsing JSON dari Tahap 2 ke dalam visualisasi adegan, kalkulasi durasi riil vs target, dan penyimpanan draft yang presisi.
 
 Bagian 13: PUSH ENGINE INTEGRATION (SCENE PROMPT STUDIO)

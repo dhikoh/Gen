@@ -2,6 +2,48 @@
 
 ---
 
+## [#43] — 2026-08-26 | Arsitektur Used Titles Directory — Tabel UsedTitle Permanen
+
+### Problem Statement
+Sebelumnya, "Used Titles Directory" bergantung pada tabel `Draft`:
+- `import-titles` menulis ke `Draft` dengan `wordCount=0`
+- `export` dan AI exclude membaca dari `Draft.title`
+- **Efek samping kritis:** Menghapus draft = judul ikut terhapus dari exclude list → AI bisa mengulang judul yang sudah pernah dipakai.
+
+### Solusi: Tabel `UsedTitle` Terpisah
+
+**Schema (prisma/schema.prisma):**
+- Tambah model `UsedTitle` dengan unique constraint `(channelId, type, title)`
+- Foreign key ke `User` dan `ProfileChannel` dengan `onDelete: Cascade`
+- Relasi back-reference ditambah ke `User.usedTitles` dan `ProfileChannel.usedTitles`
+
+**Migration:**
+- SQL di `prisma/migrations/20260826_add_used_title_table/migration.sql`
+- Data migration script di `migrate_data.js` (salin dari `Draft` ke `UsedTitle`)
+- Jalankan: `npx prisma migrate deploy` lalu `node migrate_data.js`
+
+### Perubahan Kode
+
+| File | Perubahan |
+|------|-----------|
+| `api/drafts/import-titles/route.ts` | Tulis ke `prisma.usedTitle.upsert()` — bukan `prisma.draft.create()` |
+| `api/drafts/export/route.ts` | Baca dari `UsedTitle` (utama) + `Draft` (historis fallback), deduplicated |
+| `api/generate/route.ts` | Exclude dari `UsedTitle` + `Draft` dual-source (transition safety) |
+| `ScenePromptStudioClient.tsx` | `handleSelectTitle` = `setDraftTitle` + `handleMarkAsUsed` (atomic) |
+
+### UX Baru di Scene Prompt Studio
+- Parse → judul muncul di atas dengan tombol **"Pilih"**
+- Klik "Pilih" → judul masuk ke `draftTitle` field **DAN** langsung ditulis ke `UsedTitle` (permanen)
+- Menghapus draft tidak mempengaruhi Used Titles Directory
+- AI akan exclude judul tersebut di semua sesi generate berikutnya
+
+### Data Safety
+- Data lama tidak hilang — `Draft` table tidak diubah/dihapus
+- `migrate_data.js` menyalin semua judul historis dari `Draft` → `UsedTitle`
+- `generate/route.ts` membaca dari kedua sumber selama masa transisi
+
+---
+
 ## [#41] — 2026-08-26 | Audit Independen P0+P1 — Save Draft Fix & Real-Time Auth Check
 
 ### Temuan & Perbaikan (Diverifikasi dari Kode Langsung)

@@ -105,6 +105,7 @@ model User {
   channels              ProfileChannel[]
   invoices              Invoice[]
   drafts                Draft[]
+  usedTitles            UsedTitle[]
   parsedOutputs         ParsedOutput[]
   resetTokens           PasswordResetToken[]
   notifications         Notification[]
@@ -155,6 +156,7 @@ model ProfileChannel {
 
   products        Product[]
   drafts          Draft[]
+  usedTitles      UsedTitle[]
 }
 
 model Product {
@@ -336,5 +338,24 @@ model ParsedOutput {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  @@index([userId])
+}
+
+// ── Used Titles Directory ──────────────────────────────────────────────────────
+// Tabel permanen untuk menyimpan judul yang sudah dipakai.
+// TERPISAH dari Draft — tidak ikut terhapus saat draft dihapus.
+// AI membaca tabel ini untuk exclude list setiap kali generate.
+model UsedTitle {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channelId String
+  channel   ProfileChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  type      DraftType
+  title     String
+  createdAt DateTime  @default(now())
+
+  @@unique([channelId, type, title])
+  @@index([channelId, type])
   @@index([userId])
 }

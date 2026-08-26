@@ -190,12 +190,31 @@ export async function POST(req: Request) {
     // Auto fallback topic to channel.niche if topic is empty
     const effectiveTopic = (topic && topic.trim().length > 0) ? topic.trim() : (channel.niche || "Topik Umum");
 
-    // Fetch previous titles to exclude
-    const previousDrafts = await prisma.draft.findMany({
-      where: { channelId, type },
-      select: { title: true }
-    });
-    const previousTitles = previousDrafts.map(d => d.title).filter((t): t is string => Boolean(t && t.trim()));
+    // Fix arsitektur: exclude titles dibaca dari UsedTitle (permanen) + Draft (historis)
+    // Dual-source agar tidak ada gap selama masa transisi migrasi data
+    const [usedTitleRecords, previousDrafts] = await Promise.all([
+      prisma.usedTitle.findMany({
+        where: { channelId, type },
+        select: { title: true }
+      }),
+      prisma.draft.findMany({
+        where: { channelId, type, title: { not: null } },
+        select: { title: true }
+      })
+    ]);
+
+    const seenExclude = new Set<string>();
+    const previousTitles: string[] = [];
+    for (const ut of usedTitleRecords) {
+      const key = ut.title.trim().toLowerCase();
+      if (!seenExclude.has(key)) { seenExclude.add(key); previousTitles.push(ut.title); }
+    }
+    for (const d of previousDrafts) {
+      if (!d.title) continue;
+      const key = d.title.trim().toLowerCase();
+      if (!seenExclude.has(key)) { seenExclude.add(key); previousTitles.push(d.title); }
+    }
+
 
     let masterPrompt = "";
     let systemInstruction = "";

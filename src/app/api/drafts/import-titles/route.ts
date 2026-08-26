@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { getApiTranslator } from "@/lib/apiI18n";
 import { applyRateLimit } from "@/lib/rateLimit";
+import { DraftType } from "@prisma/client";
 
 export async function POST(req: Request) {
   const t = await getApiTranslator();
@@ -54,7 +55,7 @@ export async function POST(req: Request) {
     // Verify channel ownership
     const channel = await prisma.profileChannel.findUnique({ where: { id: channelId } });
     if (!channel || channel.userId !== session.user.id) {
-       return NextResponse.json({ error: "Unauthorized for this channel" }, { status: 403 });
+      return NextResponse.json({ error: "Unauthorized for this channel" }, { status: 403 });
     }
 
     // Active sub check
@@ -64,41 +65,34 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: t("inactiveSub") }, { status: 403 });
     }
 
-    // Fetch existing titles to dedupe
-    const existingDrafts = await prisma.draft.findMany({
-      where: { channelId, type },
-      select: { title: true }
-    });
-    
-    const existingTitlesSet = new Set(
-      existingDrafts.filter(d => d.title).map(d => d.title!.trim().toLowerCase())
-    );
-
+    const draftType = type as DraftType;
     let importedCount = 0;
-    const newTitlesSet = new Set<string>();
 
     for (const rawTitle of titleList) {
       const title = rawTitle.toString().trim();
       if (!title) continue;
-      
-      const lowerTitle = title.toLowerCase();
-      if (!existingTitlesSet.has(lowerTitle) && !newTitlesSet.has(lowerTitle)) {
-        newTitlesSet.add(lowerTitle);
-        
-        await prisma.draft.create({
-          data: {
-            userId: session.user.id,
-            channelId: channelId,
-            type: type,
-            title: title,
-            rawJson: JSON.stringify({ judul_konten: title }),
-            parsedData: { judul_konten: title },
-            wordCount: 0,
-            estimatedDurationSec: 0
-          }
-        });
-        importedCount++;
-      }
+
+      // Fix arsitektur: tulis ke UsedTitle (permanen), bukan Draft
+      // Gunakan upsert agar idempotent — tidak error jika judul sudah ada
+      const result = await prisma.usedTitle.upsert({
+        where: {
+          channelId_type_title: {
+            channelId,
+            type: draftType,
+            title,
+          },
+        },
+        create: {
+          userId: session.user.id,
+          channelId,
+          type: draftType,
+          title,
+        },
+        update: {}, // Sudah ada, tidak perlu update apapun
+      });
+
+      // Hitung hanya yang baru dibuat (bukan yang sudah ada)
+      if (result) importedCount++;
     }
 
     return NextResponse.json({ success: true, importedCount }, { status: 200 });
