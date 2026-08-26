@@ -42,7 +42,13 @@ Sebelumnya, "Used Titles Directory" bergantung pada tabel `Draft`:
 - `migrate_data.js` menyalin semua judul historis dari `Draft` → `UsedTitle`
 - `generate/route.ts` membaca dari kedua sumber selama masa transisi
 
+### 🔴 BUG FIX & UX Update (Post-Audit #43)
+- **Parser Judul**: Memperbaiki kelemahan regex `extractTitles` (`src/lib/parsers.ts`) yang salah mendeteksi blok instruksi AI berhuruf kapital (seperti `PANDUAN SUARA:` atau `TEKS OVERLAY SEO:`) sebagai bagian dari daftar judul. Sekarang parser secara proaktif mendeteksi pembatas blok ini dan berhenti mengekstrak judul.
+- **Penghapusan Tombol "Mark"**: Menghapus tombol *Mark as Used* yang redundan pada UI `ScenePromptStudioClient.tsx`. Mengklik "Pilih Judul" kini secara atomik menyimpan draft dan otomatis mencatat judul ke Used Titles Directory, menyederhanakan alur user dan mencegah kebingungan aksi ganda (Copy vs Mark).
+- **Missing i18n Keys**: Memasukkan `selectTitle` ("Pilih Judul") dan `selectedTitle` ("Judul Terpilih") ke dalam `id.json` dan `en.json`.
+
 ---
+
 
 ## [#41] — 2026-08-26 | Audit Independen P0+P1 — Save Draft Fix & Real-Time Auth Check
 
