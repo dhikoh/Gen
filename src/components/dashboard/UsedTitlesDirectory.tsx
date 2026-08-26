@@ -27,7 +27,9 @@ export default function UsedTitlesDirectory({ channelId }: UsedTitlesDirectoryPr
   const fetchTitles = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/drafts/export?channelId=${channelId}&type=${type}&format=json`);
+      const res = await fetch(`/api/drafts/export?channelId=${channelId}&type=${type}&format=json&_t=${Date.now()}`, {
+        cache: 'no-store'
+      });
       if (res.ok) {
         const data = await res.json();
         setTitles(data.titles || []);

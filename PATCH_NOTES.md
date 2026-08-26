@@ -45,7 +45,8 @@ Sebelumnya, "Used Titles Directory" bergantung pada tabel `Draft`:
 ### 🔴 BUG FIX & UX Update (Post-Audit #43)
 - **Parser Judul**: Memperbaiki kelemahan regex `extractTitles` (`src/lib/parsers.ts`) yang salah mendeteksi blok instruksi AI berhuruf kapital (seperti `PANDUAN SUARA:` atau `TEKS OVERLAY SEO:`) sebagai bagian dari daftar judul. Sekarang parser secara proaktif mendeteksi pembatas blok ini dan berhenti mengekstrak judul.
 - **Penghapusan Tombol "Mark"**: Menghapus tombol *Mark as Used* yang redundan pada UI `ScenePromptStudioClient.tsx`. Mengklik "Pilih Judul" kini secara atomik menyimpan draft dan otomatis mencatat judul ke Used Titles Directory, menyederhanakan alur user dan mencegah kebingungan aksi ganda (Copy vs Mark).
-- **Missing i18n Keys**: Memasukkan `selectTitle` ("Pilih Judul") dan `selectedTitle` ("Judul Terpilih") ke dalam `id.json` dan `en.json`.
+- **Missing i18n Keys & Label Fixes**: Memasukkan `selectTitle` ("Pilih Judul") dan `selectedTitle` ("Judul Terpilih") ke dalam `id.json` dan `en.json`. Mengganti istilah "Video Drafts" / "Image Drafts" menjadi "Judul Video" / "Judul Gambar" agar sesuai dengan arsitektur yang kini permanen (tidak bergantung pada draft).
+- **Anti-Caching pada Used Titles Directory**: Menambahkan `cache: 'no-store'` pada fetch frontend (`UsedTitlesDirectory.tsx`) dan `export const dynamic = 'force-dynamic'` pada endpoint backend (`/api/drafts/export/route.ts`) untuk mencegah browser/Next.js melakukan cache agresif yang membuat judul tidak langsung muncul sesaat setelah dipilih.
 
 ---
 

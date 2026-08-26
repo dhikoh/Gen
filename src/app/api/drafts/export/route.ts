@@ -5,6 +5,8 @@ import { prisma } from "@/lib/db";
 import { DraftType } from "@prisma/client";
 import { getApiTranslator } from "@/lib/apiI18n";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: Request) {
   const t = await getApiTranslator();
   try {
