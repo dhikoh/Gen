@@ -376,20 +376,42 @@ export default function ScenePromptStudioClient({ channels, locale }: Props) {
  const isActiveDraft = title === draftTitle;
  const isMarked = markedTitles.includes(title);
  return (
- <div key={i} className={`flex items-center justify-between pg-surface-dim rounded px-3 py-2 ${isActiveDraft ? 'ring-1 ring-blue-500' : ''}`}>
- <span className="text-sm pg-text-sub flex-1">{title}</span>
- <div className="flex items-center gap-3 ml-2 shrink-0">
- <button onClick={() => copy(`t-${i}`, title)} className="text-xs text-blue-500 hover:underline">{copiedId === `t-${i}` ? "✓" : "Copy"}</button>
- <button
- onClick={() => handleMarkAsUsed(title)}
- disabled={isMarked || isActiveDraft}
- title={isActiveDraft ? t("activeDraftTooltip") : t("markTitleTooltip")}
- className="text-xs text-emerald-600 hover:underline disabled:pg-text-muted disabled:no-underline"
- >
- {isMarked ? t("markedAsUsed") : t("mark")}
- </button>
- </div>
- </div>
+ <div
+    key={i}
+    onClick={() => !isActiveDraft && setDraftTitle(title)}
+    className={`flex items-center justify-between rounded px-3 py-2 transition-colors cursor-pointer
+      ${isActiveDraft
+        ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
+        : 'pg-surface-dim hover:bg-blue-50/60 dark:hover:bg-blue-900/10'}`}
+  >
+  <div className="flex items-center gap-2 flex-1 min-w-0">
+    {isActiveDraft && (
+      <span className="text-blue-600 dark:text-blue-400 text-xs font-bold shrink-0">✓</span>
+    )}
+    <span className="text-sm pg-text-sub truncate">{title}</span>
+  </div>
+  <div className="flex items-center gap-2 ml-2 shrink-0" onClick={e => e.stopPropagation()}>
+    {isActiveDraft ? (
+      <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">{t("selectedTitle")}</span>
+    ) : (
+      <button
+        onClick={() => setDraftTitle(title)}
+        className="text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
+      >
+        {t("selectTitle")}
+      </button>
+    )}
+    <button onClick={() => copy(`t-${i}`, title)} className="text-xs text-slate-500 hover:underline">{copiedId === `t-${i}` ? "✓" : "Copy"}</button>
+    <button
+      onClick={() => handleMarkAsUsed(title)}
+      disabled={isMarked || isActiveDraft}
+      title={isActiveDraft ? t("activeDraftTooltip") : t("markTitleTooltip")}
+      className="text-xs text-emerald-600 hover:underline disabled:pg-text-muted disabled:no-underline"
+    >
+      {isMarked ? t("markedAsUsed") : t("mark")}
+    </button>
+  </div>
+  </div>
  );
  })}
  </div>

@@ -1040,5 +1040,9 @@
   },
   "AdminSupport": {
     "replyPlaceholder": "Type official admin reply here..."
+  },
+  "SceneStudio": {
+    "selectTitle": "Select",
+    "selectedTitle": "✓ Selected"
   }
 }

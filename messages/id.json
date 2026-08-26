@@ -1040,5 +1040,9 @@
   },
   "AdminSupport": {
     "replyPlaceholder": "Ketik balasan resmi admin di sini..."
+  },
+  "SceneStudio": {
+    "selectTitle": "Pilih",
+    "selectedTitle": "✓ Terpilih"
   }
 }
