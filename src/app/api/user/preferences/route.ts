@@ -65,12 +65,12 @@ const generatorFormStateSchema = z.object({
 }).strict();
 
 const scenePromptStateSchema = z.object({
-  rawText: z.string().max(50000).optional(),
+  rawText: z.string().max(150000).optional(),
   selectedChannelId: z.string().optional(),
   ar: z.string().optional(),
-  sref: z.string().max(500).optional(),
-  cref: z.string().max(500).optional(),
-  draftTitle: z.string().max(300).optional(),
+  sref: z.string().max(5000).optional(),
+  cref: z.string().max(5000).optional(),
+  draftTitle: z.string().max(2000).optional(),
 }).strict();
 
 const preferencesSchema = z.object({
