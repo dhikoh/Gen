@@ -38,6 +38,7 @@ const imageConfigSchema = z.object({
 const generatorFormStateSchema = z.object({
   type: z.enum(["VIDEO", "IMAGE"]).optional(),
   channelId: z.string().optional(),
+  outputLanguage: z.string().optional(),
   topic: z.string().max(500).optional(),
   additionalContext: z.string().max(2000).optional(),
   rolePOV: z.string().optional(),
@@ -48,6 +49,12 @@ const generatorFormStateSchema = z.object({
   musicPreference: z.boolean().optional(),
   sfxPreference: z.boolean().optional(),
   voPreference: z.boolean().optional(),
+  cameraMovementEnabled: z.boolean().optional(),
+  cameraMovementPresets: z.array(z.string()).optional(),
+  cameraMovementCustom: z.string().max(300).optional(),
+  cameraMovementProMode: z.boolean().optional(),
+  affiliateAngle: z.boolean().optional(),
+  affiliateAngleMode: z.enum(["CTA", "SOFT"]).optional(),
   videoConfig: videoConfigSchema.optional(),
   imageConfig: imageConfigSchema.optional(),
   // Result state persistence (Section 14.4)
