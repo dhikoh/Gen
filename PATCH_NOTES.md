@@ -2,6 +2,26 @@
 
 ---
 
+## [#44] — 2026-08-28 | Penambahan Fitur Sudut Pandang Afiliasi (Affiliate Product Angle)
+
+### Problem Statement
+User membutuhkan kemampuan agar AI dalam Prompt Gen dapat diarahkan untuk menghasilkan ide konten dan naskah video yang *shoppable* (mendukung penandaan produk afiliasi), dengan dua pilihan mode: eksplisit menggunakan CTA atau soft-selling organik.
+
+### Implementasi Sistem
+1. **API Validasi & Autosave**:
+   - Menambahkan field `affiliateAngle` (boolean) dan `affiliateAngleMode` (enum "CTA" | "SOFT") pada schema `videoConfigSchema` dan `generatorFormStateSchema` di `/api/user/preferences/route.ts` (.strict()) untuk menghindari error 400 Bad Request saat autosave.
+   - Menambahkan field pada `/api/generate/route.ts` sehingga terkirim dengan benar ke proses payload.
+2. **Prompt Generator Engine**:
+   - Menyuntikkan `affiliateTitleDirective` khusus pada TAHAP 1 untuk menginstruksikan AI agar memprioritaskan ide konten yang relevan dengan produk.
+   - Menyuntikkan `affiliateAngleGuide` pada master prompt (TAHAP 2) untuk mengunci apakah script menggunakan ajakan CTA langsung atau menyebut produk secara organik.
+3. **UI / UX**:
+   - UI Checkbox dan Conditional Radio button ditambahkan pada *Additional Components* di halaman *GeneratorForm*, berjalan persis berdampingan dengan komponen pro-mode lainnya.
+   - Terintegrasi penuh dengan auto-save `localStorage` dan sinkronisasi server setiap 3 detik.
+4. **Lokalisasi**:
+   - Menambahkan key translasi di `en.json` dan `id.json` secara konsisten (tanpa *hardcoded strings*).
+
+---
+
 ## [#43] — 2026-08-26 | Arsitektur Used Titles Directory — Tabel UsedTitle Permanen
 
 ### Problem Statement
