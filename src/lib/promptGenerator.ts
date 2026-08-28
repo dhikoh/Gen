@@ -33,6 +33,8 @@ export interface VideoConfigData {
   socialCaption?: boolean | null;
   thumbnailIdea?: boolean | null;
   htmlBlog?: boolean | null;
+  affiliateAngle?: boolean | null;
+  affiliateAngleMode?: "CTA" | "SOFT" | null;
   // Push-ported enrichment params
   rolePOV?: string | null;
   toneOfVoice?: string | null;
@@ -235,8 +237,48 @@ WAJIB: Terapkan seluruh 8 prinsip di atas secara konsisten pada SETIAP Visual Pr
 
   const hasTitleSection = !videoConfig.selectedSections || videoConfig.selectedSections.includes("TITLE");
 
+  // ── Affiliate Angle (Sudut Pandang Afiliasi) ─────────────────────────────
+  let affiliateTitleDirective = "";
+  let affiliateAngleGuide = "";
+
+  if (videoConfig.affiliateAngle === true) {
+    // Fail-safe: mode tidak valid/kosong → jatuhkan ke "SOFT" (lebih aman untuk brand)
+    const mode: "CTA" | "SOFT" = videoConfig.affiliateAngleMode === "CTA" ? "CTA" : "SOFT";
+
+    let productListText = "";
+    let hasRealProductData = false;
+
+    if (videoConfig.selectedProduct) {
+      productListText = `- ${videoConfig.selectedProduct.name} (Rp ${videoConfig.selectedProduct.price}): ${videoConfig.selectedProduct.description || "-"}`;
+      hasRealProductData = true;
+    } else if (channel.products && channel.products.length > 0) {
+      productListText = channel.products.map((p) => `- ${p.name} (Rp ${p.price}): ${p.description || "-"}`).join("\n");
+      hasRealProductData = true;
+    }
+
+    if (hasTitleSection) {
+      affiliateTitleDirective = hasRealProductData
+        ? `4. WAJIB pastikan minimal 5 dari 10 ide judul memiliki keterkaitan tema yang natural dengan produk/kategori berikut, sehingga bisa ditempel/ditandai sebagai produk di keranjang belanja platform:\n${productListText}\nKeterkaitan ini WAJIB terasa organik dan relevan dengan niche channel, BUKAN dipaksakan atau mengubah niche channel itu sendiri.\n`
+        : `4. WAJIB pastikan minimal 5 dari 10 ide judul memiliki tema yang bersifat "shoppable" — punya kaitan alami dengan kategori produk yang relevan dengan niche channel (${channel.niche || "niche channel ini"}), TANPA menyebutkan nama produk, harga, atau merek spesifik yang tidak nyata.\n`;
+    }
+
+    if (mode === "CTA") {
+      affiliateAngleGuide = `\n[ARAH SUDUT PANDANG AFILIASI — DENGAN CTA]\n`;
+      affiliateAngleGuide += hasRealProductData
+        ? `Produk yang dipromosikan:\n${productListText}\n`
+        : `Channel ini belum memiliki produk terdaftar di katalog — arahkan CTA secara umum ke kategori produk yang relevan dengan niche (${channel.niche || "niche channel ini"}), TANPA menyebutkan nama produk/merek/harga spesifik yang tidak nyata.\n`;
+      affiliateAngleGuide += `1. Naskah WAJIB menonjolkan produk/kategori di atas secara eksplisit, idealnya di scene penutup/CTA.\n2. Sertakan kalimat ajakan (call-to-action) yang jelas untuk mengecek/membeli, disesuaikan dengan platform target:\n   - TikTok: ajak cek "keranjang kuning/oranye".\n   - Instagram: ajak klik "product tag" atau "shop now".\n   - YouTube: ajak cek "link di deskripsi".\n   - Platform lain/tidak diketahui: ajak "cek link di bio/deskripsi".\n3. CTA afiliasi ini terpisah dari CTA umum (follow/like/share) jika ada — boleh keduanya muncul, tapi jangan digabung jadi satu kalimat yang membingungkan.\n`;
+    } else {
+      affiliateAngleGuide = `\n[ARAH SUDUT PANDANG AFILIASI — TANPA CTA]\n`;
+      affiliateAngleGuide += hasRealProductData
+        ? `Produk yang relevan (untuk konteks tema saja, BUKAN untuk dijual eksplisit):\n${productListText}\n`
+        : `Channel ini belum memiliki produk terdaftar di katalog — jaga tema tetap relevan dengan kategori produk yang berkaitan dengan niche (${channel.niche || "niche channel ini"}), TANPA menyebutkan nama produk/merek/harga spesifik yang tidak nyata.\n`;
+      affiliateAngleGuide += `1. Susun narasi dengan tema yang secara natural berkaitan dengan produk/kategori di atas, TANPA kalimat ajakan membeli/klik/cek keranjang dalam bentuk apa pun.\n2. Sebut nama produk atau kategori/manfaatnya secara natural dalam dialog/narasi (bukan sebagai iklan), agar konten lebih mudah dikenali sistem product-tagging otomatis di beberapa platform (mis. TikTok Shop, Meta Shops) tanpa terasa jualan.\n3. DILARANG menambahkan frasa ajakan belanja meskipun Ending Style atau Composition Marketing di atas mengarahkan nada penutup yang persuasif — batasan "tanpa CTA" ini KHUSUS berlaku untuk penyebutan produk afiliasi.\n`;
+    }
+  }
+
   if (hasTitleSection) {
-    formatOutputWajib += `Proses pembuatan konten ini WAJIB dilakukan dalam 2 TAHAP interaktif:\n\nTAHAP 1: Tampilkan Ide Konten & Tunggu Konfirmasi (BERHENTI SEBELUM MENULIS NASKAH)\n1. Tampilkan tepat 10 ide judul konten kreatif yang memiliki potensi viral tinggi.\n2. Setiap ide ditulis dengan format:\n   [NOMOR]. [JUDUL IDE KONTEN] (Potensi Viral: [Persentase])\n   Deskripsi Singkat: [Penjelasan mengapa berpotensi viral]\n3. Setelah menampilkan 10 ide, WAJIB BERHENTI dan ketik:\n   "Silakan pilih nomor ide konten (1-10) yang ingin Anda buat naskah lengkapnya."\n\nTAHAP 2: Pembuatan Naskah Lengkap (Setelah Konfirmasi User)\nSetelah user memilih, tulis naskah lengkap dengan format berikut:\n\n## RISET & VARIASI JUDUL\nJUDUL TERPILIH: [Judul yang dipilih user]\n\n## ANALISIS STRATEGI KONTEN & HOOK\nAUDIENS PERSONA & PSIKOLOGI: [Analisis singkat]\nSTRATEGI HOOK (0-3 DETIK): [Cara menciptakan curiosity gap]\nALUR KONTEN PAS/AIDA: [Alur penyampaian]\n`;
+    formatOutputWajib += `Proses pembuatan konten ini WAJIB dilakukan dalam 2 TAHAP interaktif:\n\nTAHAP 1: Tampilkan Ide Konten & Tunggu Konfirmasi (BERHENTI SEBELUM MENULIS NASKAH)\n1. Tampilkan tepat 10 ide judul konten kreatif yang memiliki potensi viral tinggi.\n2. Setiap ide ditulis dengan format:\n   [NOMOR]. [JUDUL IDE KONTEN] (Potensi Viral: [Persentase])\n   Deskripsi Singkat: [Penjelasan mengapa berpotensi viral]\n3. Setelah menampilkan 10 ide, WAJIB BERHENTI dan ketik:\n   "Silakan pilih nomor ide konten (1-10) yang ingin Anda buat naskah lengkapnya."\n${affiliateTitleDirective}\nTAHAP 2: Pembuatan Naskah Lengkap (Setelah Konfirmasi User)\nSetelah user memilih, tulis naskah lengkap dengan format berikut:\n\n## RISET & VARIASI JUDUL\nJUDUL TERPILIH: [Judul yang dipilih user]\n\n## ANALISIS STRATEGI KONTEN & HOOK\nAUDIENS PERSONA & PSIKOLOGI: [Analisis singkat]\nSTRATEGI HOOK (0-3 DETIK): [Cara menciptakan curiosity gap]\nALUR KONTEN PAS/AIDA: [Alur penyampaian]\n`;
   } else {
     formatOutputWajib += `Kamu WAJIB mengembalikan output dengan format terstruktur berikut:\n\n## ANALISIS STRATEGI KONTEN & HOOK\nAUDIENS PERSONA & PSIKOLOGI: [Analisis singkat]\nSTRATEGI HOOK (0-3 DETIK): [Cara menciptakan curiosity gap]\nALUR KONTEN PAS/AIDA: [Alur penyampaian]\n`;
   }
@@ -368,7 +410,7 @@ ${videoLoopGuidelinesText}
     : "";
 
   // ── Assemble Master Prompt ─────────────────────────────────────────────
-  const masterPrompt = `${povSection}[TOPIK UTAMA]\n${topic}${contextText}${productContext}${compositionText}${platformText}${excludeSection}${durationText}${formatOutputWajib}${cameraMovementGuide}\n\n${allGuidelines}`;
+  const masterPrompt = `${povSection}[TOPIK UTAMA]\n${topic}${contextText}${productContext}${affiliateAngleGuide}${compositionText}${platformText}${excludeSection}${durationText}${formatOutputWajib}${cameraMovementGuide}\n\n${allGuidelines}`;
 
   return { masterPrompt, systemInstruction };
 }

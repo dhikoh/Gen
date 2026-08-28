@@ -103,6 +103,8 @@ export default function GeneratorForm({
  const [cameraMovementPresets, setCameraMovementPresets] = useState<string[]>([]);
  const [cameraMovementCustom, setCameraMovementCustom] = useState<string>("");
  const [cameraMovementProMode, setCameraMovementProMode] = useState<boolean>(false); // Opsi B: PRO auto toggle
+ const [affiliateAngle, setAffiliateAngle] = useState<boolean>(false);
+ const [affiliateAngleMode, setAffiliateAngleMode] = useState<"CTA" | "SOFT">("SOFT");
 
  // Visual style options (from visualStyleMap)
  const visualStyleOptions: PresetOption[] = [
@@ -255,6 +257,8 @@ export default function GeneratorForm({
  if (p.cameraMovementPresets !== undefined) setCameraMovementPresets(p.cameraMovementPresets);
  if (p.cameraMovementCustom !== undefined) setCameraMovementCustom(p.cameraMovementCustom);
  if (p.cameraMovementProMode !== undefined) setCameraMovementProMode(p.cameraMovementProMode);
+ if (p.affiliateAngle !== undefined) setAffiliateAngle(p.affiliateAngle);
+ if (p.affiliateAngleMode !== undefined) setAffiliateAngleMode(p.affiliateAngleMode);
  if (p.videoConfig) setVideoConfig(prev => ({ ...prev, ...p.videoConfig }));
  if (p.imageConfig) setImageConfig(prev => ({ ...prev, ...p.imageConfig }));
  } catch (e) {}
@@ -283,6 +287,8 @@ export default function GeneratorForm({
  if (p.cameraMovementPresets !== undefined) setCameraMovementPresets(p.cameraMovementPresets);
  if (p.cameraMovementCustom !== undefined) setCameraMovementCustom(p.cameraMovementCustom);
  if (p.cameraMovementProMode !== undefined) setCameraMovementProMode(p.cameraMovementProMode);
+ if (p.affiliateAngle !== undefined) setAffiliateAngle(p.affiliateAngle);
+ if (p.affiliateAngleMode !== undefined) setAffiliateAngleMode(p.affiliateAngleMode);
  if (p.videoConfig) setVideoConfig(prev => ({ ...prev, ...p.videoConfig }));
  if (p.imageConfig) setImageConfig(prev => ({ ...prev, ...p.imageConfig }));
  }
@@ -303,7 +309,7 @@ export default function GeneratorForm({
  }, []);
 
  useEffect(() => {
- const stateObj = { type, channelId, outputLanguage, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, cameraMovementEnabled, cameraMovementPresets, cameraMovementCustom, cameraMovementProMode, videoConfig, imageConfig, step, generatedPrompt, aiResultJson, manualTitle };
+ const stateObj = { type, channelId, outputLanguage, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, cameraMovementEnabled, cameraMovementPresets, cameraMovementCustom, cameraMovementProMode, affiliateAngle, affiliateAngleMode, videoConfig, imageConfig, step, generatedPrompt, aiResultJson, manualTitle };
  localStorage.setItem("generatorFormState", JSON.stringify(stateObj));
 
  const timeoutId = setTimeout(() => {
@@ -315,7 +321,7 @@ export default function GeneratorForm({
  }, 3000); // 3 seconds debounce
 
  return () => clearTimeout(timeoutId);
- }, [type, channelId, outputLanguage, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, cameraMovementEnabled, cameraMovementPresets, cameraMovementCustom, cameraMovementProMode, videoConfig, imageConfig, step, generatedPrompt, aiResultJson, manualTitle]);
+ }, [type, channelId, outputLanguage, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, cameraMovementEnabled, cameraMovementPresets, cameraMovementCustom, cameraMovementProMode, affiliateAngle, affiliateAngleMode, videoConfig, imageConfig, step, generatedPrompt, aiResultJson, manualTitle]);
 
  // Fetch presets on mount
  useEffect(() => {
@@ -492,6 +498,8 @@ export default function GeneratorForm({
  cameraMovementPresets: (cameraMovementEnabled && !cameraMovementProMode) ? cameraMovementPresets : [],
  cameraMovementCustom: (cameraMovementEnabled && !cameraMovementProMode) ? cameraMovementCustom : undefined,
  cameraMovementProMode: cameraMovementEnabled ? cameraMovementProMode : false,
+ affiliateAngle,
+ affiliateAngleMode: affiliateAngle ? affiliateAngleMode : undefined,
  isVideoPlatform: selectedChannel?.targetPlatform ? !/blog|podcast|article|web/i.test(selectedChannel.targetPlatform) : true,
  } : undefined,
  imageConfig: type === "IMAGE" ? imageConfig : undefined,
@@ -1302,6 +1310,56 @@ export default function GeneratorForm({
  <span className="text-[10px] text-amber-500 font-semibold ml-1">🔒 Upgrade</span>
  )}
  </label>
+
+ {/* ── Affiliate Product Angle ── */}
+ <label className="flex items-center space-x-2 col-span-2">
+ <input
+ type="checkbox"
+ id="affiliateAngleCheckbox"
+ checked={affiliateAngle}
+ onChange={(e) => setAffiliateAngle(e.target.checked)}
+ className="rounded"
+ />
+ <span>{t("affiliateAngle")}</span>
+ </label>
+ {affiliateAngle && (
+ <div className="col-span-2 ml-5 space-y-2 p-2.5 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800">
+ <p className="text-[10px] pg-text-muted">{t("affiliateAngleDesc")}</p>
+ <div className="flex flex-col gap-1.5">
+ <label className="flex items-start gap-2 cursor-pointer">
+ <input
+ type="radio"
+ id="affiliateAngleModeSoft"
+ name="affiliateAngleMode"
+ value="SOFT"
+ checked={affiliateAngleMode === "SOFT"}
+ onChange={() => setAffiliateAngleMode("SOFT")}
+ className="mt-0.5 rounded-full"
+ />
+ <div>
+ <span className="text-xs font-medium pg-text-heading">{t("affiliateAngleModeSoft")}</span>
+ <p className="text-[10px] pg-text-muted">{t("affiliateAngleModeSoftDesc")}</p>
+ </div>
+ </label>
+ <label className="flex items-start gap-2 cursor-pointer">
+ <input
+ type="radio"
+ id="affiliateAngleModeCTA"
+ name="affiliateAngleMode"
+ value="CTA"
+ checked={affiliateAngleMode === "CTA"}
+ onChange={() => setAffiliateAngleMode("CTA")}
+ className="mt-0.5 rounded-full"
+ />
+ <div>
+ <span className="text-xs font-medium pg-text-heading">{t("affiliateAngleModeCTA")}</span>
+ <p className="text-[10px] pg-text-muted">{t("affiliateAngleModeCTADesc")}</p>
+ </div>
+ </label>
+ </div>
+ </div>
+ )}
+
  </div>
  </div>
  </div>

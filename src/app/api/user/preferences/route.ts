@@ -25,6 +25,8 @@ const videoConfigSchema = z.object({
   socialCaption: z.boolean().optional().nullable(),
   thumbnailIdea: z.boolean().optional().nullable(),
   htmlBlog: z.boolean().optional().nullable(),
+  affiliateAngle: z.boolean().optional().nullable(),
+  affiliateAngleMode: z.enum(["CTA", "SOFT"]).optional().nullable(),
 }).strict();
 
 const imageConfigSchema = z.object({
