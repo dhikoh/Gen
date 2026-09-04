@@ -930,7 +930,11 @@
     "markedAsUsed": "✓ Terpakai",
     "mark": "Tandai",
     "selectTitle": "Pilih Judul",
-    "selectedTitle": "Judul Terpilih"
+    "selectedTitle": "Judul Terpilih",
+    "saveToDirectory": "Simpan ke Direktori",
+    "savedToDirectory": "Tersimpan di Direktori",
+    "selectOrSave": "Pilih sebagai judul draft atau simpan ke direktori",
+    "selectChannelFirst": "Pilih channel terlebih dahulu"
   },
   "ForgotPassword": {
     "title": "Lupa Password?",

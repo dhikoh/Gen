@@ -930,7 +930,11 @@
     "markedAsUsed": "✓ Used",
     "mark": "Mark",
     "selectTitle": "Select Title",
-    "selectedTitle": "Selected Title"
+    "selectedTitle": "Selected Title",
+    "saveToDirectory": "Save to Directory",
+    "savedToDirectory": "Saved to Directory",
+    "selectOrSave": "Select as draft title or save to directory",
+    "selectChannelFirst": "Please select a channel first"
   },
   "ForgotPassword": {
     "title": "Forgot Password?",

@@ -65,34 +65,33 @@ export default function ScenePromptStudioClient({ channels, locale }: Props) {
  const [affiliateRecs, setAffiliateRecs] = useState<AffiliateRecommendation[]>([]);
 
  const handleMarkAsUsed = async (title: string) => {
- if (!selectedChannelId) return;
- try {
- const res = await fetch("/api/drafts/import-titles", {
- method: "POST",
- headers: { "Content-Type": "application/json" },
- body: JSON.stringify({
- channelId: selectedChannelId,
- type: "VIDEO",
- titles: [title]
- })
- });
- if (res.ok) {
- setMarkedTitles(prev => [...prev, title]);
- toast.success(t("markTitleSuccess"));
- } else {
- toast.error(t("markTitleFail"));
- }
- } catch (e) {
- toast.error(t("generalError"));
- }
- };
+  if (!selectedChannelId) { toast.error(t("selectChannelFirst")); return; }
+  try {
+  const res = await fetch("/api/drafts/import-titles", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+  channelId: selectedChannelId,
+  type: "VIDEO",
+  titles: [title]
+  })
+  });
+  if (res.ok) {
+  setMarkedTitles(prev => [...prev, title]);
+  toast.success(t("markTitleSuccess"));
+  } else {
+  toast.error(t("markTitleFail"));
+  }
+  } catch (e) {
+  toast.error(t("generalError"));
+  }
+  };
 
- // Fix arsitektur: "Pilih" = set draftTitle + langsung kirim ke UsedTitle (permanen)
- // Judul tetap tersimpan di Used Titles Directory meski draft dihapus nantinya.
- const handleSelectTitle = async (title: string) => {
- setDraftTitle(title);
- await handleMarkAsUsed(title);
- };
+  // "Pilih" hanya mengatur draftTitle.
+  // "Simpan ke Direktori" adalah aksi terpisah via tombol eksplisit (handleMarkAsUsed).
+  const handleSelectTitle = (title: string) => {
+  setDraftTitle(title);
+  };
 
 
  // Server-Side Sync & LocalStorage Persistence
@@ -178,20 +177,12 @@ export default function ScenePromptStudioClient({ channels, locale }: Props) {
   if (!scenes.length) return;
   setSaving(true); setSaveMsg(null);
   try {
-  // Fix 2.4: Extract html_blog from rawText and include in parsedData
   const htmlBlogContent = extractHtmlBlog(rawText);
   setHtmlBlog(htmlBlogContent);
 
-  // Fix audit 3.1: Turunkan topic dari draftTitle atau niche channel terpilih
   const selectedChannel = channels.find(c => c.id === selectedChannelId);
   const effectiveTopic = draftTitle || selectedChannel?.niche || "Draft Video";
 
-  // Fix audit 3.2: Tulis parsedData dengan field canonical yang dibaca DraftDetailPage
-  // - segments: field canonical (dibaca page.tsx L192)
-  // - caption_medsos: field canonical (dibaca page.tsx L153)
-  // - ide_thumbnail: field canonical (dibaca page.tsx L165)
-  // - opsi_judul: field canonical (dibaca page.tsx L127)
-  // Alias lama (scenes, caption) juga disertakan untuk backward compat & wordCount API
   const ideThumbText = thumbnailData
     ? [
         thumbnailData.seoText && `SEO: ${thumbnailData.seoText}`,
@@ -202,13 +193,11 @@ export default function ScenePromptStudioClient({ channels, locale }: Props) {
     : undefined;
 
   const parsedData: Record<string, unknown> = {
-    // Canonical fields (dibaca DraftDetailPage)
-    segments: scenes,                              // alias dari scenes ke segments
-    caption_medsos: caption || undefined,          // alias dari caption
-    ide_thumbnail: ideThumbText,                   // alias dari thumbnailData (dikonversi teks)
-    opsi_judul: parsedTitles.length > 0 ? parsedTitles : undefined, // data yang selama ini hilang!
+    segments: scenes,
+    caption_medsos: caption || undefined,
+    ide_thumbnail: ideThumbText,
+    opsi_judul: parsedTitles.length > 0 ? parsedTitles : undefined,
     html_blog: htmlBlogContent || undefined,
-    // Alias mentah untuk backward compat & kalkulasi wordCount di drafts/route.ts
     scenes,
     caption: caption || undefined,
     hashtags: hashtags || undefined,
@@ -221,7 +210,7 @@ export default function ScenePromptStudioClient({ channels, locale }: Props) {
   body: JSON.stringify({
     channelId: selectedChannelId || undefined,
     type: "VIDEO",
-    topic: effectiveTopic,  // Fix audit 3.1: field wajib sekarang disertakan
+    topic: effectiveTopic,
     title: draftTitle,
     rawJson: JSON.stringify({ scenes, caption, hashtags, thumbnailData }),
     parsedData,
@@ -283,7 +272,6 @@ export default function ScenePromptStudioClient({ channels, locale }: Props) {
  })}
  </div>
 
- {/* ── Affiliate Product Recommendations Panel ── */}
  {affiliateRecs.length > 0 && (
  <div className="glass-panel rounded-xl p-5 border border-emerald-200 dark:border-emerald-800 shadow-sm">
  <h2 className="text-sm font-bold text-emerald-700 dark:text-emerald-300 mb-3 flex items-center gap-2">
@@ -322,94 +310,109 @@ export default function ScenePromptStudioClient({ channels, locale }: Props) {
  </div>
  )}
 
- {parsedTitles.length > 0 && (
-  <div className="glass-panel rounded-xl p-5 mb-5 border border-blue-100 dark:border-blue-900 shadow-sm">
-  <h2 className="text-sm font-bold text-blue-700 dark:text-blue-300 mb-3 flex items-center gap-2">✨ {t("titlesFound")}</h2>
- <div className="space-y-1">
- {parsedTitles.map((title, i) => {
- const isActiveDraft = title === draftTitle;
- const isMarked = markedTitles.includes(title);
- return (
- <div
-    key={i}
-    onClick={() => !isActiveDraft && handleSelectTitle(title)}
-    className={`flex items-center justify-between rounded px-3 py-2 transition-colors cursor-pointer
-      ${isActiveDraft
-        ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
-        : 'pg-surface-dim hover:bg-blue-50/60 dark:hover:bg-blue-900/10'}`}
-  >
-  <div className="flex items-center gap-2 flex-1 min-w-0">
-    {isActiveDraft && (
-      <span className="text-blue-600 dark:text-blue-400 text-xs font-bold shrink-0">✓</span>
-    )}
-    <span className="text-sm pg-text-sub truncate">{title}</span>
+  {/* ── Extracted Titles Panel ── */}
+  {parsedTitles.length > 0 && (
+  <div className="glass-panel rounded-xl p-5 border border-blue-100 dark:border-blue-900 shadow-sm">
+   <div className="flex items-center justify-between mb-3">
+     <h2 className="text-sm font-bold text-blue-700 dark:text-blue-300 flex items-center gap-2">✨ {t("titlesFound")}</h2>
+     <span className="text-[10px] pg-text-muted">{t("selectOrSave")}</span>
+   </div>
+  <div className="space-y-2">
+  {parsedTitles.map((title, i) => {
+  const isActiveDraft = title === draftTitle;
+  const isMarked = markedTitles.includes(title);
+  return (
+  <div
+     key={i}
+     className={`flex items-start justify-between rounded-lg px-3 py-2.5 gap-3 transition-colors
+       ${isActiveDraft
+         ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
+         : 'pg-surface-dim'}`}
+   >
+   {/* Left: status icon + title text */}
+   <div className="flex items-start gap-2 flex-1 min-w-0 pt-0.5">
+     {isActiveDraft && <span className="text-blue-600 dark:text-blue-400 text-xs font-bold shrink-0 mt-0.5">✓</span>}
+     {isMarked && !isActiveDraft && <span className="text-emerald-500 text-xs shrink-0 mt-0.5">✅</span>}
+     <span className="text-sm pg-text-sub leading-snug">{title}</span>
+   </div>
+   {/* Right: action buttons stacked */}
+   <div className="flex flex-col items-end gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
+     <div className="flex items-center gap-2">
+       {/* Set as Draft Title */}
+       {isActiveDraft ? (
+         <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">{t("selectedTitle")}</span>
+       ) : (
+         <button
+           onClick={() => handleSelectTitle(title)}
+           className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-800/50 transition-colors"
+         >
+           {t("selectTitle")}
+         </button>
+       )}
+       {/* Copy */}
+       <button onClick={() => copy(`t-${i}`, title)} className="text-[10px] text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">{copiedId === `t-${i}` ? "✓" : "Copy"}</button>
+     </div>
+     {/* Save to Used Titles Directory — explicit separate action */}
+     {isMarked ? (
+       <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400">✅ {t("savedToDirectory")}</span>
+     ) : (
+       <button
+         onClick={() => handleMarkAsUsed(title)}
+         className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-800/50 transition-colors"
+       >
+         📂 {t("saveToDirectory")}
+       </button>
+     )}
+   </div>
+   </div>
+  );
+  })}
+  {activeTab === "scenes" && (
+  <div className="space-y-4">
+  {scenes.map(scene => (
+  <div key={scene.id} className="glass-panel rounded-xl p-5 space-y-3">
+  <div className="flex items-center justify-between">
+  <h3 className="font-bold pg-text-heading">{scene.sceneNumber}</h3>
+  <span className="text-xs pg-surface-dim px-2 py-1 rounded pg-text-muted">{scene.durasi}</span>
   </div>
-  <div className="flex items-center flex-wrap justify-end gap-2 ml-2 shrink-0" onClick={e => e.stopPropagation()}>
-    {isActiveDraft ? (
-      <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">{t("selectedTitle")}</span>
-    ) : (
-      <button
-        onClick={() => handleSelectTitle(title)}
-        className="text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
-      >
-        {t("selectTitle")}
-      </button>
-    )}
-    <button onClick={() => copy(`t-${i}`, title)} className="text-xs text-slate-500 hover:underline">{copiedId === `t-${i}` ? "✓" : "Copy"}</button>
-
+  {scene.narasi !== "—" && (
+  <div>
+  <div className="flex items-center justify-between mb-1">
+  <span className="text-xs font-semibold pg-text-muted uppercase">🎤 {t("narasi")}</span>
+  <button onClick={() => copy(`nar-${scene.id}`, scene.narasi)} className="text-xs text-blue-500 hover:underline">{copiedId === `nar-${scene.id}` ? "✓" : t("copy")}</button>
+  </div>
+  <p className="text-sm pg-text-sub leading-relaxed">{scene.narasi}</p>
+  {(scene.bgmCues?.length || scene.sfxCues?.length) ? (
+  <div className="flex flex-wrap gap-1 mt-2">
+  {scene.bgmCues?.map((c,i) => <span key={i} className="text-[10px] px-2 py-0.5 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 rounded-full">🎵 {c}</span>)}
+  {scene.sfxCues?.map((c,i) => <span key={i} className="text-[10px] px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full">🔊 {c}</span>)}
+  </div>
+  ) : null}
+  </div>
+  )}
+  {scene.voiceGuidelines && (
+  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 text-xs text-blue-700 dark:text-blue-300 space-y-0.5">
+  {scene.voiceGuidelines.sampleContext && <p>📍 {scene.voiceGuidelines.sampleContext}</p>}
+  {scene.voiceGuidelines.directorsNote && <p>🎬 {scene.voiceGuidelines.directorsNote}</p>}
+  {scene.voiceGuidelines.traits && <p>🎙️ {scene.voiceGuidelines.traits}</p>}
+  </div>
+  )}
+  {scene.visual !== "—" && (
+  <div>
+  <div className="flex items-center justify-between mb-1">
+  <span className="text-xs font-semibold pg-text-muted uppercase">🎨 {t("visualPrompt")}</span>
+  <button onClick={() => copy(`vis-${scene.id}`, buildVisualPrompt(scene.visual))} className="text-xs text-blue-500 hover:underline">{copiedId === `vis-${scene.id}` ? "✓" : t("copy")}</button>
+  </div>
+  <p className="text-xs font-mono pg-text-sub pg-surface-dim rounded p-2 leading-relaxed">{buildVisualPrompt(scene.visual)}</p>
+  </div>
+  )}
+  </div>
+  ))}
+  </div>
+  )}
   </div>
   </div>
- );
- })}
- </div>
- </div>
- )}
-
-
-
- {activeTab === "scenes" && (
- <div className="space-y-4">
- {scenes.map(scene => (
- <div key={scene.id} className="glass-panel rounded-xl p-5 space-y-3">
- <div className="flex items-center justify-between">
- <h3 className="font-bold pg-text-heading">{scene.sceneNumber}</h3>
- <span className="text-xs pg-surface-dim px-2 py-1 rounded pg-text-muted">{scene.durasi}</span>
- </div>
- {scene.narasi !== "—" && (
- <div>
- <div className="flex items-center justify-between mb-1">
- <span className="text-xs font-semibold pg-text-muted uppercase">🎤 {t("narasi")}</span>
- <button onClick={() => copy(`nar-${scene.id}`, scene.narasi)} className="text-xs text-blue-500 hover:underline">{copiedId === `nar-${scene.id}` ? "✓" : t("copy")}</button>
- </div>
- <p className="text-sm pg-text-sub leading-relaxed">{scene.narasi}</p>
- {(scene.bgmCues?.length || scene.sfxCues?.length) ? (
- <div className="flex flex-wrap gap-1 mt-2">
- {scene.bgmCues?.map((c,i) => <span key={i} className="text-[10px] px-2 py-0.5 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 rounded-full">🎵 {c}</span>)}
- {scene.sfxCues?.map((c,i) => <span key={i} className="text-[10px] px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full">🔊 {c}</span>)}
- </div>
- ) : null}
- </div>
- )}
- {scene.voiceGuidelines && (
- <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 text-xs text-blue-700 dark:text-blue-300 space-y-0.5">
- {scene.voiceGuidelines.sampleContext && <p>📍 {scene.voiceGuidelines.sampleContext}</p>}
- {scene.voiceGuidelines.directorsNote && <p>🎬 {scene.voiceGuidelines.directorsNote}</p>}
- {scene.voiceGuidelines.traits && <p>🎙️ {scene.voiceGuidelines.traits}</p>}
- </div>
- )}
- {scene.visual !== "—" && (
- <div>
- <div className="flex items-center justify-between mb-1">
- <span className="text-xs font-semibold pg-text-muted uppercase">🎨 {t("visualPrompt")}</span>
- <button onClick={() => copy(`vis-${scene.id}`, buildVisualPrompt(scene.visual))} className="text-xs text-blue-500 hover:underline">{copiedId === `vis-${scene.id}` ? "✓" : t("copy")}</button>
- </div>
- <p className="text-xs font-mono pg-text-sub pg-surface-dim rounded p-2 leading-relaxed">{buildVisualPrompt(scene.visual)}</p>
- </div>
- )}
- </div>
- ))}
- </div>
- )}
+  )}
 
  {/* Thumbnail Studio */}
  {activeTab === "thumbnail" && thumbnailData && (
