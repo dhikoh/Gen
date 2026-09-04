@@ -3,6 +3,74 @@
 ---
 
 
+## [#48] — 2026-09-04 | UX Refactoring — Extracted Titles: Dua Aksi Eksplisit
+
+### Problem Statement
+Tombol "Pilih Judul" di panel **Extracted Titles** secara diam-diam menjalankan dua aksi sekaligus: menetapkan judul sebagai *Draft Title* DAN menyimpan ke *Used Titles Directory*. Tidak ada feedback visual yang memperjelas bahwa judul sudah masuk ke direktori, karena state `isMarked` sudah di-track di kode namun **tidak pernah ditampilkan di UI**. User mengira tidak ada tombol untuk memasukkan judul ke direktori.
+
+### Perubahan Arsitektur
+
+1. **Pemisahan Tanggung Jawab Tombol** (`ScenePromptStudioClient.tsx`):
+   - `handleSelectTitle(title)` kini **hanya** menetapkan `draftTitle` (tidak lagi memanggil `handleMarkAsUsed`).
+   - `handleMarkAsUsed(title)` tetap menjadi satu-satunya fungsi yang POST ke `/api/drafts/import-titles`.
+   - Dua tombol terpisah kini muncul per judul:
+     - 🔵 **Pilih Judul** — Menetapkan sebagai *Draft Title* di kolom simpan bawah.
+     - 🟢 **📂 Simpan ke Direktori** — Menyimpan permanen ke *Used Titles Directory*.
+
+2. **Feedback Visual Persisten** (`ScenePromptStudioClient.tsx`):
+   - State `isMarked` kini **ditampilkan** sebagai badge hijau ✅ **"Tersimpan di Direktori"** yang menetap setelah judul disimpan.
+   - Ikon ✅ muncul di samping teks judul sebagai indikator status instan.
+   - Jika channel belum dipilih saat mencoba simpan, muncul pesan error `t("selectChannelFirst")` yang jelas.
+
+3. **i18n Keys Baru** (`messages/id.json` & `messages/en.json`, namespace `ScenePromptStudio`):
+   - `saveToDirectory` → "Simpan ke Direktori" / "Save to Directory"
+   - `savedToDirectory` → "Tersimpan di Direktori" / "Saved to Directory"
+   - `selectOrSave` → instruksi mini header panel
+   - `selectChannelFirst` → pesan error jika channel belum dipilih
+
+### Verifikasi
+- `npx tsc --noEmit` → **Exit code: 0** ✅
+- Alur baru: Parse → lihat judul → klik "Pilih Judul" (draft title berubah) → klik "📂 Simpan ke Direktori" (badge ✅ muncul, masuk ke direktori)
+
+### Files Modified
+| File | Perubahan |
+|------|-----------|
+| `src/app/[locale]/dashboard/scene-prompt/ScenePromptStudioClient.tsx` | Pisah `handleSelectTitle` & `handleMarkAsUsed`, UI dua tombol eksplisit, badge `isMarked` |
+| `messages/id.json` | +4 keys baru di namespace `ScenePromptStudio` |
+| `messages/en.json` | +4 keys baru di namespace `ScenePromptStudio` |
+
+---
+
+## [#47] — 2026-09-04 | Parser Hardening — Affiliate & Extracted Titles Detection
+
+### Problem Statement
+Dua fungsi parser kritis di `parsers.ts` terlalu rigid dalam mendeteksi format output AI:
+1. **`extractAffiliateRecommendations()`**: Hanya mendeteksi header `## REKOMENDASI PRODUK AFFILIATE` secara eksak. AI sering menghasilkan variasi (bold `**...**`, tanpa kata "AFFILIATE", format URL sebagai markdown link `[label](url)`) yang menyebabkan panel Affiliate tidak muncul.
+2. **`extractTitles()`**: Tidak mendeteksi format numbered list dengan persentase (`1. "Judul Ini" (85%)`) yang merupakan output AI Tahap 1 yang paling umum. Header `"Rekomendasi Judul"` juga tidak dikenali sebagai aktivator section.
+
+### Perbaikan
+
+1. **`extractAffiliateRecommendations()`** (`src/lib/parsers.ts`):
+   - Regex header diperluas: sekarang mendeteksi `## ...` **maupun** `**...**` (bold) format.
+   - Kata "AFFILIATE" dijadikan **opsional** dalam header (`REKOMENDASI PRODUK` saja sudah cukup).
+   - URL extractor kini meng-unwrap format markdown link `[label](https://...)` sebelum menyimpan URL.
+
+2. **`extractTitles()`** (`src/lib/parsers.ts`):
+   - Ditambahkan **`numberedPattern`** baru: `/^\d+[.)\-]\s*["*]?(.+?)["*]?\s*(?:\(\d+%\))?$/` untuk mendeteksi format `1. "Judul" (85%)`.
+   - Header `"rekomendasi judul"` kini dikenali sebagai section aktivator.
+   - Pembersihan lebih agresif: strip tanda kutip, asterisk bold, dan persentase dari teks judul.
+   - Panjang minimum judul dinaikkan dari `>3` → `>5` untuk mengurangi false positive.
+
+### Verifikasi
+- `npx tsc --noEmit` → **Exit code: 0** ✅
+
+### Files Modified
+| File | Perubahan |
+|------|-----------|
+| `src/lib/parsers.ts` | Hardening regex `extractAffiliateRecommendations` & `extractTitles` |
+
+---
+
 ## [#46] — 2026-09-04 | UI/UX & PWA Accessibility Audit
 
 ### Problem Statement
