@@ -106,6 +106,19 @@ export default function GeneratorForm({
  const [affiliateAngle, setAffiliateAngle] = useState<boolean>(false);
  const [affiliateAngleMode, setAffiliateAngleMode] = useState<"CTA" | "SOFT">("SOFT");
 
+ // Marketplace settings (persisted)
+ const MARKETPLACE_OPTIONS = [
+  { key: "tokopedia",  label: "Tokopedia" },
+  { key: "shopee",     label: "Shopee" },
+  { key: "tiktokshop", label: "TikTok Shop" },
+  { key: "lazada",     label: "Lazada" },
+  { key: "blibli",     label: "Blibli" },
+  { key: "custom",     label: "Custom URL" },
+ ];
+ const ALL_MARKETPLACE_KEYS = MARKETPLACE_OPTIONS.map(m => m.key);
+ const [affiliateMarketplaces, setAffiliateMarketplaces] = useState<string[]>(ALL_MARKETPLACE_KEYS.filter(k => k !== "custom"));
+ const [affiliateCustomUrl, setAffiliateCustomUrl] = useState<string>("");
+
  // Visual style options (from visualStyleMap)
  const visualStyleOptions: PresetOption[] = [
  { value: "", label: "Auto (Ikuti Estetika Channel)" },
@@ -309,7 +322,7 @@ export default function GeneratorForm({
  }, []);
 
  useEffect(() => {
- const stateObj = { type, channelId, outputLanguage, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, cameraMovementEnabled, cameraMovementPresets, cameraMovementCustom, cameraMovementProMode, affiliateAngle, affiliateAngleMode, videoConfig, imageConfig, step, generatedPrompt, aiResultJson, manualTitle };
+ const stateObj = { type, channelId, outputLanguage, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, cameraMovementEnabled, cameraMovementPresets, cameraMovementCustom, cameraMovementProMode, affiliateAngle, affiliateAngleMode, affiliateMarketplaces, affiliateCustomUrl, videoConfig, imageConfig, step, generatedPrompt, aiResultJson, manualTitle };
  localStorage.setItem("generatorFormState", JSON.stringify(stateObj));
 
  const timeoutId = setTimeout(() => {
@@ -321,7 +334,7 @@ export default function GeneratorForm({
  }, 3000); // 3 seconds debounce
 
  return () => clearTimeout(timeoutId);
- }, [type, channelId, outputLanguage, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, cameraMovementEnabled, cameraMovementPresets, cameraMovementCustom, cameraMovementProMode, affiliateAngle, affiliateAngleMode, videoConfig, imageConfig, step, generatedPrompt, aiResultJson, manualTitle]);
+ }, [type, channelId, outputLanguage, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, cameraMovementEnabled, cameraMovementPresets, cameraMovementCustom, cameraMovementProMode, affiliateAngle, affiliateAngleMode, affiliateMarketplaces, affiliateCustomUrl, videoConfig, imageConfig, step, generatedPrompt, aiResultJson, manualTitle]);
 
  // Fetch presets on mount
  useEffect(() => {
@@ -500,6 +513,8 @@ export default function GeneratorForm({
  cameraMovementProMode: cameraMovementEnabled ? cameraMovementProMode : false,
  affiliateAngle,
  affiliateAngleMode: affiliateAngle ? affiliateAngleMode : undefined,
+ affiliateMarketplaces: affiliateAngle ? affiliateMarketplaces : undefined,
+ affiliateCustomUrl: affiliateAngle && affiliateMarketplaces.includes("custom") ? affiliateCustomUrl : undefined,
  isVideoPlatform: selectedChannel?.targetPlatform ? !/blog|podcast|article|web/i.test(selectedChannel.targetPlatform) : true,
  } : undefined,
  imageConfig: type === "IMAGE" ? imageConfig : undefined,
@@ -1323,43 +1338,68 @@ export default function GeneratorForm({
  <span>{t("affiliateAngle")}</span>
  </label>
  {affiliateAngle && (
- <div className="col-span-2 ml-5 space-y-2 p-2.5 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800">
+ <div className="col-span-2 ml-5 space-y-3 p-3 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800">
  <p className="text-[10px] pg-text-muted">{t("affiliateAngleDesc")}</p>
+ {/* Mode SOFT / CTA */}
  <div className="flex flex-col gap-1.5">
  <label className="flex items-start gap-2 cursor-pointer">
- <input
- type="radio"
- id="affiliateAngleModeSoft"
- name="affiliateAngleMode"
- value="SOFT"
- checked={affiliateAngleMode === "SOFT"}
- onChange={() => setAffiliateAngleMode("SOFT")}
- className="mt-0.5 rounded-full"
- />
+ <input type="radio" id="affiliateAngleModeSoft" name="affiliateAngleMode" value="SOFT"
+ checked={affiliateAngleMode === "SOFT"} onChange={() => setAffiliateAngleMode("SOFT")}
+ className="mt-0.5 rounded-full" />
  <div>
  <span className="text-xs font-medium pg-text-heading">{t("affiliateAngleModeSoft")}</span>
  <p className="text-[10px] pg-text-muted">{t("affiliateAngleModeSoftDesc")}</p>
  </div>
  </label>
  <label className="flex items-start gap-2 cursor-pointer">
- <input
- type="radio"
- id="affiliateAngleModeCTA"
- name="affiliateAngleMode"
- value="CTA"
- checked={affiliateAngleMode === "CTA"}
- onChange={() => setAffiliateAngleMode("CTA")}
- className="mt-0.5 rounded-full"
- />
+ <input type="radio" id="affiliateAngleModeCTA" name="affiliateAngleMode" value="CTA"
+ checked={affiliateAngleMode === "CTA"} onChange={() => setAffiliateAngleMode("CTA")}
+ className="mt-0.5 rounded-full" />
  <div>
  <span className="text-xs font-medium pg-text-heading">{t("affiliateAngleModeCTA")}</span>
  <p className="text-[10px] pg-text-muted">{t("affiliateAngleModeCTADesc")}</p>
  </div>
  </label>
  </div>
+ {/* Marketplace Selection */}
+ <div className="border-t border-orange-200 dark:border-orange-700 pt-2.5 space-y-2">
+ <p className="text-[10px] font-semibold text-orange-700 dark:text-orange-300 uppercase tracking-wide">🛒 Marketplace Rekomendasi</p>
+ <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+ {MARKETPLACE_OPTIONS.map(mp => (
+ <label key={mp.key} className="flex items-center gap-1.5 cursor-pointer">
+ <input
+ type="checkbox"
+ id={`marketplace-${mp.key}`}
+ checked={affiliateMarketplaces.includes(mp.key)}
+ onChange={(e) => {
+ if (e.target.checked) {
+ setAffiliateMarketplaces(prev => [...prev, mp.key]);
+ } else {
+ setAffiliateMarketplaces(prev => prev.filter(k => k !== mp.key));
+ }
+ }}
+ className="rounded"
+ />
+ <span className="text-xs pg-text-sub">{mp.label}</span>
+ </label>
+ ))}
+ </div>
+ {affiliateMarketplaces.includes("custom") && (
+ <div className="mt-1.5">
+ <p className="text-[10px] pg-text-muted mb-1">Base URL pencarian (contoh: https://bukalapak.com/products?search=)</p>
+ <input
+ type="url"
+ id="affiliateCustomUrl"
+ value={affiliateCustomUrl}
+ onChange={(e) => setAffiliateCustomUrl(e.target.value)}
+ placeholder="https://example.com/search?q="
+ className="w-full px-2.5 py-1.5 text-xs bg-white border pg-border rounded-md focus:ring-1 focus:ring-orange-400 outline-none dark:text-white"
+ />
  </div>
  )}
-
+ </div>
+ </div>
+ )}
  </div>
  </div>
  </div>

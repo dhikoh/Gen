@@ -3,8 +3,8 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import toast from "react-hot-toast";
 import sanitizeHtml from "sanitize-html";
-import { extractAudioCues, extractVisualAudioHint, cleanParsedValue, parseVoiceGuidelines, extractTitles, extractChosenTitle, extractThumbnailData, extractCaption, extractHashtags, extractHtmlBlog } from "@/lib/parsers";
-import type { ThumbnailData } from "@/lib/parsers";
+import { extractAudioCues, extractVisualAudioHint, cleanParsedValue, parseVoiceGuidelines, extractTitles, extractChosenTitle, extractThumbnailData, extractCaption, extractHashtags, extractHtmlBlog, extractAffiliateRecommendations } from "@/lib/parsers";
+import type { ThumbnailData, AffiliateRecommendation } from "@/lib/parsers";
 
 interface Scene { id: number; sceneNumber: string; narasi: string; visual: string; durasi: string; bgmCues?: string[]; sfxCues?: string[]; voiceGuidelines?: { sampleContext?: string; directorsNote?: string; traits?: string }; }
 interface Channel { id: string; channelName: string; niche?: string | null; }
@@ -62,6 +62,7 @@ export default function ScenePromptStudioClient({ channels, locale }: Props) {
  const [activeTab, setActiveTab] = useState<"scenes"|"thumbnail"|"platform"|"htmlBlog">("scenes");
  const [markedTitles, setMarkedTitles] = useState<string[]>([]);
  const [htmlBlog, setHtmlBlog] = useState("");
+ const [affiliateRecs, setAffiliateRecs] = useState<AffiliateRecommendation[]>([]);
 
  const handleMarkAsUsed = async (title: string) => {
  if (!selectedChannelId) return;
@@ -161,6 +162,7 @@ export default function ScenePromptStudioClient({ channels, locale }: Props) {
  setParsedTitles(titles);
  const chosen = extractChosenTitle(rawText) || titles[0] || "";
  setDraftTitle(chosen || t("defaultDraftTitle"));
+ setAffiliateRecs(extractAffiliateRecommendations(rawText));
  try {
  await fetch("/api/parsed-outputs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rawInput: rawText, parsedResult: parsed }) });
  } catch {}
@@ -280,6 +282,45 @@ export default function ScenePromptStudioClient({ channels, locale }: Props) {
  );
  })}
  </div>
+
+ {/* ── Affiliate Product Recommendations Panel ── */}
+ {affiliateRecs.length > 0 && (
+ <div className="glass-panel rounded-xl p-5 border border-emerald-200 dark:border-emerald-800 shadow-sm">
+ <h2 className="text-sm font-bold text-emerald-700 dark:text-emerald-300 mb-3 flex items-center gap-2">
+ 🛒 Rekomendasi Produk Affiliate
+ <span className="text-[10px] font-normal bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-full">
+ {affiliateRecs.length} produk
+ </span>
+ </h2>
+ <div className="space-y-4">
+ {affiliateRecs.map((rec, i) => (
+ <div key={i} className="pg-surface-dim rounded-lg p-3 space-y-1.5">
+ <div className="flex items-start justify-between gap-2">
+ <p className="text-sm font-semibold pg-text-heading">{rec.productName}</p>
+ </div>
+ {rec.reason && (
+ <p className="text-xs pg-text-muted leading-relaxed">{rec.reason}</p>
+ )}
+ {rec.links.length > 0 && (
+ <div className="flex flex-wrap gap-1.5 pt-1">
+ {rec.links.map((link, j) => (
+ <a
+ key={j}
+ href={link.url}
+ target="_blank"
+ rel="noopener noreferrer"
+ className="inline-flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-800/60 transition-colors"
+ >
+ 🔗 {link.marketplace}
+ </a>
+ ))}
+ </div>
+ )}
+ </div>
+ ))}
+ </div>
+ </div>
+ )}
 
  {parsedTitles.length > 0 && (
   <div className="glass-panel rounded-xl p-5 mb-5 border border-blue-100 dark:border-blue-900 shadow-sm">

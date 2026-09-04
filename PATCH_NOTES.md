@@ -2,6 +2,57 @@
 
 ---
 
+## [#45] — 2026-09-04 | Affiliate Product Angle Revamp — Marketplace Selector & Rekomendasi Produk AI
+
+### Problem Statement
+Fitur *Affiliate Product Angle* (#44) sudah menyuntikkan instruksi afiliasi ke prompt AI, namun memiliki dua kelemahan kritis:
+1. **Bug Duplikasi Data:** `productContext` dan `affiliateAngleGuide` keduanya menginjeksi daftar produk yang sama ke dalam prompt secara bersamaan, membuang token dan berpotensi membingungkan model.
+2. **Keterbatasan Fitur:** AI tidak memberikan rekomendasi produk konkret dengan link marketplace kepada user — fitur tidak memberikan nilai nyata bagi creator yang ingin menyertakan link afiliasi.
+
+### Implementasi Sistem
+
+1. **Bug Fix — Eliminasi Duplikasi `productContext`** (`src/lib/promptGenerator.ts`):
+   - `productContext` kini hanya diinjeksi ke prompt jika `affiliateAngle === false`.
+   - Jika `affiliateAngle === true`, `affiliateAngleGuide` sudah mencakup seluruh data produk — tidak ada duplikasi.
+
+2. **Prompt Enhancement — Instruksi Rekomendasi Produk** (`src/lib/promptGenerator.ts`):
+   - Menambahkan interface field `affiliateMarketplaces: string[]` dan `affiliateCustomUrl: string` ke `VideoConfigData`.
+   - Ketika affiliate aktif, AI diperintahkan menghasilkan section `## REKOMENDASI PRODUK AFFILIATE` di akhir output berisi 3–5 produk relevan.
+   - Setiap produk menyertakan field `PRODUK`, `ALASAN`, dan `LINK [MARKETPLACE]` dengan URL pencarian valid dan ter-encode per marketplace yang dipilih user.
+   - 5 marketplace bawaan: Tokopedia, Shopee, TikTok Shop, Lazada, Blibli. Dukungan Custom URL marketplace tambahan.
+
+3. **Parser Enhancement — `extractAffiliateRecommendations()`** (`src/lib/parsers.ts`):
+   - Interface baru: `AffiliateRecommendation { productName, reason, links: AffiliateProductLink[] }`.
+   - Fungsi `extractAffiliateRecommendations(text)` meng-parse section hasil AI menjadi array structured data.
+   - Robust: menangani format bold markdown (`**PRODUK:**`), URL placeholder (tidak masuk array), dan blok kosong.
+
+4. **UI Generator Form — Marketplace Selector** (`src/components/generator/GeneratorForm.tsx`):
+   - State baru: `affiliateMarketplaces` (default: semua marketplace kecuali custom) dan `affiliateCustomUrl`.
+   - Panel marketplace muncul di dalam panel affiliate (di bawah SOFT/CTA toggle) saat affiliate dicentang.
+   - Grid 2-kolom checkbox per marketplace. Input Custom URL muncul hanya jika "Custom URL" dicentang.
+   - Semua state di-persist ke `stateObj` (localStorage + server debounce 3 detik) — tidak perlu setting ulang antar sesi.
+
+5. **UI Scene Prompt Studio — Panel Rekomendasi** (`src/app/[locale]/dashboard/scene-prompt/ScenePromptStudioClient.tsx`):
+   - `handleParse()` kini memanggil `extractAffiliateRecommendations(rawText)` dan menyimpan hasilnya ke state `affiliateRecs`.
+   - Panel **🛒 Rekomendasi Produk Affiliate** ditampilkan di atas **✨ Extracted Titles** setelah parse berhasil.
+   - Setiap produk menampilkan nama, alasan relevansi, dan tombol link per marketplace yang dapat diklik (buka search page di tab baru).
+   - Panel hanya muncul jika AI menghasilkan section rekomendasi (backward compatible).
+
+### Verifikasi
+- `npm run build` → **Exit code: 0** ✅ (37 halaman, 68+ API routes)
+- TypeScript: **0 error**
+- Auto-persist marketplace settings: ✅ terbukti via localStorage restore
+
+### Files Modified
+| File | Perubahan |
+|------|-----------|
+| `src/lib/promptGenerator.ts` | Fix duplikasi, tambah marketplace interface & instruksi AI |
+| `src/lib/parsers.ts` | Tambah `extractAffiliateRecommendations()`, interface `AffiliateRecommendation` |
+| `src/components/generator/GeneratorForm.tsx` | State marketplace, UI checkbox panel, auto-persist |
+| `src/app/[locale]/dashboard/scene-prompt/ScenePromptStudioClient.tsx` | Panel rekomendasi produk di atas Extracted Titles |
+
+---
+
 ## [#44] — 2026-08-28 | Penambahan Fitur Sudut Pandang Afiliasi (Affiliate Product Angle)
 
 ### Problem Statement

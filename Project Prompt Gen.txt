@@ -1031,3 +1031,27 @@ Berdasarkan masukan UX, PRO mode kini **user-controlled** (bukan otomatis transp
 - Saat PRO ON: preset dan custom concept disembunyikan (PRO auto murni). Saat PRO OFF: preset/custom tampil normal (Standar/KURASI USER).
 - Server menggunakan AND logic: entitlement server HARUS true DAN client harus opt-in — tidak bisa dipalsukan dari sisi client.
 - State tersimpan via auto-save (localStorage + server preferences) seperti semua field lain di GeneratorForm.
+
+12.13 Affiliate Product Angle Revamp — Marketplace Selector & Rekomendasi Produk AI
+- **Latar Belakang:** Fitur Affiliate Product Angle (#44) diperluas dari sekadar sudut penulisan naskah menjadi sistem rekomendasi produk end-to-end dengan link marketplace yang dapat diklik.
+- **Bug Fix — Eliminasi Duplikasi `productContext`:** `productContext` hanya diinjeksi ke prompt jika `affiliateAngle === false`. Jika affiliate aktif, `affiliateAngleGuide` sudah mencakup data produk sehingga tidak ada duplikasi token ke LLM.
+- **Interface Baru di `VideoConfigData` (`src/lib/promptGenerator.ts`):**
+  - `affiliateMarketplaces: string[] | null` — daftar marketplace key yang dipilih user (tokopedia, shopee, tiktokshop, lazada, blibli, custom).
+  - `affiliateCustomUrl: string | null` — base URL pencarian marketplace tambahan yang tidak ada dalam daftar bawaan.
+- **Instruksi AI Rekomendasi Produk:** Ketika affiliate aktif, AI diperintahkan menghasilkan section `## REKOMENDASI PRODUK AFFILIATE` di akhir output berisi 3–5 produk relevan. Format wajib per produk:
+  ```
+  PRODUK: [Nama produk spesifik]
+  ALASAN: [Satu kalimat relevansi]
+  LINK TOKOPEDIA: [URL pencarian lengkap dan ter-encode]
+  LINK SHOPEE: [URL pencarian lengkap dan ter-encode]
+  ... (marketplace yang dipilih user)
+  ```
+- **5 Marketplace Bawaan + Custom:** Tokopedia (`/search?st=product&q=`), Shopee (`/search?keyword=`), TikTok Shop (`/search?q=`), Lazada (`/catalog/?q=`), Blibli (`/jual/`). Custom URL: user input base URL, query di-append otomatis.
+- **Parser Baru `extractAffiliateRecommendations()` (`src/lib/parsers.ts`):**
+  - Interface `AffiliateProductLink { marketplace: string; url: string }`.
+  - Interface `AffiliateRecommendation { productName: string; reason: string; links: AffiliateProductLink[] }`.
+  - Fungsi meng-parse section AI menjadi array structured data. Validasi URL: hanya menyimpan link yang dimulai dengan `http` (skip placeholder).
+- **UI Generator Form — Marketplace Selector:** Panel sub-section muncul di dalam panel affiliate (di bawah SOFT/CTA) saat toggle dicentang. Grid 2-kolom checkbox per marketplace. Custom URL input muncul kondisional. Semua state di-persist via `stateObj` (localStorage + server 3 detik debounce) — tidak perlu konfigurasi ulang antar sesi.
+- **UI Scene Prompt Studio — Panel Rekomendasi (`ScenePromptStudioClient.tsx`):** Panel `🛒 Rekomendasi Produk Affiliate` ditampilkan di atas `✨ Extracted Titles` setelah parse. Setiap produk: nama, alasan relevansi, tombol link per marketplace (buka tab baru). Panel hanya muncul jika AI menghasilkan section rekomendasi (backward compatible dengan output non-affiliate).
+- **Build Verification:** `npm run build` → Exit code: 0. TypeScript: 0 error.
+

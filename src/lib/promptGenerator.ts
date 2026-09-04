@@ -35,6 +35,8 @@ export interface VideoConfigData {
   htmlBlog?: boolean | null;
   affiliateAngle?: boolean | null;
   affiliateAngleMode?: "CTA" | "SOFT" | null;
+  affiliateMarketplaces?: string[] | null;
+  affiliateCustomUrl?: string | null;
   // Push-ported enrichment params
   rolePOV?: string | null;
   toneOfVoice?: string | null;
@@ -275,6 +277,58 @@ WAJIB: Terapkan seluruh 8 prinsip di atas secara konsisten pada SETIAP Visual Pr
         : `Channel ini belum memiliki produk terdaftar di katalog — jaga tema tetap relevan dengan kategori produk yang berkaitan dengan niche (${channel.niche || "niche channel ini"}), TANPA menyebutkan nama produk/merek/harga spesifik yang tidak nyata.\n`;
       affiliateAngleGuide += `1. Susun narasi dengan tema yang secara natural berkaitan dengan produk/kategori di atas, TANPA kalimat ajakan membeli/klik/cek keranjang dalam bentuk apa pun.\n2. Sebut nama produk atau kategori/manfaatnya secara natural dalam dialog/narasi (bukan sebagai iklan), agar konten lebih mudah dikenali sistem product-tagging otomatis di beberapa platform (mis. TikTok Shop, Meta Shops) tanpa terasa jualan.\n3. DILARANG menambahkan frasa ajakan belanja meskipun Ending Style atau Composition Marketing di atas mengarahkan nada penutup yang persuasif — batasan "tanpa CTA" ini KHUSUS berlaku untuk penyebutan produk afiliasi.\n`;
     }
+
+    // ── Instruksi Rekomendasi Produk Affiliate ──────────────────────────────
+    // Bangun daftar marketplace + template URL pencarian
+    const MARKETPLACE_SEARCH_TEMPLATES: Record<string, { name: string; searchUrl: string }> = {
+      tokopedia:  { name: "Tokopedia",  searchUrl: "https://www.tokopedia.com/search?st=product&q={query}" },
+      shopee:     { name: "Shopee",     searchUrl: "https://shopee.co.id/search?keyword={query}" },
+      tiktokshop: { name: "TikTok Shop",searchUrl: "https://www.tiktok.com/search?q={query}" },
+      lazada:     { name: "Lazada",     searchUrl: "https://www.lazada.co.id/catalog/?q={query}" },
+      blibli:     { name: "Blibli",     searchUrl: "https://www.blibli.com/jual/{query}" },
+    };
+
+    const selectedMarketplaces = videoConfig.affiliateMarketplaces ?? Object.keys(MARKETPLACE_SEARCH_TEMPLATES);
+    const customUrl = videoConfig.affiliateCustomUrl?.trim();
+
+    const marketplaceLines: string[] = [];
+    for (const key of selectedMarketplaces) {
+      if (key === "custom" && customUrl) {
+        marketplaceLines.push(`- Custom Marketplace: ${customUrl}{query}`);
+      } else if (MARKETPLACE_SEARCH_TEMPLATES[key]) {
+        const { name, searchUrl } = MARKETPLACE_SEARCH_TEMPLATES[key];
+        marketplaceLines.push(`- ${name}: ${searchUrl}`);
+      }
+    }
+    if (customUrl && !selectedMarketplaces.includes("custom")) {
+      marketplaceLines.push(`- Custom Marketplace: ${customUrl}{query}`);
+    }
+
+    const marketplaceInstructions = marketplaceLines.length > 0
+      ? `Marketplace yang dipilih user (gunakan template URL ini untuk tiap produk yang direkomendasikan, ganti {query} dengan nama produk dalam format URL-encoded):\n${marketplaceLines.join("\n")}\n`
+      : "";
+
+    const contextForRec = hasRealProductData
+      ? `Produk dari katalog channel:\n${productListText}\nSelain merekomendasikan produk di atas, tambahkan produk relevan lainnya jika ada yang lebih sesuai dengan konten.`
+      : `Channel belum memiliki produk terdaftar. Rekomendasikan produk yang paling relevan dengan niche (${channel.niche || "niche channel ini"}) dan topik konten.`;
+
+    affiliateAngleGuide += `\n[REKOMENDASI PRODUK AFFILIATE]
+Di AKHIR output (setelah semua scene, caption, hashtag, dan thumbnail), WAJIB tambahkan section berikut:
+
+## REKOMENDASI PRODUK AFFILIATE
+${contextForRec}
+${marketplaceInstructions}
+Format WAJIB untuk setiap produk yang direkomendasikan:
+PRODUK: [Nama produk spesifik yang relevan dengan konten ini]
+ALASAN: [Satu kalimat mengapa produk ini cocok untuk konten/audiens]
+${marketplaceLines.map(line => {
+  const marketplace = line.split(":")[0].replace("-","").trim();
+  return `LINK ${marketplace.toUpperCase()}: [URL pencarian lengkap untuk produk ini di ${marketplace}]`;
+}).join("\n")}
+
+Ulangi format di atas untuk 3 hingga 5 produk yang paling relevan. Pisahkan setiap produk dengan baris kosong.
+PENTING: Tulis URL pencarian yang VALID dan LENGKAP dengan nama produk sudah di-encode (spasi = + atau %20). JANGAN tulis placeholder atau URL kosong.
+`;
   }
 
   if (hasTitleSection) {
@@ -394,11 +448,15 @@ ${videoLoopGuidelinesText}
   }
 
   // ── Product Context ────────────────────────────────────────────────────
+  // Hanya inject productContext jika affiliateAngle TIDAK aktif.
+  // Jika aktif, affiliateAngleGuide sudah mencakup data produk → hindari duplikasi.
   let productContext = "";
-  if (videoConfig.selectedProduct) {
-    productContext = `\n[PRODUK YANG DIPROMOSIKAN]\n- ${videoConfig.selectedProduct.name} (Rp ${videoConfig.selectedProduct.price}): ${videoConfig.selectedProduct.description || "-"}`;
-  } else if (channel.products && channel.products.length > 0) {
-    productContext = `\n[PRODUK UNTUK SOFT-SELLING]\n${channel.products.map((p) => `- ${p.name} (Rp ${p.price}): ${p.description || "-"}`).join("\n")}`;
+  if (!videoConfig.affiliateAngle) {
+    if (videoConfig.selectedProduct) {
+      productContext = `\n[PRODUK YANG DIPROMOSIKAN]\n- ${videoConfig.selectedProduct.name} (Rp ${videoConfig.selectedProduct.price}): ${videoConfig.selectedProduct.description || "-"}`;
+    } else if (channel.products && channel.products.length > 0) {
+      productContext = `\n[PRODUK UNTUK SOFT-SELLING]\n${channel.products.map((p) => `- ${p.name} (Rp ${p.price}): ${p.description || "-"}`).join("\n")}`;
+    }
   }
 
   // ── Additional Context ─────────────────────────────────────────────────
