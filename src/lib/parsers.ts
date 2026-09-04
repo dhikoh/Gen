@@ -221,8 +221,11 @@ const TITLE_BLACKLIST_KEYWORDS = [
 export function extractTitles(text: string): string[] {
   const titles: string[] = [];
   const lines = text.split("\n");
+  // Pattern 1: "JUDUL 1: ..." or "JUDUL: ..."
   const exactPattern =
     /^(?:\d+[.\-)]|-|\*|\s)*\s*(?:JUDUL|TITLE|JUDUL\s+TERPILIH|JUDUL\s+PILIHAN|SELECTED\s+TITLE|JUDUL\s+UTAMA|MAIN\s+TITLE)\s*\d*\s*:\s*(.+)/i;
+  // Pattern 2: "1. \"Judul ini\"" or "1. *Judul ini*" (numbered list with quotes or bold)
+  const numberedPattern = /^\d+[.)\-]\s*["*\u201c\u201d]?(.+?)["*\u201c\u201d]?\s*(?:\(\d+%\))?$/;
   let inTitleSection = false;
 
   for (let line of lines) {
@@ -236,6 +239,7 @@ export function extractTitles(text: string): string[] {
     const isTitleKeywordHeader =
       lowerLine.includes("bagian title") ||
       lowerLine.includes("variasi judul") ||
+      lowerLine.includes("rekomendasi judul") ||
       lowerLine.includes("riset & variasi judul");
 
     if (isTitleHeader || isTitleKeywordHeader) {
@@ -244,14 +248,14 @@ export function extractTitles(text: string): string[] {
     } else if (
       (line.startsWith("#") && !lowerLine.includes("judul") && !lowerLine.includes("title")) ||
       (line.startsWith("**") && line.endsWith("**") && !lowerLine.includes("judul") && !lowerLine.includes("title")) ||
-      /^[A-Z0-9\s&]+:/.test(line.replace(/^(?:\d+[.\-)]|-|\*)?\s*/, "").replace(/[[\]*#]/g, "").trim()) // Ex: "PANDUAN SUARA:", "TEKS OVERLAY:"
+      /^[A-Z0-9\s&]+:/.test(line.replace(/^(?:\d+[.\-)]|-|\*)?\s*/, "").replace(/[[\]*#]/g, "").trim())
     ) {
       inTitleSection = false;
     }
 
-    const match = line.match(exactPattern);
-    if (match) {
-      const titleText = match[1].replace(/[[\]]/g, "").trim();
+    const exactMatch = line.match(exactPattern);
+    if (exactMatch) {
+      const titleText = exactMatch[1].replace(/[[\]"*]/g, "").trim();
       if (titleText && !titles.includes(titleText)) {
         const lt = titleText.toLowerCase();
         if (!TITLE_BLACKLIST_KEYWORDS.some((kw) => lt.includes(kw))) {
@@ -259,10 +263,18 @@ export function extractTitles(text: string): string[] {
         }
       }
     } else if (inTitleSection) {
-      const cleanLine = line.replace(/^(?:\d+[.\-)]|-|\*)?\s*/, "").replace(/[[\]*#]/g, "").trim();
+      // Try numbered list pattern inside title section ("1. \"Title\" (85%)")  
+      const numberedMatch = line.match(numberedPattern);
+      const rawLine = numberedMatch ? numberedMatch[1].trim() : line;
+      const cleanLine = rawLine
+        .replace(/^(?:\d+[.\-)]|-|\*)?\s*/, "")
+        .replace(/[[\]*#"]/g, "")
+        .replace(/\(\d+%\)$/, "")
+        .trim();
+
       if (
         cleanLine &&
-        cleanLine.length > 3 &&
+        cleanLine.length > 5 &&
         !cleanLine.toLowerCase().includes("pilihlah") &&
         !cleanLine.toLowerCase().includes("berikut")
       ) {
@@ -530,8 +542,10 @@ export interface AffiliateRecommendation {
 export function extractAffiliateRecommendations(text: string): AffiliateRecommendation[] {
   if (!text) return [];
 
-  // Find section header
-  const headerMatch = text.match(/##\s*REKOMENDASI\s*PRODUK\s*AFFILIATE\b/i);
+  // Find section header — support ## header AND **bold** header variants
+  const headerMatch = text.match(
+    /(?:##\s*|\*\*\s*)REKOMENDASI\s*PRODUK(?:\s+AFFILIATE)?(?:\s*\*\*)?/i
+  );
   if (!headerMatch || headerMatch.index === undefined) return [];
 
   const startIdx = headerMatch.index + headerMatch[0].length;
@@ -544,7 +558,7 @@ export function extractAffiliateRecommendations(text: string): AffiliateRecommen
 
   if (!sectionRaw) return [];
 
-  // Split into product blocks by blank lines
+  // Split into product blocks by blank lines OR numbered/bulleted blocks
   const blocks = sectionRaw.split(/\n\s*\n/).map(b => b.trim()).filter(Boolean);
   const results: AffiliateRecommendation[] = [];
 
@@ -555,7 +569,7 @@ export function extractAffiliateRecommendations(text: string): AffiliateRecommen
     const links: AffiliateProductLink[] = [];
 
     for (const line of lines) {
-      // PRODUK: value
+      // PRODUK: value  (supports **PRODUK:** and plain)
       const prodMatch = line.match(/^(?:\*\*)?PRODUK(?:\*\*)?\s*:\s*(.+)/i);
       if (prodMatch) {
         productName = cleanParsedValue(prodMatch[1]);
@@ -567,14 +581,19 @@ export function extractAffiliateRecommendations(text: string): AffiliateRecommen
         reason = cleanParsedValue(alasanMatch[1]);
         continue;
       }
-      // LINK [MARKETPLACE]: url
+      // LINK [MARKETPLACE]: url — also handles markdown links [text](url)
       const linkMatch = line.match(/^(?:\*\*)?LINK\s+([A-Z0-9\s_]+?)(?:\*\*)?\s*:\s*(.+)/i);
       if (linkMatch) {
         const marketplace = linkMatch[1].trim();
-        const url = linkMatch[2].trim().replace(/^\[|\]$/g, "").trim();
+        let rawUrl = linkMatch[2].trim();
+        // Unwrap markdown link format: [label](url)
+        const mdLink = rawUrl.match(/\[.*?\]\((https?:\/\/[^)]+)\)/);
+        if (mdLink) rawUrl = mdLink[1].trim();
+        // Unwrap plain brackets
+        rawUrl = rawUrl.replace(/^\[|\]$/g, "").trim();
         // Only add if URL looks real (not a placeholder)
-        if (url && !url.startsWith("[") && url.startsWith("http")) {
-          links.push({ marketplace, url });
+        if (rawUrl && rawUrl.startsWith("http")) {
+          links.push({ marketplace, url: rawUrl });
         }
         continue;
       }
