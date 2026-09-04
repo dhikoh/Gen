@@ -2,6 +2,34 @@
 
 ---
 
+
+## [#46] — 2026-09-04 | UI/UX & PWA Accessibility Audit
+
+### Problem Statement
+Beberapa UI komponen mengalami degradasi visual dan *layout breaking* saat diakses melalui mode Gelap (Dark Mode) dan pada perangkat Mobile (PWA viewport):
+1. **Dark Mode Text Invisibility**: Banyak input fields dan select dropdown menggunakan hardcoded `bg-white` tanpa varian dark. Pada mode gelap, background menjadi putih dan teks menjadi putih, menyebabkan teks tidak terbaca (invisible).
+2. **Low Contrast Text**: Global teks muted dan subtext di mode gelap menggunakan rasio kontras yang terlalu rendah (sulit terbaca pada background navy).
+3. **PWA Mobile Overflow**: Komponen hasil generator dan tab navigasi terpotong (overflow) atau tersusun berantakan karena fixed height (`h-[85vh]`) dan fixed margins.
+
+### Implementasi Sistem
+
+1. **Aksesibilitas Kontras (Dark Mode Fix)** (`src/app/[locale]/globals.css` & Components):
+   - Meningkatkan rasio kontras variabel `--pg-text-muted` (`#94a3b8`) dan `--pg-text-sub` (`#a0aec0`) pada blok `.dark`.
+   - Menginjeksi `dark:bg-slate-700` dan `dark:bg-slate-700/50` pada seluruh field input di `GeneratorForm.tsx` dan `ScenePromptStudioClient.tsx`.
+
+2. **Mobile / PWA Responsiveness** (`src/components/generator/GeneratorForm.tsx`):
+   - **Height Clamping Fix**: Mengganti `h-[85vh]` menjadi responsif `md:h-[85vh] min-h-[50vh]` agar container tidak menjebak konten / terpotong pada layar ponsel.
+   - **Affiliate Section Fix**: Mengubah margin `ml-5` statis menjadi padding responsif `pl-4 md:pl-5` dengan left border sebagai indikator hierarki, mencegah horizontal overflow di mobile.
+
+3. **Tab & Action Group Responsiveness** (`src/app/[locale]/dashboard/scene-prompt/ScenePromptStudioClient.tsx`):
+   - **Horizontal Scroll Tabs**: Navigasi tab (Scenes, Thumbnail, Platform) kini diatur agar memiliki _horizontal scroll_ mulus di layar sempit (`overflow-x-auto`) daripada memaksakan flex-wrap.
+   - **Action Buttons**: Tombol "Set Terpilih" dan "Copy" kini dapat membungkus secara natural di bawah teks judul pada resolusi sempit (`flex-wrap justify-end`).
+
+### Verifikasi
+- `npm run build` → **Exit code: 0** ✅ (0 error)
+- Uji coba Dark Mode → Semua input terbaca jernih.
+- Uji coba mobile screen (320px) → Tidak ada konten terpotong.
+
 ## [#45] — 2026-09-04 | Affiliate Product Angle Revamp — Marketplace Selector & Rekomendasi Produk AI
 
 ### Problem Statement

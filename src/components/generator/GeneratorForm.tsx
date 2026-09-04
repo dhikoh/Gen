@@ -643,7 +643,7 @@ export default function GeneratorForm({
  return (
  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
  {/* Kolom Form Input */}
- <div className="glass-panel shadow-lg rounded-xl p-6 max-h-[85vh] overflow-y-auto custom-scrollbar">
+ <div className="glass-panel shadow-lg rounded-xl p-6 max-md:h-[85vh] min-h-[50vh] overflow-y-auto custom-scrollbar">
  <h2 className="text-xl font-bold pg-text-heading mb-6 sticky top-0 pg-surface z-10 py-2 border-b pg-border">
  {t("paramTitle")}
  </h2>
@@ -665,7 +665,7 @@ export default function GeneratorForm({
  <select
  value={channelId}
  onChange={(e) => setChannelId(e.target.value)}
- className="w-full px-4 py-2 bg-white border pg-border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none dark:text-white"
+ className="w-full px-4 py-2 bg-white dark:bg-slate-700 border pg-border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none dark:text-white"
  required
  >
  <option value="" disabled>
@@ -745,7 +745,7 @@ export default function GeneratorForm({
  value={topic}
  onChange={(e) => setTopic(e.target.value)}
  placeholder={t("mainTopicPlaceholder")}
- className="w-full px-4 py-2 bg-white border pg-border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none dark:text-white"
+ className="w-full px-4 py-2 bg-white dark:bg-slate-700 border pg-border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none dark:text-white"
  />
  </div>
 
@@ -771,7 +771,7 @@ export default function GeneratorForm({
  onChange={(e) => setAdditionalContext(e.target.value)}
  placeholder={t("additionalContextPlaceholder")}
  rows={2}
- className="w-full px-4 py-2 bg-white border pg-border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none dark:text-white resize-none"
+ className="w-full px-4 py-2 bg-white dark:bg-slate-700 border pg-border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none dark:text-white resize-none"
  />
  </div>
  </div>
@@ -828,7 +828,7 @@ export default function GeneratorForm({
  <select
  value={videoConfig.selectedProductId}
  onChange={(e) => handleVideoConfigChange("selectedProductId", e.target.value)}
- className="w-full px-3 py-1.5 text-sm bg-white border pg-border rounded-md outline-none dark:text-white"
+ className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white"
  >
  <option value="">-- Semua Produk / Tanpa Produk Spesifik --</option>
  {channelProducts.map((prod) => (
@@ -868,7 +868,7 @@ export default function GeneratorForm({
  onChange={(e) =>
  handleVideoConfigChange("targetDurationSec", parseInt(e.target.value, 10) || 0)
  }
- className="w-20 px-2 py-1 text-xs bg-white border pg-border rounded-md outline-none dark:text-white"
+ className="w-20 px-2 py-1 text-xs bg-white dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white"
  />
  <span className="text-xs pg-text-muted">detik</span>
  </div>
@@ -889,7 +889,7 @@ export default function GeneratorForm({
  onChange={(e) =>
  handleVideoConfigChange("targetSceneCount", parseInt(e.target.value, 10) || 1)
  }
- className="w-full px-3 py-1.5 text-sm bg-white border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
+ className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
  />
  </div>
 
@@ -900,7 +900,7 @@ export default function GeneratorForm({
  <select
  value={videoConfig.aspectRatio}
  onChange={(e) => handleVideoConfigChange("aspectRatio", e.target.value)}
- className="w-full px-3 py-1.5 text-sm bg-white border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
+ className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
  >
  <option value="9:16">9:16 (Vertikal / Shorts / Reels)</option>
  <option value="16:9">16:9 (Horizontal / YouTube)</option>
@@ -932,7 +932,7 @@ export default function GeneratorForm({
  <select
  value={videoConfig.hookStyle}
  onChange={(e) => handleVideoConfigChange("hookStyle", e.target.value)}
- className="w-full px-3 py-1.5 text-sm bg-white border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
+ className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
  >
  <option value="Pertanyaan Provokatif">{t("hookProvocative")}</option>
  <option value="Fakta Mengejutkan">{t("hookSurprising")}</option>
@@ -947,7 +947,7 @@ export default function GeneratorForm({
  <select
  value={videoConfig.endingStyle}
  onChange={(e) => handleVideoConfigChange("endingStyle", e.target.value)}
- className="w-full px-3 py-1.5 text-sm bg-white border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
+ className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
  >
  <option value="Pertanyaan Terbuka">{t("endingOpen")}</option>
  <option value="Hard Sell CTA">{t("endingHardSell")}</option>
@@ -965,7 +965,7 @@ export default function GeneratorForm({
  <select
  value={videoConfig.narrativeLoopStyle}
  onChange={(e) => handleVideoConfigChange("narrativeLoopStyle", e.target.value)}
- className="w-full px-3 py-1.5 text-sm bg-white border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
+ className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
  >
  <option value="Tanpa Loop">Tanpa Loop (Standar)</option>
  <option value="Seamless Loop">Seamless Loop (Ending menyambung ke Hook)</option>
@@ -980,7 +980,7 @@ export default function GeneratorForm({
  <select
  value={videoConfig.visualLoopStyle}
  onChange={(e) => handleVideoConfigChange("visualLoopStyle", e.target.value)}
- className="w-full px-3 py-1.5 text-sm bg-white border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
+ className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
  >
  <option value="Tanpa Loop">Tanpa Loop (Standar)</option>
  <option value="Match Cut Transition">Match Cut Transition</option>
@@ -1030,7 +1030,7 @@ export default function GeneratorForm({
  <select
  value={visualStyleKey}
  onChange={(e) => setVisualStyleKey(e.target.value)}
- className="w-full px-3 py-1.5 text-sm bg-white border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
+ className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
  >
  {visualStyleOptions.map((opt) => (
  <option key={String(opt.value)} value={String(opt.value)}>{opt.label}</option>
@@ -1242,7 +1242,7 @@ export default function GeneratorForm({
  value={cameraMovementCustom}
  onChange={(e) => setCameraMovementCustom(e.target.value)}
  placeholder={t("cameraMovementCustomConceptPlaceholder")}
- className="w-full px-3 py-1.5 text-xs bg-transparent border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none pg-text-heading"
+ className="w-full px-3 py-1.5 text-xs bg-white dark:bg-slate-700/50 border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none pg-text-heading"
  />
  <p className="text-[10px] pg-text-muted">{t("cameraMovementCustomConceptHint")}</p>
  </div>
@@ -1338,7 +1338,7 @@ export default function GeneratorForm({
  <span>{t("affiliateAngle")}</span>
  </label>
  {affiliateAngle && (
- <div className="col-span-2 ml-5 space-y-3 p-3 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800">
+ <div className="col-span-2 pl-4 md:pl-5 border-l-2 border-orange-300 dark:border-orange-700/50 space-y-3 py-3 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800">
  <p className="text-[10px] pg-text-muted">{t("affiliateAngleDesc")}</p>
  {/* Mode SOFT / CTA */}
  <div className="flex flex-col gap-1.5">
@@ -1393,7 +1393,7 @@ export default function GeneratorForm({
  value={affiliateCustomUrl}
  onChange={(e) => setAffiliateCustomUrl(e.target.value)}
  placeholder="https://example.com/search?q="
- className="w-full px-2.5 py-1.5 text-xs bg-white border pg-border rounded-md focus:ring-1 focus:ring-orange-400 outline-none dark:text-white"
+ className="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-700 border pg-border rounded-md focus:ring-1 focus:ring-orange-400 outline-none dark:text-white"
  />
  </div>
  )}
@@ -1421,7 +1421,7 @@ export default function GeneratorForm({
  name="cameraType"
  value={imageConfig.cameraType}
  onChange={handleImageConfigChange}
- className="w-full px-3 py-1.5 text-sm bg-white border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
+ className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
  >
  <option value="DSLR">DSLR</option>
  <option value="Mirrorless">Mirrorless</option>
@@ -1440,7 +1440,7 @@ export default function GeneratorForm({
  name="shotType"
  value={imageConfig.shotType}
  onChange={handleImageConfigChange}
- className="w-full px-3 py-1.5 text-sm bg-white border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
+ className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
  >
  <option value="Close Up">Close Up</option>
  <option value="Medium Shot">Medium Shot</option>
@@ -1457,7 +1457,7 @@ export default function GeneratorForm({
  name="lighting"
  value={imageConfig.lighting}
  onChange={handleImageConfigChange}
- className="w-full px-3 py-1.5 text-sm bg-white border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
+ className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
  >
  <option value="Natural Light">Natural Light</option>
  <option value="Studio Lighting">Studio Lighting</option>
@@ -1475,7 +1475,7 @@ export default function GeneratorForm({
  value={imageConfig.mood}
  onChange={handleImageConfigChange}
  placeholder="E.g., Dark, Cheerful, Eerie"
- className="w-full px-3 py-1.5 text-sm bg-white border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
+ className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
  />
  </div>
  <div>
@@ -1488,7 +1488,7 @@ export default function GeneratorForm({
  value={imageConfig.colorGrading}
  onChange={handleImageConfigChange}
  placeholder="E.g., Teal & Orange, Pastel"
- className="w-full px-3 py-1.5 text-sm bg-white border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
+ className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
  />
  </div>
 
@@ -1515,7 +1515,7 @@ export default function GeneratorForm({
  name="negativePrompt"
  value={imageConfig.negativePrompt}
  onChange={handleImageConfigChange}
- className="w-full px-3 py-1.5 text-sm bg-white border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
+ className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
  />
  </div>
  <div className="col-span-2">
@@ -1526,7 +1526,7 @@ export default function GeneratorForm({
  name="aspectRatio"
  value={imageConfig.aspectRatio}
  onChange={handleImageConfigChange}
- className="w-full px-3 py-1.5 text-sm bg-white border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white mb-2"
+ className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white mb-2"
  >
  <option value="16:9">16:9 (Landscape)</option>
  <option value="9:16">9:16 (Portrait / Story)</option>
@@ -1544,7 +1544,7 @@ export default function GeneratorForm({
  name="variations"
  value={imageConfig.variations}
  onChange={handleImageConfigChange}
- className="w-full px-3 py-1.5 text-sm bg-white border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
+ className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
  />
  </div>
  </div>
@@ -1595,7 +1595,7 @@ export default function GeneratorForm({
  </div>
 
  {/* Kolom Hasil */}
- <div className="glass-panel shadow-lg rounded-xl p-6 flex flex-col h-[85vh]">
+ <div className="glass-panel shadow-lg rounded-xl p-6 flex flex-col md:h-[85vh] min-h-[50vh]">
  <div className="flex justify-between items-center mb-4">
  <h2 className="text-xl font-bold pg-text-heading">
  {step === 1 ? t("resultTitle") : t("resultAndSave")}
@@ -1647,7 +1647,7 @@ export default function GeneratorForm({
  value={manualTitle}
  onChange={(e) => setManualTitle(e.target.value)}
  placeholder={t("optionalTitlePlaceholder")}
- className="w-full px-3 py-1.5 text-sm bg-white border pg-border rounded-md outline-none dark:text-white"
+ className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white"
  />
  </div>
  <div className="flex flex-wrap gap-2">
@@ -1683,7 +1683,7 @@ export default function GeneratorForm({
  <button
  type="button"
  onClick={() => router.push(`/${document.documentElement.lang || "id"}/dashboard/drafts`)}
- className="px-3 py-2 text-sm font-medium pg-text-sub bg-white border pg-border rounded-md hover:pg-surface-dim dark:pg-text-muted transition-colors"
+ className="px-3 py-2 text-sm font-medium pg-text-sub bg-white dark:bg-slate-700 border pg-border rounded-md hover:pg-surface-dim dark:pg-text-muted transition-colors"
  >
  {t("viewDraftsBtn")}
  </button>
@@ -1720,7 +1720,7 @@ export default function GeneratorForm({
  value={newProductName}
  onChange={(e) => setNewProductName(e.target.value)}
  placeholder={t("productNamePlaceholder")}
- className="w-full px-3 py-1.5 text-sm bg-white border pg-border rounded-md outline-none dark:text-white"
+ className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white"
  required
  />
  </div>
@@ -1734,7 +1734,7 @@ export default function GeneratorForm({
  min="0"
  value={newProductPrice}
  onChange={(e) => setNewProductPrice(e.target.value)}
- className="w-full px-3 py-1.5 text-sm bg-white border pg-border rounded-md outline-none dark:text-white"
+ className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white"
  />
  </div>
 
@@ -1747,7 +1747,7 @@ export default function GeneratorForm({
  value={newProductDesc}
  onChange={(e) => setNewProductDesc(e.target.value)}
  placeholder={t("productDescPlaceholder")}
- className="w-full px-3 py-1.5 text-sm bg-white border pg-border rounded-md outline-none dark:text-white"
+ className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white"
  />
  </div>
 
@@ -1760,7 +1760,7 @@ export default function GeneratorForm({
  value={newProductLink}
  onChange={(e) => setNewProductLink(e.target.value)}
  placeholder="https://..."
- className="w-full px-3 py-1.5 text-sm bg-white border pg-border rounded-md outline-none dark:text-white"
+ className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white"
  />
  </div>
 

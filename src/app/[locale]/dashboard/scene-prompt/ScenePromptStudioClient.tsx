@@ -232,7 +232,7 @@ export default function ScenePromptStudioClient({ channels, locale }: Props) {
   } catch { setSaveMsg(t("draftError")); } finally { setSaving(false); setTimeout(() => setSaveMsg(null), 4000); }
   };
 
- const cls = "w-full px-3 py-1.5 text-sm bg-white border pg-border rounded-md outline-none dark:text-white";
+ const cls = "w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white";
  const btn = (active?: boolean) => `px-3 py-1.5 text-sm font-medium rounded-lg border transition-colors ${active ? "bg-blue-600 text-white border-blue-600" : "pg-surface pg-border pg-text-sub hover:pg-surface-dim"}`;
 
  return (
@@ -272,7 +272,7 @@ export default function ScenePromptStudioClient({ channels, locale }: Props) {
 
  {scenes.length > 0 && (
  <>
- <div className="flex gap-2 flex-wrap">
+ <div className="flex gap-2 overflow-x-auto whitespace-nowrap pb-1 custom-scrollbar">
  {(["scenes","thumbnail","platform","htmlBlog"] as const).map(tab => {
  if (tab === "htmlBlog" && !htmlBlog) return null;
  return (
@@ -344,7 +344,7 @@ export default function ScenePromptStudioClient({ channels, locale }: Props) {
     )}
     <span className="text-sm pg-text-sub truncate">{title}</span>
   </div>
-  <div className="flex items-center gap-2 ml-2 shrink-0" onClick={e => e.stopPropagation()}>
+  <div className="flex items-center flex-wrap justify-end gap-2 ml-2 shrink-0" onClick={e => e.stopPropagation()}>
     {isActiveDraft ? (
       <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">{t("selectedTitle")}</span>
     ) : (
