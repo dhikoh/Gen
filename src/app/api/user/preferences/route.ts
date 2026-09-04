@@ -15,7 +15,7 @@ const videoConfigSchema = z.object({
   narrativeLoopStyle: z.string().optional(),
   visualLoopStyle: z.string().optional(),
   pov: z.string().optional(),
-  speechRate: z.string().optional(),
+  speechRate: z.union([z.string(), z.number()]).optional(),
   hookStyle: z.string().optional(),
   endingStyle: z.string().optional(),
   selectedProductId: z.string().optional().nullable(),
@@ -25,6 +25,10 @@ const videoConfigSchema = z.object({
   socialCaption: z.boolean().optional().nullable(),
   thumbnailIdea: z.boolean().optional().nullable(),
   htmlBlog: z.boolean().optional().nullable(),
+  // Alias keys sent by GeneratorForm stateObj
+  includeCaption: z.boolean().optional().nullable(),
+  includeThumbnail: z.boolean().optional().nullable(),
+  includeHtmlBlog: z.boolean().optional().nullable(),
   affiliateAngle: z.boolean().optional().nullable(),
   affiliateAngleMode: z.enum(["CTA", "SOFT"]).optional().nullable(),
 }).strict();
@@ -33,6 +37,14 @@ const imageConfigSchema = z.object({
   aspectRatio: z.string().optional(),
   negativePrompt: z.string().optional().nullable(),
   quality: z.string().optional(),
+  // Image-specific fields
+  cameraType: z.string().optional(),
+  shotType: z.string().optional(),
+  lighting: z.string().optional(),
+  mood: z.string().optional(),
+  colorGrading: z.string().optional(),
+  visualStyle: z.string().optional(),
+  variations: z.number().optional(),
 }).strict();
 
 const generatorFormStateSchema = z.object({
@@ -55,6 +67,8 @@ const generatorFormStateSchema = z.object({
   cameraMovementProMode: z.boolean().optional(),
   affiliateAngle: z.boolean().optional(),
   affiliateAngleMode: z.enum(["CTA", "SOFT"]).optional(),
+  affiliateMarketplaces: z.array(z.string()).optional().nullable(),
+  affiliateCustomUrl: z.string().max(500).optional().nullable(),
   videoConfig: videoConfigSchema.optional(),
   imageConfig: imageConfigSchema.optional(),
   // Result state persistence (Section 14.4)
