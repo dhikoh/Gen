@@ -22,6 +22,7 @@ interface EditChannelProps {
   audioBGM?: boolean;
   audioSFX?: boolean;
   audioVO?: boolean;
+  contentArchetypeId?: string | null;
   socialLinks?: unknown;
 }
 
@@ -43,6 +44,9 @@ export default function EditChannelClient({
   const [personaOptions, setPersonaOptions] = useState<PresetOption[]>([]);
   const [aestheticOptions, setAestheticOptions] = useState<PresetOption[]>([]);
   const [nicheOptions, setNicheOptions] = useState<PresetOption[]>([]);
+  const [archetypes, setArchetypes] = useState<
+    Array<{ id: string; name: string; description?: string | null; narrationMode: string }>
+  >([]);
 
   const speechRateOptions: PresetOption[] = [
     { value: 0.25, label: "0.25 s/kata (Super Fast)" },
@@ -96,6 +100,15 @@ export default function EditChannelClient({
         }
       })
       .catch(() => {});
+
+    fetch("/api/content-archetypes")
+      .then((res) => res.json())
+      .then((d) => {
+        if (d.success && d.archetypes) {
+          setArchetypes(d.archetypes);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // Parse initial social links
@@ -138,12 +151,13 @@ export default function EditChannelClient({
     audioBGM: channel?.audioBGM ?? true,
     audioSFX: channel?.audioSFX ?? true,
     audioVO: channel?.audioVO ?? true,
+    contentArchetypeId: channel?.contentArchetypeId || "",
   });
 
   const [socialLinks, setSocialLinks] = useState(initSocial());
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
@@ -168,6 +182,7 @@ export default function EditChannelClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
+          contentArchetypeId: formData.contentArchetypeId || null,
           speechRate: Number(formData.speechRate) || 0.35,
           socialLinks: socialLinks,
         }),
@@ -288,6 +303,28 @@ export default function EditChannelClient({
             ]}
             placeholder="Gaya visual kustom..."
           />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium pg-text-sub mb-1">
+            Model Konten (Content Archetype)
+          </label>
+          <select
+            name="contentArchetypeId"
+            value={formData.contentArchetypeId}
+            onChange={handleChange}
+            className="w-full p-2.5 pg-surface-dim border pg-border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none pg-text-heading"
+          >
+            <option value="">-- Gunakan Archetype Standar Sistem --</option>
+            {archetypes.map((arch) => (
+              <option key={arch.id} value={arch.id}>
+                {arch.name} ({arch.narrationMode === "VOICE_OVER" ? "Voice Over" : arch.narrationMode === "DIEGETIC_ONLY" ? "Suara Diegetik Murni" : arch.narrationMode === "SILENT_TEXT_ONLY" ? "Teks di Layar Saja" : "Hybrid"})
+              </option>
+            ))}
+          </select>
+          <p className="text-xs pg-text-muted mt-1">
+            Menentukan arsitektur narasi (Voice-Over vs Diegetik), alur emosional, dan komponen Hook/CTA otomatis untuk channel ini.
+          </p>
         </div>
 
         <div>

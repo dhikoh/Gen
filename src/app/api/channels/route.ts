@@ -21,6 +21,7 @@ const channelSchema = z.object({
   audioBGM: z.boolean().optional().default(true),
   audioSFX: z.boolean().optional().default(true),
   audioVO: z.boolean().optional().default(true),
+  contentArchetypeId: z.string().optional().nullable(),
   socialLinks: z.union([
     z.record(z.string(), z.string()),
     z.object({
@@ -44,6 +45,7 @@ export async function GET(req: Request) {
 
     const channels = await prisma.profileChannel.findMany({
       where: { userId: session.user.id },
+      include: { contentArchetype: true },
       orderBy: { createdAt: "asc" }
     });
     
@@ -112,6 +114,18 @@ export async function POST(req: Request) {
           throw new Error("MAX_CHANNELS_LIMIT");
         }
 
+        let effectiveArchetypeId = parsedData.data.contentArchetypeId || null;
+        if (!effectiveArchetypeId) {
+          const defaultArch = await tx.contentArchetype.findFirst({
+            where: { isSystem: true },
+            orderBy: { createdAt: "asc" },
+            select: { id: true },
+          });
+          if (defaultArch) {
+            effectiveArchetypeId = defaultArch.id;
+          }
+        }
+
         return await tx.profileChannel.create({
           data: {
             userId: session.user.id,
@@ -127,6 +141,7 @@ export async function POST(req: Request) {
             audioBGM: parsedData.data.audioBGM ?? true,
             audioSFX: parsedData.data.audioSFX ?? true,
             audioVO: parsedData.data.audioVO ?? true,
+            contentArchetypeId: effectiveArchetypeId,
             socialLinks: parsedData.data.socialLinks ? parsedData.data.socialLinks : undefined,
           }
         });

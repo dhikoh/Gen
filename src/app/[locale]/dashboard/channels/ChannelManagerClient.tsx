@@ -16,6 +16,12 @@ interface ProfileChannelDto {
  isLocked: boolean;
  createdAt: Date | string;
  usageCount?: number;
+ contentArchetypeId?: string | null;
+ contentArchetype?: {
+  id: string;
+  name: string;
+  narrationMode: string;
+ } | null;
 }
 
 export default function ChannelManagerClient({ channels, maxChannels }: { channels: ProfileChannelDto[], maxChannels: number }) {
@@ -143,6 +149,11 @@ export default function ChannelManagerClient({ channels, maxChannels }: { channe
  {channel.niche && (
  <span className="px-2.5 py-0.5 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 text-xs font-medium rounded-full">
  {channel.niche}
+ </span>
+ )}
+ {channel.contentArchetype && (
+ <span className="px-2.5 py-0.5 bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300 text-xs font-medium rounded-full">
+ {channel.contentArchetype.name}
  </span>
  )}
  </div>

@@ -74,72 +74,138 @@ export default async function DraftDetailPage({
 
  const t = await getTranslations({ locale, namespace: 'Drafts' });
 
- const draft = await prisma.draft.findUnique({
- where: { id },
- include: {
- channel: true,
- }
- });
+  const draft = await prisma.draft.findUnique({
+    where: { id },
+    include: {
+      channel: {
+        include: {
+          contentArchetype: true,
+        },
+      },
+    },
+  });
 
- if (!draft || draft.userId !== session.user.id) {
- notFound();
- }
+  if (!draft || draft.userId !== session.user.id) {
+    notFound();
+  }
 
- const parsedData = draft.parsedData as unknown as DraftParsedData;
+  const parsedData = draft.parsedData as unknown as DraftParsedData;
 
- return (
- <div className="max-w-4xl mx-auto pb-12">
- {/* Header */}
- <div className="mb-6">
- <Link href={`/${locale}/dashboard/drafts`} className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 mb-4 inline-block">
- ← {t('backToHistory')}
- </Link>
- <div className="flex justify-between items-start">
- <div>
- <DraftTitle draftId={draft.id} initialTitle={draft.title || ""} />
- <div className="flex items-center space-x-3 text-sm pg-text-muted">
- <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
- draft.type === "VIDEO"
- ? "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400"
- : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
- }`}>
- {draft.type}
- </span>
- <span>•</span>
- <span>{new Date(draft.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
- <span>•</span>
- <span>{t('channel')}: {draft.channel?.channelName || "-"}</span>
- </div>
- </div>
- <div className="flex space-x-3">
- <TemplateToggle draftId={draft.id} initialIsTemplate={draft.isTemplate} />
- <DraftActions draftId={draft.id} rawJson={draft.rawJson} locale={locale} />
- </div>
- </div>
- </div>
+  const isDiegetic =
+    draft.channel?.contentArchetype?.narrationMode === "DIEGETIC_ONLY" ||
+    draft.channel?.contentArchetype?.narrationMode === "SILENT_TEXT_ONLY";
+  const isSegmentEstimate = draft.durationSource === "SEGMENT_ESTIMATE";
+  const durationDiffRatio = draft.targetDurationSec
+    ? Math.abs(draft.targetDurationSec - (draft.estimatedDurationSec || 0)) / draft.targetDurationSec
+    : 0;
+  const isDurationWarning =
+    durationDiffRatio > 0.2 && !(isDiegetic && draft.estimatedDurationSec === draft.targetDurationSec);
 
- {draft.type === "VIDEO" && draft.targetDurationSec ? (
- <div className={`p-4 rounded-xl shadow-sm border mb-6 ${Math.abs(draft.targetDurationSec - (draft.estimatedDurationSec || 0)) / draft.targetDurationSec > 0.2 ? 'bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800' : 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800'}`}>
- <h2 className="text-sm font-bold uppercase tracking-wider pg-text-muted mb-2">{t('durationAnalysis')}</h2>
- <div className="flex space-x-8">
- <div>
- <p className="text-xs pg-text-muted">{t('targetDuration')}</p>
- <p className="text-lg font-bold pg-text-heading">{draft.targetDurationSec} {t('seconds')}</p>
- </div>
- <div>
- <p className="text-xs pg-text-muted">{t('estResult')}</p>
- <p className={`text-lg font-bold ${Math.abs(draft.targetDurationSec - (draft.estimatedDurationSec || 0)) / draft.targetDurationSec > 0.2 ? 'text-amber-600 dark:text-amber-400' : 'text-green-600 dark:text-green-400'}`}>{draft.estimatedDurationSec} {t('seconds')}</p>
- </div>
- <div>
- <p className="text-xs pg-text-muted">{t('wordCount')}</p>
- <p className="text-lg font-bold pg-text-heading">{draft.wordCount} {t('words')}</p>
- </div>
- </div>
- {Math.abs(draft.targetDurationSec - (draft.estimatedDurationSec || 0)) / draft.targetDurationSec > 0.2 && (
- <p className="mt-2 text-sm text-amber-600 dark:text-amber-400 font-medium">{t('durationWarning')}</p>
- )}
- </div>
- ) : null}
+  return (
+    <div className="max-w-4xl mx-auto pb-12">
+      {/* Header */}
+      <div className="mb-6">
+        <Link
+          href={`/${locale}/dashboard/drafts`}
+          className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 mb-4 inline-block"
+        >
+          ← {t("backToHistory")}
+        </Link>
+        <div className="flex justify-between items-start">
+          <div>
+            <DraftTitle draftId={draft.id} initialTitle={draft.title || ""} />
+            <div className="flex items-center space-x-3 text-sm pg-text-muted flex-wrap gap-y-1">
+              <span
+                className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                  draft.type === "VIDEO"
+                    ? "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400"
+                    : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
+                }`}
+              >
+                {draft.type}
+              </span>
+              <span>•</span>
+              <span>
+                {new Date(draft.createdAt).toLocaleDateString("id-ID", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+              <span>•</span>
+              <span>
+                {t("channel")}: {draft.channel?.channelName || "-"}
+              </span>
+              {draft.channel?.contentArchetype && (
+                <>
+                  <span>•</span>
+                  <span className="px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs font-medium">
+                    {draft.channel.contentArchetype.name}
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+          <div className="flex space-x-3">
+            <TemplateToggle draftId={draft.id} initialIsTemplate={draft.isTemplate} />
+            <DraftActions draftId={draft.id} rawJson={draft.rawJson} locale={locale} />
+          </div>
+        </div>
+      </div>
+
+      {draft.type === "VIDEO" && draft.targetDurationSec ? (
+        <div
+          className={`p-4 rounded-xl shadow-sm border mb-6 ${
+            isDurationWarning
+              ? "bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800"
+              : "bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800"
+          }`}
+        >
+          <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+            <h2 className="text-sm font-bold uppercase tracking-wider pg-text-muted">
+              {t("durationAnalysis")}
+            </h2>
+            <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-white dark:bg-slate-800 border pg-border">
+              {isSegmentEstimate
+                ? "⏱️ Estimasi Durasi Adegan (Segment Self-Estimate)"
+                : "🎙️ Estimasi Narasi (Wordcount Voice-Over)"}
+            </span>
+          </div>
+          <div className="flex space-x-8 flex-wrap gap-y-2">
+            <div>
+              <p className="text-xs pg-text-muted">{t("targetDuration")}</p>
+              <p className="text-lg font-bold pg-text-heading">
+                {draft.targetDurationSec} {t("seconds")}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs pg-text-muted">{t("estResult")}</p>
+              <p
+                className={`text-lg font-bold ${
+                  isDurationWarning
+                    ? "text-amber-600 dark:text-amber-400"
+                    : "text-green-600 dark:text-green-400"
+                }`}
+              >
+                {draft.estimatedDurationSec} {t("seconds")}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs pg-text-muted">{t("wordCount")}</p>
+              <p className="text-lg font-bold pg-text-heading">
+                {draft.wordCount} {t("words")}
+              </p>
+            </div>
+          </div>
+          {isDurationWarning && (
+            <p className="mt-2 text-sm text-amber-600 dark:text-amber-400 font-medium">
+              {t("durationWarning")}
+            </p>
+          )}
+        </div>
+      ) : null}
 
  {/* Output Visualisasi */}
  <div className="space-y-6">

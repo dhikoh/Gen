@@ -21,6 +21,7 @@ interface AppSettings {
 }
 
 import { PromptSettingsData } from "@/lib/promptGenerator";
+import AdminArchetypesTab from "./AdminArchetypesTab";
 
 export default function AdminSettingsClient({
  settings,
@@ -32,7 +33,7 @@ export default function AdminSettingsClient({
  const router = useRouter();
  const t = useTranslations("AdminSettings");
  const st = useTranslations("Support");
- const [activeTab, setActiveTab] = useState<"general" | "prompt">("general");
+ const [activeTab, setActiveTab] = useState<"general" | "prompt" | "archetypes">("general");
  const [loading, setLoading] = useState(false);
 
  // Form State for AppSettings
@@ -146,6 +147,17 @@ export default function AdminSettingsClient({
  }`}
  >
  {t("tabPrompt")}
+ </button>
+ <button
+ type="button"
+ onClick={() => setActiveTab("archetypes")}
+ className={`pb-3 text-sm font-semibold border-b-2 transition-colors ${
+ activeTab === "archetypes"
+ ? "border-purple-500 text-purple-600 dark:text-purple-400"
+ : "border-transparent pg-text-muted hover:pg-text-sub dark:hover:pg-text-muted"
+ }`}
+ >
+ Model Konten (Archetypes)
  </button>
  </div>
 
@@ -421,6 +433,9 @@ export default function AdminSettingsClient({
  </div>
  </form>
  )}
+
+ {/* Tab 3: Model Konten (Archetypes) */}
+ {activeTab === "archetypes" && <AdminArchetypesTab />}
  </div>
  );
 }

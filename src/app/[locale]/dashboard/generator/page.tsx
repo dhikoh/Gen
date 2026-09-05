@@ -20,6 +20,7 @@ export default async function GeneratorPage({ params }: { params: Promise<{ loca
 
   const channels = await prisma.profileChannel.findMany({
     where: { userId: session.user.id, isLocked: false },
+    include: { contentArchetype: true },
     orderBy: { createdAt: "asc" }
   });
 

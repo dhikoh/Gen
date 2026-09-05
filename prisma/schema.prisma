@@ -78,6 +78,19 @@ enum CsMode {
   DIRECT_EMAIL
 }
 
+enum NarrationMode {
+  VOICE_OVER
+  DIEGETIC_ONLY
+  SILENT_TEXT_ONLY
+  HYBRID
+}
+
+enum DurationCalcMode {
+  NARRATION_WORDCOUNT
+  SEGMENT_SELF_ESTIMATE
+  HYBRID
+}
+
 model User {
   id                    String              @id @default(cuid())
   name                  String
@@ -157,6 +170,8 @@ model ProfileChannel {
   products        Product[]
   drafts          Draft[]
   usedTitles      UsedTitle[]
+  contentArchetypeId String?
+  contentArchetype   ContentArchetype? @relation(fields: [contentArchetypeId], references: [id], onDelete: SetNull)
 }
 
 model Product {
@@ -208,6 +223,7 @@ model Draft {
   visualLoopStyle      String?
   wordCount            Int?
   estimatedDurationSec Int?
+  durationSource       String?
   isTemplate           Boolean   @default(false)
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
@@ -359,3 +375,22 @@ model UsedTitle {
   @@index([channelId, type])
   @@index([userId])
 }
+
+// ── Universal / Model-Agnostic Content Structure Engine (Bagian 23) ────────────
+model ContentArchetype {
+  id                      String           @id @default(cuid())
+  name                    String           @unique
+  description             String?
+  narrationMode           NarrationMode    @default(VOICE_OVER)
+  emotionalArcTemplate    String           @default("Hook -> Problem -> Solution -> CTA") @db.Text
+  defaultIncludedSections Json             // { hook: boolean, cta: boolean, caption: boolean, thumbnail: boolean }
+  compositionCategories   Json             // [ { label: string, required: boolean } ]
+  durationCalcMode        DurationCalcMode @default(HYBRID)
+  cameraMovementRoleMap   Json?            // override mapping peran -> camera movement
+  isSystem                Boolean          @default(false)
+  createdAt               DateTime         @default(now())
+  updatedAt               DateTime         @updatedAt
+
+  channels                ProfileChannel[]
+}
+

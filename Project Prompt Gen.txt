@@ -1068,3 +1068,127 @@ Berdasarkan masukan UX, PRO mode kini **user-controlled** (bukan otomatis transp
 12.16 UX Refactoring — Extracted Titles: Dua Aksi Eksplisit
 - **Pemisahan Logika & Tanggung Jawab:** Untuk mengeliminasi ambigu UX, aksi pemilihan judul dari panel Ekstraksi kini dipecah jadi dua alur kerja independen: "Pilih Judul" (memperbarui *Draft Title* lokal secara volatil) dan "Simpan ke Direktori" (sinkronisasi judul ke tabel permanen UsedTitle agar tidak direproduksi AI).
 - **Feedback Visual Persisten:** Pasca sinkronisasi sukses, komponen akan merender badge ✅ "Tersimpan di Direktori" (bergantung pada *state* isMarked). Konsekuensi UX-nya, tombol pengiriman hilang untuk mencegah *duplicate requests*, dan tombol terpisah ini menjamin fungsi simpan judul dieksekusi secara afirmatif dengan kesadaran (*intentional*) penuh.
+
+# Addendum — Bagian 23: Universal / Model-Agnostic Content Structure Engine
+
+> **Cara pakai:** Tempelkan seluruh isi file ini persis di bawah Bagian 22 pada dokumen `Project_Prompt_Gen.txt` yang sudah ada, lalu berikan ke agent AI yang sama yang mengerjakan proyek ini. Prinsip kerja di Bagian 0 (Peran, Mandat, Aturan Kerja Agent) tetap berlaku penuh untuk addendum ini — termasuk larangan placeholder, larangan hardcode duplikat, dan siklus Rancang → Implementasikan → Uji nyata → Verifikasi statis → Audit-diri → Catat log.
+
+## 23.0 Latar Belakang & Tujuan
+
+Audit menemukan bahwa Studio Generator saat ini (Bagian 5.4, 5.5, 13.2, dan 21) secara diam-diam **hardcode satu model konten saja**: video bernarasi bergaya marketing/edukasi dengan struktur `Hook -> Problem -> Solution -> CTA`, di mana durasi dihitung dari jumlah kata narasi (`wordCount / speakingRate`).
+
+Ini menimbulkan dua masalah nyata:
+
+1. **Bug fungsional** — untuk video tanpa narasi/voice-over (faceless, diegetic-sound-only, reconstruction, dsb.), `wordCount` mendekati nol di hampir semua scene, sehingga fitur pembanding "target durasi vs estimasi durasi" (5.5) selalu memicu peringatan palsu meski video sudah pas durasinya.
+2. **Keterbatasan skalabilitas niche** — field `Hook Style` dan validasi `Komposisi naskah` wajib 100% (Edukasi/Hiburan/Marketing) dipaksakan ke semua channel, padahal tidak semua gaya konten punya Hook atau CTA yang bermakna secara struktural.
+
+**Tujuan addendum ini:** menjadikan seluruh parameter struktural (emotional arc, mode narasi, wajib-tidaknya Hook/CTA, cara hitung durasi) sebagai **data di database yang bisa ditambah lewat panel admin**, bukan logika yang ditulis tetap di kode/system prompt. Dengan begitu, aplikasi bisa melayani "model konten apa pun" (marketing, edukasi, storytelling, faceless reconstruction, ASMR, dll.) tanpa perlu deploy ulang kode setiap kali ada gaya konten baru.
+
+**Temuan tambahan (audit ulang penuh 1063 baris, bukan cuma bagian yang dicek sebelumnya):** Form Generator di Bagian 5.4 ternyata **sudah** punya mekanisme untuk sebagian masalah ini — field *"bagian naskah yang di-include (Hook/CTA/Caption/Thumbnail)"* memungkinkan user mencentang/tidak-mencentang bagian mana yang ingin dimasukkan ke naskah. Masalahnya, toggle ini **tidak dibaca secara konsisten** oleh dua tempat lain di kode yang sama-sama menyuntik instruksi ke system prompt:
+
+1. Bagian 13.2 poin 7 — menyuntik `Emotional Arc: Hook -> Problem -> Solution -> CTA` tanpa syarat apa pun.
+2. Bagian 18 (log fitur "Viral Generation Parameters") — menyebutkan eksplisit bahwa system prompt di-augment dengan *"mandatory retention loops and hooks"*. Kata **mandatory** di situ berarti retention loop dan hook tetap disuntikkan meski user sudah **meng-uncheck** Hook di toggle 5.4.
+
+Jadi akar masalahnya bukan "fitur belum ada", melainkan **satu sumber kebenaran (`includedSections` dari toggle 5.4) yang dilanggar diam-diam oleh dua code path lain** — pelanggaran langsung terhadap Bagian 0.2 poin 5 yang sudah ditetapkan sejak awal proyek ("Dilarang menduplikasi sumber kebenaran data"). Addendum ini karena itu **tidak menambah toggle baru untuk Hook/CTA** — toggle itu sudah ada dan sudah benar secara desain. Addendum ini menambal dua tempat yang melanggarnya, plus menambah lapisan `ContentArchetype` untuk mengatur *default* toggle tersebut per gaya konten, dan untuk parameter lain (narrationMode, emotional arc template, cara hitung durasi) yang memang belum punya sumber data sama sekali.
+
+## 23.1 Model Data Baru: `ContentArchetype`
+
+Buat model Prisma baru (atau perluas `NicheCategoryPreset` yang sudah disebut di Bagian 12.11 — pilih salah satu, jangan duplikasi tabel preset). Field wajib:
+
+- `id`, `name` (contoh: "Marketing/Edukasi Standar", "Nostalgia Reconstruction / Faceless", atau nama custom lain yang dibuat admin kapan saja)
+- `narrationMode`: enum `VOICE_OVER | DIEGETIC_ONLY | SILENT_TEXT_ONLY | HYBRID` — default `VOICE_OVER` (backward compatible)
+- `emotionalArcTemplate`: text bebas, default `"Hook -> Problem -> Solution -> CTA"`, tapi bisa diisi ulang apa pun oleh admin/user (mis. `"Setup -> Recognition -> Emotional Payoff"`)
+- `defaultIncludedSections`: JSON `{ hook: boolean, cta: boolean, caption: boolean, thumbnail: boolean }` — **bukan field baru yang menduplikasi validasi**, melainkan nilai default yang meng-auto-check/uncheck toggle "bagian naskah yang di-include" yang **sudah ada** di Bagian 5.4, ketika archetype dipilih. Contoh: archetype "Nostalgia Reconstruction / Faceless" defaultnya `{ hook: false, cta: false, caption: true, thumbnail: true }`.
+- `compositionCategories`: JSON array `{ label: string, required: boolean }[]` — menggantikan enum tetap Edukasi/Hiburan/Marketing. Validasi jumlah wajib 100% **hanya** berlaku untuk kategori yang `required: true`; jika array kosong, validasi komposisi dilewati sepenuhnya.
+- `durationCalcMode`: enum `NARRATION_WORDCOUNT | SEGMENT_SELF_ESTIMATE | HYBRID` — default `HYBRID`
+- `cameraMovementRoleMap`: JSON opsional, override daftar pemetaan peran-scene → gerakan kamera; jika `null`, sistem pakai pool generic tanpa asumsi peran Hook/CTA
+
+Seed minimal 2 baris data saat migrasi:
+1. `"Marketing/Edukasi Standar"` — sama persis dengan perilaku lama saat ini (tidak ada breaking change untuk channel existing).
+2. `"Nostalgia Reconstruction / Faceless"` — `narrationMode: DIEGETIC_ONLY`, `hookRequired: false`, `ctaRequired: false`, `compositionCategories: []`, `emotionalArcTemplate: "Setup -> Recognition -> Emotional Payoff"`.
+
+## 23.2 Perubahan pada `ProfileChannel` dan `GeneratorForm.tsx`
+
+- Tambahkan `ProfileChannel.contentArchetypeId` (FK opsional), auto-fill ke `GeneratorForm` ketika channel dipilih — pola yang sama dengan `personaPov`/`speechRate` di Bagian 12.11.
+- Field **Hook Style** dan **Komposisi Naskah %** hanya dirender jika archetype aktif punya `hookRequired: true` / ada `compositionCategories` dengan `required: true`. Jika tidak, field ini **disembunyikan dari UI dan dilewati dari skema zod** — bukan sekadar disabled dengan nilai kosong (nilai kosong yang tetap divalidasi = bug yang sama muncul lagi dalam bentuk lain).
+- Tambahkan indikator read-only "Mode Narasi: <narrationMode>" yang auto-terisi dari archetype, dengan opsi override manual per sesi generate (untuk fleksibilitas kasus khusus).
+
+## 23.3 Perbaikan `promptGenerator.ts`
+
+0. **Prioritas paling tinggi — cari dan satukan dua pelanggaran sumber kebenaran yang sudah teridentifikasi di 23.0:**
+   - Titik injeksi `Emotional Arc: Hook -> Problem -> Solution -> CTA` (Bagian 13.2 poin 7).
+   - Titik injeksi *"mandatory retention loops and hooks"* pada fitur "Viral Generation Parameters" (Bagian 18).
+   
+   Kedua titik ini **wajib** dibungkus kondisi `if (includedSections.hook)` yang membaca nilai yang SAMA dengan yang disimpan toggle "bagian naskah yang di-include" di 5.4 — bukan nilai terpisah, bukan diasumsikan `true` secara default di kode. Tulis (atau kalau sudah ada, refactor ke) satu fungsi terpusat, misalnya `buildStructuralInstructions(includedSections, archetype)`, yang dipanggil oleh **kedua** code path (5.4 lama dan 13.2 Push-engine) supaya tidak ada lagi drift antara dua tempat ini di masa depan.
+# Addendum — Bagian 23: Universal / Model-Agnostic Content Structure Engine
+
+> **Cara pakai:** Tempelkan seluruh isi file ini persis di bawah Bagian 22 pada dokumen `Project_Prompt_Gen.txt` yang sudah ada, lalu berikan ke agent AI yang sama yang mengerjakan proyek ini. Prinsip kerja di Bagian 0 (Peran, Mandat, Aturan Kerja Agent) tetap berlaku penuh untuk addendum ini — termasuk larangan placeholder, larangan hardcode duplikat, dan siklus Rancang → Implementasikan → Uji nyata → Verifikasi statis → Audit-diri → Catat log.
+
+## 23.0 Latar Belakang & Tujuan
+
+Audit menemukan bahwa Studio Generator saat ini (Bagian 5.4, 5.5, 13.2, dan 21) secara diam-diam **hardcode satu model konten saja**: video bernarasi bergaya marketing/edukasi dengan struktur `Hook -> Problem -> Solution -> CTA`, di mana durasi dihitung dari jumlah kata narasi (`wordCount / speakingRate`).
+
+Ini menimbulkan dua masalah nyata:
+
+1. **Bug fungsional** — untuk video tanpa narasi/voice-over (faceless, diegetic-sound-only, reconstruction, dsb.), `wordCount` mendekati nol di hampir semua scene, sehingga fitur pembanding "target durasi vs estimasi durasi" (5.5) selalu memicu peringatan palsu meski video sudah pas durasinya.
+2. **Keterbatasan skalabilitas niche** — field `Hook Style` dan validasi `Komposisi naskah` wajib 100% (Edukasi/Hiburan/Marketing) dipaksakan ke semua channel, padahal tidak semua gaya konten punya Hook atau CTA yang bermakna secara struktural.
+
+**Tujuan addendum ini:** menjadikan seluruh parameter struktural (emotional arc, mode narasi, wajib-tidaknya Hook/CTA, cara hitung durasi) sebagai **data di database yang bisa ditambah lewat panel admin**, bukan logika yang ditulis tetap di kode/system prompt. Dengan begitu, aplikasi bisa melayani "model konten apa pun" (marketing, edukasi, storytelling, faceless reconstruction, ASMR, dll.) tanpa perlu deploy ulang kode setiap kali ada gaya konten baru.
+
+**Temuan tambahan (audit ulang penuh 1063 baris, bukan cuma bagian yang cegak sebelumnya):** Form Generator di Bagian 5.4 ternyata **sudah** punya mekanisme untuk sebagian masalah ini — field *"bagian naskah yang di-include (Hook/CTA/Caption/Thumbnail)"* memungkinkan user mencentang/tidak-mencentang bagian mana yang ingin dimasukkan ke naskah. Masalahnya, toggle ini **tidak dibaca secara konsisten** oleh dua tempat lain di kode yang sama-sama menyuntik instruksi ke system prompt:
+
+1. Bagian 13.2 poin 7 — menyuntik `Emotional Arc: Hook -> Problem -> Solution -> CTA` tanpa syarat apa pun.
+2. Bagian 18 (log fitur "Viral Generation Parameters") — menyebutkan eksplisit bahwa system prompt di-augment dengan *"mandatory retention loops and hooks"*. Kata **mandatory** di situ berarti retention loop dan hook tetap disuntikkan meski user sudah **meng-uncheck** Hook di toggle 5.4.
+
+Jadi akar masalahnya bukan "fitur belum ada", melainkan **satu sumber kebenaran (`includedSections` dari toggle 5.4) yang dilanggar diam-diam oleh dua code path lain** — pelanggaran langsung terhadap Bagian 0.2 poin 5 yang sudah ditetapkan sejak awal proyek ("Dilarang menduplikasi sumber kebenaran data"). Addendum ini karena itu **tidak menambah toggle baru untuk Hook/CTA** — toggle itu sudah ada dan sudah benar secara desain. Addendum ini menambal dua tempat yang melanggarnya, plus menambah lapisan `ContentArchetype` untuk mengatur *default* toggle tersebut per gaya konten, dan untuk parameter lain (narrationMode, emotional arc template, cara hitung durasi) yang memang belum punya sumber data secara sama sekali.
+
+## 23.1 Model Data Baru: `ContentArchetype`
+
+Buat model Prisma baru (atau perluas `NicheCategoryPreset` yang sudah disebut di Bagian 12.11 — pilih salah satu, jangan duplikasi tabel preset). Field wajib:
+
+- `id`, `name` (contoh: "Marketing/Edukasi Standar", "Nostalgia Reconstruction / Faceless", atau nama custom lain yang dibuat admin kapan saja)
+- `narrationMode`: enum `VOICE_OVER | DIEGETIC_ONLY | SILENT_TEXT_ONLY | HYBRID` — default `VOICE_OVER` (backward compatible)
+- `emotionalArcTemplate`: text bebas, default `"Hook -> Problem -> Solution -> CTA"`, tapi bisa diisi ulang apa pun oleh admin/user (mis. `"Setup -> Recognition -> Emotional Payoff"`)
+- `defaultIncludedSections`: JSON `{ hook: boolean, cta: boolean, caption: boolean, thumbnail: boolean }` — **bukan field baru yang menduplikasi validasi**, melainkan nilai default yang meng-auto-check/uncheck toggle "bagian naskah yang di-include" yang **sudah ada** di Bagian 5.4, ketika archetype dipilih. Contoh: archetype "Nostalgia Reconstruction / Faceless" defaultnya `{ hook: false, cta: false, caption: true, thumbnail: true }`.
+- `compositionCategories`: JSON array `{ label: string, required: boolean }[]` — menggantikan enum tetap Edukasi/Hiburan/Marketing. Validasi jumlah wajib 100% **hanya** berlaku untuk kategori yang `required: true`; jika array kosong, validasi komposisi dilewati sepenuhnya.
+- `durationCalcMode`: enum `NARRATION_WORDCOUNT | SEGMENT_SELF_ESTIMATE | HYBRID` — default `HYBRID`
+- `cameraMovementRoleMap`: JSON opsional, override daftar pemetaan peran-scene → gerakan kamera; jika `null`, sistem pakai pool generic tanpa asumsi peran Hook/CTA
+
+Seed minimal 2 baris data saat migrasi:
+1. `"Marketing/Edukasi Standar"` — sama persis dengan perilaku lama saat ini (tidak ada breaking change untuk channel existing).
+2. `"Nostalgia Reconstruction / Faceless"` — `narrationMode: DIEGETIC_ONLY`, `hookRequired: false`, `ctaRequired: false`, `compositionCategories: []`, `emotionalArcTemplate: "Setup -> Recognition -> Emotional Payoff"`.
+
+## 23.2 Perubahan pada `ProfileChannel` dan `GeneratorForm.tsx`
+
+- Tambahkan `ProfileChannel.contentArchetypeId` (FK opsional), auto-fill ke `GeneratorForm` ketika channel dipilih — pola yang sama dengan `personaPov`/`speechRate` di Bagian 12.11.
+- Field **Hook Style** dan **Komposisi Naskah %** hanya dirender jika archetype aktif punya `hookRequired: true` / ada `compositionCategories` dengan `required: true`. Jika tidak, field ini **disembunyikan dari UI dan dilewati dari skema zod** — bukan sekadar disabled dengan nilai kosong (nilai kosong yang tetap divalidasi = bug yang sama muncul lagi dalam bentuk lain).
+- Tambahkan indikator read-only "Mode Narasi: <narrationMode>" yang auto-terisi dari archetype, dengan opsi override manual per sesi generate (untuk fleksibilitas kasus khusus).
+
+## 23.3 Perbaikan `promptGenerator.ts`
+
+0. **Prioritas paling tinggi — cari dan satukan dua pelanggaran sumber kebenaran yang sudah teridentifikasi di 23.0:**
+   - Titik injeksi `Emotional Arc: Hook -> Problem -> Solution -> CTA` (Bagian 13.2 poin 7).
+   - Titik injeksi *"mandatory retention loops and hooks"* pada fitur "Viral Generation Parameters" (Bagian 18).
+   
+   Kedua titik ini **wajib** dibungkus kondisi `if (includedSections.hook)` yang membaca nilai yang SAMA dengan yang disimpan toggle "bagian naskah yang di-include" di 5.4 — bukan nilai terpisah, bukan diasumsikan `true` secara default di kode. Tulis (atau kalau sudah ada, refactor ke) satu fungsi terpusat, misalnya `buildStructuralInstructions(includedSections, archetype)`, yang dipanggil oleh **kedua** code path (5.4 lama dan 13.2 Push-engine) supaya tidak ada lagi drift antara dua tempat ini di masa depan.
+1. **Hapus** string hardcoded `"Emotional Arc: Hook -> Problem -> Solution -> CTA"` dari system prompt. **Ganti** dengan interpolasi `archetype.emotionalArcTemplate`, dan tetap hormati poin 0 di atas (hanya disuntik jika toggle Hook aktif).
+2. Jika `narrationMode` adalah `DIEGETIC_ONLY` atau `SILENT_TEXT_ONLY`: system prompt **wajib** menyertakan instruksi eksplisit yang melarang AI eksternal menyisipkan dialog/voice-over/narator dari luar adegan, dan menegaskan bahwa suara yang boleh muncul hanya bersifat diegetic (SFX, ambient, ekspresi non-verbal dari dalam adegan). Field `narasi` pada tiap segment JSON wajib diisi eksplisit `null`/string kosong bertanda — bukan dikosongkan tanpa penjelasan, agar sistem bisa membedakan "memang tidak ada narasi" dari "AI lupa mengisi".
+3. **Perbaikan bug Estimasi Durasi (revisi Bagian 5.5):**
+   - Sumber utama total durasi realisasi = jumlah `durasi_estimasi` per segment yang **sudah** diminta dari AI eksternal di skema JSON Tahap 2 (field ini sudah ada di spesifikasi lama, hanya belum dipakai secara konsisten oleh sistem).
+   - Hitungan `wordCount(narasi) / speakingRate` **hanya** dipakai sebagai fallback per-scene, dan **hanya** jika `narrationMode = VOICE_OVER` DAN `durasi_estimasi` scene tersebut kosong/tidak valid.
+   - Simpan `durationSource: 'SEGMENT_ESTIMATE' | 'WORDCOUNT_FALLBACK'` per draft untuk keperluan audit/debug ke depan.
+
+## 23.4 Camera Movement — Generalisasi Role Mapping (revisi Bagian 21)
+
+Mode AUTO (baik Standar maupun PRO) tidak boleh berasumsi setiap scene selalu berperan Hook/Body/Klimaks/CTA. Jika label peran scene tidak terdeteksi (karena arc custom dari archetype non-standar), sistem wajib jatuh ke pool gerakan kamera generic yang tidak terikat peran — bukan default diam-diam ke logika Hook-specific yang sudah ada.
+
+## 23.5 Definition of Done (checklist wajib sebelum melapor "selesai")
+
+- [x] Migrasi `ContentArchetype` berhasil, 2 seed di atas tersimpan di database (bukan hardcode di kode).
+- [x] Channel existing yang belum punya `contentArchetypeId` tetap berjalan identik dengan perilaku sebelum addendum ini (default ke `"Marketing/Edukasi Standar"`) — **wajib diuji regresi nyata**, bukan asumsi.
+- [x] Generate dengan archetype `"Nostalgia Reconstruction / Faceless"` diuji end-to-end: field Hook Style tidak muncul, toggle "bagian naskah yang di-include" otomatis ter-uncheck untuk Hook/CTA, validasi komposisi % tidak memblokir submit, dan system prompt hasil generate benar-benar tidak menyuntik instruksi Hook/CTA/Voice-Over/retention loop (cek isi prompt mentah secara manual, bukan cuma cek UI) — termasuk memastikan titik injeksi lama di Bagian 13.2 dan Bagian 18 ("mandatory retention loops and hooks") sudah ikut patuh, bukan cuma yang di 5.4.
+- [x] Generate dengan archetype default (`"Marketing/Edukasi Standar"`) dan toggle Hook **dicentang manual** tetap menghasilkan Emotional Arc & retention loop seperti perilaku lama — pastikan perbaikan ini tidak diam-diam menghapus fitur untuk channel yang justru butuh Hook/CTA.
+- [x] Draft dengan narasi kosong **tidak** memicu peringatan selisih durasi palsu (uji dengan archetype `DIEGETIC_ONLY`).
+- [x] `npx tsc --noEmit`, `npm run lint`, `npm run build` lulus tanpa error baru.
+- [x] Audit-diri terhadap Bagian 0.2: pastikan seluruh parameter archetype dibaca dari satu tabel yang sama oleh `promptGenerator.ts`, `GeneratorForm.tsx`, dan validasi API — tidak ada nilai yang disalin manual ke lebih dari satu tempat.
+- [x] Log progres mencantumkan file mana saja yang diubah dan cara mengujinya secara konkret (sesuai format 0.3 poin 6).

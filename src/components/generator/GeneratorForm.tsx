@@ -33,16 +33,30 @@ interface VisualAestheticItem {
 }
 
 interface GeneratorFormChannel {
- id: string;
- channelName: string;
- niche?: string | null;
- targetPlatform?: string | null;
- personaPov?: string | null;
- speechRate?: number | null;
- visualAesthetic?: string | null;
- audioBGM?: boolean | null;
- audioSFX?: boolean | null;
- audioVO?: boolean | null;
+  id: string;
+  channelName: string;
+  niche?: string | null;
+  targetPlatform?: string | null;
+  personaPov?: string | null;
+  speechRate?: number | null;
+  visualAesthetic?: string | null;
+  audioBGM?: boolean | null;
+  audioSFX?: boolean | null;
+  audioVO?: boolean | null;
+  contentArchetypeId?: string | null;
+  contentArchetype?: {
+    id: string;
+    name: string;
+    description?: string | null;
+    narrationMode: "VOICE_OVER" | "DIEGETIC_ONLY" | "SILENT_TEXT_ONLY" | "HYBRID" | string;
+    emotionalArcTemplate: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    defaultIncludedSections?: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    compositionCategories?: any;
+    durationCalcMode?: string;
+    isSystem?: boolean;
+  } | null;
 }
 
 interface PromptSettingsDto {
@@ -374,32 +388,41 @@ export default function GeneratorForm({
 
  // Synchronize channel settings into form configs when channel selection changes
  useEffect(() => {
- if (!channelId) return;
- const selectedChannel = channels.find((c: GeneratorFormChannel) => c.id === channelId);
- if (selectedChannel) {
- setVideoConfig((prev) => ({
- ...prev,
- targetPlatform: selectedChannel.targetPlatform || prev.targetPlatform || "TikTok",
- pov: selectedChannel.personaPov || prev.pov || "Expert Storyteller (Edukasi & Inspirasi)",
- speechRate: selectedChannel.speechRate ?? prev.speechRate ?? 0.35,
- }));
- setImageConfig((prev) => ({
- ...prev,
- visualStyle: selectedChannel.visualAesthetic || prev.visualStyle || "Cinematic Dark Mode (Sleek & Professional)",
- }));
- }
- }, [channelId, channels]);
+    if (!channelId) return;
+    const selectedChannel = channels.find((c: GeneratorFormChannel) => c.id === channelId);
+    if (selectedChannel) {
+      const arch = selectedChannel.contentArchetype;
+      const defSections = arch?.defaultIncludedSections as { hook?: boolean; cta?: boolean; caption?: boolean; thumbnail?: boolean } | undefined;
+      setVideoConfig((prev) => ({
+        ...prev,
+        targetPlatform: selectedChannel.targetPlatform || prev.targetPlatform || "TikTok",
+        pov: selectedChannel.personaPov || prev.pov || "Expert Storyteller (Edukasi & Inspirasi)",
+        speechRate: selectedChannel.speechRate ?? prev.speechRate ?? 0.35,
+        includeHook: defSections?.hook !== undefined ? defSections.hook : prev.includeHook,
+        includeCTA: defSections?.cta !== undefined ? defSections.cta : prev.includeCTA,
+        includeCaption: defSections?.caption !== undefined ? defSections.caption : prev.includeCaption,
+        includeThumbnail: defSections?.thumbnail !== undefined ? defSections.thumbnail : prev.includeThumbnail,
+      }));
+      setImageConfig((prev) => ({
+        ...prev,
+        visualStyle: selectedChannel.visualAesthetic || prev.visualStyle || "Cinematic Dark Mode (Sleek & Professional)",
+      }));
+    }
+  }, [channelId, channels]);
 
  // Sync audio prefs from channel defaults when channel changes
  useEffect(() => {
- if (!channelId) return;
- const ch = channels.find((c: GeneratorFormChannel) => c.id === channelId);
- if (ch) {
- setMusicPreference(ch.audioBGM !== false);
- setSfxPreference(ch.audioSFX !== false);
- setVoPreference(ch.audioVO !== false);
- }
- }, [channelId, channels]);
+    if (!channelId) return;
+    const ch = channels.find((c: GeneratorFormChannel) => c.id === channelId);
+    if (ch) {
+      setMusicPreference(ch.audioBGM !== false);
+      setSfxPreference(ch.audioSFX !== false);
+      const isNoVoMode =
+        ch.contentArchetype?.narrationMode === "DIEGETIC_ONLY" ||
+        ch.contentArchetype?.narrationMode === "SILENT_TEXT_ONLY";
+      setVoPreference(isNoVoMode ? false : ch.audioVO !== false);
+    }
+  }, [channelId, channels]);
 
  // Fetch channel products when channelId changes
  useEffect(() => {
@@ -516,6 +539,8 @@ export default function GeneratorForm({
  affiliateMarketplaces: affiliateAngle ? affiliateMarketplaces : undefined,
  affiliateCustomUrl: affiliateAngle && affiliateMarketplaces.includes("custom") ? affiliateCustomUrl : undefined,
  isVideoPlatform: selectedChannel?.targetPlatform ? !/blog|podcast|article|web/i.test(selectedChannel.targetPlatform) : true,
+ contentArchetypeId: selectedChannel?.contentArchetypeId || selectedChannel?.contentArchetype?.id,
+ narrationMode: selectedChannel?.contentArchetype?.narrationMode,
  } : undefined,
  imageConfig: type === "IMAGE" ? imageConfig : undefined,
  };
@@ -640,6 +665,14 @@ export default function GeneratorForm({
  toast.success(t("downloadPromptSuccess"));
  };
 
+ const selectedChannel = channels.find((c) => c.id === channelId);
+ const currentArchetype = selectedChannel?.contentArchetype;
+ const hasRequiredComposition =
+   !currentArchetype ||
+   (Array.isArray(currentArchetype.compositionCategories) &&
+     currentArchetype.compositionCategories.length > 0 &&
+     currentArchetype.compositionCategories.some((cat: { required: boolean }) => cat.required));
+
  return (
  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
  {/* Kolom Form Input */}
@@ -677,6 +710,27 @@ export default function GeneratorForm({
  </option>
  ))}
  </select>
+
+ {currentArchetype && (
+   <div className="mt-2.5 p-2.5 rounded-lg bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 text-xs flex flex-col gap-1">
+     <div className="flex items-center justify-between flex-wrap gap-1.5">
+       <span className="font-semibold text-blue-900 dark:text-blue-300">
+         Model: {currentArchetype.name}
+       </span>
+       <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-blue-200/80 dark:bg-blue-800/60 text-blue-950 dark:text-blue-200">
+         {currentArchetype.narrationMode === "VOICE_OVER" && "🎙️ Voice Over"}
+         {currentArchetype.narrationMode === "DIEGETIC_ONLY" && "🔇 Suara Diegetik Murni"}
+         {currentArchetype.narrationMode === "SILENT_TEXT_ONLY" && "📄 Teks di Layar Saja"}
+         {currentArchetype.narrationMode === "HYBRID" && "🔀 Hybrid (VO + Diegetic)"}
+       </span>
+     </div>
+     {currentArchetype.description && (
+       <p className="text-[11px] text-slate-600 dark:text-slate-400">
+         {currentArchetype.description}
+       </p>
+     )}
+   </div>
+ )}
  </div>
 
  <div>
@@ -924,37 +978,43 @@ export default function GeneratorForm({
  </div>
 
  {/* Hook Style & Ending Style */}
- <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
- <div>
- <label className="block text-xs font-medium pg-text-sub mb-1">
- {t("hookStyle")}
- </label>
- <select
- value={videoConfig.hookStyle}
- onChange={(e) => handleVideoConfigChange("hookStyle", e.target.value)}
- className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
- >
- <option value="Pertanyaan Provokatif">{t("hookProvocative")}</option>
- <option value="Fakta Mengejutkan">{t("hookSurprising")}</option>
- <option value="Tantangan">{t("hookChallenge")}</option>
- <option value="Negative Hook">{t("hookNegative")}</option>
- </select>
- </div>
- <div>
- <label className="block text-xs font-medium pg-text-sub mb-1">
- {t("endingStyle")}
- </label>
- <select
- value={videoConfig.endingStyle}
- onChange={(e) => handleVideoConfigChange("endingStyle", e.target.value)}
- className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
- >
- <option value="Pertanyaan Terbuka">{t("endingOpen")}</option>
- <option value="Hard Sell CTA">{t("endingHardSell")}</option>
- <option value="Ajakan Simpan/Share">{t("endingShare")}</option>
- </select>
- </div>
- </div>
+ {(videoConfig.includeHook || videoConfig.includeCTA) && (
+   <div className={`grid gap-4 ${videoConfig.includeHook && videoConfig.includeCTA ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"}`}>
+     {videoConfig.includeHook && (
+       <div>
+         <label className="block text-xs font-medium pg-text-sub mb-1">
+           {t("hookStyle")}
+         </label>
+         <select
+           value={videoConfig.hookStyle}
+           onChange={(e) => handleVideoConfigChange("hookStyle", e.target.value)}
+           className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
+         >
+           <option value="Pertanyaan Provokatif">{t("hookProvocative")}</option>
+           <option value="Fakta Mengejutkan">{t("hookSurprising")}</option>
+           <option value="Tantangan">{t("hookChallenge")}</option>
+           <option value="Negative Hook">{t("hookNegative")}</option>
+         </select>
+       </div>
+     )}
+     {videoConfig.includeCTA && (
+       <div>
+         <label className="block text-xs font-medium pg-text-sub mb-1">
+           {t("endingStyle")}
+         </label>
+         <select
+           value={videoConfig.endingStyle}
+           onChange={(e) => handleVideoConfigChange("endingStyle", e.target.value)}
+           className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
+         >
+           <option value="Pertanyaan Terbuka">{t("endingOpen")}</option>
+           <option value="Hard Sell CTA">{t("endingHardSell")}</option>
+           <option value="Ajakan Simpan/Share">{t("endingShare")}</option>
+         </select>
+       </div>
+     )}
+   </div>
+ )}
 
  {/* Loop Options */}
  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1078,28 +1138,73 @@ export default function GeneratorForm({
  🔊 Audio Preferences
  </label>
  <div className="grid grid-cols-3 gap-2">
- {[
- { label: "BGM / Musik", state: musicPreference, setter: setMusicPreference },
- { label: "SFX / Efek", state: sfxPreference, setter: setSfxPreference },
- { label: "Voice Over", state: voPreference, setter: setVoPreference },
- ].map(({ label: lbl, state, setter }) => (
- <button
- key={lbl}
- type="button"
- onClick={() => setter(!state)}
- className={`flex items-center justify-center gap-1.5 px-2 py-2 text-xs font-medium rounded-lg border transition-colors ${
- state
- ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 text-emerald-700 dark:text-emerald-300"
- : "pg-surface-dim pg-border pg-text-muted"
- }`}
- >
- <span>{state ? "✓" : "✗"}</span>
- <span>{lbl}</span>
- </button>
- ))}
- </div>
- <p className="text-[10px] pg-text-muted">Default dari pengaturan channel. Klik untuk override.</p>
- </div>
+    <button
+      type="button"
+      onClick={() => setMusicPreference(!musicPreference)}
+      className={`flex items-center justify-center gap-1.5 px-2 py-2 text-xs font-medium rounded-lg border transition-colors ${
+        musicPreference
+          ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 text-emerald-700 dark:text-emerald-300"
+          : "pg-surface-dim pg-border pg-text-muted"
+      }`}
+    >
+      <span>{musicPreference ? "✓" : "✗"}</span>
+      <span>BGM / Musik</span>
+    </button>
+
+    <button
+      type="button"
+      onClick={() => setSfxPreference(!sfxPreference)}
+      className={`flex items-center justify-center gap-1.5 px-2 py-2 text-xs font-medium rounded-lg border transition-colors ${
+        sfxPreference
+          ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 text-emerald-700 dark:text-emerald-300"
+          : "pg-surface-dim pg-border pg-text-muted"
+      }`}
+    >
+      <span>{sfxPreference ? "✓" : "✗"}</span>
+      <span>SFX / Efek</span>
+    </button>
+
+    {(() => {
+      const isNoVoArchetype =
+        currentArchetype?.narrationMode === "DIEGETIC_ONLY" ||
+        currentArchetype?.narrationMode === "SILENT_TEXT_ONLY";
+
+      if (isNoVoArchetype) {
+        return (
+          <button
+            type="button"
+            disabled
+            title={`Voice Over dinonaktifkan oleh model konten "${currentArchetype?.name || "Diegetik"}"`}
+            className="flex items-center justify-center gap-1.5 px-2 py-2 text-xs font-medium rounded-lg border pg-surface-dim pg-border opacity-50 cursor-not-allowed text-slate-400"
+          >
+            <span>✗</span>
+            <span>Voice Over</span>
+          </button>
+        );
+      }
+
+      return (
+        <button
+          type="button"
+          onClick={() => setVoPreference(!voPreference)}
+          className={`flex items-center justify-center gap-1.5 px-2 py-2 text-xs font-medium rounded-lg border transition-colors ${
+            voPreference
+              ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 text-emerald-700 dark:text-emerald-300"
+              : "pg-surface-dim pg-border pg-text-muted"
+          }`}
+        >
+          <span>{voPreference ? "✓" : "✗"}</span>
+          <span>Voice Over</span>
+        </button>
+      );
+    })()}
+  </div>
+  <p className="text-[10px] pg-text-muted">
+    {currentArchetype?.narrationMode === "DIEGETIC_ONLY" || currentArchetype?.narrationMode === "SILENT_TEXT_ONLY"
+      ? `Model "${currentArchetype.name}" mewajibkan audio diegetik (tanpa voice-over luar).`
+      : "Default dari pengaturan channel. Klik untuk override."}
+  </p>
+  </div>
 
  {/* ── Camera Movement Section ── */}
  <div className="space-y-3 pt-2 border-t pg-border">
@@ -1261,11 +1366,24 @@ export default function GeneratorForm({
  </div>
 
  {/* Composition Sliders */}
-
- <CompositionSliderGroup
- value={videoConfig.composition}
- onChange={(val) => handleVideoConfigChange("composition", val)}
- />
+ {hasRequiredComposition ? (
+   <CompositionSliderGroup
+     value={videoConfig.composition}
+     onChange={(val) => handleVideoConfigChange("composition", val)}
+   />
+ ) : (
+   <div className="p-3 bg-slate-50 dark:bg-slate-800/60 border pg-border rounded-lg text-xs pg-text-muted">
+     <div className="flex items-center justify-between font-medium text-slate-700 dark:text-slate-200 mb-1">
+       <span>Komposisi Naskah: Model Terpadu ({currentArchetype?.name || "Archetype Non-Standar"})</span>
+       <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">
+         {currentArchetype?.narrationMode || "DIEGETIC_ONLY"}
+       </span>
+     </div>
+     <p className="text-[11px]">
+       Archetype ini menggunakan alur emosional terpadu (<em>{currentArchetype?.emotionalArcTemplate}</em>) tanpa pembagian persentase komposisi edukasi/hiburan/marketing terpisah.
+     </p>
+   </div>
+ )}
 
  <div className="space-y-2">
  <label className="block text-xs font-medium pg-text-sub mb-1">

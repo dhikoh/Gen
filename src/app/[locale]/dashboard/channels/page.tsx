@@ -30,6 +30,7 @@ export default async function ChannelsPage({ params }: { params: Promise<{ local
 
   const channels = await prisma.profileChannel.findMany({
     where: { userId: session.user.id },
+    include: { contentArchetype: true },
     orderBy: { createdAt: "asc" }
   });
 

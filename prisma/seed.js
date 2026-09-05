@@ -215,6 +215,55 @@ async function main() {
     },
   })
   console.log('Created Superadmin')
+
+  // 9. Seed ContentArchetypes (Bagian 23: Universal / Model-Agnostic Content Structure Engine)
+  const defaultMarketingArchetype = await prisma.contentArchetype.upsert({
+    where: { name: 'Marketing/Edukasi Standar' },
+    update: {
+      isSystem: true,
+    },
+    create: {
+      name: 'Marketing/Edukasi Standar',
+      description: 'Format standar konten video marketing & edukasi dengan Hook, Problem, Solution, dan CTA.',
+      narrationMode: 'VOICE_OVER',
+      emotionalArcTemplate: 'Hook -> Problem -> Solution -> CTA',
+      defaultIncludedSections: { hook: true, cta: true, caption: true, thumbnail: true },
+      compositionCategories: [
+        { label: 'Edukasi/Informasi', required: true },
+        { label: 'Hiburan/Storytelling', required: true },
+        { label: 'Marketing/CTA', required: true },
+      ],
+      durationCalcMode: 'HYBRID',
+      cameraMovementRoleMap: null,
+      isSystem: true,
+    },
+  })
+
+  await prisma.contentArchetype.upsert({
+    where: { name: 'Nostalgia Reconstruction / Faceless' },
+    update: {
+      isSystem: true,
+    },
+    create: {
+      name: 'Nostalgia Reconstruction / Faceless',
+      description: 'Format video rekonstruksi historis / faceless / diegetic tanpa voice-over luar, fokus pada visual storytelling dan SFX.',
+      narrationMode: 'DIEGETIC_ONLY',
+      emotionalArcTemplate: 'Setup -> Recognition -> Emotional Payoff',
+      defaultIncludedSections: { hook: false, cta: false, caption: true, thumbnail: true },
+      compositionCategories: [],
+      durationCalcMode: 'SEGMENT_SELF_ESTIMATE',
+      cameraMovementRoleMap: null,
+      isSystem: true,
+    },
+  })
+  console.log('Created ContentArchetypes (Marketing/Edukasi Standar & Nostalgia Reconstruction / Faceless)')
+
+  // 10. Backward Compatibility: Link existing channels without archetype to Marketing/Edukasi Standar
+  await prisma.profileChannel.updateMany({
+    where: { contentArchetypeId: null },
+    data: { contentArchetypeId: defaultMarketingArchetype.id },
+  })
+  console.log('Linked legacy channels to default Marketing/Edukasi Standar archetype')
 }
 
 main()

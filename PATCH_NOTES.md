@@ -2,6 +2,81 @@
 
 ---
 
+## [#49] — 2026-09-05 | Addendum Bagian 23: Universal / Model-Agnostic Content Structure Engine & Audit Hardening
+
+### Problem Statement
+1. **Model Konten Terkunci (Hardcoded)**: Generator sebelumnya hanya mendukung satu pola konten: video marketing/edukasi dengan narasi voice-over luar dan struktur `Hook -> Problem -> Solution -> CTA`. Format video faceless, rekonstruksi historis, diegetik (SFX/ambient), ASMR, atau storytelling murni mengalami distorsi instruksi prompt dan false-warning perbandingan durasi.
+2. **Pelanggaran Single Source of Truth**: Toggle section naskah (`includedSections.hook`) di form generator dilanggar diam-diam oleh injeksi hardcoded di dua titik (Bagian 13.2 poin 7 dan Bagian 18), sehingga retensi dan hook tetap dipaksakan meski user menonaktifkannya.
+3. **Temuan Audit Kritis**:
+   - **Response API Inkonsisten**: Endpoint `/api/content-archetypes` dan `/api/admin/content-archetypes` tidak mengembalikan `{ success: true }`, menyebabkan dropdown channel dan tab admin archetype gagal memuat data.
+   - **Kalkulasi Matematis Durasi Fatal**: Endpoint `/api/drafts` mengasumsikan `speechRate` dalam satuan Words Per Minute (WPM) dengan pembagi 60, padahal aplikasi menggunakan satuan detik-per-kata (0.35 s/kata), menyebabkan naskah 100 kata terhitung memiliki durasi 17.143 detik (~4,7 jam).
+   - **UX Audio Preferences Mismatch**: Tombol Voice-Over tetap menyala hijau pada form generator meski channel yang dipilih bertipe `DIEGETIC_ONLY`.
+
+### Implementasi Arsitektur & Perbaikan
+
+1. **Model Data Baru `ContentArchetype` & Relasi Schema (`prisma/schema.prisma`)**:
+   - Model `ContentArchetype`: `name`, `description`, `narrationMode` (`VOICE_OVER`, `DIEGETIC_ONLY`, `SILENT_TEXT_ONLY`, `HYBRID`), `emotionalArcTemplate`, `defaultIncludedSections` (JSON), `compositionCategories` (JSON), `durationCalcMode` (`NARRATION_WORDCOUNT`, `SEGMENT_SELF_ESTIMATE`, `HYBRID`), `cameraMovementRoleMap` (JSON nullable), dan flag `isSystem`.
+   - Relasi `ProfileChannel.contentArchetypeId` ke `ContentArchetype`.
+   - Kolom `Draft.durationSource` (`SEGMENT_ESTIMATE` vs `WORDCOUNT_FALLBACK`) untuk auditabilitas durasi naskah.
+   - Migrasi PostgreSQL: `prisma/migrations/20260905_add_content_archetype/migration.sql`.
+
+2. **Single Source of Truth Prompt Generator (`src/lib/promptGenerator.ts`)**:
+   - Fungsi terpusat `buildStructuralInstructions(includedSections, archetype, activeNarrationMode)` menyatukan seluruh injeksi busur emosi, pedoman viralitas, pacing, dan mode narasi.
+   - Eliminasi hardcode Hook/PAS/AIDA: hanya disuntik jika `includedSections.hook !== false`.
+   - Mode `DIEGETIC_ONLY` dan `SILENT_TEXT_ONLY`: menyuntikkan larangan keras voice-over luar dan mewajibkan penanda eksplisit `[DIEGETIC - TANPA VOICE-OVER]` pada field narasi adegan.
+   - Penyesuaian `generateMasterPrompt`: bypass validasi 100% komposisi jika semua bobot 0 pada model terpadu.
+
+3. **Integrasi UI & UX Polishing**:
+   - **Generator Studio (`GeneratorForm.tsx`)**:
+     - Auto-sync default sections (`includeHook`, `includeCTA`, `includeCaption`, `includeThumbnail`) saat memilih channel.
+     - Badge indikator model konten aktif & mode narasi di bawah dropdown channel.
+     - Menyembunyikan input *Hook Style* & *Ending Style* jika section tidak aktif.
+     - Menggantikan slider komposisi dengan banner informatif alur emosional terpadu untuk archetype non-standar.
+     - Tombol *Voice Over* dinonaktifkan secara otomatis (disabled dengan tooltip) jika model konten aktif adalah `DIEGETIC_ONLY` atau `SILENT_TEXT_ONLY`.
+   - **Channel Management (`ChannelManagerClient.tsx` & `EditChannelClient.tsx`)**:
+     - Dropdown pemilihan model konten terintegrasi pada pembuatan & pengeditan channel profile.
+     - Badge nama archetype pada kartu channel.
+     - Fallback otomatis ke default sistem (`Marketing/Edukasi Standar`) jika user tidak memilih archetype saat membuat channel baru.
+   - **Superadmin Panel (`AdminArchetypesTab.tsx` & `AdminSettingsClient.tsx`)**:
+     - Tab baru **"Model Konten (Archetypes)"** untuk CRUD archetype kustom & sistem.
+     - Proteksi penghapusan untuk archetype bawaan sistem dan archetype yang masih ditautkan ke channel aktif.
+   - **Detail Draft (`drafts/[id]/page.tsx`)**:
+     - Badge metode durasi: `⏱️ Estimasi Durasi Adegan (Segment Self-Estimate)` vs `🎙️ Estimasi Narasi (Wordcount Voice-Over)`.
+     - Eliminasi false warning durasi untuk format diegetik/faceless.
+
+4. **Hardening Hasil Audit**:
+   - Standardisasi respons API publik & admin archetype agar menyertakan `{ success: true, archetypes }`.
+   - Normalisasi unit `speechRate` di `/api/drafts`: deteksi $\le 2$ sebagai detik-per-kata ($\text{totalWords} \times \text{rate}$) dan $> 2$ sebagai WPM ($\frac{\text{totalWords}}{\text{rate} / 60}$) dengan fallback ke `channel.speechRate`.
+
+### Verifikasi
+- `npx tsc --noEmit` $\rightarrow$ **Exit code: 0** (0 error) ✅
+- Test suite logika Bagian 23 (`test_archetype.ts`): seluruh 4 test case lulus 100% ✅
+- Test kalkulasi matematis durasi (5 variasi unit): seluruh estimasi durasi akurat presisi ✅
+
+### Files Modified / Created
+| File | Perubahan |
+|------|-----------|
+| `prisma/schema.prisma` | Model `ContentArchetype`, enums, relasi `ProfileChannel`, kolom `Draft.durationSource` |
+| `prisma/migrations/20260905_add_content_archetype/migration.sql` | Skrip migrasi DDL database PostgreSQL |
+| `prisma/seed.js` | Seed 2 archetype bawaan sistem & penautan channel warisan |
+| `src/lib/promptGenerator.ts` | Refactor `buildStructuralInstructions`, interpolasi busur emosi, aturan diegetik, bypass komposisi |
+| `src/app/api/content-archetypes/route.ts` | GET public endpoint dengan fail-safe auto-seed & response `{ success: true }` |
+| `src/app/api/admin/content-archetypes/route.ts` | GET (dengan channel count & `success: true`) dan POST CRUD admin |
+| `src/app/api/admin/content-archetypes/[id]/route.ts` | PUT dan DELETE admin dengan proteksi sistem & channel count guard |
+| `src/app/api/channels/route.ts` | GET/POST channel dengan relasi archetype & default fallback |
+| `src/app/api/channels/[id]/route.ts` | PUT channel dengan pembaruan `contentArchetypeId` |
+| `src/app/api/drafts/route.ts` | Normalisasi unit durasi, `durationSource` tracking, fallback channel speechRate |
+| `src/app/api/generate/route.ts` | Schema archetype override, include channel archetype, bypass validasi komposisi 0 |
+| `src/components/generator/GeneratorForm.tsx` | Auto-sync sections, badge model konten, bypass slider komposisi, auto-disable VO button |
+| `src/app/[locale]/dashboard/generator/page.tsx` | Include `contentArchetype` pada query channel |
+| `src/app/[locale]/dashboard/channels/page.tsx` | Include `contentArchetype` pada query channel |
+| `src/app/[locale]/dashboard/channels/ChannelManagerClient.tsx` | Badge archetype pada tampilan daftar channel |
+| `src/app/[locale]/dashboard/channels/EditChannelClient.tsx` | Dropdown picker archetype pada form channel |
+| `src/app/[locale]/dashboard/drafts/[id]/page.tsx` | Badge sumber estimasi durasi & eliminasi false warning |
+| `src/app/[locale]/admin/settings/AdminSettingsClient.tsx` | Registrasi tab Model Konten (Archetypes) |
+| `src/app/[locale]/admin/settings/AdminArchetypesTab.tsx` | UI tab lengkap manajemen CRUD archetype |
+
+---
 
 ## [#48] — 2026-09-04 | UX Refactoring — Extracted Titles: Dua Aksi Eksplisit
 

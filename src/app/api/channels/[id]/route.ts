@@ -20,6 +20,7 @@ const channelSchema = z.object({
   audioBGM: z.boolean().optional(),
   audioSFX: z.boolean().optional(),
   audioVO: z.boolean().optional(),
+  contentArchetypeId: z.string().optional().nullable(),
   socialLinks: z.union([
     z.record(z.string(), z.string()),
     z.object({
@@ -78,6 +79,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         audioBGM: parsedData.data.audioBGM ?? true,
         audioSFX: parsedData.data.audioSFX ?? true,
         audioVO: parsedData.data.audioVO ?? true,
+        contentArchetypeId: parsedData.data.contentArchetypeId !== undefined ? (parsedData.data.contentArchetypeId || null) : channel.contentArchetypeId,
         socialLinks: parsedData.data.socialLinks ? parsedData.data.socialLinks : undefined,
       }
     });

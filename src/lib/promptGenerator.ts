@@ -1,5 +1,16 @@
 import { resolveVisualStyle } from "./visualStyleMap";
 
+export interface ContentArchetypeData {
+  id?: string;
+  name?: string;
+  narrationMode?: "VOICE_OVER" | "DIEGETIC_ONLY" | "SILENT_TEXT_ONLY" | "HYBRID" | string | null;
+  emotionalArcTemplate?: string | null;
+  defaultIncludedSections?: { hook?: boolean; cta?: boolean; caption?: boolean; thumbnail?: boolean } | null;
+  compositionCategories?: Array<{ label: string; required: boolean }> | null;
+  durationCalcMode?: "NARRATION_WORDCOUNT" | "SEGMENT_SELF_ESTIMATE" | "HYBRID" | string | null;
+  cameraMovementRoleMap?: Record<string, string[]> | null;
+}
+
 export interface ProfileChannelData {
   channelName: string;
   niche?: string | null;
@@ -12,6 +23,8 @@ export interface ProfileChannelData {
   audioVO?: boolean | null;
   products?: Array<{ name: string; price: number; description?: string | null }>;
   socialLinks?: Array<{ platform: string; url: string }> | null;
+  contentArchetypeId?: string | null;
+  contentArchetype?: ContentArchetypeData | null;
 }
 
 export interface VideoConfigData {
@@ -55,6 +68,10 @@ export interface VideoConfigData {
   cameraMovementPresets?: string[] | null;
   cameraMovementCustom?: string | null;
   cameraMovementProEnabled?: boolean | null; // server-resolved PRO entitlement
+  // Archetype & Narration Mode (Bagian 23)
+  contentArchetypeId?: string | null;
+  contentArchetype?: ContentArchetypeData | null;
+  narrationMode?: "VOICE_OVER" | "DIEGETIC_ONLY" | "SILENT_TEXT_ONLY" | "HYBRID" | string | null;
 }
 
 export interface PromptSettingsData {
@@ -63,6 +80,95 @@ export interface PromptSettingsData {
   defaultSpeechRate?: string | null;
   defaultNegativePrompt?: string | null;
   bannedWords?: string[] | string | unknown;
+}
+
+export interface StructuralInstructions {
+  emotionalArcSection: string;
+  viralGuidelineSection: string;
+  pacingGuidelineSection: string;
+  narrationModeDirective: string;
+  hookStrategyDirective: string;
+}
+
+/**
+ * Bagian 23: Universal / Model-Agnostic Content Structure Engine
+ * Sumber kebenaran tunggal untuk instruksi struktural (Emotional Arc, Hook/CTA, Mode Narasi).
+ */
+export function buildStructuralInstructions(
+  includedSections: { hook?: boolean; cta?: boolean; caption?: boolean; thumbnail?: boolean },
+  archetype?: ContentArchetypeData | null,
+  activeNarrationMode?: string | null
+): StructuralInstructions {
+  const isHookEnabled = includedSections.hook !== false;
+  const isCtaEnabled = includedSections.cta !== false;
+  const effectiveNarrationMode = activeNarrationMode || archetype?.narrationMode || "VOICE_OVER";
+  const emotionalArc = archetype?.emotionalArcTemplate?.trim() || "Hook -> Problem -> Solution -> CTA";
+
+  // 1. Emotional Arc Section (Bagian 13.2 poin 7 & Bagian 23.3 poin 1)
+  let emotionalArcSection = "";
+  if (isHookEnabled) {
+    emotionalArcSection = `[PANDUAN EMOTIONAL ARC / BUSUR EMOSI]\n1. Rancang busur emosi naskah: ${emotionalArc}.\n2. Setiap scene punya satu emosi dominan yang jelas.\n3. Gunakan Visual Prompt untuk memperkuat emosi dominan.\n`;
+  } else if (emotionalArc && emotionalArc !== "Hook -> Problem -> Solution -> CTA") {
+    // Custom arc without hook (misal faceless: Setup -> Recognition -> Emotional Payoff)
+    emotionalArcSection = `[PANDUAN ALUR STRUKTUR KONTEN]\n1. Rancang alur dramatik adegan: ${emotionalArc}.\n2. Setiap scene punya satu fokus emosi/atmosfer yang jelas.\n3. Gunakan Visual Prompt untuk memperkuat intensitas cerita.\n`;
+  }
+
+  // 2. Viral Guidelines (Bagian 18 & Bagian 23.3 poin 0)
+  // Retention loop dan hook HANYA disuntik jika toggle Hook aktif!
+  let viralGuidelineSection = `[PANDUAN STRATEGI & VIRALITAS KONTEN]\n`;
+  let itemIndex = 1;
+  if (isHookEnabled) {
+    viralGuidelineSection += `${itemIndex++}. Hook & Retensi: 3 detik pertama WAJIB memiliki visual/auditori hook yang kuat (pertanyaan provokatif, statemen kontroversial).\n`;
+    viralGuidelineSection += `${itemIndex++}. Open Loops: Sisipkan 'open loops' (rasa penasaran yang ditunda) di tengah narasi agar penonton bertahan.\n`;
+  }
+  viralGuidelineSection += `${itemIndex++}. Spesifikasi Platform: Optimalkan pacing cepat, hindari jeda diam (dead air) lebih dari 1 detik.\n`;
+  viralGuidelineSection += `${itemIndex++}. Arsitektur Konten & Tren: Buat alur autentik, rentan, retro, dan organik. Hindari gaya bahasa terlampau formal. Hubungkan secara relatable ke audiens modern.\n`;
+  if (isHookEnabled) {
+    viralGuidelineSection += `${itemIndex++}. Psikologi Copywriting: Gunakan kerangka PAS (Problem → Agitate → Solution) atau AIDA (Attention → Interest → Desire → Action).\n`;
+  } else {
+    viralGuidelineSection += `${itemIndex++}. Psikologi Visual: Bangun resonansi lewat kontras visual, estetika sinematik, dan atmosfer storytelling.\n`;
+  }
+
+  // 3. Pacing Guidelines (Bagian 23.3)
+  let pacingGuidelineSection = `[PANDUAN PACING & RHYTHM]\n`;
+  let pIdx = 1;
+  if (isHookEnabled) {
+    pacingGuidelineSection += `${pIdx++}. Scene 1 (Hook): Kalimat pendek, cepat, staccato. Maksimal 2-3 kalimat singkat. Tujuan: menghentikan scroll dalam 3 detik.\n`;
+    pacingGuidelineSection += `${pIdx++}. Scene Tengah (Body): Perlambat pacing. Kalimat lebih panjang dan detail.\n`;
+  } else {
+    pacingGuidelineSection += `${pIdx++}. Scene Pembuka: Bangun atmosfer dan subjek utama dengan visual yang memikat dan immersif.\n`;
+    pacingGuidelineSection += `${pIdx++}. Scene Tengah: Pertahankan momentum cerita dengan detail aksi dan perubahan visual bertahap.\n`;
+  }
+  if (isCtaEnabled) {
+    pacingGuidelineSection += `${pIdx++}. Scene Akhir (CTA): Kembali ke pacing cepat. Kalimat imperatif dan berenergi.\n`;
+  } else {
+    pacingGuidelineSection += `${pIdx++}. Scene Penutup: Berikan resolusi atau impresi visual akhir yang mendalam dan membekas.\n`;
+  }
+
+  // 4. Narration Mode Directive (Bagian 23.3 poin 2)
+  let narrationModeDirective = "";
+  if (effectiveNarrationMode === "DIEGETIC_ONLY" || effectiveNarrationMode === "SILENT_TEXT_ONLY") {
+    narrationModeDirective = `\n[INSTRUKSI MODE NARASI: ${effectiveNarrationMode}]\n` +
+      `1. DILARANG KERAS menyisipkan dialog/voice-over/narator dari luar adegan (voice-over/voice of god).\n` +
+      `2. Seluruh audio WAJIB bersifat diegetik (suara nyata di dalam dunia adegan: SFX, foley, ambient lingkungan, atau ekspresi vokal non-verbal karakter di scene).\n` +
+      `3. Field NARASI pada setiap scene WAJIB diisi dengan teks bertanda eksplisit "[DIEGETIC - TANPA VOICE-OVER]" atau string kosong bertanda (BUKAN dikosongkan tanpa kejelasan).\n`;
+  }
+
+  // 5. Hook Strategy Directive in Tahap 2 Header
+  let hookStrategyDirective = "";
+  if (isHookEnabled) {
+    hookStrategyDirective = `## ANALISIS STRATEGI KONTEN & HOOK\nAUDIENS PERSONA & PSIKOLOGI: [Analisis singkat]\nSTRATEGI HOOK (0-3 DETIK): [Cara menciptakan curiosity gap]\nALUR KONTEN PAS/AIDA: [Alur penyampaian]\n`;
+  } else {
+    hookStrategyDirective = `## ANALISIS STRATEGI KONTEN & ALUR CERITA\nAUDIENS PERSONA & PSIKOLOGI: [Analisis singkat]\nFOKUS VISUAL & ATMOSFER (0-3 DETIK): [Cara memikat penonton lewat visual/SFX]\nALUR DRAMATIK KONTEN: [Alur penyampaian cerita]\n`;
+  }
+
+  return {
+    emotionalArcSection,
+    viralGuidelineSection,
+    pacingGuidelineSection,
+    narrationModeDirective,
+    hookStrategyDirective,
+  };
 }
 
 export function generateMasterPrompt(
@@ -75,6 +181,22 @@ export function generateMasterPrompt(
   outputLanguage?: string | null
 ): { masterPrompt: string; systemInstruction: string } {
 
+  // ── Archetype & Structural Resolution (Bagian 23) ───────────────────────
+  const effectiveArchetype = videoConfig?.contentArchetype || channel?.contentArchetype || null;
+  const finalVoPreference = videoConfig?.voPreference !== undefined ? Boolean(videoConfig.voPreference) : Boolean(channel?.audioVO !== false);
+  const effectiveNarrationMode = videoConfig?.narrationMode || effectiveArchetype?.narrationMode || (finalVoPreference ? "VOICE_OVER" : "DIEGETIC_ONLY");
+
+  const hasHook = videoConfig?.includeHook !== false && (!videoConfig?.selectedSections || videoConfig.selectedSections.includes("HOOK"));
+  const hasCTA = videoConfig?.includeCTA !== false && (!videoConfig?.selectedSections || videoConfig.selectedSections.includes("CTA"));
+  const hasCaption = !videoConfig?.selectedSections || videoConfig.selectedSections.includes("CAPTION");
+  const hasThumbnail = videoConfig?.thumbnailIdea || videoConfig?.selectedSections?.includes("THUMBNAIL");
+
+  const structural = buildStructuralInstructions(
+    { hook: hasHook, cta: hasCTA, caption: hasCaption, thumbnail: Boolean(hasThumbnail) },
+    effectiveArchetype,
+    effectiveNarrationMode
+  );
+
   // ── System Instruction ─────────────────────────────────────────────────
   let systemInstruction = `Kamu adalah AI Content Strategist dan Scriptwriter profesional yang berpengalaman dalam membuat naskah konten video pendek viral.`;
   if (promptSettings?.videoSystemInstruction?.trim()) {
@@ -83,11 +205,14 @@ export function generateMasterPrompt(
   if (outputLanguage && outputLanguage.trim().length > 0) {
     systemInstruction += `\nWAJIB: Seluruh naskah narasi, dialog, teks overlay, dan tulisan ide lainnya HARUS ditulis dalam bahasa ${outputLanguage.trim()}.`;
   }
+  if (effectiveNarrationMode === "DIEGETIC_ONLY" || effectiveNarrationMode === "SILENT_TEXT_ONLY") {
+    systemInstruction += `\nWAJIB: Mode konten adalah ${effectiveNarrationMode}. DILARANG menyisipkan narator/voice-over luar adegan. Seluruh audio wajib bersumber dari dalam visual adegan (diegetic audio).`;
+  }
 
   // ── Audio Config ───────────────────────────────────────────────────────
   const finalMusic = videoConfig.musicPreference !== undefined ? Boolean(videoConfig.musicPreference) : Boolean(channel.audioBGM !== false);
   const finalSfx   = videoConfig.sfxPreference   !== undefined ? Boolean(videoConfig.sfxPreference)   : Boolean(channel.audioSFX !== false);
-  const finalVo    = videoConfig.voPreference     !== undefined ? Boolean(videoConfig.voPreference)    : Boolean(channel.audioVO  !== false);
+  const finalVo    = (effectiveNarrationMode === "DIEGETIC_ONLY" || effectiveNarrationMode === "SILENT_TEXT_ONLY") ? false : finalVoPreference;
   const isVideoPlat = videoConfig.isVideoPlatform !== false;
 
   // ── Loop Config ────────────────────────────────────────────────────────
@@ -164,10 +289,14 @@ export function generateMasterPrompt(
   if (!finalVo) visualAudioSuffix += ", no voice over";
 
   let narasiExample = "Narasi / dialog untuk adegan ini. Tulis teks yang diucapkan secara lengkap. Gunakan bahasa natural, conversational, relatable, hindari gaya kaku/robotik";
-  if (finalSfx && finalMusic) narasiExample += ". Sisipkan [SFX: Nama Efek Suara] dan [BGM: Jenis Musik] di posisi relevan";
-  else if (finalSfx) narasiExample += ". Sisipkan [SFX: Nama Efek Suara] di posisi relevan. DILARANG [BGM: ...]";
-  else if (finalMusic) narasiExample += ". Sisipkan [BGM: Jenis Musik] saat perubahan mood. DILARANG [SFX: ...]";
-  else narasiExample += ". DILARANG menyisipkan [SFX: ...] atau [BGM: ...]";
+  if (effectiveNarrationMode === "DIEGETIC_ONLY" || effectiveNarrationMode === "SILENT_TEXT_ONLY") {
+    narasiExample = "[DIEGETIC - TANPA VOICE-OVER] Dilarang ada narasi/voice-over luar adegan. Hanya suara diegetic/in-scene.";
+  } else {
+    if (finalSfx && finalMusic) narasiExample += ". Sisipkan [SFX: Nama Efek Suara] dan [BGM: Jenis Musik] di posisi relevan";
+    else if (finalSfx) narasiExample += ". Sisipkan [SFX: Nama Efek Suara] di posisi relevan. DILARANG [BGM: ...]";
+    else if (finalMusic) narasiExample += ". Sisipkan [BGM: Jenis Musik] saat perubahan mood. DILARANG [SFX: ...]";
+    else narasiExample += ". DILARANG menyisipkan [SFX: ...] atau [BGM: ...]";
+  }
 
   // ── Loop Guidelines ────────────────────────────────────────────────────
   const loopGuidelinesText = isLoopable
@@ -178,7 +307,7 @@ export function generateMasterPrompt(
     ? `[PANDUAN LOOP VIDEO (SEAMLESS VISUAL LOOP - AKTIF)]\n1. WAJIB merancang Visual Prompt agar video awal dan akhir tampak menyambung secara visual.\n2. Di SCENE TERAKHIR, akhir Visual Prompt harus kembali ke kondisi visual awal SCENE 1.\n3. Sesuaikan camera movement, lighting, posisi subjek, dan environment agar transisinya mulus.`
     : `[PANDUAN VISUAL VIDEO (NORMAL ENDING)]\n1. Visual scene terakhir tidak perlu menyambung ke scene pertama.\n2. Fokuskan pada resolusi cerita atau adegan penutup yang natural.`;
 
-  // ── Camera Movement Guide ──────────────────────────────────────────────
+  // ── Camera Movement Guide (Bagian 21 & Bagian 23.4: Generalisasi Role Mapping) ───
   const camEnabled = videoConfig.cameraMovementEnabled !== false; // default ON
   let cameraMovementGuide = "";
   if (!camEnabled) {
@@ -200,19 +329,33 @@ export function generateMasterPrompt(
       }
       cameraMovementGuide += `WAJIB: Distribusikan gerakan kamera di atas secara bervariasi antar-scene. Hindari pengulangan gerakan yang sama di scene berurutan. Sesuaikan intensitas gerakan dengan mood narasi.`;
     } else {
-      // Default ON but no preset selected — give AI creative freedom with guidance
-      // PRO tier: AI acts as professional DoP | Standard tier: existing free-form auto
+      // Default ON but no preset selected — Mode AUTO (Bagian 21 & Bagian 23.4)
+      const roleMap = effectiveArchetype?.cameraMovementRoleMap;
+      let roleGrammarPro = "";
+      let roleGrammarStandard = "";
+
+      if (roleMap && typeof roleMap === "object" && Object.keys(roleMap).length > 0) {
+        // Custom role mapping defined by admin/archetype
+        const mapEntries = Object.entries(roleMap).map(([role, moves]) => `   - Scene ${role}: ${Array.isArray(moves) ? moves.join(", ") : moves}`).join("\n");
+        roleGrammarPro = `2. TATA BAHASA GERAKAN SESUAI PERAN SCENE (ROLE MAPPING ARCHETYPE):\n${mapEntries}`;
+        roleGrammarStandard = Object.entries(roleMap).map(([role, moves]) => `- Untuk scene ${role}: ${Array.isArray(moves) ? moves.join(", ") : moves}`).join("\n");
+      } else if (!hasHook) {
+        // Archetype non-standar / tanpa Hook: pool gerakan kamera generic tanpa asumsi Hook/CTA (Bagian 23.4)
+        roleGrammarPro = `2. TATA BAHASA GERAKAN SINEMATIK (MOTIVATED MOVEMENT POOL — GENERALISASI):\n   Rancang pergerakan kamera berdasarkan dinamika visual & dramatis adegan (tanpa memaksakan formula Hook/CTA):\n   - Scene Pembuka / Penataan Ruang (Establishing/Atmosphere): slow pan, tracking shot stabil, slow push-in bertahap, atau crane turun perlahan untuk menyerap suasana dan detail visual.\n   - Scene Eksplorasi / Interaksi Detail (Intimacy & Discovery): macro push-in, slow orbital, rack focus antar-layer objek, atau gentle handheld untuk kedekatan emosional.\n   - Scene Eskalasi / Titik Puncak (Peak Intensity / Turning Point): tracking shot dinamis, subtle Dutch angle, creeping push-in lambat untuk menekan intensitas, atau whip pan transisional.\n   - Scene Resolusi / Refleksi Akhir (Resolution/Contemplation): slow pull-out luas (reveal), steady static shot yang tenang, atau drifting pedestal up untuk memberi rasa tuntas dan kontemplatif.`;
+        roleGrammarStandard = `- Untuk scene atmosferik/pembuka: slow push-in, gentle pan, crane down and wide reveal\n- Untuk scene emosional/reflektif: slow zoom in, handheld subtle, slow orbital\n- Untuk scene aksi/eksplorasi: tracking shot, sweeping dolly, dynamic push-pull\n- Untuk scene resolusi/penutup: slow pull-out, static contemplative framing, crane up`;
+      } else {
+        // Standar klasik dengan Hook & CTA (backward compatible)
+        roleGrammarPro = `2. TATA BAHASA GERAKAN SESUAI PERAN SCENE:\n   - Scene Hook/Pembuka: gerakan cepat & tajam untuk menghentikan scroll — whip pan, snap zoom, crane turun cepat, atau quick push-in.\n   - Scene Body/Pengembangan: gerakan terukur & halus untuk menjaga engagement — slow dolly, tracking shot mengikuti subjek, arc/orbit shot untuk membangun dimensi.\n   - Scene Klimaks/Konflik: gerakan yang membangun intensitas — dolly-in progresif, handheld terkendali (controlled) untuk kesan urgensi, rack focus dipadukan gerakan kamera untuk mengalihkan perhatian secara dramatis.\n   - Scene Penutup/CTA: gerakan menenangkan atau menyimpulkan — slow pull-out, crane naik untuk reveal luas, atau settle statis di akhir agar CTA punya ruang bernapas.`;
+        roleGrammarStandard = `- Untuk scene pembuka/hook: slow push-in, whip pan, crane down and tilt up\n- Untuk scene emosional: slow zoom in, handheld shaky, arc shot\n- Untuk scene aksi/dinamis: tracking shot, sweeping orbital, dolly zoom\n- Untuk scene penutup/CTA: slow pull-out, crane up and wide reveal`;
+      }
+
       if (videoConfig.cameraMovementProEnabled) {
         cameraMovementGuide = `[PANDUAN CAMERA MOVEMENT — MODE OTOMATIS PROFESIONAL (PRO)]
 Kamu bertindak sebagai Director of Photography (DoP) profesional yang merancang pergerakan kamera setara produksi video komersial/sinema untuk SETIAP scene di naskah ini. Jangan hanya memilih gerakan secara acak dari daftar — rancang dengan pertimbangan sinematografis yang menyeluruh, mengikuti seluruh prinsip berikut:
 
 1. PRINSIP MOTIVATED MOVEMENT (WAJIB): Setiap pergerakan kamera HARUS memiliki alasan naratif atau emosional yang jelas — mengikuti aksi subjek, mengungkap informasi baru (reveal), membangun ketegangan, atau memperkuat emosi dominan scene tersebut. DILARANG menyisipkan gerakan kamera hanya sebagai hiasan tanpa tujuan naratif.
 
-2. TATA BAHASA GERAKAN SESUAI PERAN SCENE:
-   - Scene Hook/Pembuka: gerakan cepat & tajam untuk menghentikan scroll — whip pan, snap zoom, crane turun cepat, atau quick push-in.
-   - Scene Body/Pengembangan: gerakan terukur & halus untuk menjaga engagement — slow dolly, tracking shot mengikuti subjek, arc/orbit shot untuk membangun dimensi.
-   - Scene Klimaks/Konflik: gerakan yang membangun intensitas — dolly-in progresif, handheld terkendali (controlled) untuk kesan urgensi, rack focus dipadukan gerakan kamera untuk mengalihkan perhatian secara dramatis.
-   - Scene Penutup/CTA: gerakan menenangkan atau menyimpulkan — slow pull-out, crane naik untuk reveal luas, atau settle statis di akhir agar CTA punya ruang bernapas.
+${roleGrammarPro}
 
 3. KOSAKATA GERAKAN PROFESIONAL (gunakan istilah presisi, hindari istilah generik): dolly in/out, truck left/right, pan, tilt, pedestal up/down, crane/jib movement, Steadicam glide, handheld controlled vs handheld chaotic, whip pan, arc/orbit shot, parallax layering, rack focus pull, push-in/pull-out bertahap (progressive), serta implikasi kecepatan (slow & measured vs quick & snap).
 
@@ -228,8 +371,8 @@ Kamu bertindak sebagai Director of Photography (DoP) profesional yang merancang 
 
 WAJIB: Terapkan seluruh 8 prinsip di atas secara konsisten pada SETIAP Visual Prompt sepanjang naskah, seolah dirancang oleh satu sinematografer profesional yang memahami keseluruhan alur cerita secara utuh — bukan merancang scene demi scene secara terisolasi.`;
       } else {
-        // Default ON but no preset selected — give AI creative freedom with guidance (STANDAR, TIDAK BERUBAH)
-        cameraMovementGuide = `[PANDUAN CAMERA MOVEMENT — AUTO]\nAI bebas memilih dan memvariasikan gerakan kamera yang paling sinematik dan sesuai dengan mood setiap scene. Referensi pilihan yang disarankan (tidak terbatas):\n- Untuk scene pembuka/hook: slow push-in, whip pan, crane down and tilt up\n- Untuk scene emosional: slow zoom in, handheld shaky, arc shot\n- Untuk scene aksi/dinamis: tracking shot, sweeping orbital, dolly zoom\n- Untuk scene penutup/CTA: slow pull-out, crane up and wide reveal\nWAJIB: Variasikan gerakan kamera antar scene. Hindari static shot berturut-turut kecuali untuk efek dramatis yang disengaja.`;
+        // Default ON but no preset selected — give AI creative freedom with guidance (STANDAR)
+        cameraMovementGuide = `[PANDUAN CAMERA MOVEMENT — AUTO]\nAI bebas memilih dan memvariasikan gerakan kamera yang paling sinematik dan sesuai dengan mood setiap scene. Referensi pilihan yang disarankan (tidak terbatas):\n${roleGrammarStandard}\nWAJIB: Variasikan gerakan kamera antar scene. Hindari static shot berturut-turut kecuali untuk efek dramatis yang disengaja.`;
       }
     }
   }
@@ -332,15 +475,13 @@ PENTING: Tulis URL pencarian yang VALID dan LENGKAP dengan nama produk sudah di-
   }
 
   if (hasTitleSection) {
-    formatOutputWajib += `Proses pembuatan konten ini WAJIB dilakukan dalam 2 TAHAP interaktif:\n\nTAHAP 1: Tampilkan Ide Konten & Tunggu Konfirmasi (BERHENTI SEBELUM MENULIS NASKAH)\n1. Tampilkan tepat 10 ide judul konten kreatif yang memiliki potensi viral tinggi.\n2. Setiap ide ditulis dengan format:\n   [NOMOR]. [JUDUL IDE KONTEN] (Potensi Viral: [Persentase])\n   Deskripsi Singkat: [Penjelasan mengapa berpotensi viral]\n3. Setelah menampilkan 10 ide, WAJIB BERHENTI dan ketik:\n   "Silakan pilih nomor ide konten (1-10) yang ingin Anda buat naskah lengkapnya."\n${affiliateTitleDirective}\nTAHAP 2: Pembuatan Naskah Lengkap (Setelah Konfirmasi User)\nSetelah user memilih, tulis naskah lengkap dengan format berikut:\n\n## RISET & VARIASI JUDUL\nJUDUL TERPILIH: [Judul yang dipilih user]\n\n## ANALISIS STRATEGI KONTEN & HOOK\nAUDIENS PERSONA & PSIKOLOGI: [Analisis singkat]\nSTRATEGI HOOK (0-3 DETIK): [Cara menciptakan curiosity gap]\nALUR KONTEN PAS/AIDA: [Alur penyampaian]\n`;
+    formatOutputWajib += `Proses pembuatan konten ini WAJIB dilakukan dalam 2 TAHAP interaktif:\n\nTAHAP 1: Tampilkan Ide Konten & Tunggu Konfirmasi (BERHENTI SEBELUM MENULIS NASKAH)\n1. Tampilkan tepat 10 ide judul konten kreatif yang memiliki potensi viral tinggi.\n2. Setiap ide ditulis dengan format:\n   [NOMOR]. [JUDUL IDE KONTEN] (Potensi Viral: [Persentase])\n   Deskripsi Singkat: [Penjelasan mengapa berpotensi viral]\n3. Setelah menampilkan 10 ide, WAJIB BERHENTI dan ketik:\n   "Silakan pilih nomor ide konten (1-10) yang ingin Anda buat naskah lengkapnya."\n${affiliateTitleDirective}\nTAHAP 2: Pembuatan Naskah Lengkap (Setelah Konfirmasi User)\nSetelah user memilih, tulis naskah lengkap dengan format berikut:\n\n## RISET & VARIASI JUDUL\nJUDUL TERPILIH: [Judul yang dipilih user]\n\n${structural.hookStrategyDirective}`;
   } else {
-    formatOutputWajib += `Kamu WAJIB mengembalikan output dengan format terstruktur berikut:\n\n## ANALISIS STRATEGI KONTEN & HOOK\nAUDIENS PERSONA & PSIKOLOGI: [Analisis singkat]\nSTRATEGI HOOK (0-3 DETIK): [Cara menciptakan curiosity gap]\nALUR KONTEN PAS/AIDA: [Alur penyampaian]\n`;
+    formatOutputWajib += `Kamu WAJIB mengembalikan output dengan format terstruktur berikut:\n\n${structural.hookStrategyDirective}`;
   }
 
-  const hasCaption  = !videoConfig.selectedSections || videoConfig.selectedSections.includes("CAPTION");
   const hasHashtag  = !videoConfig.selectedSections || videoConfig.selectedSections.includes("HASHTAG");
   const hasScene    = !videoConfig.selectedSections || videoConfig.selectedSections.some(s => ["HOOK","BODY","CTA"].includes(s));
-  const hasThumbnail = videoConfig.thumbnailIdea || videoConfig.selectedSections?.includes("THUMBNAIL");
 
   if (hasCaption || hasHashtag) {
     formatOutputWajib += `\n## KONTEN PLATFORM\n`;
@@ -359,8 +500,12 @@ PENTING: Tulis URL pencarian yang VALID dan LENGKAP dengan nama produk sudah di-
       ? `Tulis prompt video/visual sinematik siap-pakai dalam bahasa Inggris. WAJIB formula 5-bagian: [Shot Type & Camera Angle], [Subject & Action], [Environment & Lighting], [Camera Movement Path], [Style/Aesthetic]. Sangat ilustratif, dinamis, metaforis (HINDARI penerjemahan literal). Contoh: "Extreme macro shot, glowing double-helix DNA strands morphing, surrounded by holographic data streams, cinematic volumetric lighting, slow push-in${visualAudioSuffix}".`
       : `Tulis prompt gambar/visual sinematik siap-pakai dalam bahasa Inggris untuk Midjourney V6. WAJIB formula 5-bagian: [Shot Type & Camera Angle], [Subject & Action], [Environment & Lighting], [Cinematic Composition], [Style/Aesthetic]. Sangat ilustratif, dinamis, metaforis. Contoh: "Extreme macro shot, glowing double-helix DNA strands morphing, holographic biological data streams, cinematic volumetric lighting, shallow depth of field${visualAudioSuffix}".`;
 
-    formatOutputWajib += `\n## SCENE 1\nNARASI: [${narasiExample}]\nPANDUAN SUARA: [Context: <konteks/suasana adegan> | Note: <petunjuk intonasi/kecepatan/jeda> | Traits: <karakteristik vokal, misal: deep voice, energetic>]\nVISUAL PROMPT: [${visualPromptInstruction}]${arSuffix}\nDURASI: [Estimasi durasi adegan dalam detik, contoh: 5 detik]\n`;
-    formatOutputWajib += `\n## SCENE 2\nNARASI: [Narasi / dialog adegan kedua]\nPANDUAN SUARA: [Context: <konteks adegan kedua> | Note: <petunjuk pembacaan> | Traits: <karakteristik vokal>]\nVISUAL PROMPT: [Tulis prompt visual adegan kedua, formula 5-bagian, bahasa Inggris.]${arSuffix}\nDURASI: [Estimasi durasi]\n`;
+    const panduanSuaraExample = (effectiveNarrationMode === "DIEGETIC_ONLY" || effectiveNarrationMode === "SILENT_TEXT_ONLY")
+      ? `Context: <konteks/suasana suara lingkungan adegan> | Note: <petunjuk audio diegetic/SFX/foley> | Traits: <elemen audio in-scene dominan>`
+      : `Context: <konteks/suasana adegan> | Note: <petunjuk intonasi/kecepatan/jeda> | Traits: <karakteristik vokal, misal: deep voice, energetic>`;
+
+    formatOutputWajib += `\n## SCENE 1\nNARASI: [${narasiExample}]\nPANDUAN SUARA: [${panduanSuaraExample}]\nVISUAL PROMPT: [${visualPromptInstruction}]${arSuffix}\nDURASI: [Estimasi durasi adegan dalam detik, contoh: 5 detik]\n`;
+    formatOutputWajib += `\n## SCENE 2\nNARASI: [Narasi / dialog adegan kedua]\nPANDUAN SUARA: [${panduanSuaraExample}]\nVISUAL PROMPT: [Tulis prompt visual adegan kedua, formula 5-bagian, bahasa Inggris.]${arSuffix}\nDURASI: [Estimasi durasi]\n`;
 
     const sceneCount = videoConfig.targetSceneCount;
     if (sceneCount && sceneCount > 2) {
@@ -380,14 +525,9 @@ PENTING: Tulis URL pencarian yang VALID dan LENGKAP dengan nama produk sudah di-
     formatOutputWajib += `\n## HTML BLOG\nTulis sebuah artikel blog berbasis naskah video di atas dengan ketentuan berikut:\n1. Panjang artikel: 400–600 kata, SEO-friendly, dengan sub-heading menggunakan tag <h2> dan <h3>.\n2. Meta Description: Tulis meta description 150-160 karakter di bawah judul artikel (label: META DESCRIPTION:).\n3. Judul Artikel (H1): Tulis judul artikel blog yang mengandung kata kunci utama, menarik untuk diklik.\n4. Isi Artikel: Kembangkan narasi video menjadi artikel lengkap. Gunakan paragraf pendek (2-4 kalimat), tambahkan contoh konkret, statistik fiktif yang masuk akal, dan CTA di akhir.\n5. Format output WAJIB HTML murni (bukan Markdown), siap ditempel ke CMS. Mulai dari <h1> hingga paragraf penutup.\n`;
   }
 
-  // ── All Guidelines (Push-ported) ───────────────────────────────────────
+  // ── All Guidelines (Push-ported & Centralized via Bagian 23) ────────────
   const allGuidelines = `
-[PANDUAN STRATEGI & VIRALITAS KONTEN]
-1. Hook & Retensi: 3 detik pertama WAJIB memiliki visual/auditori hook yang kuat (pertanyaan provokatif, statemen kontroversial).
-2. Open Loops: Sisipkan 'open loops' (rasa penasaran yang ditunda) di tengah narasi agar penonton bertahan.
-3. Spesifikasi Platform: Optimalkan pacing cepat, hindari jeda diam (dead air) lebih dari 1 detik.
-4. Arsitektur Konten & Tren: Buat narasi autentik, rentan, retro, dan organik. Hindari gaya bahasa terlampau formal. Hubungkan secara relatable ke audiens modern.
-5. Psikologi Copywriting: Gunakan kerangka PAS (Problem → Agitate → Solution) atau AIDA (Attention → Interest → Desire → Action).
+${structural.viralGuidelineSection}
 
 [PANDUAN PEMERKAYAAN VISUAL PROMPT]
 1. Baca NARASI per scene terlebih dahulu, lalu buat Visual Prompt secara dinamis, metaforis, dan sangat ilustratif (HINDARI penerjemahan harfiah/literal).
@@ -413,19 +553,14 @@ ${videoLoopGuidelinesText}
 1. Jika ada karakter utama berulang di beberapa scene, deskripsikan ciri fisiknya 100% konsisten di setiap scene tempat dia muncul.
 2. Jika scene tidak membutuhkan karakter (b-roll produk, pemandangan, transisi), tulis visual bebas tanpa memaksakan kehadiran karakter.
 
-[PANDUAN PACING & RHYTHM NARASI]
-1. Scene 1 (Hook): Kalimat pendek, cepat, staccato. Maksimal 2-3 kalimat singkat. Tujuan: menghentikan scroll dalam 3 detik.
-2. Scene Tengah (Body): Perlambat pacing. Kalimat lebih panjang dan detail.
-3. Scene Akhir (CTA): Kembali ke pacing cepat. Kalimat imperatif dan berenergi.
+${structural.pacingGuidelineSection}
 
-[PANDUAN EMOTIONAL ARC / BUSUR EMOSI]
-1. Rancang busur emosi: Kejutan/Rasa Ingin Tahu (Hook) → Empati/Kekhawatiran (Problem) → Harapan (Solution) → Motivasi (CTA).
-2. Setiap scene punya satu emosi dominan yang jelas.
-3. Gunakan Visual Prompt untuk memperkuat emosi dominan.
+${structural.emotionalArcSection}
 
 [PANDUAN ENGAGEMENT TRIGGERS]
 1. Sisipkan minimal 1-2 trigger interaksi (misal: "Coba tebak...", "Kalian tim mana nih?", "Tulis di komentar...").
 2. Engagement trigger harus terasa natural dan relevan dengan konteks cerita.
+${structural.narrationModeDirective}
 `;
 
   // ── Exclude Titles ─────────────────────────────────────────────────────

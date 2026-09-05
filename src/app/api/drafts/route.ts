@@ -15,7 +15,7 @@ const saveDraftSchema = z.object({
   // konsep topic eksplisit; backend membuat fallback agar pemanggil manapun aman
   topic: z.string().optional(),
   rawJson: z.string(),
-  speechRate: z.number().default(130),
+  speechRate: z.number().optional(),
   title: z.string().optional(),
   targetDurationSec: z.number().optional(),
   targetSceneCount: z.number().optional(),
@@ -69,7 +69,8 @@ export async function POST(req: Request) {
     }
 
     const channel = await prisma.profileChannel.findUnique({
-      where: { id: channelId }
+      where: { id: channelId },
+      include: { contentArchetype: true }
     });
 
     if (!channel || channel.userId !== session.user.id) {
@@ -80,41 +81,91 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: t("channelLocked") }, { status: 403 });
     }
 
-    // Calculate word count and estimated duration
+    // Helper: parse durasi string/number ke detik (Bagian 23.3 poin 3)
+    const parseSec = (val: unknown): number | null => {
+      if (typeof val === "number" && !isNaN(val) && val > 0) return Math.round(val);
+      if (typeof val === "string") {
+        const m = val.match(/(\d+(?:\.\d+)?)/);
+        if (m) {
+          const n = parseFloat(m[1]);
+          if (!isNaN(n) && n > 0) return Math.round(n);
+        }
+      }
+      return null;
+    };
+
+    // Calculate word count and estimated duration (Bagian 23.3)
     let wordCount = 0;
     let estimatedDurationSec = 0;
+    let durationSource: "SEGMENT_ESTIMATE" | "WORDCOUNT_FALLBACK" = "SEGMENT_ESTIMATE";
+
     // Fix audit 3.1: topic sekarang optional — fallback ke manualTitle, parsedData, atau default
     const effectiveTopic = topic || manualTitle || (typeof parsedData.judul_konten === "string" ? parsedData.judul_konten : "") || `Draft ${type}`;
     let title = manualTitle || (typeof parsedData.judul_konten === "string" ? parsedData.judul_konten : "") || `Draft ${type}: ${effectiveTopic.substring(0, 30)}`;
 
     if (type === "VIDEO") {
       let totalWords = 0;
+      let totalSegmentDuration = 0;
+      let validSegmentDurationCount = 0;
 
-      // Schema lama: segments[].caption (alur Generator langsung)
+      // Schema lama: segments[].caption
       if (parsedData.segments && Array.isArray(parsedData.segments)) {
         parsedData.segments.forEach((segment: Record<string, unknown>) => {
           if (segment.caption && typeof segment.caption === "string") {
             totalWords += segment.caption.split(/\s+/).filter(Boolean).length;
           }
+          const segSec = parseSec(segment.durasi_estimasi || segment.durasi || segment.duration);
+          if (segSec !== null) {
+            totalSegmentDuration += segSec;
+            validSegmentDurationCount++;
+          }
         });
       }
 
-      // Schema baru: scenes[].narasi (alur Scene Prompt Studio — fix audit 2.2)
+      // Schema baru: scenes[].narasi
       if (parsedData.scenes && Array.isArray(parsedData.scenes)) {
         parsedData.scenes.forEach((scene: Record<string, unknown>) => {
           if (scene.narasi && typeof scene.narasi === "string") {
             totalWords += scene.narasi.split(/\s+/).filter(Boolean).length;
           }
-          // Fallback: beberapa parser mungkin masih memakai 'caption' di dalam scene
           if (scene.caption && typeof scene.caption === "string") {
             totalWords += scene.caption.split(/\s+/).filter(Boolean).length;
+          }
+          const scnSec = parseSec(scene.durasi_estimasi || scene.durasi || scene.duration);
+          if (scnSec !== null) {
+            totalSegmentDuration += scnSec;
+            validSegmentDurationCount++;
           }
         });
       }
 
       wordCount = totalWords;
-      const wordsPerSecond = speechRate / 60;
-      estimatedDurationSec = totalWords > 0 ? Math.round(totalWords / wordsPerSecond) : 0;
+      const isVoiceOverMode = !channel.contentArchetype || channel.contentArchetype.narrationMode === "VOICE_OVER" || channel.contentArchetype.narrationMode === "HYBRID";
+      const effectiveRate = speechRate && speechRate > 0 ? speechRate : (channel.speechRate || 0.35);
+
+      // 1. Sumber utama: jumlah estimasi durasi per segmen dari AI eksternal
+      if (totalSegmentDuration > 0 && validSegmentDurationCount > 0) {
+        estimatedDurationSec = totalSegmentDuration;
+        durationSource = "SEGMENT_ESTIMATE";
+      } else if (isVoiceOverMode && totalWords > 0) {
+        // 2. Fallback: kalkulasi durasi naskah berbasis wordCount dan rate
+        // Jika effectiveRate <= 2: satuannya adalah detik per kata (misal 0.35 s/kata)
+        // Jika effectiveRate > 2: satuannya adalah Words Per Minute (WPM, misal 130 atau 150 WPM)
+        if (effectiveRate <= 2) {
+          estimatedDurationSec = Math.round(totalWords * effectiveRate);
+        } else {
+          const wordsPerSecond = effectiveRate / 60;
+          estimatedDurationSec = Math.round(totalWords / wordsPerSecond);
+        }
+        durationSource = "WORDCOUNT_FALLBACK";
+      } else if (targetDurationSec && targetDurationSec > 0) {
+        // 3. Fallback untuk diegetic/faceless tanpa durasi eksplisit per segmen
+        estimatedDurationSec = targetDurationSec;
+        durationSource = "SEGMENT_ESTIMATE";
+      } else {
+        estimatedDurationSec = 0;
+        durationSource = "SEGMENT_ESTIMATE";
+      }
     } else if (type === "IMAGE" && parsedData.variations && Array.isArray(parsedData.variations)) {
       let totalWords = 0;
       parsedData.variations.forEach((v: Record<string, unknown>) => {
@@ -150,6 +201,7 @@ export async function POST(req: Request) {
             parsedData: parsedData as Prisma.InputJsonValue,
             wordCount: wordCount,
             estimatedDurationSec: estimatedDurationSec,
+            durationSource: durationSource,
             targetDurationSec: targetDurationSec || 0,
             targetSceneCount: targetSceneCount || null,
             narrativeLoopStyle: narrativeLoopStyle || null,
@@ -169,6 +221,7 @@ export async function POST(req: Request) {
           parsedData: parsedData as Prisma.InputJsonValue,
           wordCount: wordCount,
           estimatedDurationSec: estimatedDurationSec,
+          durationSource: durationSource,
           targetDurationSec: targetDurationSec || 0,
           targetSceneCount: targetSceneCount || null,
           narrativeLoopStyle: narrativeLoopStyle || null,

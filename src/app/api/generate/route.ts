@@ -22,9 +22,9 @@ const videoConfigSchema = z.object({
   endingStyle: z.string().optional().nullable(),
   selectedProductId: z.string().optional().nullable(),
   composition: z.object({
-    education: z.coerce.number(),
-    entertainment: z.coerce.number(),
-    marketing: z.coerce.number()
+    education: z.coerce.number().default(0),
+    entertainment: z.coerce.number().default(0),
+    marketing: z.coerce.number().default(0)
   }).optional().nullable(),
   includeHook: z.boolean().optional().nullable(),
   includeCTA: z.boolean().optional().nullable(),
@@ -37,6 +37,9 @@ const videoConfigSchema = z.object({
   includeCaption: z.boolean().optional().nullable(),
   includeThumbnail: z.boolean().optional().nullable(),
   includeHtmlBlog: z.boolean().optional().nullable(),
+  // Archetype & Narration Mode (Bagian 23)
+  contentArchetypeId: z.string().optional().nullable(),
+  narrationMode: z.enum(["VOICE_OVER", "DIEGETIC_ONLY", "SILENT_TEXT_ONLY", "HYBRID"]).optional().nullable(),
   // Push-ported enrichment params
   rolePOV: z.string().optional().nullable(),
   toneOfVoice: z.string().optional().nullable(),
@@ -79,6 +82,8 @@ const generateSchema = z.object({
 }).refine(data => {
   if (data.type === "VIDEO" && data.videoConfig?.composition) {
     const { education, entertainment, marketing } = data.videoConfig.composition;
+    // Skip validasi 100% jika semua nilai 0 (archetype non-komposisi seperti faceless)
+    if (education === 0 && entertainment === 0 && marketing === 0) return true;
     return education + entertainment + marketing === 100;
   }
   return true;
@@ -178,7 +183,7 @@ export async function POST(req: Request) {
 
     const channel = await prisma.profileChannel.findUnique({
       where: { id: channelId },
-      include: { products: true }
+      include: { products: true, contentArchetype: true }
     });
 
     if (!channel || channel.userId !== session.user.id) {
@@ -231,8 +236,19 @@ export async function POST(req: Request) {
         }
       }
 
+      // Resolve archetype: videoConfig override or channel archetype
+      let effectiveArchetype = channel.contentArchetype;
+      if (videoConfig.contentArchetypeId && videoConfig.contentArchetypeId !== channel.contentArchetypeId) {
+        const customArch = await prisma.contentArchetype.findUnique({
+          where: { id: videoConfig.contentArchetypeId },
+        });
+        if (customArch) effectiveArchetype = customArch;
+      }
+
       const fullVideoConfig = {
         ...videoConfig,
+        contentArchetype: effectiveArchetype as unknown as import("@/lib/promptGenerator").ContentArchetypeData,
+        narrationMode: videoConfig.narrationMode || effectiveArchetype?.narrationMode,
         selectedProduct,
         cameraMovementProEnabled, // server-resolved PRO entitlement — never read from client body
       };
