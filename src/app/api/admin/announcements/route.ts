@@ -89,7 +89,7 @@ export async function POST(req: Request) {
   }
 }
 
-export async function GET(req: Request) {
+export async function GET() {
   const t = await getApiTranslator();
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== "SUPERADMIN") {

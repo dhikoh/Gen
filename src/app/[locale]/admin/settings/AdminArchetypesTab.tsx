@@ -64,8 +64,25 @@ export default function AdminArchetypesTab() {
   }, []);
 
   useEffect(() => {
-    fetchArchetypes();
-  }, [fetchArchetypes]);
+    let ignore = false;
+    async function load() {
+      try {
+        const res = await fetch("/api/admin/content-archetypes");
+        const data = await res.json();
+        if (data.success && !ignore) {
+          setArchetypes(data.archetypes);
+        } else if (!ignore) {
+          toast.error(data.error || "Gagal memuat model konten");
+        }
+      } catch {
+        if (!ignore) toast.error("Terjadi kesalahan jaringan saat memuat model konten");
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    }
+    load();
+    return () => { ignore = true; };
+  }, []);
 
   const openCreateModal = () => {
     setEditingId(null);

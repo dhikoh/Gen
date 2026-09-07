@@ -322,7 +322,7 @@ export default async function DraftDetailPage({
  {segment.caption && (
  <div className="mt-4 bg-yellow-50 dark:bg-yellow-900/10 p-3 rounded border border-yellow-100 dark:border-yellow-900/30">
  <p className="text-xs font-bold text-yellow-800 dark:text-yellow-600 mb-1">{t('captionText')}</p>
- <p className="text-sm text-yellow-900 dark:text-yellow-500 italic">"{segment.caption}"</p>
+ <p className="text-sm text-yellow-900 dark:text-yellow-500 italic">&quot;{segment.caption}&quot;</p>
  </div>
  )}
  </div>

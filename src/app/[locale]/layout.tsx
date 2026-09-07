@@ -38,12 +38,8 @@ export const metadata: Metadata = {
   },
 };
 
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/authOptions";
 import NextAuthProvider from "@/components/providers/NextAuthProvider";
 import FloatingCsWidget from "@/components/cs/FloatingCsWidget";
-
-
 import InstallPWABanner from "@/components/InstallPWABanner";
 
 export default async function RootLayout({
@@ -59,7 +55,6 @@ export default async function RootLayout({
   }
 
   const messages = await getMessages();
-  const session = await getServerSession(authOptions);
 
   return (
     <html

@@ -42,7 +42,7 @@ export default function CompositionSliderGroup({ value, onChange }: Props) {
 
     if (unlockedOthers.length === 0) return;
 
-    let updated = { ...value, [changedKey]: newValue };
+    const updated = { ...value, [changedKey]: newValue };
 
     if (unlockedOthers.length === 1) {
       const soleOther = unlockedOthers[0];

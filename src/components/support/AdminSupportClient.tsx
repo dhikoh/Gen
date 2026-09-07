@@ -46,7 +46,25 @@ export default function AdminSupportClient() {
     }
   }, [statusFilter]);
 
-  useEffect(() => { fetchTickets(); }, [fetchTickets]);
+  useEffect(() => {
+    let ignore = false;
+    async function load() {
+      try {
+        const url = statusFilter === "ALL" ? "/api/support/tickets" : `/api/support/tickets?status=${statusFilter}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (!ignore && res.ok) setTickets(data.tickets || []);
+      } catch (err) {
+        console.error("Failed to fetch admin tickets:", err);
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    }
+    load();
+    return () => {
+      ignore = true;
+    };
+  }, [statusFilter]);
 
   const loadTicketDetail = async (id: string) => {
     try {

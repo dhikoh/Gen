@@ -45,7 +45,24 @@ export default function UserSupportClient() {
     }
   }, []);
 
-  useEffect(() => { fetchTickets(); }, [fetchTickets]);
+  useEffect(() => {
+    let ignore = false;
+    async function load() {
+      try {
+        const res = await fetch("/api/support/tickets");
+        const data = await res.json();
+        if (!ignore && res.ok) setTickets(data.tickets || []);
+      } catch (err) {
+        console.error("Failed to fetch tickets:", err);
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    }
+    load();
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   const loadTicketDetail = async (id: string) => {
     try {

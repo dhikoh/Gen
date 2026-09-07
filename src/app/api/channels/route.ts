@@ -34,7 +34,7 @@ const channelSchema = z.object({
   ]).optional(),
 });
 
-export async function GET(req: Request) {
+export async function GET() {
   const t = await getApiTranslator();
   try {
     

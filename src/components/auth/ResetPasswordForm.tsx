@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 
@@ -15,12 +15,6 @@ export default function ResetPasswordForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
-
-  useEffect(() => {
-    if (!token) {
-      setMessage({ type: "error", text: t("tokenMissing") });
-    }
-  }, [token, t]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,7 +58,7 @@ export default function ResetPasswordForm() {
   if (!token) {
     return (
       <div className="w-full max-w-md mx-auto p-6 neu-flat rounded-xl text-center">
-        <p className="mb-4" style={{ color: 'var(--pg-danger)' }}>{message?.text}</p>
+        <p className="mb-4" style={{ color: 'var(--pg-danger)' }}>{t("tokenMissing")}</p>
         <button
           onClick={() => router.push(`/${document.documentElement.lang || "id"}/auth`)}
           className="text-sm font-semibold"

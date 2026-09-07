@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import toast from "react-hot-toast";
 
@@ -26,6 +26,10 @@ interface UserDetail extends User {
 interface Plan {
   id: string;
   name: string;
+}
+
+function generateRandomPassword(): string {
+  return Math.random().toString(36).slice(-8);
 }
 
 export default function UserManagement({ initialPlans }: { initialPlans: Plan[] }) {
@@ -55,7 +59,7 @@ export default function UserManagement({ initialPlans }: { initialPlans: Plan[] 
   const [actionLoading, setActionLoading] = useState(false);
   const [profileForm, setProfileForm] = useState({ name: "", username: "", email: "", phoneNumber: "", dateOfBirth: "" });
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -67,11 +71,33 @@ export default function UserManagement({ initialPlans }: { initialPlans: Plan[] 
       params.set("pageSize", pageSize.toString());
       const res = await fetch(`/api/admin/users?${params.toString()}`);
       if (res.ok) { const data = await res.json(); setUsers(data.users); setTotal(data.total); }
-    } catch (e) { console.error(e); }
-    setLoading(false);
-  };
+    } catch (e) { console.error(e); } finally {
+      setLoading(false);
+    }
+  }, [search, roleFilter, statusFilter, planFilter, page, pageSize]);
 
-  useEffect(() => { fetchUsers(); }, [page, roleFilter, statusFilter, planFilter]);
+  useEffect(() => {
+    let ignore = false;
+    async function load() {
+      try {
+        const params = new URLSearchParams();
+        if (search) params.set("search", search);
+        if (roleFilter) params.set("role", roleFilter);
+        if (statusFilter) params.set("status", statusFilter);
+        if (planFilter) params.set("planId", planFilter);
+        params.set("page", page.toString());
+        params.set("pageSize", pageSize.toString());
+        const res = await fetch(`/api/admin/users?${params.toString()}`);
+        if (res.ok && !ignore) {
+          const data = await res.json();
+          setUsers(data.users);
+          setTotal(data.total);
+        }
+      } catch (e) { console.error(e); }
+    }
+    load();
+    return () => { ignore = true; };
+  }, [page, roleFilter, statusFilter, planFilter, search, pageSize]);
 
   const handleSearch = (e: React.FormEvent) => { e.preventDefault(); setPage(1); fetchUsers(); };
 
@@ -124,19 +150,30 @@ export default function UserManagement({ initialPlans }: { initialPlans: Plan[] 
 
   const closeModal = () => { setModalAction(null); setSelectedUser(null); setUserDetail(null); setNewPassword(""); };
 
+  const [currentTimestamp, setCurrentTimestamp] = useState<number>(0);
+
+  useEffect(() => {
+    let ignore = false;
+    queueMicrotask(() => {
+      if (!ignore) setCurrentTimestamp(Date.now());
+    });
+    return () => {
+      ignore = true;
+    };
+  }, [users]);
+
   const openModal = (user: User, action: typeof modalAction) => {
     setSelectedUser(user); setModalAction(action); setNewRole(user.role);
     setNewPlanId(user.currentPlan?.id || "");
-    if (action === "PASSWORD") setNewPassword(Math.random().toString(36).slice(-8));
+    if (action === "PASSWORD") setNewPassword(generateRandomPassword());
     if (action === "PROFILE") fetchUserDetail(user.id);
   };
 
   const getRemainingDays = (expiresAt: string | null) => {
-    if (!expiresAt) return null;
-    const diffDays = Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 86400000);
+    if (!expiresAt || !currentTimestamp) return null;
+    const diffDays = Math.ceil((new Date(expiresAt).getTime() - currentTimestamp) / 86400000);
     if (diffDays > 0) return `${diffDays} ${tu('daysLeft')}`;
-    if (diffDays === 0) return tu('lastDay');
-    return tu('expired');
+    return tu('planExpired');
   };
 
   const inputCls = "w-full px-3 py-2 text-sm outline-none rounded-lg neu-input";

@@ -31,6 +31,17 @@ const emptyCreate = {
   features: Object.fromEntries(KNOWN_PLAN_FEATURES.map(f => [f.key, f.defaultValue])),
 };
 
+// ─── TOGGLE HELPER (Declared outside render) ─────────────────
+const Toggle = ({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) => (
+  <label className="flex items-center cursor-pointer">
+    <div className="relative">
+      <input type="checkbox" className="sr-only" checked={checked} onChange={e => onChange(e.target.checked)} />
+      <div className={`block w-10 h-6 rounded-full transition-colors ${checked ? "bg-green-500" : "pg-surface-dim"}`} />
+      <div className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${checked ? "transform translate-x-4" : ""}`} />
+    </div>
+  </label>
+);
+
 export default function AdminPlansClient({ initialPlans }: { initialPlans: PlanDto[] }) {
   const router = useRouter();
   const t = useTranslations("AdminPlans");
@@ -152,17 +163,6 @@ export default function AdminPlansClient({ initialPlans }: { initialPlans: PlanD
       setDeleting(false);
     }
   };
-
-  // ─── TOGGLE HELPER ───────────────────────────────────────────
-  const Toggle = ({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) => (
-    <label className="flex items-center cursor-pointer">
-      <div className="relative">
-        <input type="checkbox" className="sr-only" checked={checked} onChange={e => onChange(e.target.checked)} />
-        <div className={`block w-10 h-6 rounded-full transition-colors ${checked ? "bg-green-500" : "pg-surface-dim"}`} />
-        <div className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${checked ? "transform translate-x-4" : ""}`} />
-      </div>
-    </label>
-  );
 
   const inputCls = "w-full px-3 py-2 pg-bg-page border pg-border rounded outline-none focus:ring-1 focus:ring-blue-500 text-sm pg-text-heading neu-flat";
 

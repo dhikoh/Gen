@@ -26,35 +26,6 @@ export default function NotificationBell() {
   const [loading, setLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Fetch unread count
-  const fetchUnreadCount = async () => {
-    try {
-      const res = await fetch("/api/notifications/unread-count");
-      if (res.ok) {
-        const data = await res.json();
-        setUnreadCount(data.unreadCount || 0);
-      }
-    } catch (error) {
-      console.error("Error fetching unread count:", error);
-    }
-  };
-
-  // Fetch recent notifications for dropdown
-  const fetchRecentNotifications = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/notifications?pageSize=5");
-      if (res.ok) {
-        const data = await res.json();
-        setNotifications(data.notifications || []);
-        setUnreadCount(data.unreadCount || 0);
-      }
-    } catch (error) {
-      console.error("Error fetching notifications:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
     // ── Resilient polling with exponential backoff ──────────────────────────
@@ -141,9 +112,31 @@ export default function NotificationBell() {
   }, []);
 
   useEffect(() => {
-    if (isOpen) {
-      fetchRecentNotifications();
+    if (!isOpen) return;
+    let ignore = false;
+    async function loadRecent() {
+      setLoading(true);
+      try {
+        const res = await fetch("/api/notifications?pageSize=5");
+        if (res.ok) {
+          const data = await res.json();
+          if (!ignore) {
+            setNotifications(data.notifications || []);
+            setUnreadCount(data.unreadCount || 0);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching notifications:", error);
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
     }
+    loadRecent();
+    return () => {
+      ignore = true;
+    };
   }, [isOpen]);
 
   // Handle click outside to close dropdown

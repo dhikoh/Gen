@@ -117,7 +117,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: t("invalidData") }, { status: 400 });
     }
 
-    let { type, channelId, outputLanguage, topic, additionalContext, videoConfig, imageConfig } = parsedData.data;
+    const { type, channelId, outputLanguage, topic, additionalContext, videoConfig, imageConfig } = parsedData.data;
 
     // Fetch system prompt settings
     const promptSettings = await prisma.promptSettings.findUnique({

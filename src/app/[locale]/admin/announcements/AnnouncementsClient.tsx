@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import { useTranslations } from "next-intl";
 
@@ -17,7 +17,7 @@ export default function AnnouncementsClient() {
  const t = useTranslations("Announcements");
 
  const [announcements, setAnnouncements] = useState<AnnouncementItem[]>([]);
- const [loading, setLoading] = useState(false);
+ const [loading, setLoading] = useState(true);
  const [submitting, setSubmitting] = useState(false);
 
  const [title, setTitle] = useState("");
@@ -28,8 +28,7 @@ export default function AnnouncementsClient() {
  const [targetUserId, setTargetUserId] = useState("");
  const [targetStatus, setTargetStatus] = useState("ACTIVE");
 
- const fetchAnnouncements = async () => {
- setLoading(true);
+ const fetchAnnouncements = useCallback(async () => {
  try {
  const res = await fetch("/api/admin/announcements");
  const data = await res.json();
@@ -41,12 +40,28 @@ export default function AnnouncementsClient() {
  } finally {
  setLoading(false);
  }
- };
+ }, [t]);
 
  useEffect(() => {
- fetchAnnouncements();
- // eslint-disable-next-line react-hooks/exhaustive-deps
- }, []);
+    let ignore = false;
+    async function load() {
+      try {
+        const res = await fetch("/api/admin/announcements");
+        const data = await res.json();
+        if (data.success && !ignore) {
+          setAnnouncements(data.announcements || []);
+        }
+      } catch {
+        if (!ignore) toast.error(t("errorLoadFailed"));
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    }
+    load();
+    return () => {
+      ignore = true;
+    };
+  }, [t]);
 
  const handleSubmit = async (e: React.FormEvent) => {
  e.preventDefault();

@@ -4,7 +4,7 @@ import SettingsClient from "./SettingsClient";
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'Dashboard' });
-  return { title: "Pengaturan" };
+  return { title: `${t('settings')} - Prompt Gen` };
 }
 
 export default function SettingsPage() {

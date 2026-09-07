@@ -99,14 +99,18 @@ export default function GeneratorForm({
    const keywordsParam = searchParams.get("keywords");
    const channelParam = searchParams.get("channelId");
 
-   if (topicParam) setTopic(topicParam);
-   if (channelParam && channels.some((c) => c.id === channelParam)) {
-     setChannelId(channelParam);
-   }
-   if (keywordsParam) {
-     const parsed = keywordsParam.split(",").map((k) => k.trim()).filter(Boolean);
-     if (parsed.length > 0) setTargetKeywords(parsed);
-   }
+   if (!topicParam && !keywordsParam && !channelParam) return;
+
+   queueMicrotask(() => {
+     if (topicParam) setTopic(topicParam);
+     if (channelParam && channels.some((c) => c.id === channelParam)) {
+       setChannelId(channelParam);
+     }
+     if (keywordsParam) {
+       const parsed = keywordsParam.split(",").map((k) => k.trim()).filter(Boolean);
+       if (parsed.length > 0) setTargetKeywords(parsed);
+     }
+   });
  }, [searchParams, channels]);
 
  const [step, setStep] = useState<1 | 2>(1);
@@ -282,79 +286,93 @@ export default function GeneratorForm({
 
  // Server-Side Sync & LocalStorage Persistence
  useEffect(() => {
- // 1. Local Storage load
- const saved = localStorage.getItem("generatorFormState");
- if (saved) {
- try {
- const p = JSON.parse(saved);
- if (p.type) setType(p.type);
- if (p.channelId) setChannelId(p.channelId);
- if (p.outputLanguage) setOutputLanguage(p.outputLanguage);
- if (p.topic) setTopic(p.topic);
- if (p.additionalContext) setAdditionalContext(p.additionalContext);
- if (p.rolePOV) setRolePOV(p.rolePOV);
- if (p.toneOfVoice !== undefined) setToneOfVoice(p.toneOfVoice);
- if (p.visualStyleKey !== undefined) setVisualStyleKey(p.visualStyleKey);
- if (p.hookStyleType) setHookStyleType(p.hookStyleType);
- if (p.customHookText !== undefined) setCustomHookText(p.customHookText);
- if (p.musicPreference !== undefined) setMusicPreference(p.musicPreference);
- if (p.sfxPreference !== undefined) setSfxPreference(p.sfxPreference);
- if (p.voPreference !== undefined) setVoPreference(p.voPreference);
- if (p.narrationModeOverride !== undefined) setNarrationModeOverride(p.narrationModeOverride);
- if (p.cameraMovementEnabled !== undefined) setCameraMovementEnabled(p.cameraMovementEnabled);
- if (p.cameraMovementPresets !== undefined) setCameraMovementPresets(p.cameraMovementPresets);
- if (p.cameraMovementCustom !== undefined) setCameraMovementCustom(p.cameraMovementCustom);
- if (p.cameraMovementProMode !== undefined) setCameraMovementProMode(p.cameraMovementProMode);
- if (p.affiliateAngle !== undefined) setAffiliateAngle(p.affiliateAngle);
- if (p.affiliateAngleMode !== undefined) setAffiliateAngleMode(p.affiliateAngleMode);
- if (p.videoConfig) setVideoConfig(prev => ({ ...prev, ...p.videoConfig }));
- if (p.imageConfig) setImageConfig(prev => ({ ...prev, ...p.imageConfig }));
- } catch (e) {}
- }
+   let ignore = false;
 
- // 2. Server load (overrides local)
- fetch("/api/user/preferences")
- .then(res => res.json())
- .then(data => {
- if (data.success && data.generatorPreferences?.generatorFormState) {
- const p = data.generatorPreferences.generatorFormState;
- if (p.type) setType(p.type);
- if (p.channelId) setChannelId(p.channelId);
- if (p.outputLanguage) setOutputLanguage(p.outputLanguage);
- if (p.topic) setTopic(p.topic);
- if (p.additionalContext) setAdditionalContext(p.additionalContext);
- if (p.rolePOV) setRolePOV(p.rolePOV);
- if (p.toneOfVoice !== undefined) setToneOfVoice(p.toneOfVoice);
- if (p.visualStyleKey !== undefined) setVisualStyleKey(p.visualStyleKey);
- if (p.hookStyleType) setHookStyleType(p.hookStyleType);
- if (p.customHookText !== undefined) setCustomHookText(p.customHookText);
- if (p.musicPreference !== undefined) setMusicPreference(p.musicPreference);
- if (p.sfxPreference !== undefined) setSfxPreference(p.sfxPreference);
- if (p.voPreference !== undefined) setVoPreference(p.voPreference);
- if (p.narrationModeOverride !== undefined) setNarrationModeOverride(p.narrationModeOverride);
- if (p.cameraMovementEnabled !== undefined) setCameraMovementEnabled(p.cameraMovementEnabled);
- if (p.cameraMovementPresets !== undefined) setCameraMovementPresets(p.cameraMovementPresets);
- if (p.cameraMovementCustom !== undefined) setCameraMovementCustom(p.cameraMovementCustom);
- if (p.cameraMovementProMode !== undefined) setCameraMovementProMode(p.cameraMovementProMode);
- if (p.affiliateAngle !== undefined) setAffiliateAngle(p.affiliateAngle);
- if (p.affiliateAngleMode !== undefined) setAffiliateAngleMode(p.affiliateAngleMode);
- if (p.videoConfig) setVideoConfig(prev => ({ ...prev, ...p.videoConfig }));
- if (p.imageConfig) setImageConfig(prev => ({ ...prev, ...p.imageConfig }));
- }
- })
- .catch(() => {});
+   // 1. Local Storage load
+   const saved = localStorage.getItem("generatorFormState");
+   if (saved) {
+     try {
+       const p = JSON.parse(saved);
+       queueMicrotask(() => {
+         if (!ignore) {
+           if (p.type) setType(p.type);
+           if (p.channelId) setChannelId(p.channelId);
+           if (p.outputLanguage) setOutputLanguage(p.outputLanguage);
+           if (p.topic) setTopic(p.topic);
+           if (p.additionalContext) setAdditionalContext(p.additionalContext);
+           if (p.rolePOV) setRolePOV(p.rolePOV);
+           if (p.toneOfVoice !== undefined) setToneOfVoice(p.toneOfVoice);
+           if (p.visualStyleKey !== undefined) setVisualStyleKey(p.visualStyleKey);
+           if (p.hookStyleType) setHookStyleType(p.hookStyleType);
+           if (p.customHookText !== undefined) setCustomHookText(p.customHookText);
+           if (p.musicPreference !== undefined) setMusicPreference(p.musicPreference);
+           if (p.sfxPreference !== undefined) setSfxPreference(p.sfxPreference);
+           if (p.voPreference !== undefined) setVoPreference(p.voPreference);
+           if (p.narrationModeOverride !== undefined) setNarrationModeOverride(p.narrationModeOverride);
+           if (p.cameraMovementEnabled !== undefined) setCameraMovementEnabled(p.cameraMovementEnabled);
+           if (p.cameraMovementPresets !== undefined) setCameraMovementPresets(p.cameraMovementPresets);
+           if (p.cameraMovementCustom !== undefined) setCameraMovementCustom(p.cameraMovementCustom);
+           if (p.cameraMovementProMode !== undefined) setCameraMovementProMode(p.cameraMovementProMode);
+           if (p.affiliateAngle !== undefined) setAffiliateAngle(p.affiliateAngle);
+           if (p.affiliateAngleMode !== undefined) setAffiliateAngleMode(p.affiliateAngleMode);
+           if (p.videoConfig) setVideoConfig(prev => ({ ...prev, ...p.videoConfig }));
+           if (p.imageConfig) setImageConfig(prev => ({ ...prev, ...p.imageConfig }));
+         }
+       });
+     } catch {}
+   }
 
- // 3. Also restore result state from local cache
- const savedResult = localStorage.getItem("generatorFormState");
- if (savedResult) {
- try {
- const p = JSON.parse(savedResult);
- if (p.step) setStep(p.step as 1 | 2);
- if (p.generatedPrompt) setGeneratedPrompt(p.generatedPrompt);
- if (p.aiResultJson) setAiResultJson(p.aiResultJson);
- if (p.manualTitle !== undefined) setManualTitle(p.manualTitle);
- } catch (e) {}
- }
+   // 2. Server load (overrides local)
+   fetch("/api/user/preferences")
+     .then(res => res.json())
+     .then(data => {
+       if (!ignore && data.success && data.generatorPreferences?.generatorFormState) {
+         const p = data.generatorPreferences.generatorFormState;
+         if (p.type) setType(p.type);
+         if (p.channelId) setChannelId(p.channelId);
+         if (p.outputLanguage) setOutputLanguage(p.outputLanguage);
+         if (p.topic) setTopic(p.topic);
+         if (p.additionalContext) setAdditionalContext(p.additionalContext);
+         if (p.rolePOV) setRolePOV(p.rolePOV);
+         if (p.toneOfVoice !== undefined) setToneOfVoice(p.toneOfVoice);
+         if (p.visualStyleKey !== undefined) setVisualStyleKey(p.visualStyleKey);
+         if (p.hookStyleType) setHookStyleType(p.hookStyleType);
+         if (p.customHookText !== undefined) setCustomHookText(p.customHookText);
+         if (p.musicPreference !== undefined) setMusicPreference(p.musicPreference);
+         if (p.sfxPreference !== undefined) setSfxPreference(p.sfxPreference);
+         if (p.voPreference !== undefined) setVoPreference(p.voPreference);
+         if (p.narrationModeOverride !== undefined) setNarrationModeOverride(p.narrationModeOverride);
+         if (p.cameraMovementEnabled !== undefined) setCameraMovementEnabled(p.cameraMovementEnabled);
+         if (p.cameraMovementPresets !== undefined) setCameraMovementPresets(p.cameraMovementPresets);
+         if (p.cameraMovementCustom !== undefined) setCameraMovementCustom(p.cameraMovementCustom);
+         if (p.cameraMovementProMode !== undefined) setCameraMovementProMode(p.cameraMovementProMode);
+         if (p.affiliateAngle !== undefined) setAffiliateAngle(p.affiliateAngle);
+         if (p.affiliateAngleMode !== undefined) setAffiliateAngleMode(p.affiliateAngleMode);
+         if (p.videoConfig) setVideoConfig(prev => ({ ...prev, ...p.videoConfig }));
+         if (p.imageConfig) setImageConfig(prev => ({ ...prev, ...p.imageConfig }));
+       }
+     })
+     .catch(() => {});
+
+   // 3. Also restore result state from local cache
+   const savedResult = localStorage.getItem("generatorFormState");
+   if (savedResult) {
+     try {
+       const p = JSON.parse(savedResult);
+       queueMicrotask(() => {
+         if (!ignore) {
+           if (p.step) setStep(p.step as 1 | 2);
+           if (p.generatedPrompt) setGeneratedPrompt(p.generatedPrompt);
+           if (p.aiResultJson) setAiResultJson(p.aiResultJson);
+           if (p.manualTitle !== undefined) setManualTitle(p.manualTitle);
+         }
+       });
+     } catch {}
+   }
+
+   return () => {
+     ignore = true;
+   };
  }, []);
 
  useEffect(() => {
@@ -409,58 +427,66 @@ export default function GeneratorForm({
  }, []);
 
  // Synchronize channel settings into form configs when channel selection changes
- useEffect(() => {
+  useEffect(() => {
     if (!channelId) return;
     const selectedChannel = channels.find((c: GeneratorFormChannel) => c.id === channelId);
     if (selectedChannel) {
-      const arch = selectedChannel.contentArchetype;
-      const defSections = arch?.defaultIncludedSections as { hook?: boolean; cta?: boolean; caption?: boolean; thumbnail?: boolean } | undefined;
-      setVideoConfig((prev) => ({
-        ...prev,
-        targetPlatform: selectedChannel.targetPlatform || prev.targetPlatform || "TikTok",
-        pov: selectedChannel.personaPov || prev.pov || "Expert Storyteller (Edukasi & Inspirasi)",
-        speechRate: selectedChannel.speechRate ?? prev.speechRate ?? 0.35,
-        includeHook: defSections?.hook !== undefined ? defSections.hook : prev.includeHook,
-        includeCTA: defSections?.cta !== undefined ? defSections.cta : prev.includeCTA,
-        includeCaption: defSections?.caption !== undefined ? defSections.caption : prev.includeCaption,
-        includeThumbnail: defSections?.thumbnail !== undefined ? defSections.thumbnail : prev.includeThumbnail,
-      }));
-      setImageConfig((prev) => ({
-        ...prev,
-        visualStyle: selectedChannel.visualAesthetic || prev.visualStyle || "Cinematic Dark Mode (Sleek & Professional)",
-      }));
+      queueMicrotask(() => {
+        const arch = selectedChannel.contentArchetype;
+        const defSections = arch?.defaultIncludedSections as { hook?: boolean; cta?: boolean; caption?: boolean; thumbnail?: boolean } | undefined;
+        setVideoConfig((prev) => ({
+          ...prev,
+          targetPlatform: selectedChannel.targetPlatform || prev.targetPlatform || "TikTok",
+          pov: selectedChannel.personaPov || prev.pov || "Expert Storyteller (Edukasi & Inspirasi)",
+          speechRate: selectedChannel.speechRate ?? prev.speechRate ?? 0.35,
+          includeHook: defSections?.hook !== undefined ? defSections.hook : prev.includeHook,
+          includeCTA: defSections?.cta !== undefined ? defSections.cta : prev.includeCTA,
+          includeCaption: defSections?.caption !== undefined ? defSections.caption : prev.includeCaption,
+          includeThumbnail: defSections?.thumbnail !== undefined ? defSections.thumbnail : prev.includeThumbnail,
+        }));
+        setImageConfig((prev) => ({
+          ...prev,
+          visualStyle: selectedChannel.visualAesthetic || prev.visualStyle || "Cinematic Dark Mode (Sleek & Professional)",
+        }));
+      });
     }
   }, [channelId, channels]);
 
- // Sync audio prefs from channel defaults when channel changes
- useEffect(() => {
+  // Sync audio prefs from channel defaults when channel changes
+  useEffect(() => {
     if (!channelId) return;
     const ch = channels.find((c: GeneratorFormChannel) => c.id === channelId);
     if (ch) {
-      setMusicPreference(ch.audioBGM !== false);
-      setSfxPreference(ch.audioSFX !== false);
-      const isNoVoMode =
-        ch.contentArchetype?.narrationMode === "DIEGETIC_ONLY" ||
-        ch.contentArchetype?.narrationMode === "SILENT_TEXT_ONLY";
-      setVoPreference(isNoVoMode ? false : ch.audioVO !== false);
+      queueMicrotask(() => {
+        setMusicPreference(ch.audioBGM !== false);
+        setSfxPreference(ch.audioSFX !== false);
+        const isNoVoMode =
+          ch.contentArchetype?.narrationMode === "DIEGETIC_ONLY" ||
+          ch.contentArchetype?.narrationMode === "SILENT_TEXT_ONLY";
+        setVoPreference(isNoVoMode ? false : ch.audioVO !== false);
+      });
     }
   }, [channelId, channels]);
 
- // Fetch channel products when channelId changes
- useEffect(() => {
- if (!channelId) {
- setChannelProducts([]);
- return;
- }
- fetch(`/api/channels/${channelId}/products`)
- .then((res) => res.json())
- .then((d) => {
- if (d.products) {
- setChannelProducts(d.products);
- }
- })
- .catch(() => {});
- }, [channelId]);
+  // Fetch channel products when channelId changes
+  useEffect(() => {
+    if (!channelId) {
+      queueMicrotask(() => setChannelProducts([]));
+      return;
+    }
+    let ignore = false;
+    fetch(`/api/channels/${channelId}/products`)
+      .then((res) => res.json())
+      .then((d) => {
+        if (!ignore && d.products) {
+          setChannelProducts(d.products);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      ignore = true;
+    };
+  }, [channelId]);
 
  const handleVideoConfigChange = (key: string, value: unknown) => {
  setVideoConfig((prev) => ({ ...prev, [key]: value }));

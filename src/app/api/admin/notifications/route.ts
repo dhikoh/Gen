@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 
-export async function GET(req: Request) {
+export async function GET() {
   const t = await getApiTranslator();
   try {
     const session = await getServerSession(authOptions);

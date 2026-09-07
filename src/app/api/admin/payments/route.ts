@@ -14,7 +14,7 @@ const actionSchema = z.object({
   rejectionReason: z.string().optional(),
 });
 
-export async function GET(req: Request) {
+export async function GET() {
   const t = await getApiTranslator();
   try {
     const session = await getServerSession(authOptions);

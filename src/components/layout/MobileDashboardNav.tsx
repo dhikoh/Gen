@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
-import { Link as IntlLink } from "@/i18n/routing";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import LanguageSwitcher from "@/components/layout/LanguageSwitcher";
 
@@ -51,11 +50,6 @@ const UserIcon = () => (
     <circle cx="12" cy="7" r="4"/>
   </svg>
 );
-const ChevronDown = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-    <polyline points="6 9 12 15 18 9"/>
-  </svg>
-);
 
 // ── Drawer menu items ────────────────────────────────────────────
 const DRAWER_ITEMS = [
@@ -82,7 +76,15 @@ export default function MobileDashboardNav({ userName, userEmail, userRole, user
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   // Close drawer on route change
-  useEffect(() => { setDrawerOpen(false); }, [pathname]);
+  useEffect(() => {
+    let ignore = false;
+    queueMicrotask(() => {
+      if (!ignore) setDrawerOpen(false);
+    });
+    return () => {
+      ignore = true;
+    };
+  }, [pathname]);
 
   // Close drawer on ESC
   useEffect(() => {

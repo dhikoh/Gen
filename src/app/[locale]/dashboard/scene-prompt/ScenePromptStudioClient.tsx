@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import toast from "react-hot-toast";
 import sanitizeHtml from "sanitize-html";
-import { extractAudioCues, extractVisualAudioHint, cleanParsedValue, parseVoiceGuidelines, extractTitles, extractChosenTitle, extractThumbnailData, extractCaption, extractHashtags, extractHtmlBlog, extractAffiliateRecommendations } from "@/lib/parsers";
+import { extractAudioCues, cleanParsedValue, parseVoiceGuidelines, extractTitles, extractChosenTitle, extractThumbnailData, extractCaption, extractHashtags, extractHtmlBlog, extractAffiliateRecommendations } from "@/lib/parsers";
 import type { ThumbnailData, AffiliateRecommendation } from "@/lib/parsers";
 
 interface Scene {
@@ -82,7 +82,7 @@ function parseScenes(text: string): Scene[] {
   return scenes;
 }
 
-export default function ScenePromptStudioClient({ channels, locale }: Props) {
+export default function ScenePromptStudioClient({ channels }: Props) {
  const t = useTranslations("ScenePromptStudio");
  const [rawText, setRawText] = useState("");
  const [scenes, setScenes] = useState<Scene[]>([]);
@@ -121,7 +121,7 @@ export default function ScenePromptStudioClient({ channels, locale }: Props) {
   } else {
   toast.error(t("markTitleFail"));
   }
-  } catch (e) {
+  } catch {
   toast.error(t("generalError"));
   }
   };
@@ -134,37 +134,47 @@ export default function ScenePromptStudioClient({ channels, locale }: Props) {
 
 
  // Server-Side Sync & LocalStorage Persistence
- useEffect(() => {
- // 1. Local Storage load
- const saved = localStorage.getItem("scenePromptState");
- if (saved) {
- try {
- const p = JSON.parse(saved);
- if (p.rawText) setRawText(p.rawText);
- if (p.selectedChannelId) setSelectedChannelId(p.selectedChannelId);
- if (p.ar) setAr(p.ar);
- if (p.sref) setSref(p.sref);
- if (p.cref) setCref(p.cref);
- if (p.draftTitle) setDraftTitle(p.draftTitle);
- } catch (e) {}
- }
+  useEffect(() => {
+    let ignore = false;
 
- // 2. Server load (overrides local)
- fetch("/api/user/preferences")
- .then(res => res.json())
- .then(data => {
- if (data.success && data.generatorPreferences?.scenePromptState) {
- const p = data.generatorPreferences.scenePromptState;
- if (p.rawText) setRawText(p.rawText);
- if (p.selectedChannelId) setSelectedChannelId(p.selectedChannelId);
- if (p.ar) setAr(p.ar);
- if (p.sref) setSref(p.sref);
- if (p.cref) setCref(p.cref);
- if (p.draftTitle) setDraftTitle(p.draftTitle);
- }
- })
- .catch(() => {});
- }, []);
+    // 1. Local Storage load (deferred to avoid cascading render during effect mount)
+    const saved = localStorage.getItem("scenePromptState");
+    if (saved) {
+      try {
+        const p = JSON.parse(saved);
+        queueMicrotask(() => {
+          if (!ignore) {
+            if (p.rawText) setRawText(p.rawText);
+            if (p.selectedChannelId) setSelectedChannelId(p.selectedChannelId);
+            if (p.ar) setAr(p.ar);
+            if (p.sref) setSref(p.sref);
+            if (p.cref) setCref(p.cref);
+            if (p.draftTitle) setDraftTitle(p.draftTitle);
+          }
+        });
+      } catch {}
+    }
+
+    // 2. Server load (overrides local)
+    fetch("/api/user/preferences")
+      .then(res => res.json())
+      .then(data => {
+        if (!ignore && data.success && data.generatorPreferences?.scenePromptState) {
+          const p = data.generatorPreferences.scenePromptState;
+          if (p.rawText) setRawText(p.rawText);
+          if (p.selectedChannelId) setSelectedChannelId(p.selectedChannelId);
+          if (p.ar) setAr(p.ar);
+          if (p.sref) setSref(p.sref);
+          if (p.cref) setCref(p.cref);
+          if (p.draftTitle) setDraftTitle(p.draftTitle);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
  useEffect(() => {
  const stateObj = { rawText, selectedChannelId, ar, sref, cref, draftTitle };

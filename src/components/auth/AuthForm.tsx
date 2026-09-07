@@ -72,11 +72,11 @@ export default function AuthForm() {
   // Debounce check username
   useEffect(() => {
     if (isLogin || !username || username.length < 3) {
-      setUsernameStatus("idle");
-      return;
+      const t = setTimeout(() => setUsernameStatus("idle"), 0);
+      return () => clearTimeout(t);
     }
-    setUsernameStatus("checking");
     const timer = setTimeout(async () => {
+      setUsernameStatus("checking");
       try {
         const res = await fetch("/api/auth/check", {
           method: "POST",
@@ -94,11 +94,11 @@ export default function AuthForm() {
   // Debounce check email
   useEffect(() => {
     if (isLogin || !email || !email.includes('@')) {
-      setEmailStatus("idle");
-      return;
+      const t = setTimeout(() => setEmailStatus("idle"), 0);
+      return () => clearTimeout(t);
     }
-    setEmailStatus("checking");
     const timer = setTimeout(async () => {
+      setEmailStatus("checking");
       try {
         const res = await fetch("/api/auth/check", {
           method: "POST",

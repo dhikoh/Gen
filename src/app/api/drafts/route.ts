@@ -101,7 +101,7 @@ export async function POST(req: Request) {
 
     // Fix audit 3.1: topic sekarang optional — fallback ke manualTitle, parsedData, atau default
     const effectiveTopic = topic || manualTitle || (typeof parsedData.judul_konten === "string" ? parsedData.judul_konten : "") || `Draft ${type}`;
-    let title = manualTitle || (typeof parsedData.judul_konten === "string" ? parsedData.judul_konten : "") || `Draft ${type}: ${effectiveTopic.substring(0, 30)}`;
+    const title = manualTitle || (typeof parsedData.judul_konten === "string" ? parsedData.judul_konten : "") || `Draft ${type}: ${effectiveTopic.substring(0, 30)}`;
 
     if (type === "VIDEO") {
       let totalWords = 0;

@@ -56,13 +56,20 @@ export const PresetSelect: React.FC<PresetSelectProps> = ({
   });
 
   useEffect(() => {
-    const matched = options.some((opt) => String(opt.value) === String(value));
-    if (matched) {
-      setSelectedOption(String(value));
-    } else if (value !== undefined && value !== null && value !== "") {
-      setSelectedOption(CUSTOM_PRESET_KEY);
-      setCustomValue(String(value));
-    }
+    let ignore = false;
+    queueMicrotask(() => {
+      if (ignore) return;
+      const matched = options.some((opt) => String(opt.value) === String(value));
+      if (matched) {
+        setSelectedOption(String(value));
+      } else if (value !== undefined && value !== null && value !== "") {
+        setSelectedOption(CUSTOM_PRESET_KEY);
+        setCustomValue(String(value));
+      }
+    });
+    return () => {
+      ignore = true;
+    };
   }, [value, options]);
 
   const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {

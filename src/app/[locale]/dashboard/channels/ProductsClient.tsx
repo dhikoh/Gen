@@ -35,9 +35,26 @@ export default function ProductsClient({ channelId }: { channelId: string }) {
  }
  };
 
- useEffect(() => {
- fetchProducts();
- }, [channelId]);
+  useEffect(() => {
+    let ignore = false;
+    async function load() {
+      try {
+        const res = await fetch(`/api/channels/${channelId}/products`);
+        if (res.ok && !ignore) {
+          const data = await res.json();
+          setProducts(data.products);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    }
+    load();
+    return () => {
+      ignore = true;
+    };
+  }, [channelId]);
 
  const handleStartEdit = (p: ProductDto) => {
  setEditingId(p.id);

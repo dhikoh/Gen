@@ -28,7 +28,15 @@ export default function AdminMobileNav({ links, adminName, adminInitial, adminRo
   const locale = (params?.locale as string) || "id";
 
   // Close on route change
-  useEffect(() => { setOpen(false); }, [pathname]);
+  useEffect(() => {
+    let ignore = false;
+    queueMicrotask(() => {
+      if (!ignore) setOpen(false);
+    });
+    return () => {
+      ignore = true;
+    };
+  }, [pathname]);
 
   // Close on ESC
   useEffect(() => {

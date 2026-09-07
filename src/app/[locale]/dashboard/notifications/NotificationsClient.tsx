@@ -29,33 +29,36 @@ export default function NotificationsClient() {
  const [unreadCount, setUnreadCount] = useState(0);
  const [loading, setLoading] = useState(true);
 
- const fetchNotifications = async () => {
- setLoading(true);
- try {
- const query = new URLSearchParams({
- page: page.toString(),
- pageSize: "10",
- ...(filter === "unread" ? { unreadOnly: "true" } : {}),
- ...(selectedType !== "ALL" ? { type: selectedType } : {}),
- ...(selectedDays !== "0" ? { days: selectedDays } : {}),
- });
- const res = await fetch(`/api/notifications?${query.toString()}`);
- if (res.ok) {
- const data = await res.json();
- setNotifications(data.notifications || []);
- setTotal(data.total || 0);
- setUnreadCount(data.unreadCount || 0);
- }
- } catch (error) {
- console.error("Error fetching notifications:", error);
- } finally {
- setLoading(false);
- }
- };
 
- useEffect(() => {
- fetchNotifications();
- }, [filter, selectedType, selectedDays, page]);
+  useEffect(() => {
+    let ignore = false;
+    async function load() {
+      try {
+        const query = new URLSearchParams({
+          page: page.toString(),
+          pageSize: "10",
+          ...(filter === "unread" ? { unreadOnly: "true" } : {}),
+          ...(selectedType !== "ALL" ? { type: selectedType } : {}),
+          ...(selectedDays !== "0" ? { days: selectedDays } : {}),
+        });
+        const res = await fetch(`/api/notifications?${query.toString()}`);
+        if (res.ok && !ignore) {
+          const data = await res.json();
+          setNotifications(data.notifications || []);
+          setTotal(data.total || 0);
+          setUnreadCount(data.unreadCount || 0);
+        }
+      } catch (error) {
+        console.error("Error fetching notifications:", error);
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    }
+    load();
+    return () => {
+      ignore = true;
+    };
+  }, [filter, selectedType, selectedDays, page]);
 
  useEffect(() => {
  if (typeof document !== "undefined") {

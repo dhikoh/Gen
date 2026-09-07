@@ -40,6 +40,17 @@ export default function InvoiceHistoryClient({
  const [invoices, setInvoices] = useState<Invoice[]>([]);
  const [loading, setLoading] = useState(true);
  const [filter, setFilter] = useState("ALL");
+ const [now, setNow] = useState<number>(0);
+
+ useEffect(() => {
+   let ignore = false;
+   queueMicrotask(() => {
+     if (!ignore) setNow(Date.now());
+   });
+   return () => {
+     ignore = true;
+   };
+ }, [invoices]);
 
  useEffect(() => {
  async function fetchInvoices() {
@@ -102,7 +113,7 @@ export default function InvoiceHistoryClient({
  <tbody className="divide-y pg-divide">
  {invoices.map((inv) => {
  const proofTime = inv.proofUploadedAt ? new Date(inv.proofUploadedAt).getTime() : new Date(inv.updatedAt).getTime();
- const elapsedHours = Math.floor((Date.now() - proofTime) / (1000 * 60 * 60));
+ const elapsedHours = Math.floor((now - proofTime) / (1000 * 60 * 60));
  const isPendingEscalated = inv.status === "PENDING" && Boolean(inv.proofUrl) && elapsedHours >= paymentPendingAlertHours;
 
  const waPendingText = `Halo CS Prompt Gen, transaksi invoice #${inv.id.substring(0, 8).toUpperCase()} sebesar Rp ${inv.amount.toLocaleString("id-ID")} sudah mengunggah bukti bayar namun masih pending.`;

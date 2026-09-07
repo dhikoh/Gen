@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { getApiTranslator } from "@/lib/apiI18n";
 
-export async function POST(req: Request) {
+export async function POST() {
   const t = await getApiTranslator();
   try {
     const session = await getServerSession(authOptions);

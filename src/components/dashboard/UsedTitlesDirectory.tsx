@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import { useTranslations } from "next-intl";
 
@@ -17,14 +17,14 @@ interface TitleInfo {
 
 export default function UsedTitlesDirectory({ channelId }: UsedTitlesDirectoryProps) {
   const [titles, setTitles] = useState<TitleInfo[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [type, setType] = useState<"VIDEO" | "IMAGE">("VIDEO");
   const [importModal, setImportModal] = useState(false);
   const [importText, setImportText] = useState("");
   const [importing, setImporting] = useState(false);
   const t = useTranslations("UsedTitles");
 
-  const fetchTitles = async () => {
+  const fetchTitles = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch(`/api/drafts/export?channelId=${channelId}&type=${type}&format=json&_t=${Date.now()}`, {
@@ -34,14 +34,39 @@ export default function UsedTitlesDirectory({ channelId }: UsedTitlesDirectoryPr
         const data = await res.json();
         setTitles(data.titles || []);
       }
-    } catch (e) { console.error(e); }
-    setLoading(false);
-  };
+    } catch (e) { console.error(e); } finally {
+      setLoading(false);
+    }
+  }, [channelId, type]);
 
-  useEffect(() => { fetchTitles(); }, [channelId, type]);
+  useEffect(() => {
+    let ignore = false;
+    async function load() {
+      try {
+        const res = await fetch(`/api/drafts/export?channelId=${channelId}&type=${type}&format=json&_t=${Date.now()}`, {
+          cache: 'no-store'
+        });
+        if (res.ok && !ignore) {
+          const data = await res.json();
+          setTitles(data.titles || []);
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    }
+    load();
+    return () => { ignore = true; };
+  }, [channelId, type]);
 
   const handleExportCSV = () => {
-    window.location.href = `/api/drafts/export?channelId=${channelId}&type=${type}&format=csv`;
+    const a = document.createElement("a");
+    a.href = `/api/drafts/export?channelId=${channelId}&type=${type}&format=csv`;
+    a.download = `used-titles-${channelId}-${type.toLowerCase()}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   };
 
   const handleExportJSON = () => {

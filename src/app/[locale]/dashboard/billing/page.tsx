@@ -4,7 +4,6 @@ import { prisma } from "@/lib/db";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import InvoiceHistoryClient from "./InvoiceHistoryClient";
-import { formatWaLink } from "@/lib/csContact";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
  const { locale } = await params;
