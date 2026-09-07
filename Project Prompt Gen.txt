@@ -1244,3 +1244,45 @@ Pada implementasi Bagian 23, terjadi percampuran konsep (*conflation*) antara **
      - `SILENT_TEXT_ONLY`: Mode visual hening dengan teks layar.
    - State `narrationModeOverride` otomatis disinkronkan ke local storage dan server preferences.
    - Tombol toggle Voice Over di Audio Preferences otomatis di-disable saat mode diegetic/silent aktif, serta menampilkan helper text yang menjelaskan status VO secara transparan.
+
+# Addendum — Bagian 26: Integrasi vidIQ & YouTube Live Trend Research Studio dengan Zero-Regression Parse Engine
+
+## 26.0 Latar Belakang & Masalah
+1. Kreator sering mengalami writer's block dan ketidakpastian topik (*topic guessing*) tanpa mengetahui apakah kata kunci yang mereka targetkan memiliki volume pencarian nyata dan tingkat persaingan yang sehat di YouTube/TikTok.
+2. Integrasi data kata kunci tren (misal vidIQ / YouTube Live Autocomplete) ke dalam Prompt Generator harus menjamin **100% Zero-Regression Compatibility** dengan Parse Engine yang mengekstrak adegan, durasi, visual prompts, dan thumbnails. Jika instruksi kata kunci merusak struktur Markdown atau bocor ke dalam adegan video, Parse Engine di Scene Prompt Studio akan rusak.
+
+## 26.1 Arsitektur Solusi & Layanan Riset
+1. **Layanan Riset Kata Kunci (`src/lib/researchService.ts`)**:
+   - Menghubungkan Google YouTube Live Autocomplete (`suggestqueries.google.com`) secara real-time tanpa biaya API tambahan.
+   - Algoritma scoring:
+     - Volume: Analisis posisi ranking dan densitas kata kunci (HIGH / MEDIUM / LOW).
+     - Kompetisi: Analisis panjang kata kunci (long-tail vs head term).
+     - SEO Score: Agregasi skor 0-100 (formula: bobot volume vs rasio kompetisi).
+   - Ekstraksi otomatis rekomendasi tags & ide angle konten.
+   - Extension hook terintegrasi untuk vidIQ MCP jika environment key/server aktif.
+2. **API Endpoint (`src/app/api/research/trends/route.ts`)**:
+   - Endpoint terproteksi sesi yang memproses query pencarian atau fallback ke niche channel pengguna.
+
+## 26.2 Dedicated Tab Riset & Integrasi UX
+1. **Halaman Studio Riset (`/dashboard/research`)**:
+   - Ditambahkan ke desktop sidebar (`navLinks`) dan mobile drawer (`DRAWER_ITEMS`).
+   - Pencarian query instan dengan channel selector.
+   - Tabel hasil riset interaktif: pill Search Volume, pill Competition, pill SEO Score berwarna, dan tombol copy tags.
+   - Tombol cepat **"⚡ Buat Naskah"**: Mengarahkan pengguna langsung ke Generator Studio dengan parameter topik & target kata kunci via URL query string.
+2. **Widget Cepat di Generator Studio (`GeneratorForm.tsx`)**:
+   - Link cepat **"🔍 Riset Tren & Keyword"** di samping label Topik Utama.
+   - Sinkronisasi otomatis URL parameter `topic` dan `keywords`.
+   - Render badge interaktif **"🎯 Target Kata Kunci SEO"** dengan tombol hapus satuan dan hapus semua.
+   - Injeksi aman `targetKeywords` ke dalam payload `videoConfig`.
+
+## 26.3 Isolasi Mutlak Parse Engine (Zero Regression Guarantee)
+1. **Injeksi Master Prompt (`src/lib/promptGenerator.ts`)**:
+   - Injeksi metadata SEO ke dalam `systemInstruction`.
+   - Injeksi blok `[TARGET SEO & KATA KUNCI TREN (VIDIQ/YOUTUBE)]` tepat setelah `[TOPIK UTAMA]`.
+   - Injeksi baris `TARGET KATA KUNCI SEO: ...` di header Tahap 2 (`ANALISIS STRATEGI KONTEN & HOOK`).
+2. **Jaminan Isolasi Scene**:
+   - `parseScenes` di `ScenePromptStudioClient.tsx` memecah teks berdasarkan pola `Scene X` / `Adegan X` dan dimulai pada `i = 1` (melewatkan seluruh teks sebelum Scene 1).
+   - Karena `TARGET KATA KUNCI SEO` berada di Tahap 2 *sebelum* `Scene 1`, ia **tidak pernah terbaca atau mengkontaminasi adegan naskah**.
+3. **Penyempurnaan Regex di `parsers.ts`**:
+   - Penambahan flag `u` pada regex `extractChosenTitle` (`/.../iu`) untuk mencegah bug JavaScript regex pada surrogate pair emoji `🛑`.
+   - Perluasan filter `extractTitles` untuk mengabaikan teks instruksi interaktif seperti `"Silakan pilih..."` dan `"Pilihlah..."`.

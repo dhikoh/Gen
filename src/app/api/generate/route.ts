@@ -57,6 +57,8 @@ const videoConfigSchema = z.object({
   cameraMovementEnabled: z.boolean().optional().nullable(),
   cameraMovementPresets: z.array(z.string()).optional().nullable(),
   cameraMovementCustom: z.string().max(500).optional().nullable(),
+  // SEO & Keyword Targets (vidIQ / YouTube Live)
+  targetKeywords: z.union([z.array(z.string()), z.string()]).optional().nullable(),
 });
 
 const imageConfigSchema = z.object({

@@ -72,6 +72,7 @@ export interface VideoConfigData {
   contentArchetypeId?: string | null;
   contentArchetype?: ContentArchetypeData | null;
   narrationMode?: "VOICE_OVER" | "DIEGETIC_ONLY" | "SILENT_TEXT_ONLY" | "HYBRID" | string | null;
+  targetKeywords?: string[] | string | null;
 }
 
 export interface PromptSettingsData {
@@ -97,7 +98,8 @@ export interface StructuralInstructions {
 export function buildStructuralInstructions(
   includedSections: { hook?: boolean; cta?: boolean; caption?: boolean; thumbnail?: boolean },
   archetype?: ContentArchetypeData | null,
-  activeNarrationMode?: string | null
+  activeNarrationMode?: string | null,
+  targetKeywords?: string[] | string | null
 ): StructuralInstructions {
   const isHookEnabled = includedSections.hook !== false;
   const isCtaEnabled = includedSections.cta !== false;
@@ -155,11 +157,20 @@ export function buildStructuralInstructions(
   }
 
   // 5. Hook Strategy Directive in Tahap 2 Header
+  const kwList = Array.isArray(targetKeywords)
+    ? targetKeywords
+    : typeof targetKeywords === "string" && targetKeywords.trim()
+    ? targetKeywords.split(",").map((k) => k.trim()).filter(Boolean)
+    : [];
+  const seoKeywordsText = kwList.length > 0
+    ? `TARGET KATA KUNCI SEO: ${kwList.join(", ")}\n`
+    : "";
+
   let hookStrategyDirective = "";
   if (isHookEnabled) {
-    hookStrategyDirective = `## ANALISIS STRATEGI KONTEN & HOOK\nAUDIENS PERSONA & PSIKOLOGI: [Analisis singkat]\nSTRATEGI HOOK (0-3 DETIK): [Cara menciptakan curiosity gap]\nALUR KONTEN PAS/AIDA: [Alur penyampaian]\n`;
+    hookStrategyDirective = `## ANALISIS STRATEGI KONTEN & HOOK\n${seoKeywordsText}AUDIENS PERSONA & PSIKOLOGI: [Analisis singkat]\nSTRATEGI HOOK (0-3 DETIK): [Cara menciptakan curiosity gap]\nALUR KONTEN PAS/AIDA: [Alur penyampaian]\n`;
   } else {
-    hookStrategyDirective = `## ANALISIS STRATEGI KONTEN & ALUR CERITA\nAUDIENS PERSONA & PSIKOLOGI: [Analisis singkat]\nFOKUS VISUAL & ATMOSFER (0-3 DETIK): [Cara memikat penonton lewat visual/SFX]\nALUR DRAMATIK KONTEN: [Alur penyampaian cerita]\n`;
+    hookStrategyDirective = `## ANALISIS STRATEGI KONTEN & ALUR CERITA\n${seoKeywordsText}AUDIENS PERSONA & PSIKOLOGI: [Analisis singkat]\nFOKUS VISUAL & ATMOSFER (0-3 DETIK): [Cara memikat penonton lewat visual/SFX]\nALUR DRAMATIK KONTEN: [Alur penyampaian cerita]\n`;
   }
 
   return {
@@ -191,16 +202,27 @@ export function generateMasterPrompt(
   const hasCaption = !videoConfig?.selectedSections || videoConfig.selectedSections.includes("CAPTION");
   const hasThumbnail = videoConfig?.thumbnailIdea || videoConfig?.selectedSections?.includes("THUMBNAIL");
 
+  const rawKeywords = videoConfig?.targetKeywords;
+  const targetKeywordsList = Array.isArray(rawKeywords)
+    ? rawKeywords
+    : typeof rawKeywords === "string" && rawKeywords.trim()
+    ? rawKeywords.split(",").map((k) => k.trim()).filter(Boolean)
+    : [];
+
   const structural = buildStructuralInstructions(
     { hook: hasHook, cta: hasCTA, caption: hasCaption, thumbnail: Boolean(hasThumbnail) },
     effectiveArchetype,
-    effectiveNarrationMode
+    effectiveNarrationMode,
+    targetKeywordsList
   );
 
   // ── System Instruction ─────────────────────────────────────────────────
   let systemInstruction = `Kamu adalah AI Content Strategist dan Scriptwriter profesional yang berpengalaman dalam membuat naskah konten video pendek viral.`;
   if (promptSettings?.videoSystemInstruction?.trim()) {
     systemInstruction += `\n${promptSettings.videoSystemInstruction.trim()}`;
+  }
+  if (targetKeywordsList.length > 0) {
+    systemInstruction += `\nTARGET KATA KUNCI SEO: Prioritaskan integrasi kata kunci berikut secara natural ke dalam judul, hook, narasi, dan caption: ${targetKeywordsList.join(", ")}.`;
   }
   if (outputLanguage && outputLanguage.trim().length > 0) {
     systemInstruction += `\nWAJIB: Seluruh naskah narasi, dialog, teks overlay, dan tulisan ide lainnya HARUS ditulis dalam bahasa ${outputLanguage.trim()}.`;
@@ -602,8 +624,20 @@ ${structural.narrationModeDirective}
     ? `\n[PLATFORM TARGET]\nKonten ini ditargetkan untuk: ${videoConfig.targetPlatform}. Sesuaikan format bahasa, durasi, dan layout visual.`
     : "";
 
+  // ── SEO & Keywords Section ─────────────────────────────────────────────
+  let seoSection = "";
+  if (targetKeywordsList.length > 0) {
+    seoSection = `\n[TARGET SEO & KATA KUNCI TREN (VIDIQ/YOUTUBE)]\n` +
+      `Fokuskan konten untuk menargetkan kata kunci bervolume tinggi berikut:\n` +
+      targetKeywordsList.map((kw) => `- ${kw}`).join("\n") +
+      `\nInstruksi SEO:\n` +
+      `1. Sisipkan kata kunci utama pada minimal 5 opsi judul di Tahap 1.\n` +
+      `2. Integrasikan kata kunci secara natural pada kalimat pembuka/hook narasi.\n` +
+      `3. Sertakan kata kunci relevan ke dalam hashtag dan caption platform.\n`;
+  }
+
   // ── Assemble Master Prompt ─────────────────────────────────────────────
-  const masterPrompt = `${povSection}[TOPIK UTAMA]\n${topic}${contextText}${productContext}${affiliateAngleGuide}${compositionText}${platformText}${excludeSection}${durationText}${formatOutputWajib}${cameraMovementGuide}\n\n${allGuidelines}`;
+  const masterPrompt = `${povSection}[TOPIK UTAMA]\n${topic}${seoSection}${contextText}${productContext}${affiliateAngleGuide}${compositionText}${platformText}${excludeSection}${durationText}${formatOutputWajib}${cameraMovementGuide}\n\n${allGuidelines}`;
 
   return { masterPrompt, systemInstruction };
 }

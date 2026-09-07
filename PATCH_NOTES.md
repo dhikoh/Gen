@@ -2,6 +2,66 @@
 
 ---
 
+## [#52] — 2026-09-07 | Integrasi vidIQ & YouTube Live Trend Research Studio dengan Zero-Regression Parse Engine
+
+### Problem Statement
+1. **Tebak-tebakan Topik & Judul Konten**: Konten kreator kerap kesulitan menentukan topik mana yang memiliki volume pencarian tinggi dan kompetisi rendah di platform video (YouTube / TikTok), sehingga potensi views konten seringkali kurang optimal.
+2. **Kebutuhan Integrasi vidIQ / YouTube Live Tanpa Memutus Parse Engine**: Menghubungkan intelligence kata kunci ke sistem pembuatan naskah harus menjamin output AI 100% kompatibel dengan *Parse Engine* (`parseScenes`, `extractTitles`, `extractThumbnailData`, `extractCaption`), tanpa merusak pemisahan scene, overlay, ataupun audio cues.
+
+### Implementasi Arsitektur & Fitur
+
+1. **Research Intelligence Service (`src/lib/researchService.ts`)**:
+   - Menghubungkan Google YouTube Live Autocomplete API (`suggestqueries.google.com`) sebagai baseline real-time.
+   - Algoritma scoring otomatis: Estimasi *Search Volume* (High / Medium / Low), *Competition Index*, serta kalkulasi agregat *SEO Score* (skala 0-100).
+   - Ekstraksi otomatis rekomendasi hashtag & tags relevan berdasarkan query & niche channel.
+   - Hook terintegrasi untuk vidIQ MCP jika environment key/server aktif.
+
+2. **Dedicated Tab: Riset Tren & Keyword (`/dashboard/research`)**:
+   - Tersedia di desktop sidebar (`navLinks`) dan mobile drawer (`DRAWER_ITEMS`).
+   - Fitur pencarian query instan dengan switcher profil channel pengguna.
+   - Tabel interaktif kata kunci: metrik Volume, Kompetisi, SEO Score pill, dan one-click copy tags.
+   - Tombol cepat **"⚡ Buat Naskah"**: Mengarahkan pengguna langsung ke Generator Studio dengan membawa parameter topik dan kumpulan kata kunci pilihan via query string.
+
+3. **Quick Action & Integrasi SEO di Generator Studio (`GeneratorForm.tsx`)**:
+   - Link cepat **"🔍 Riset Tren & Keyword"** di sebelah label Topik Utama.
+   - Deteksi otomatis URL parameter `?topic=...&keywords=...&channelId=...`.
+   - Render badge interaktif **"🎯 Target Kata Kunci SEO"** dengan tombol hapus satuan dan tombol hapus semua.
+   - Penambahan `targetKeywords` ke dalam payload `videoConfig` saat membuat naskah.
+
+4. **Injeksi Terisolasi di Prompt Generator (`src/lib/promptGenerator.ts`)**:
+   - Menyuntikkan instruksi SEO ke dalam `systemInstruction`.
+   - Menyuntikkan blok `[TARGET SEO & KATA KUNCI TREN (VIDIQ/YOUTUBE)]` tepat setelah `[TOPIK UTAMA]` pada master prompt.
+   - Pada Tahap 2 (`ANALISIS STRATEGI KONTEN & HOOK`), menyuntikkan baris `TARGET KATA KUNCI SEO: ...` yang secara arsitektural berada *sebelum* `Scene 1`, sehingga **100% terisolasi** dari pemecah scene `parseScenes`.
+
+5. **Parse Engine Hardening (`src/lib/parsers.ts`)**:
+   - Menambahkan flag unicode `u` pada regex `extractChosenTitle` (`/.../iu`) untuk memperbaiki pemotongan surrogate pair emoji `🛑` di JavaScript regex.
+   - Memperluas filter `extractTitles` agar mengabaikan instruksi prompt interaktif seperti `"Silakan pilih..."` dan `"Pilihlah..."`.
+
+### Verifikasi & Pengujian
+- **Automated Verification (`scratch/test_seo_parse_engine.ts`)**:
+  - Injeksi kata kunci SEO teruji sukses di Master Prompt, System Instruction, dan Tahap 2.
+  - Simulasi AI output diuji melewati `parseScenes`, `extractTitles`, `extractChosenTitle`, `extractCaption`, `extractHashtags`, dan `extractThumbnailData`.
+  - Hasil: **100% lulus (Zero Regressions)**. Seluruh adegan, durasi, teks overlay, dan audio cues terurai bersih tanpa kontaminasi keyword SEO.
+- **TypeScript Check (`tsc --noEmit`)**: **0 error (Clean Compilation)**.
+
+### Files Modified & Created
+| File | Status | Perubahan |
+|------|--------|-----------|
+| `src/lib/researchService.ts` | **NEW** | Core keyword research service & scoring algorithm |
+| `src/app/api/research/trends/route.ts` | **NEW** | API endpoint autentikasi tren & keyword |
+| `src/app/[locale]/dashboard/research/page.tsx` | **NEW** | Server Component halaman riset |
+| `src/app/[locale]/dashboard/research/ResearchClient.tsx` | **NEW** | Client Component interaktif studio riset tren |
+| `src/lib/promptGenerator.ts` | **MODIFIED** | Injeksi targetKeywords di master prompt & Tahap 2 |
+| `src/app/api/generate/route.ts` | **MODIFIED** | Validasi zod targetKeywords di videoConfigSchema |
+| `src/components/generator/GeneratorForm.tsx` | **MODIFIED** | URL sync, SEO keyword badges, & quick research link |
+| `src/app/[locale]/dashboard/generator/page.tsx` | **MODIFIED** | Suspense boundary untuk useSearchParams |
+| `src/lib/parsers.ts` | **MODIFIED** | Unicode u flag pada extractChosenTitle & filter judul |
+| `src/app/[locale]/dashboard/layout.tsx` | **MODIFIED** | Navigasi sidebar `/dashboard/research` |
+| `src/components/layout/MobileDashboardNav.tsx` | **MODIFIED** | Navigasi mobile drawer `/dashboard/research` |
+| `messages/id.json` & `messages/en.json` | **MODIFIED** | Translation keys untuk menu research |
+
+---
+
 ## [#51] — 2026-09-07 | Separation of VO Toggle from Content Archetype & Introduction of Flexible Narration Mode Selector
 
 ### Problem Statement

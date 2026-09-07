@@ -59,6 +59,7 @@ const ChevronDown = () => (
 
 // ── Drawer menu items ────────────────────────────────────────────
 const DRAWER_ITEMS = [
+  { key: "research",       icon: "🔍", labelKey: "research",          href: (l: string) => `/${l}/dashboard/research` },
   { key: "scene-prompt",   icon: "🎬", labelKey: "scenePromptStudio", href: (l: string) => `/${l}/dashboard/scene-prompt` },
   { key: "billing",        icon: "💳", labelKey: "billing",            href: (l: string) => `/${l}/dashboard/billing` },
   { key: "notifications",  icon: "🔔", labelKey: "notifications",      href: (l: string) => `/${l}/dashboard/notifications` },

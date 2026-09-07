@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import toast from "react-hot-toast";
 import CompositionSliderGroup from "./CompositionSliderGroup";
@@ -79,16 +79,35 @@ export default function GeneratorForm({
  planFeatures = { imagePromptStudio: true, htmlBlogExport: true, cameraMovementPro: false }
 }: GeneratorFormProps) {
  const router = useRouter();
+ const searchParams = useSearchParams();
  const t = useTranslations("Generator");
 
  const [type, setType] = useState<"VIDEO" | "IMAGE">("VIDEO");
  const [channelId, setChannelId] = useState(channels.length > 0 ? channels[0].id : "");
  const [topic, setTopic] = useState("");
+ const [targetKeywords, setTargetKeywords] = useState<string[]>([]);
+ const [newKeywordInput, setNewKeywordInput] = useState("");
  const [outputLanguage, setOutputLanguage] = useState("Indonesian");
  const [additionalContext, setAdditionalContext] = useState("");
  const [loading, setLoading] = useState(false);
  const [error, setError] = useState<string | null>(null);
  const [result, setResult] = useState<string>("");
+
+ // Sync with URL search params from Research Studio (e.g. ?topic=...&keywords=...&channelId=...)
+ useEffect(() => {
+   const topicParam = searchParams.get("topic");
+   const keywordsParam = searchParams.get("keywords");
+   const channelParam = searchParams.get("channelId");
+
+   if (topicParam) setTopic(topicParam);
+   if (channelParam && channels.some((c) => c.id === channelParam)) {
+     setChannelId(channelParam);
+   }
+   if (keywordsParam) {
+     const parsed = keywordsParam.split(",").map((k) => k.trim()).filter(Boolean);
+     if (parsed.length > 0) setTargetKeywords(parsed);
+   }
+ }, [searchParams, channels]);
 
  const [step, setStep] = useState<1 | 2>(1);
  const [generatedPrompt, setGeneratedPrompt] = useState<string>("");
@@ -519,6 +538,7 @@ export default function GeneratorForm({
  additionalContext,
  videoConfig: type === "VIDEO" ? {
  ...videoConfig,
+ targetKeywords: targetKeywords.length > 0 ? targetKeywords : undefined,
  socialCaption: videoConfig.includeCaption,
  thumbnailIdea: videoConfig.includeThumbnail,
  htmlBlog: videoConfig.includeHtmlBlog,
@@ -795,12 +815,21 @@ export default function GeneratorForm({
  </div>
 
  <div>
- <label className="block text-sm font-medium pg-text-sub mb-2">
+ <div className="flex items-center justify-between mb-2">
+ <label className="block text-sm font-medium pg-text-sub">
  {t("mainTopic")}{" "}
  <span className="text-xs pg-text-muted font-normal">
  {t("optionalNicheChannel")}
  </span>
  </label>
+ <a
+ href={`/dashboard/research?channelId=${channelId || ""}&query=${encodeURIComponent(topic || "")}`}
+ className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 hover:underline transition-colors"
+ title="Buka Studio Riset Tren & Keyword"
+ >
+ <span>🔍</span> Riset Tren & Keyword
+ </a>
+ </div>
  <input
  type="text"
  value={topic}
@@ -808,6 +837,54 @@ export default function GeneratorForm({
  placeholder={t("mainTopicPlaceholder")}
  className="w-full px-4 py-2 bg-white dark:bg-slate-700 border pg-border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none dark:text-white"
  />
+
+ {/* Target SEO Badges */}
+ <div className="mt-2.5">
+ {targetKeywords.length > 0 ? (
+ <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-lg flex flex-col gap-2">
+ <div className="flex items-center justify-between">
+ <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+ <span>🎯</span> Target Kata Kunci SEO ({targetKeywords.length}):
+ </span>
+ <button
+ type="button"
+ onClick={() => setTargetKeywords([])}
+ className="text-[11px] text-slate-400 hover:text-red-500 transition-colors"
+ >
+ Hapus Semua
+ </button>
+ </div>
+ <div className="flex flex-wrap items-center gap-1.5">
+ {targetKeywords.map((kw, idx) => (
+ <span
+ key={idx}
+ className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"
+ >
+ {kw}
+ <button
+ type="button"
+ onClick={() => setTargetKeywords(targetKeywords.filter((_, i) => i !== idx))}
+ className="hover:text-red-600 text-emerald-700 dark:text-emerald-400 font-bold ml-0.5"
+ title="Hapus keyword"
+ >
+ ×
+ </button>
+ </span>
+ ))}
+ </div>
+ </div>
+ ) : (
+ <div className="flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500 px-1">
+ <span>Target SEO belum ditentukan (opsional).</span>
+ <a
+ href={`/dashboard/research?channelId=${channelId || ""}&query=${encodeURIComponent(topic || "")}`}
+ className="text-blue-500 hover:underline"
+ >
+ + Ambil dari Riset
+ </a>
+ </div>
+ )}
+ </div>
  </div>
 
  <div className="w-full">

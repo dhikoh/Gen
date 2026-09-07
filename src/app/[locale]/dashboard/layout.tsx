@@ -26,6 +26,7 @@ export default async function DashboardLayout({
   const navLinks = [
     { href: `/${locale}/dashboard`,               icon: "🏠", label: t("overview") },
     { href: `/${locale}/dashboard/generator`,     icon: "✨", label: t("generator") },
+    { href: `/${locale}/dashboard/research`,      icon: "🔍", label: t("research") },
     { href: `/${locale}/dashboard/scene-prompt`,  icon: "🎬", label: t("scenePromptStudio") },
     { href: `/${locale}/dashboard/drafts`,        icon: "📄", label: t("drafts") },
     { href: `/${locale}/dashboard/channels`,      icon: "📺", label: t("channels") },

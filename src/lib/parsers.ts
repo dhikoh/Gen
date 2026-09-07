@@ -289,7 +289,8 @@ export function extractTitles(text: string): string[] {
       if (
         cleanLine &&
         cleanLine.length > 5 &&
-        !cleanLine.toLowerCase().includes("pilihlah") &&
+        !cleanLine.toLowerCase().includes("pilih") &&
+        !cleanLine.toLowerCase().includes("silakan") &&
         !cleanLine.toLowerCase().includes("berikut")
       ) {
         const lc = cleanLine.toLowerCase();
@@ -307,7 +308,7 @@ export function extractTitles(text: string): string[] {
 /** Extract the single chosen title line ("JUDUL TERPILIH: …"). */
 export function extractChosenTitle(text: string): string | null {
   const pattern =
-    /^(?:\d+[.\-)]|-|\*|\s)*\**\s*(?:JUDUL\s+TERPILIH|SELECTED\s+TITLE|CHOSEN\s+TITLE)\s*\**\s*🛑?\s*:\s*(.+)/i;
+    /^(?:\d+[.\-)]|-|\*|\s)*\**\s*(?:JUDUL\s+TERPILIH|SELECTED\s+TITLE|CHOSEN\s+TITLE)\s*\**\s*🛑?\s*:\s*(.+)/iu;
   for (const line of text.split("\n")) {
     const m = line.trim().match(pattern);
     if (m) return m[1].replace(/[[\]*#]/g, "").trim();

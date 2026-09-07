@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import GeneratorForm from "@/components/generator/GeneratorForm";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
@@ -50,7 +51,9 @@ export default async function GeneratorPage({ params }: { params: Promise<{ loca
         </p>
       </div>
 
-      <GeneratorForm channels={channels} promptSettings={promptSettings} planFeatures={planFeatures} />
+      <Suspense fallback={<div className="p-8 text-center text-sm text-slate-500">Memuat Generator Studio...</div>}>
+        <GeneratorForm channels={channels} promptSettings={promptSettings} planFeatures={planFeatures} />
+      </Suspense>
     </div>
   );
 }
