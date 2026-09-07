@@ -184,7 +184,7 @@ export function generateMasterPrompt(
   // ── Archetype & Structural Resolution (Bagian 23) ───────────────────────
   const effectiveArchetype = videoConfig?.contentArchetype || channel?.contentArchetype || null;
   const finalVoPreference = videoConfig?.voPreference !== undefined ? Boolean(videoConfig.voPreference) : Boolean(channel?.audioVO !== false);
-  const effectiveNarrationMode = videoConfig?.narrationMode || effectiveArchetype?.narrationMode || (finalVoPreference ? "VOICE_OVER" : "DIEGETIC_ONLY");
+  const effectiveNarrationMode = videoConfig?.narrationMode || effectiveArchetype?.narrationMode || "VOICE_OVER";
 
   const hasHook = videoConfig?.includeHook !== false && (!videoConfig?.selectedSections || videoConfig.selectedSections.includes("HOOK"));
   const hasCTA = videoConfig?.includeCTA !== false && (!videoConfig?.selectedSections || videoConfig.selectedSections.includes("CTA"));

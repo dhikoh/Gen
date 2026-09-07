@@ -1221,3 +1221,26 @@ Ketika fitur `ContentArchetype` dan `narrationMode: DIEGETIC_ONLY` (Bagian 23) d
    - Badge **`🔊 SFX`** dan **`🎵 BGM`** dirender mandiri tanpa bergantung pada ada/tidaknya narasi suara.
 2. **Standardisasi Output Prompt Generator (`promptGenerator.ts`)**:
    - Template scene output wajib secara eksplisit menyertakan baris `TEKS OVERLAY: [Teks singkat overlay layar...]` untuk menjamin pemisahan baris yang rapi sejak dari respons model AI.
+
+# Addendum — Bagian 25: Pemisahan Independen VO Toggle & Penambahan Selector Mode Narasi di Generator Studio
+
+## 25.0 Latar Belakang & Masalah
+Pada implementasi Bagian 23, terjadi percampuran konsep (*conflation*) antara **Toggle VO (Audio Preferences: ON/OFF)** dengan **Mode Narasi DIEGETIC_ONLY**:
+1. Fallback `effectiveNarrationMode` di `promptGenerator.ts` mengevaluasi `(finalVoPreference ? "VOICE_OVER" : "DIEGETIC_ONLY")`.
+2. Akibatnya, saat user mematikan tombol Voice Over di form generator (dengan maksud agar AI video tidak merender karakter berbicara/lipsync), sistem malah mengubah jenis konten menjadi `DIEGETIC_ONLY`. Seluruh naskah narasi terhapus dan digantikan oleh tag diegetik.
+3. Seharusnya, mematikan toggle VO hanya menyuntikkan instruksi `, no voice over` ke Visual Prompt, sementara naskah `NARASI:` tetap ditulis utuh dalam bahasa terpilih untuk dibacakan sendiri oleh kreator atau di-dubbing terpisah.
+4. Selain itu, mode konten diegetik sebelumnya terkunci kaku pada profil Channel. Pengguna tidak memiliki opsi memilih mode narasi per video secara fleksibel langsung di Generator Studio.
+
+## 25.1 Arsitektur & Perbaikan Logika
+1. **Pemisahan Logika di Prompt Generator (`src/lib/promptGenerator.ts`)**:
+   - Menghapus fallback `(finalVoPreference ? "VOICE_OVER" : "DIEGETIC_ONLY")`.
+   - `effectiveNarrationMode` secara baku default ke `"VOICE_OVER"` kecuali disetel eksplisit oleh `videoConfig.narrationMode` atau `effectiveArchetype.narrationMode`.
+   - Toggle VO (`voPreference: false`) murni menyuntikkan instruksi visual `no voice over` tanpa merusak teks naskah narasi.
+2. **Selector Mode Narasi di Generator Studio (`GeneratorForm.tsx`)**:
+   - Menyediakan 4 opsi mode narasi fleksibel per-generate:
+     - `Auto`: Mengikuti model konten profil channel.
+     - `VOICE_OVER`: Memaksa naskah narasi & dialog lengkap.
+     - `DIEGETIC_ONLY`: Mode suara alami/SFX + teks overlay layar.
+     - `SILENT_TEXT_ONLY`: Mode visual hening dengan teks layar.
+   - State `narrationModeOverride` otomatis disinkronkan ke local storage dan server preferences.
+   - Tombol toggle Voice Over di Audio Preferences otomatis di-disable saat mode diegetic/silent aktif, serta menampilkan helper text yang menjelaskan status VO secara transparan.

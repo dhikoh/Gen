@@ -111,6 +111,7 @@ export default function GeneratorForm({
  const [musicPreference, setMusicPreference] = useState<boolean>(true);
  const [sfxPreference, setSfxPreference] = useState<boolean>(true);
  const [voPreference, setVoPreference] = useState<boolean>(true);
+ const [narrationModeOverride, setNarrationModeOverride] = useState<string>("auto");
 
  // Camera Movement state
  const [cameraMovementEnabled, setCameraMovementEnabled] = useState<boolean>(true);
@@ -280,6 +281,7 @@ export default function GeneratorForm({
  if (p.musicPreference !== undefined) setMusicPreference(p.musicPreference);
  if (p.sfxPreference !== undefined) setSfxPreference(p.sfxPreference);
  if (p.voPreference !== undefined) setVoPreference(p.voPreference);
+ if (p.narrationModeOverride !== undefined) setNarrationModeOverride(p.narrationModeOverride);
  if (p.cameraMovementEnabled !== undefined) setCameraMovementEnabled(p.cameraMovementEnabled);
  if (p.cameraMovementPresets !== undefined) setCameraMovementPresets(p.cameraMovementPresets);
  if (p.cameraMovementCustom !== undefined) setCameraMovementCustom(p.cameraMovementCustom);
@@ -310,6 +312,7 @@ export default function GeneratorForm({
  if (p.musicPreference !== undefined) setMusicPreference(p.musicPreference);
  if (p.sfxPreference !== undefined) setSfxPreference(p.sfxPreference);
  if (p.voPreference !== undefined) setVoPreference(p.voPreference);
+ if (p.narrationModeOverride !== undefined) setNarrationModeOverride(p.narrationModeOverride);
  if (p.cameraMovementEnabled !== undefined) setCameraMovementEnabled(p.cameraMovementEnabled);
  if (p.cameraMovementPresets !== undefined) setCameraMovementPresets(p.cameraMovementPresets);
  if (p.cameraMovementCustom !== undefined) setCameraMovementCustom(p.cameraMovementCustom);
@@ -336,19 +339,19 @@ export default function GeneratorForm({
  }, []);
 
  useEffect(() => {
- const stateObj = { type, channelId, outputLanguage, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, cameraMovementEnabled, cameraMovementPresets, cameraMovementCustom, cameraMovementProMode, affiliateAngle, affiliateAngleMode, affiliateMarketplaces, affiliateCustomUrl, videoConfig, imageConfig, step, generatedPrompt, aiResultJson, manualTitle };
- localStorage.setItem("generatorFormState", JSON.stringify(stateObj));
+  const stateObj = { type, channelId, outputLanguage, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, narrationModeOverride, cameraMovementEnabled, cameraMovementPresets, cameraMovementCustom, cameraMovementProMode, affiliateAngle, affiliateAngleMode, affiliateMarketplaces, affiliateCustomUrl, videoConfig, imageConfig, step, generatedPrompt, aiResultJson, manualTitle };
+  localStorage.setItem("generatorFormState", JSON.stringify(stateObj));
 
- const timeoutId = setTimeout(() => {
- fetch("/api/user/preferences", {
- method: "PUT",
- headers: { "Content-Type": "application/json" },
- body: JSON.stringify({ generatorFormState: stateObj }),
- }).catch(() => {});
- }, 3000); // 3 seconds debounce
+  const timeoutId = setTimeout(() => {
+  fetch("/api/user/preferences", {
+  method: "PUT",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ generatorFormState: stateObj }),
+  }).catch(() => {});
+  }, 3000); // 3 seconds debounce
 
- return () => clearTimeout(timeoutId);
- }, [type, channelId, outputLanguage, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, cameraMovementEnabled, cameraMovementPresets, cameraMovementCustom, cameraMovementProMode, affiliateAngle, affiliateAngleMode, affiliateMarketplaces, affiliateCustomUrl, videoConfig, imageConfig, step, generatedPrompt, aiResultJson, manualTitle]);
+  return () => clearTimeout(timeoutId);
+  }, [type, channelId, outputLanguage, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, narrationModeOverride, cameraMovementEnabled, cameraMovementPresets, cameraMovementCustom, cameraMovementProMode, affiliateAngle, affiliateAngleMode, affiliateMarketplaces, affiliateCustomUrl, videoConfig, imageConfig, step, generatedPrompt, aiResultJson, manualTitle]);
 
  // Fetch presets on mount
  useEffect(() => {
@@ -540,7 +543,7 @@ export default function GeneratorForm({
  affiliateCustomUrl: affiliateAngle && affiliateMarketplaces.includes("custom") ? affiliateCustomUrl : undefined,
  isVideoPlatform: selectedChannel?.targetPlatform ? !/blog|podcast|article|web/i.test(selectedChannel.targetPlatform) : true,
  contentArchetypeId: selectedChannel?.contentArchetypeId || selectedChannel?.contentArchetype?.id,
- narrationMode: selectedChannel?.contentArchetype?.narrationMode,
+ narrationMode: narrationModeOverride !== "auto" ? narrationModeOverride : selectedChannel?.contentArchetype?.narrationMode,
  } : undefined,
  imageConfig: type === "IMAGE" ? imageConfig : undefined,
  };
@@ -667,6 +670,10 @@ export default function GeneratorForm({
 
  const selectedChannel = channels.find((c) => c.id === channelId);
  const currentArchetype = selectedChannel?.contentArchetype;
+ const effectiveNarrationMode = narrationModeOverride !== "auto"
+   ? narrationModeOverride
+   : (currentArchetype?.narrationMode || "VOICE_OVER");
+ const isNoVoMode = effectiveNarrationMode === "DIEGETIC_ONLY" || effectiveNarrationMode === "SILENT_TEXT_ONLY";
  const hasRequiredComposition =
    !currentArchetype ||
    (Array.isArray(currentArchetype.compositionCategories) &&
@@ -1132,6 +1139,72 @@ export default function GeneratorForm({
  </div>
  </div>
 
+ {/* ── Push Enrichment: Narration Mode Selector ── */}
+ <div className="space-y-2 pt-2 border-t pg-border">
+    <div className="flex items-center justify-between">
+      <label className="block text-xs font-semibold pg-text-sub">
+        🎬 Mode Narasi Video
+      </label>
+      <span className="text-[10px] pg-text-muted">
+        {narrationModeOverride === "auto" ? "Ikuti Model Channel" : "Manual Override"}
+      </span>
+    </div>
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+      {[
+        {
+          value: "auto",
+          label: "Auto",
+          badge: currentArchetype?.narrationMode === "DIEGETIC_ONLY" ? "Diegetik" : "Voice Over",
+          desc: "Ikuti model channel",
+        },
+        {
+          value: "VOICE_OVER",
+          label: "🎙️ Voice Over",
+          desc: "Naskah narasi lengkap",
+        },
+        {
+          value: "DIEGETIC_ONLY",
+          label: "🔇 Diegetic Only",
+          desc: "Suara alami + Teks layar",
+        },
+        {
+          value: "SILENT_TEXT_ONLY",
+          label: "📄 Teks Layar",
+          desc: "Hening / Teks saja",
+        },
+      ].map((m) => {
+        const isSelected = narrationModeOverride === m.value;
+        return (
+          <button
+            key={m.value}
+            type="button"
+            onClick={() => setNarrationModeOverride(m.value)}
+            className={`flex flex-col items-start p-2 rounded-lg border text-left transition-colors text-xs ${
+              isSelected
+                ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 ring-1 ring-blue-500/50"
+                : "pg-border hover:pg-surface-dim pg-text-sub"
+            }`}
+          >
+            <div className="flex items-center justify-between w-full">
+              <span className="font-semibold text-[11px] truncate">{m.label}</span>
+              {m.badge && (
+                <span className="text-[9px] px-1 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                  {m.badge}
+                </span>
+              )}
+            </div>
+            <span className="text-[9px] pg-text-muted mt-0.5 leading-tight">{m.desc}</span>
+          </button>
+        );
+      })}
+    </div>
+    {effectiveNarrationMode === "DIEGETIC_ONLY" && (
+      <p className="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 p-1.5 rounded border border-amber-200 dark:border-amber-900">
+        ℹ️ <strong>Mode Diegetik Aktif</strong>: Video dirancang tanpa narator luar. Cerita disampaikan lewat SFX/suara lingkungan dan Teks Overlay di layar.
+      </p>
+    )}
+  </div>
+
  {/* ── Push Enrichment: Audio Preferences ── */}
  <div className="space-y-2 pt-2 border-t pg-border">
  <label className="block text-xs font-semibold pg-text-sub">
@@ -1165,16 +1238,12 @@ export default function GeneratorForm({
     </button>
 
     {(() => {
-      const isNoVoArchetype =
-        currentArchetype?.narrationMode === "DIEGETIC_ONLY" ||
-        currentArchetype?.narrationMode === "SILENT_TEXT_ONLY";
-
-      if (isNoVoArchetype) {
+      if (isNoVoMode) {
         return (
           <button
             type="button"
             disabled
-            title={`Voice Over dinonaktifkan oleh model konten "${currentArchetype?.name || "Diegetik"}"`}
+            title="Voice Over dinonaktifkan oleh Mode Narasi yang aktif (Diegetic / Silent)"
             className="flex items-center justify-center gap-1.5 px-2 py-2 text-xs font-medium rounded-lg border pg-surface-dim pg-border opacity-50 cursor-not-allowed text-slate-400"
           >
             <span>✗</span>
@@ -1200,9 +1269,11 @@ export default function GeneratorForm({
     })()}
   </div>
   <p className="text-[10px] pg-text-muted">
-    {currentArchetype?.narrationMode === "DIEGETIC_ONLY" || currentArchetype?.narrationMode === "SILENT_TEXT_ONLY"
-      ? `Model "${currentArchetype.name}" mewajibkan audio diegetik (tanpa voice-over luar).`
-      : "Default dari pengaturan channel. Klik untuk override."}
+    {isNoVoMode
+      ? "Mode Narasi saat ini mewajibkan audio diegetik/silent (tanpa voice-over luar)."
+      : voPreference
+      ? "Voice Over aktif (naskah narasi lengkap + visual lipsync)."
+      : "Voice Over OFF (naskah narasi tetap ada untuk dubbing, visual prompt 'no voice over')."}
   </p>
   </div>
 
@@ -1376,7 +1447,7 @@ export default function GeneratorForm({
      <div className="flex items-center justify-between font-medium text-slate-700 dark:text-slate-200 mb-1">
        <span>Komposisi Naskah: Model Terpadu ({currentArchetype?.name || "Archetype Non-Standar"})</span>
        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">
-         {currentArchetype?.narrationMode || "DIEGETIC_ONLY"}
+         {effectiveNarrationMode}
        </span>
      </div>
      <p className="text-[11px]">

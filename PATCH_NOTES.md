@@ -2,6 +2,48 @@
 
 ---
 
+## [#51] — 2026-09-07 | Separation of VO Toggle from Content Archetype & Introduction of Flexible Narration Mode Selector
+
+### Problem Statement
+1. **Pencampuran Konsep VO Toggle dan Mode Diegetik**: Pada `promptGenerator.ts` (baris 187), terdapat logika fallback keliru `(finalVoPreference ? "VOICE_OVER" : "DIEGETIC_ONLY")`. Akibatnya, saat user mematikan tombol *Voice Over* di *Audio Preferences* (yang tujuannya hanya untuk menghilangkan talking-head/lipsync pada Visual Prompt video AI), sistem justru memaksa mode narasi menjadi `DIEGETIC_ONLY`. Seluruh naskah narasi dubbing terhapus dan digantikan oleh tag `[DIEGETIC - TANPA VOICE-OVER]`.
+2. **Keterikatan Kaku pada Level Channel**: Mode narasi (`narrationMode`) sebelumnya hanya dapat diatur melalui profil channel (Model Konten / Archetype). Pengguna tidak memiliki keleluasaan untuk sesekali membuat konten diegetik / faceless pada channel standar tanpa harus mengubah konfigurasi channel secara global.
+
+### Implementasi Arsitektur & Perbaikan
+
+1. **Pemisahan Independen Logika Prompt Generator (`src/lib/promptGenerator.ts`)**:
+   - Menghapus ketergantungan `effectiveNarrationMode` dari `finalVoPreference`. Fallback default kini selalu `"VOICE_OVER"` jika tidak disetel eksplisit oleh videoConfig atau archetype.
+   - **Peran Murni Toggle VO (`voPreference: false`)**:
+     - Visual Prompt tetap disuntikkan suffix `, no voice over` agar generator video tidak merender orang berbicara.
+     - Naskah `NARASI:` **tetap ditulis lengkap & conversational** sesuai bahasa pilihan (*Output Language*) untuk dubbing/bacaan kreator.
+   - **Mode `DIEGETIC_ONLY`**:
+     - Hanya aktif jika dipilih secara sadar melalui Archetype atau pemilih mode narasi manual.
+     - Naskah narasi diberi penanda diegetik dan cerita disampaikan melalui Teks Overlay Layar + SFX.
+
+2. **Integrasi Selector Mode Narasi di Generator Studio (`GeneratorForm.tsx`)**:
+   - Menambahkan komponen selector baru **"🎬 Mode Narasi Video"** di atas *Audio Preferences*:
+     - **Auto**: Mengikuti model konten profil channel (disertai badge mode bawaan).
+     - **🎙️ Voice Over**: Menjamin pembuatan naskah narasi & dialog lengkap.
+     - **🔇 Diegetic Only**: Mode tanpa narator luar, fokus SFX in-scene & teks overlay.
+     - **📄 Teks Layar**: Video hening dengan fokus teks di layar.
+   - State `narrationModeOverride` otomatis disinkronkan ke `localStorage` dan server preferences (`/api/user/preferences`).
+   - Tombol toggle Voice Over di *Audio Preferences* otomatis di-disable secara aman saat mode diegetik/silent aktif, serta dilengkapi teks penjelasan kontekstual.
+
+### Verifikasi
+- Validasi TypeScript: `npx tsc --noEmit` $\rightarrow$ **0 error** ✅
+- Pengujian Skrip Unit Terisolasi (`scratch/test_narration_modes.ts`):
+  - **Skenario 1 (VO ON)**: Naskah normal, tanpa suffix `no voice over`, bukan diegetik $\rightarrow$ **PASS** ✅
+  - **Skenario 2 (VO OFF)**: Naskah narasi **tetap lengkap utuh**, Visual Prompt menyertakan `no voice over`, bukan diegetik $\rightarrow$ **PASS** ✅
+  - **Skenario 3 (Override DIEGETIC_ONLY)**: Naskah ditandai `[DIEGETIC - TANPA VOICE-OVER]`, instruksi diegetic disuntikkan $\rightarrow$ **PASS** ✅
+  - **Skenario 4 (Channel Diegetik + Override VOICE_OVER)**: Naskah lengkap berhasil dipulihkan $\rightarrow$ **PASS** ✅
+
+### Files Modified
+| File | Perubahan |
+|------|-----------|
+| `src/lib/promptGenerator.ts` | Pemisahan fallback `effectiveNarrationMode` dari `finalVoPreference` |
+| `src/components/generator/GeneratorForm.tsx` | Selector Mode Narasi, state persistence, penyelarasan kontrol Audio Preferences & payload API |
+
+---
+
 ## [#50] — 2026-09-07 | Parse Engine Hardening: Diegetic Audio Mode, Scene Overlay Extraction, and Studio Synchronization
 
 ### Problem Statement
