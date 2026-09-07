@@ -6,41 +6,80 @@ import sanitizeHtml from "sanitize-html";
 import { extractAudioCues, extractVisualAudioHint, cleanParsedValue, parseVoiceGuidelines, extractTitles, extractChosenTitle, extractThumbnailData, extractCaption, extractHashtags, extractHtmlBlog, extractAffiliateRecommendations } from "@/lib/parsers";
 import type { ThumbnailData, AffiliateRecommendation } from "@/lib/parsers";
 
-interface Scene { id: number; sceneNumber: string; narasi: string; visual: string; durasi: string; bgmCues?: string[]; sfxCues?: string[]; voiceGuidelines?: { sampleContext?: string; directorsNote?: string; traits?: string }; }
+interface Scene {
+  id: number;
+  sceneNumber: string;
+  narasi: string;
+  teksOverlay?: string;
+  visual: string;
+  durasi: string;
+  bgmCues?: string[];
+  sfxCues?: string[];
+  isDiegetic?: boolean;
+  voiceGuidelines?: {
+    sampleContext?: string;
+    directorsNote?: string;
+    traits?: string;
+  };
+}
 interface Channel { id: string; channelName: string; niche?: string | null; }
 interface Props { channels: Channel[]; locale: string; }
 
 function parseScenes(text: string): Scene[] {
- if (!text.trim()) return [];
- const splitter = /(?:^|\r?\n)(?:##\s*|###\s*|\*\*\s*)?(?:Scene|Adegan|Bagian)\s*([a-zA-Z0-9_\-]+)(?:\s*\*\*)?(?=\r?\n|$)/gi;
- const parts = text.split(splitter);
- const scenes: Scene[] = [];
- if (parts.length > 1) {
- let count = 1;
- for (let i = 1; i < parts.length; i += 2) {
- const sceneNum = parts[i], content = parts[i + 1] || "";
- const stop = /(?:^|\r?\n)(?:##\s*)?(?:RINGKASAN|THUMBNAIL|ARTIKEL|HASHTAG|CAPTION|JUDUL\s*TERPILIH)/i;
- const m = content.match(stop);
- const c = m ? content.slice(0, m.index) : content;
- const nar = c.match(/(?:Narasi|Dialog|Voice\s*Over|VO|Audio)\s*:\s*([\s\S]*?)(?=(?:Panduan\s*Suara|Visual\s*Prompt|Visual|Durasi)\s*:|##|$)/i);
- const vis = c.match(/(?:Visual\s*Prompt|Visual|Deskripsi\s*Visual|Prompt)\s*:\s*([\s\S]*?)(?=(?:Panduan\s*Suara|Narasi|Durasi)\s*:|##|$)/i);
- const dur = c.match(/(?:Durasi|Time|Duration)\s*:\s*([\s\S]*?)(?=(?:Narasi|Visual|Panduan)\s*:|##|$)/i);
- const voi = c.match(/(?:Panduan\s*Suara|Voice\s*Guidelines)\s*:\s*([\s\S]*?)(?=(?:Narasi|Visual|Durasi)\s*:|##|$)/i);
- const narVal = nar ? cleanParsedValue(nar[1]) : "";
- const visVal = vis ? cleanParsedValue(vis[1]) : "";
- const durVal = dur ? cleanParsedValue(dur[1]) : "5s";
- if (narVal || visVal) {
- const audio = extractAudioCues(narVal);
- scenes.push({ id: count, sceneNumber: isNaN(Number(sceneNum)) ? sceneNum : `Scene ${sceneNum}`, narasi: audio.cleanNarasi || "—", visual: visVal || "—", durasi: durVal, bgmCues: audio.bgmCues, sfxCues: audio.sfxCues, voiceGuidelines: voi ? parseVoiceGuidelines(cleanParsedValue(voi[1])) : undefined });
- count++;
- }
- }
- }
- if (!scenes.length) {
- const audio = extractAudioCues(text);
- scenes.push({ id: 1, sceneNumber: "Scene 1", narasi: audio.cleanNarasi.slice(0, 120) || text.slice(0, 120), visual: text, durasi: "15s", bgmCues: audio.bgmCues, sfxCues: audio.sfxCues });
- }
- return scenes;
+  if (!text.trim()) return [];
+  const splitter = /(?:^|\r?\n)(?:##\s*|###\s*|\*\*\s*)?(?:Scene|Adegan|Bagian)\s*([a-zA-Z0-9_\-]+)(?:\s*\*\*)?(?=\r?\n|$)/gi;
+  const parts = text.split(splitter);
+  const scenes: Scene[] = [];
+  const delimiters = "(?:Teks\\s*Overlay|Text\\s*Overlay|Overlay|Panduan\\s*Suara|Voice\\s*Guidelines|Visual\\s*Prompt|Visual|Deskripsi\\s*Visual|Prompt|Durasi|Time|Duration)";
+
+  if (parts.length > 1) {
+    let count = 1;
+    for (let i = 1; i < parts.length; i += 2) {
+      const sceneNum = parts[i], content = parts[i + 1] || "";
+      const stop = /(?:^|\r?\n)(?:##\s*)?(?:TOTAL\s*DURASI|TOTAL|RINGKASAN|THUMBNAIL|ARTIKEL|HASHTAG|CAPTION|JUDUL\s*TERPILIH|HTML\s*BLOG|REKOMENDASI)/i;
+      const m = content.match(stop);
+      const c = m ? content.slice(0, m.index) : content;
+      const nar = c.match(new RegExp(`(?:Narasi|Dialog|Voice\\s*Over|VO|Audio)\\s*:\\s*([\\s\\S]*?)(?=(?:${delimiters})\\s*:|##|$)`, "i"));
+      const overlay = c.match(new RegExp(`(?:Teks\\s*Overlay|Text\\s*Overlay|Overlay)\\s*:\\s*([\\s\\S]*?)(?=(?:${delimiters})\\s*:|##|$)`, "i"));
+      const vis = c.match(new RegExp(`(?:Visual\\s*Prompt|Visual|Deskripsi\\s*Visual|Prompt)\\s*:\\s*([\\s\\S]*?)(?=(?:${delimiters})\\s*:|##|$)`, "i"));
+      const dur = c.match(new RegExp(`(?:Durasi|Time|Duration)\\s*:\\s*([\\s\\S]*?)(?=(?:${delimiters})\\s*:|##|$)`, "i"));
+      const voi = c.match(new RegExp(`(?:Panduan\\s*Suara|Voice\\s*Guidelines)\\s*:\\s*([\\s\\S]*?)(?=(?:${delimiters})\\s*:|##|$)`, "i"));
+      const narVal = nar ? cleanParsedValue(nar[1]) : "";
+      const overlayVal = overlay ? cleanParsedValue(overlay[1]).replace(/^["']|["']$/g, "").trim() : "";
+      const visVal = vis ? cleanParsedValue(vis[1]) : "";
+      const durVal = dur ? cleanParsedValue(dur[1]) : "5s";
+      if (narVal || visVal || overlayVal) {
+        const audio = extractAudioCues(narVal);
+        scenes.push({
+          id: count,
+          sceneNumber: isNaN(Number(sceneNum)) ? sceneNum : `Scene ${sceneNum}`,
+          narasi: audio.cleanNarasi || "—",
+          teksOverlay: overlayVal || undefined,
+          visual: visVal || "—",
+          durasi: durVal,
+          bgmCues: audio.bgmCues,
+          sfxCues: audio.sfxCues,
+          isDiegetic: audio.isDiegetic,
+          voiceGuidelines: voi ? parseVoiceGuidelines(cleanParsedValue(voi[1])) : undefined,
+        });
+        count++;
+      }
+    }
+  }
+  if (!scenes.length) {
+    const audio = extractAudioCues(text);
+    scenes.push({
+      id: 1,
+      sceneNumber: "Scene 1",
+      narasi: audio.cleanNarasi.slice(0, 120) || (audio.isDiegetic ? "—" : text.slice(0, 120)),
+      visual: text,
+      durasi: "15s",
+      bgmCues: audio.bgmCues,
+      sfxCues: audio.sfxCues,
+      isDiegetic: audio.isDiegetic,
+    });
+  }
+  return scenes;
 }
 
 export default function ScenePromptStudioClient({ channels, locale }: Props) {
@@ -372,39 +411,75 @@ export default function ScenePromptStudioClient({ channels, locale }: Props) {
   {scenes.map(scene => (
   <div key={scene.id} className="glass-panel rounded-xl p-5 space-y-3">
   <div className="flex items-center justify-between">
-  <h3 className="font-bold pg-text-heading">{scene.sceneNumber}</h3>
-  <span className="text-xs pg-surface-dim px-2 py-1 rounded pg-text-muted">{scene.durasi}</span>
+    <div className="flex items-center gap-2">
+      <h3 className="font-bold pg-text-heading">{scene.sceneNumber}</h3>
+      {scene.isDiegetic && (
+        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 flex items-center gap-1">
+          <span>🔇</span> Diegetic (Tanpa VO)
+        </span>
+      )}
+    </div>
+    <span className="text-xs pg-surface-dim px-2 py-1 rounded pg-text-muted font-medium">{scene.durasi}</span>
   </div>
+
+  {/* Narasi (jika ada spoken voiceover) */}
   {scene.narasi !== "—" && (
-  <div>
-  <div className="flex items-center justify-between mb-1">
-  <span className="text-xs font-semibold pg-text-muted uppercase">🎤 {t("narasi")}</span>
-  <button onClick={() => copy(`nar-${scene.id}`, scene.narasi)} className="text-xs text-blue-500 hover:underline">{copiedId === `nar-${scene.id}` ? "✓" : t("copy")}</button>
-  </div>
-  <p className="text-sm pg-text-sub leading-relaxed">{scene.narasi}</p>
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-xs font-semibold pg-text-muted uppercase">🎤 {t("narasi")}</span>
+        <button onClick={() => copy(`nar-${scene.id}`, scene.narasi)} className="text-xs text-blue-500 hover:underline">{copiedId === `nar-${scene.id}` ? "✓" : t("copy")}</button>
+      </div>
+      <p className="text-sm pg-text-sub leading-relaxed">{scene.narasi}</p>
+    </div>
+  )}
+
+  {/* Teks Overlay Layar */}
+  {scene.teksOverlay && (
+    <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-xs font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1">
+          <span>💬</span> Teks Overlay Layar
+        </span>
+        <button onClick={() => copy(`ov-${scene.id}`, scene.teksOverlay!)} className="text-xs text-amber-600 dark:text-amber-400 hover:underline">{copiedId === `ov-${scene.id}` ? "✓" : t("copy")}</button>
+      </div>
+      <p className="text-sm font-medium pg-text-heading italic">&ldquo;{scene.teksOverlay}&rdquo;</p>
+    </div>
+  )}
+
+  {/* Audio Cues (SFX & BGM) — Selalu tampil jika ada cue */}
   {(scene.bgmCues?.length || scene.sfxCues?.length) ? (
-  <div className="flex flex-wrap gap-1 mt-2">
-  {scene.bgmCues?.map((c,i) => <span key={i} className="text-[10px] px-2 py-0.5 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 rounded-full">🎵 {c}</span>)}
-  {scene.sfxCues?.map((c,i) => <span key={i} className="text-[10px] px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full">🔊 {c}</span>)}
-  </div>
+    <div className="flex flex-wrap gap-1.5 pt-0.5">
+      {scene.bgmCues?.map((c, i) => (
+        <span key={i} className="text-[10px] font-medium px-2 py-0.5 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 rounded-full flex items-center gap-1">
+          <span>🎵</span> {c}
+        </span>
+      ))}
+      {scene.sfxCues?.map((c, i) => (
+        <span key={i} className="text-[10px] font-medium px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full flex items-center gap-1">
+          <span>🔊</span> {c}
+        </span>
+      ))}
+    </div>
   ) : null}
-  </div>
-  )}
+
+  {/* Panduan Suara / Voice Guidelines */}
   {scene.voiceGuidelines && (
-  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 text-xs text-blue-700 dark:text-blue-300 space-y-0.5">
-  {scene.voiceGuidelines.sampleContext && <p>📍 {scene.voiceGuidelines.sampleContext}</p>}
-  {scene.voiceGuidelines.directorsNote && <p>🎬 {scene.voiceGuidelines.directorsNote}</p>}
-  {scene.voiceGuidelines.traits && <p>🎙️ {scene.voiceGuidelines.traits}</p>}
-  </div>
+    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 text-xs text-blue-700 dark:text-blue-300 space-y-0.5">
+      {scene.voiceGuidelines.sampleContext && <p>📍 {scene.voiceGuidelines.sampleContext}</p>}
+      {scene.voiceGuidelines.directorsNote && <p>🎬 {scene.voiceGuidelines.directorsNote}</p>}
+      {scene.voiceGuidelines.traits && <p>🎙️ {scene.voiceGuidelines.traits}</p>}
+    </div>
   )}
+
+  {/* Visual Prompt */}
   {scene.visual !== "—" && (
-  <div>
-  <div className="flex items-center justify-between mb-1">
-  <span className="text-xs font-semibold pg-text-muted uppercase">🎨 {t("visualPrompt")}</span>
-  <button onClick={() => copy(`vis-${scene.id}`, buildVisualPrompt(scene.visual))} className="text-xs text-blue-500 hover:underline">{copiedId === `vis-${scene.id}` ? "✓" : t("copy")}</button>
-  </div>
-  <p className="text-xs font-mono pg-text-sub pg-surface-dim rounded p-2 leading-relaxed">{buildVisualPrompt(scene.visual)}</p>
-  </div>
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-xs font-semibold pg-text-muted uppercase">🎨 {t("visualPrompt")}</span>
+        <button onClick={() => copy(`vis-${scene.id}`, buildVisualPrompt(scene.visual))} className="text-xs text-blue-500 hover:underline">{copiedId === `vis-${scene.id}` ? "✓" : t("copy")}</button>
+      </div>
+      <p className="text-xs font-mono pg-text-sub pg-surface-dim rounded p-2 leading-relaxed">{buildVisualPrompt(scene.visual)}</p>
+    </div>
   )}
   </div>
   ))}

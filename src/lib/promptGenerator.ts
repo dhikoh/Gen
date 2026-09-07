@@ -504,8 +504,8 @@ PENTING: Tulis URL pencarian yang VALID dan LENGKAP dengan nama produk sudah di-
       ? `Context: <konteks/suasana suara lingkungan adegan> | Note: <petunjuk audio diegetic/SFX/foley> | Traits: <elemen audio in-scene dominan>`
       : `Context: <konteks/suasana adegan> | Note: <petunjuk intonasi/kecepatan/jeda> | Traits: <karakteristik vokal, misal: deep voice, energetic>`;
 
-    formatOutputWajib += `\n## SCENE 1\nNARASI: [${narasiExample}]\nPANDUAN SUARA: [${panduanSuaraExample}]\nVISUAL PROMPT: [${visualPromptInstruction}]${arSuffix}\nDURASI: [Estimasi durasi adegan dalam detik, contoh: 5 detik]\n`;
-    formatOutputWajib += `\n## SCENE 2\nNARASI: [Narasi / dialog adegan kedua]\nPANDUAN SUARA: [${panduanSuaraExample}]\nVISUAL PROMPT: [Tulis prompt visual adegan kedua, formula 5-bagian, bahasa Inggris.]${arSuffix}\nDURASI: [Estimasi durasi]\n`;
+    formatOutputWajib += `\n## SCENE 1\nNARASI: [${narasiExample}]\nTEKS OVERLAY: [Teks singkat yang muncul di layar (maks 3-7 kata), atau strip "—" jika tanpa overlay]\nPANDUAN SUARA: [${panduanSuaraExample}]\nVISUAL PROMPT: [${visualPromptInstruction}]${arSuffix}\nDURASI: [Estimasi durasi adegan dalam detik, contoh: 5 detik]\n`;
+    formatOutputWajib += `\n## SCENE 2\nNARASI: [Narasi / dialog adegan kedua]\nTEKS OVERLAY: [Teks overlay layar adegan kedua]\nPANDUAN SUARA: [${panduanSuaraExample}]\nVISUAL PROMPT: [Tulis prompt visual adegan kedua, formula 5-bagian, bahasa Inggris.]${arSuffix}\nDURASI: [Estimasi durasi]\n`;
 
     const sceneCount = videoConfig.targetSceneCount;
     if (sceneCount && sceneCount > 2) {

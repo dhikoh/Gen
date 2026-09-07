@@ -26,13 +26,15 @@ interface VideoSegment {
 
 // Schema baru dari Scene Prompt Studio (scenes[].narasi)
 interface SceneItem {
- id?: number;
- sceneNumber?: string;
- narasi?: string;
- visual?: string;
- durasi?: string;
- bgmCues?: string[];
- sfxCues?: string[];
+  id?: number;
+  sceneNumber?: string;
+  narasi?: string;
+  teksOverlay?: string;
+  visual?: string;
+  durasi?: string;
+  bgmCues?: string[];
+  sfxCues?: string[];
+  isDiegetic?: boolean;
 }
 
 interface ImageVariation {
@@ -348,21 +350,48 @@ export default async function DraftDetailPage({
  {scene.sceneNumber}
  </span>
  )}
+ {scene.isDiegetic && (
+ <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+ 🔇 Diegetic
+ </span>
+ )}
  {scene.durasi && (
  <span className="text-xs pg-text-muted font-medium">{scene.durasi}</span>
  )}
  </div>
  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
- {scene.narasi && (
+ <div className="space-y-3">
+ {scene.narasi && scene.narasi !== "—" && (
  <div className="pg-bg-page p-3 rounded border pg-border">
  <p className="text-xs font-bold pg-text-muted mb-1">🎤 Narasi</p>
  <p className="text-sm pg-text-heading">{scene.narasi}</p>
  </div>
  )}
+ {scene.teksOverlay && (
+ <div className="bg-amber-500/10 border border-amber-500/20 p-3 rounded">
+ <p className="text-xs font-bold text-amber-600 dark:text-amber-400 mb-1">💬 Teks Overlay Layar</p>
+ <p className="text-sm font-medium pg-text-heading italic">&ldquo;{scene.teksOverlay}&rdquo;</p>
+ </div>
+ )}
+ {(scene.bgmCues?.length || scene.sfxCues?.length) ? (
+ <div className="flex flex-wrap gap-1.5">
+ {scene.bgmCues?.map((c, i) => (
+ <span key={i} className="text-[10px] font-medium px-2 py-0.5 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 rounded-full flex items-center gap-1">
+ <span>🎵</span> {c}
+ </span>
+ ))}
+ {scene.sfxCues?.map((c, i) => (
+ <span key={i} className="text-[10px] font-medium px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full flex items-center gap-1">
+ <span>🔊</span> {c}
+ </span>
+ ))}
+ </div>
+ ) : null}
+ </div>
  {scene.visual && (
  <div className="pg-bg-page p-3 rounded border pg-border">
  <p className="text-xs font-bold pg-text-muted mb-1">🎨 Visual Prompt</p>
- <p className="text-sm pg-text-heading">{scene.visual}</p>
+ <p className="text-sm pg-text-heading font-mono text-xs">{scene.visual}</p>
  </div>
  )}
  </div>

@@ -67,46 +67,49 @@ export function extractThumbnailData(text: string): ThumbnailData | null {
   const index = match?.index !== undefined ? match.index : -1;
   if (index === -1) return null;
 
-  const thumbnailPart = text.substring(index).trim();
-  let seoText = "";
-  let opsi1Prompt = "";
-  let opsi1Overlay = "";
-  let opsi2Prompt = "";
-  let opsi2Overlay = "";
-  let recommendations = "";
-
-  for (const line of thumbnailPart.split("\n")) {
-    const cl = line.trim();
-    const seoMatch = cl.match(/^(?:\*\*|\*|-|\s)*(?:TEKS\s+OVERLAY\s+SEO|SEO\s+TEXT|TEKS\s+OVERLAY)\s*(?:\*\*|\*)*\s*:\s*(.+)/i);
-    const o1pMatch = cl.match(/^(?:\*\*|\*|-|\s)*(?:OPSI\s+1\s+PROMPT|OPSI\s+1|OPTION\s+1\s+PROMPT|OPTION\s+1)\s*(?:\*\*|\*)*\s*:\s*(.+)/i);
-    const o1oMatch = cl.match(/^(?:\*\*|\*|-|\s)*(?:OPSI\s+1\s+TEKS\s+OVERLAY|OPTION\s+1\s+TEXT\s+OVERLAY|TEXT\s+OVERLAY\s+OPTION\s+1|TEKS\s+OVERLAY\s+OPSI\s+1)\s*(?:\*\*|\*)*\s*:\s*(.+)/i);
-    const o2pMatch = cl.match(/^(?:\*\*|\*|-|\s)*(?:OPSI\s+2\s+PROMPT|OPSI\s+2|OPTION\s+2\s+PROMPT|OPTION\s+2)\s*(?:\*\*|\*)*\s*:\s*(.+)/i);
-    const o2oMatch = cl.match(/^(?:\*\*|\*|-|\s)*(?:OPSI\s+2\s+TEKS\s+OVERLAY|OPTION\s+2\s+TEXT\s+OVERLAY|TEXT\s+OVERLAY\s+OPTION\s+2|TEKS\s+OVERLAY\s+OPSI\s+2)\s*(?:\*\*|\*)*\s*:\s*(.+)/i);
-    const recMatch = cl.match(/^(?:\*\*|\*|-|\s)*(?:REKOMENDASI\s+WARNA|REKOMENDASI|RECOMMENDATIONS)\s*(?:\*\*|\*)*\s*:\s*(.+)/i);
-
-    if (seoMatch) seoText = seoMatch[1].trim();
-    else if (o1oMatch) opsi1Overlay = o1oMatch[1].trim();
-    else if (o1pMatch) opsi1Prompt = o1pMatch[1].trim();
-    else if (o2oMatch) opsi2Overlay = o2oMatch[1].trim();
-    else if (o2pMatch) opsi2Prompt = o2pMatch[1].trim();
-    else if (recMatch) recommendations = recMatch[1].trim();
+  let thumbnailPart = text.substring(index).trim();
+  const stopMatch = thumbnailPart.match(/(?:\r?\n|^)\s*(?:##\s*|###\s*|\*\*\s*|\b)(?:HTML\s*BLOG|REKOMENDASI\s*PRODUK)/i);
+  if (stopMatch && stopMatch.index !== undefined && stopMatch.index > 0) {
+    thumbnailPart = thumbnailPart.substring(0, stopMatch.index).trim();
   }
 
+  const keys = [
+    { field: "seoText" as const, pattern: /(?:TEKS\s+OVERLAY\s+SEO|SEO\s+TEXT|TEKS\s+OVERLAY)\s*(?:\*\*|\*)*\s*:\s*/i },
+    { field: "opsi1Prompt" as const, pattern: /(?:OPSI\s+1\s+PROMPT|OPSI\s+1|OPTION\s+1\s+PROMPT|OPTION\s+1)\s*(?:\*\*|\*)*\s*:\s*/i },
+    { field: "opsi1Overlay" as const, pattern: /(?:OPSI\s+1\s+TEKS\s+OVERLAY|OPTION\s+1\s+TEXT\s+OVERLAY|TEXT\s+OVERLAY\s+OPTION\s+1|TEKS\s+OVERLAY\s+OPSI\s+1)\s*(?:\*\*|\*)*\s*:\s*/i },
+    { field: "opsi2Prompt" as const, pattern: /(?:OPSI\s+2\s+PROMPT|OPSI\s+2|OPTION\s+2\s+PROMPT|OPTION\s+2)\s*(?:\*\*|\*)*\s*:\s*/i },
+    { field: "opsi2Overlay" as const, pattern: /(?:OPSI\s+2\s+TEKS\s+OVERLAY|OPTION\s+2\s+TEXT\s+OVERLAY|TEXT\s+OVERLAY\s+OPTION\s+2|TEKS\s+OVERLAY\s+OPSI\s+2)\s*(?:\*\*|\*)*\s*:\s*/i },
+    { field: "recommendations" as const, pattern: /(?:REKOMENDASI\s+WARNA\s*(?:&\s*ELEMEN)?|REKOMENDASI|RECOMMENDATIONS)\s*(?:\*\*|\*)*\s*:\s*/i },
+  ];
+
   const cv = (v: string) => {
-    const qm = v.match(/"([^"]+)"/);
+    if (!v) return "";
+    const qm = v.match(/^"([^"]+)"$/);
     if (qm) return qm[1].trim();
     return v.replace(/^["'\s]+|["'\s]+$/g, "").trim();
   };
 
-  return {
+  const keyPatternStr = keys.map(k => k.pattern.source).join("|");
+
+  const result: ThumbnailData = {
     raw: thumbnailPart,
-    seoText: cv(seoText),
-    opsi1Prompt: cv(opsi1Prompt),
-    opsi1Overlay: cv(opsi1Overlay),
-    opsi2Prompt: cv(opsi2Prompt),
-    opsi2Overlay: cv(opsi2Overlay),
-    recommendations: cv(recommendations),
+    seoText: "",
+    opsi1Prompt: "",
+    opsi1Overlay: "",
+    opsi2Prompt: "",
+    opsi2Overlay: "",
+    recommendations: "",
   };
+
+  for (const k of keys) {
+    const reg = new RegExp(`(?:${k.pattern.source})([\\s\\S]*?)(?=(?:${keyPatternStr})|$)`, "i");
+    const m = thumbnailPart.match(reg);
+    if (m && m[1]) {
+      result[k.field] = cv(m[1]);
+    }
+  }
+
+  return result;
 }
 
 // ── Caption & Hashtags ────────────────────────────────────────────────────
@@ -135,23 +138,34 @@ export interface AudioCues {
   cleanNarasi: string;
   bgmCues: string[];
   sfxCues: string[];
+  isDiegetic?: boolean;
 }
 
-/** Extract [SFX: …] and [BGM: …] cues from narration text. */
+/** Extract [SFX: …] and [BGM: …] cues and diegetic status from narration text. */
 export function extractAudioCues(text: string): AudioCues {
   const bgmRegex = /\[(?:bgm|backsound):\s*([^\]]+)\]/gi;
   const sfxRegex = /\[(?:sfx|sound):\s*([^\]]+)\]/gi;
+  const diegeticRegex = /\[(?:diegetic|tanpa\s*voice-?over|no\s*voice-?over)(?:\s*-\s*[^\]]+)?\]/gi;
 
   const bgmCues = Array.from(text.matchAll(bgmRegex)).map((m) => m[1].trim());
   const sfxCues = Array.from(text.matchAll(sfxRegex)).map((m) => m[1].trim());
+  const isDiegetic = diegeticRegex.test(text) || /diegetic\s*only/i.test(text);
 
-  const cleanNarasi = text
+  let cleanNarasi = text
     .replace(/\[(?:SFX|sfx|Sound|sound|Sfx)\b[^\]]*\]/gi, "")
     .replace(/\[(?:BGM|bgm|Backsound|backsound)\b[^\]]*\]/gi, "")
+    .replace(/\[(?:diegetic|tanpa\s*voice-?over|no\s*voice-?over)(?:\s*-\s*[^\]]+)?\]/gi, "")
+    .replace(/dilarang ada narasi\/voice-over luar adegan[^\n.]*(?:\.|$)/gi, "")
+    .replace(/hanya suara diegetic\/in-scene[^\n.]*(?:\.|$)/gi, "")
     .replace(/\s+/g, " ")
     .trim();
 
-  return { cleanNarasi, bgmCues, sfxCues };
+  // If narration is empty or only hyphens/quotes/whitespace
+  if (/^[-—\s"':]+$/.test(cleanNarasi)) {
+    cleanNarasi = "";
+  }
+
+  return { cleanNarasi, bgmCues, sfxCues, isDiegetic };
 }
 
 /** Detect audio hints embedded in a Visual Prompt string. */
@@ -498,14 +512,14 @@ export function parseImageContent(text: string): ImageContentData {
 export function extractHtmlBlog(text: string): string {
   if (!text) return "";
 
-  // Find the HTML BLOG section header
-  const match = text.match(/##\s*HTML\s*BLOG\s*/i);
+  // Find the HTML BLOG section header (supports ## header, **bold**, or plain text)
+  const match = text.match(/(?:##\s*|###\s*|\*\*\s*|\b)HTML\s*BLOG\s*/i);
   if (!match || match.index === undefined) return "";
 
   const startIdx = match.index + match[0].length;
-  // Stop at the next ## header (case-insensitive) or end of text
+  // Stop at the next ## header or REKOMENDASI PRODUK / THUMBNAIL header or end of text
   const afterSection = text.substring(startIdx);
-  const nextHeader = afterSection.search(/\n##\s+/i);
+  const nextHeader = afterSection.search(/(?:\n##\s+|\n(?:\*\*\s*)?REKOMENDASI\s+PRODUK|\n(?:\*\*\s*)?THUMBNAIL)/i);
   const rawBlock = nextHeader !== -1
     ? afterSection.substring(0, nextHeader).trim()
     : afterSection.trim();
@@ -542,16 +556,16 @@ export interface AffiliateRecommendation {
 export function extractAffiliateRecommendations(text: string): AffiliateRecommendation[] {
   if (!text) return [];
 
-  // Find section header — support ## header AND **bold** header variants
+  // Find section header — support ## header, **bold** header, or plain text variants
   const headerMatch = text.match(
-    /(?:##\s*|\*\*\s*)REKOMENDASI\s*PRODUK(?:\s+AFFILIATE)?(?:\s*\*\*)?/i
+    /(?:##\s*|###\s*|\*\*\s*|\b)REKOMENDASI\s*PRODUK(?:\s+AFFILIATE)?(?:\s*\*\*)?/i
   );
   if (!headerMatch || headerMatch.index === undefined) return [];
 
   const startIdx = headerMatch.index + headerMatch[0].length;
   // Stop at the next ## header or end of text
   const afterSection = text.substring(startIdx);
-  const nextHeader = afterSection.search(/\n##\s+/i);
+  const nextHeader = afterSection.search(/(?:\n##\s+|\n(?:\*\*\s*)?HTML\s*BLOG|\n(?:\*\*\s*)?THUMBNAIL)/i);
   const sectionRaw = nextHeader !== -1
     ? afterSection.substring(0, nextHeader).trim()
     : afterSection.trim();

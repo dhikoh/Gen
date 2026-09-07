@@ -2,6 +2,58 @@
 
 ---
 
+## [#50] — 2026-09-07 | Parse Engine Hardening: Diegetic Audio Mode, Scene Overlay Extraction, and Studio Synchronization
+
+### Problem Statement
+1. **Distorsi Naskah Diegetik**: Saat mode narasi `DIEGETIC_ONLY` aktif, tag teknis `[DIEGETIC - TANPA VOICE-OVER]` yang dicetak AI tidak dibersihkan oleh `extractAudioCues()`, sehingga di-render ke UI sebagai naskah yang harus diucapkan pengisi suara di bawah label `🎤 NARASI`.
+2. **`TEKS OVERLAY` Tertelan ke Narasi**: Pada video pendek (Shorts/Reels/TikTok), AI kerap menyisipkan `TEKS OVERLAY: "..."`. Karena regex lookahead narasi tidak mencakup `Teks Overlay`, teks overlay tertelan masuk ke dalam kolom narasi.
+3. **`VISUAL PROMPT` Bocor ke Panduan Suara**: Delimiter lookahead `PANDUAN SUARA` menggunakan `Visual\s*:`, sehingga gagal berhenti saat bertemu `VISUAL PROMPT:`. Akibatnya, seluruh visual prompt sinematik bocor masuk ke dalam `voiceGuidelines.traits`.
+4. **Indikator SFX Tersembunyi**: Badge SFX di Scene Studio dibungkus kondisi `{scene.narasi !== "—"}`, sehingga pada video diegetik tanpa narasi suara, pill SFX tidak tampil.
+5. **Kegagalan Ekstraksi Sub-Heading Tanpa Tagar (`##`)**: AI kadang mencetak `HTML BLOG`, `REKOMENDASI PRODUK AFFILIATE`, dan `THUMBNAIL STUDIO` tanpa awalan `##` atau dalam satu baris (*inline*), menyebabkan parser mengembalikan string kosong atau opsi thumbnail terpotong.
+6. **Template Scene Belum Memuat Baris Resmi Overlay**: `promptGenerator.ts` belum mencantumkan slot baku `TEKS OVERLAY:` di per-scene template output wajib.
+
+### Implementasi Arsitektur & Perbaikan
+
+1. **Hardening Core Parser (`src/lib/parsers.ts`)**:
+   - `extractAudioCues`: Ditambahkan properti `isDiegetic?: boolean`. Tag `[DIEGETIC...]`, `[TANPA VOICE-OVER]`, serta boilerplate larangan VO kini otomatis dibersihkan. Jika naskah kosong, `cleanNarasi` mengembalikan `""` (bukan string placeholder).
+   - `extractThumbnailData`: Menggunakan tokenized lookahead regex agar mengekstrak seluruh field (`seoText`, `opsi1Prompt`, `opsi1Overlay`, `opsi2Prompt`, `opsi2Overlay`, `recommendations`) secara presisi baik format baris maupun inline, serta dibatasi sebelum header section berikutnya.
+   - `extractHtmlBlog` & `extractAffiliateRecommendations`: Ditingkatkan agar toleran terhadap variasi header dengan atau tanpa `##` / `**` (`(?:##\s*|###\s*|\*\*\s*|\b)`).
+
+2. **Sinkronisasi Scene Prompt Studio (`ScenePromptStudioClient.tsx`)**:
+   - Interface `Scene`: Ditambahkan field `teksOverlay?: string` dan `isDiegetic?: boolean`.
+   - `parseScenes`:
+     - Penambahan delimiter terpadu (`Teks Overlay`, `Visual Prompt`, `Panduan Suara`, `Durasi`).
+     - Lookahead boundary `PANDUAN SUARA` diperbaiki agar mengenali `VISUAL PROMPT:`.
+     - Regex boundary diperluas dengan `TOTAL DURASI` agar durasi scene penutup terhitung bersih (`9 detik`, bukan `9 detik Total...`).
+   - Tampilan Antarmuka (UI):
+     - Badge status **`🔇 Diegetic (Tanpa VO)`** otomatis muncul pada kartu scene saat terdeteksi mode diegetik.
+     - Card khusus **`💬 Teks Overlay Layar`** dengan tombol copy terintegrasi.
+     - Badge audio **`🔊 SFX`** dan **`🎵 BGM`** dipindahkan ke luar kondisi narasi sehingga selalu tampil.
+
+3. **Konsistensi Detail Draf (`drafts/[id]/page.tsx`)**:
+   - Menambahkan field `teksOverlay` dan `isDiegetic` pada `SceneItem`.
+   - Menampilkan badge diegetic, kartu teks overlay, dan pill audio pada halaman detail draf tersimpan.
+
+4. **Formalisasi Prompt Generator (`src/lib/promptGenerator.ts`)**:
+   - Menambahkan baris baku `TEKS OVERLAY: [Teks singkat yang muncul di layar...]` di template wajib `SCENE 1` dan `SCENE 2`.
+
+### Verifikasi
+- Validasi Statis: `npx tsc --noEmit` $\rightarrow$ **Exit code: 0** (0 error) ✅
+- Uji End-to-End Naskah Real (9 Scene Rubah Kutub — Diegetic Only):
+  - 9 Scene terurai lengkap: `narasi = "—"`, `isDiegetic = true`, `teksOverlay` terisolasi presisi, SFX cues terdeteksi penuh ✅
+  - `voiceGuidelines.traits` bersih tanpa kebocoran Visual Prompt ✅
+  - Thumbnail Studio, HTML Blog, dan Rekomendasi Affiliate terekstrak 100% akurat ✅
+
+### Files Modified
+| File | Perubahan |
+|------|-----------|
+| `src/lib/parsers.ts` | Deteksi `isDiegetic`, pembersihan tag diegetik, resilience `extractThumbnailData`, `extractHtmlBlog`, `extractAffiliateRecommendations` |
+| `src/app/[locale]/dashboard/scene-prompt/ScenePromptStudioClient.tsx` | Schema `Scene`, delimitasi `parseScenes`, UI diegetic badge, teks overlay card, pill SFX mandiri |
+| `src/app/[locale]/dashboard/drafts/[id]/page.tsx` | Schema `SceneItem`, render diegetic & teks overlay pada detail draf |
+| `src/lib/promptGenerator.ts` | Penambahan baris `TEKS OVERLAY:` pada template scene output wajib |
+
+---
+
 ## [#49] — 2026-09-05 | Addendum Bagian 23: Universal / Model-Agnostic Content Structure Engine & Audit Hardening
 
 ### Problem Statement

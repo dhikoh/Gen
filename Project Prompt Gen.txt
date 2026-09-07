@@ -1192,3 +1192,32 @@ Mode AUTO (baik Standar maupun PRO) tidak boleh berasumsi setiap scene selalu be
 - [x] `npx tsc --noEmit`, `npm run lint`, `npm run build` lulus tanpa error baru.
 - [x] Audit-diri terhadap Bagian 0.2: pastikan seluruh parameter archetype dibaca dari satu tabel yang sama oleh `promptGenerator.ts`, `GeneratorForm.tsx`, dan validasi API — tidak ada nilai yang disalin manual ke lebih dari satu tempat.
 - [x] Log progres mencantumkan file mana saja yang diubah dan cara mengujinya secara konkret (sesuai format 0.3 poin 6).
+
+# Addendum — Bagian 24: Parse Engine Hardening, Diegetic Audio Synchronization, & Scene Text Overlay Integration
+
+## 24.0 Latar Belakang & Masalah
+Ketika fitur `ContentArchetype` dan `narrationMode: DIEGETIC_ONLY` (Bagian 23) diterapkan, terjadi ketidaksinkronan (*gap*) antara output Generator Studio dan Parse Engine di Scene Prompt Studio (`ScenePromptStudioClient.tsx` dan `parsers.ts`):
+1. Tag eksplisit `[DIEGETIC - TANPA VOICE-OVER]` yang dicetak AI tidak di-strip oleh fungsi `extractAudioCues`, menyebabkan UI menampilkan instruksi teknis tersebut sebagai naskah suara yang diucapkan narator.
+2. AI seringkali menyisipkan `TEKS OVERLAY: "..."` pada naskah scene (terutama format video pendek atau video bisu/diegetik). Karena regex lookahead narasi tidak menyertakan `Teks Overlay`, teks overlay tertelan masuk ke dalam kolom narasi.
+3. Delimiter lookahead `PANDUAN SUARA` menggunakan `Visual\s*:`, sehingga gagal berhenti saat bertemu `VISUAL PROMPT:`. Hal ini menyebabkan seluruh teks visual prompt bocor masuk ke dalam field `voiceGuidelines.traits`.
+4. Badge audio SFX/BGM di-render hanya saat `scene.narasi !== "—"`, sehingga pada video diegetik tanpa narasi suara, pill efek suara tersembunyi dari pengguna.
+5. AI kadang mencetak `THUMBNAIL STUDIO`, `HTML BLOG`, dan `REKOMENDASI PRODUK AFFILIATE` tanpa awalan `##` atau dalam satu baris (*inline*), yang menggagalkan parser lama.
+
+## 24.1 Arsitektur Parsing Terpadu & Model Scene
+1. **Model `Scene` (`ScenePromptStudioClient.tsx`)**:
+   - Ditambahkan field `teksOverlay?: string` dan `isDiegetic?: boolean`.
+   - Hal serupa diterapkan pada interface `SceneItem` di `drafts/[id]/page.tsx` untuk persistensi draf.
+2. **Pembersihan Audio Diegetik (`src/lib/parsers.ts`)**:
+   - `extractAudioCues` mengenali pola `[DIEGETIC...]`, `[TANPA VOICE-OVER]`, dan mode diegetic.
+   - String teknis di-strip bersih dari dialog suara. Jika naskah kosong, dikembalikan `""` dan ditandai `isDiegetic: true`.
+3. **Resilience Ekstraksi Multi-Section (`src/lib/parsers.ts`)**:
+   - `extractThumbnailData`: Menerapkan *tokenized regex with lookahead* agar seluruh opsi thumbnail terekstrak presisi baik format baris baru maupun format inline, serta dibatasi sebelum section berikutnya.
+   - `extractHtmlBlog` & `extractAffiliateRecommendations`: Menerapkan regex yang mendukung section header dengan atau tanpa tanda tagar `##` (`(?:##\s*|###\s*|\*\*\s*|\b)`).
+
+## 24.2 Sinkronisasi UI & Prompt Generator
+1. **UI Scene Prompt Studio & Draft Detail**:
+   - Menampilkan badge **`🔇 Diegetic (Tanpa VO)`** saat `isDiegetic = true`.
+   - Menampilkan card **`💬 Teks Overlay Layar`** dengan tombol copy jika terdapat teks overlay adegan.
+   - Badge **`🔊 SFX`** dan **`🎵 BGM`** dirender mandiri tanpa bergantung pada ada/tidaknya narasi suara.
+2. **Standardisasi Output Prompt Generator (`promptGenerator.ts`)**:
+   - Template scene output wajib secara eksplisit menyertakan baris `TEKS OVERLAY: [Teks singkat overlay layar...]` untuk menjamin pemisahan baris yang rapi sejak dari respons model AI.
