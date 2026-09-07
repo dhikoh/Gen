@@ -3,9 +3,11 @@
   "short_name": "PromptGen",
   "description": "Generator Master Prompt Berbasis AI untuk Kreator",
   "start_url": "/",
+  "scope": "/",
+  "id": "/",
   "display": "standalone",
-  "background_color": "#f4f5fb",
-  "theme_color": "#6366f1",
+  "background_color": "#ecf0f3",
+  "theme_color": "#ff7600",
   "icons": [
     {
       "src": "/favicon.ico",

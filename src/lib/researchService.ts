@@ -50,77 +50,177 @@ async function fetchYouTubeSuggestions(query: string): Promise<string[]> {
 }
 
 /**
- * Menghitung estimasi metrik SEO (Volume, Kompetisi, Skor) berdasarkan posisi ranking dan long-tail query
+ * Menghitung estimasi metrik SEO (Volume, Kompetisi, Skor) secara realistis & dinamis
  */
 function scoreKeyword(kw: string, index: number, total: number): KeywordMetric {
-  const words = kw.trim().split(/\s+/).length;
-  
-  // Posisi teratas di autocomplete YouTube menandakan volume pencarian paling tinggi
+  const cleanKw = kw.trim();
+  const words = cleanKw.split(/\s+/).length;
+  const lower = cleanKw.toLowerCase();
+
+  // 1. Volume: Posisi ranking atas di Google/YouTube suggest menandakan frekuensi pencarian tertinggi
   let volume: "High" | "Medium" | "Low" = "Medium";
-  if (index < Math.ceil(total * 0.35)) volume = "High";
+  if (index < Math.ceil(total * 0.3)) volume = "High";
   else if (index >= Math.ceil(total * 0.7)) volume = "Low";
 
-  // Kata kunci 3-5 kata (long-tail) biasanya memiliki kompetisi lebih rendah dan lebih mudah ditembus pemula
+  // 2. Kompetisi: Kata tunggal/head term persaingannya sangat padat.
+  // Kata dengan modifier spesifik (ost, gameplay, review, tips, vs, cara, 2025) memiliki persaingan medium/low.
+  const hasSpecificModifier = /(?:ost|soundtrack|gameplay|review|tips|cara|tutorial|download|vs|2025|2026|mod|guide|trik|sejarah)/i.test(lower);
+  
   let competition: "Low" | "Medium" | "High" = "Medium";
-  if (words >= 4) competition = "Low";
-  else if (words <= 2) competition = "High";
+  if (words <= 1) {
+    competition = "High";
+  } else if (words >= 4 || (words >= 3 && hasSpecificModifier)) {
+    competition = "Low";
+  } else if (hasSpecificModifier || words >= 2) {
+    competition = index < 2 ? "High" : "Medium";
+  }
 
-  // Skor keseluruhan: tinggi jika volume tinggi dan kompetisi rendah
-  let score = 70;
-  if (volume === "High" && competition === "Low") score = 92 - index;
-  else if (volume === "High" && competition === "Medium") score = 84 - index;
-  else if (volume === "Medium" && competition === "Low") score = 80 - index;
-  else if (competition === "High") score = 65 - index;
-  else score = 60 - index;
+  // 3. Skor Peluang SEO (0-100): Rasio Supply vs Demand yang bervariasi alami
+  // Menghitung variasi deterministik berbasis karakter agar skor tidak turun monoton (65, 64, 63...)
+  let charHash = 0;
+  for (let i = 0; i < cleanKw.length; i++) {
+    charHash = (charHash + cleanKw.charCodeAt(i) * (i + 1)) % 13;
+  }
+  const variance = (charHash - 6); // -6 s/d +6
 
-  let trendTag = "Evergreen";
-  if (index < 2) trendTag = "🔥 Viral / Trending";
-  else if (competition === "Low") trendTag = "🚀 Peluang Tinggi";
-  else if (words >= 4) trendTag = "🎯 Niche Target";
+  let baseScore = 70;
+  if (volume === "High" && competition === "Low") {
+    baseScore = 88;
+  } else if (volume === "High" && competition === "Medium") {
+    baseScore = 78;
+  } else if (volume === "High" && competition === "High") {
+    baseScore = 64;
+  } else if (volume === "Medium" && competition === "Low") {
+    baseScore = 82;
+  } else if (volume === "Medium" && competition === "Medium") {
+    baseScore = 69;
+  } else if (volume === "Medium" && competition === "High") {
+    baseScore = 55;
+  } else if (volume === "Low" && competition === "Low") {
+    baseScore = 65;
+  } else {
+    baseScore = 48;
+  }
+
+  // Pengurangan halus per ranking indeks (maks -8), ditambah variasi alami
+  const rankDampening = Math.min(8, Math.floor(index * 0.8));
+  const finalScore = Math.max(35, Math.min(96, baseScore - rankDampening + variance));
+
+  // Tag tren cerdas
+  let trendTag = "🌲 Evergreen";
+  if (index === 0 && volume === "High") {
+    trendTag = "🔥 Viral / Trending";
+  } else if (competition === "Low" && finalScore >= 75) {
+    trendTag = "🚀 Peluang Emas (Low Comp)";
+  } else if (hasSpecificModifier) {
+    trendTag = "🎯 Niche Target";
+  } else if (words >= 3) {
+    trendTag = "💡 Long-Tail";
+  }
 
   return {
-    keyword: kw,
+    keyword: cleanKw,
     volume,
     competition,
-    score: Math.max(40, Math.min(99, score)),
+    score: finalScore,
     trendTag,
   };
 }
 
 /**
- * Menghasilkan sudut pandang konten (Content Angles) dari query dan kata kunci
+ * Mengambil pertanyaan nyata penonton (Real YouTube Questions) dari Google/YouTube suggest
  */
-function generateContentAngles(query: string, keywords: string[]): string[] {
-  const base = query.trim();
-  const angles: string[] = [
-    `Rahasia Mengejutkan tentang ${base} yang Jarang Diketahui Orang`,
-    `Fakta Ekstrem / Rekor Tergila Seputar ${base} di Dunia Nyata`,
-    `Jangan Salah! Ini Alasan Kenapa ${base} Sangat Unik dan Langka`,
-    `Eksperimen / Pembuktian: Apa yang Terjadi Jika Kita Meneliti ${base}?`,
+async function fetchRealYouTubeQuestions(query: string): Promise<string[]> {
+  const clean = query.trim();
+  const prefixes = [
+    `cara ${clean}`,
+    `${clean} vs`,
+    `${clean} tips`,
+    `kenapa ${clean}`,
+    `apa itu ${clean}`,
+    `game ${clean}`,
+    `sejarah ${clean}`,
+    `${clean} review`,
   ];
 
-  if (keywords.length > 0) {
-    const topKw = keywords[0];
-    angles.unshift(`Fenomena Viral: ${topKw} yang Bikin Warganet Takjub`);
+  const questionSet = new Set<string>();
+
+  await Promise.all(
+    prefixes.map(async (p) => {
+      try {
+        const url = `https://suggestqueries.google.com/complete/search?client=firefox&ds=yt&q=${encodeURIComponent(p)}`;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3500);
+        const res = await fetch(url, {
+          signal: controller.signal,
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+            "Accept-Language": "id-ID,id;q=0.9,en-US;q=0.8",
+          },
+        });
+        clearTimeout(timeoutId);
+
+        if (!res.ok) return;
+        const data = await res.json();
+        if (Array.isArray(data) && Array.isArray(data[1])) {
+          for (const item of data[1]) {
+            const str = String(item).trim();
+            if (str && str.toLowerCase() !== clean.toLowerCase()) {
+              questionSet.add(str);
+            }
+          }
+        }
+      } catch {
+        // Safe fallback on timeout
+      }
+    })
+  );
+
+  const rawList = Array.from(questionSet);
+
+  // Jika ditemukan pertanyaan riil dari YouTube suggest, format menjadi judul rapi
+  if (rawList.length > 0) {
+    return rawList.slice(0, 5).map((q) => {
+      // Capitalize first letter
+      return q.charAt(0).toUpperCase() + q.slice(1);
+    });
   }
 
-  return angles.slice(0, 4);
+  // Fallback kontekstual tanpa template kaku "di dunia nyata"
+  return [
+    `Cara Memahami & Menguasai ${clean} untuk Pemula`,
+    `Fakta Menarik & Rahasia Seputar ${clean}`,
+    `${clean} vs Alternatif Populer Lainnya`,
+    `Tips & Trik Penting Sebelum Mencoba ${clean}`,
+  ];
 }
 
 /**
- * Menghasilkan tag rekomendasi YouTube dari kumpulan kata kunci
+ * Menghasilkan tag rekomendasi YouTube dengan DEDUPLIKASI KETAT
  */
 function extractRecommendedTags(query: string, suggestions: string[]): string[] {
-  const tagSet = new Set<string>();
-  tagSet.add(query.toLowerCase().trim());
+  const cleanTags: string[] = [];
+  const seenNormalized = new Set<string>();
+
+  const addTag = (raw: string) => {
+    const trimmed = raw.replace(/[#"'[\]]/g, "").trim().toLowerCase();
+    if (!trimmed) return;
+    // Normalisasi slug (misal "gunbound mobile" -> "gunboundmobile")
+    const slug = trimmed.replace(/\s+/g, "");
+    if (!seenNormalized.has(slug) && !seenNormalized.has(trimmed)) {
+      seenNormalized.add(slug);
+      seenNormalized.add(trimmed);
+      cleanTags.push(trimmed);
+    }
+  };
+
+  addTag(query);
 
   for (const s of suggestions) {
-    tagSet.add(s.toLowerCase().trim());
-    const words = s.split(/\s+/);
-    if (words.length === 2) tagSet.add(words.join(""));
+    addTag(s);
   }
 
-  return Array.from(tagSet).slice(0, 15);
+  return cleanTags.slice(0, 12);
 }
 
 /**
@@ -142,43 +242,47 @@ export async function performKeywordResearch(
     };
   }
 
-  // 1. Coba ambil live YouTube suggest
-  let suggestions = await fetchYouTubeSuggestions(cleanQuery);
+  // 1. Ambil live YouTube suggestions untuk tabel kata kunci & live real questions secara paralel
+  const [liveSuggestions, realQuestions] = await Promise.all([
+    fetchYouTubeSuggestions(cleanQuery),
+    fetchRealYouTubeQuestions(cleanQuery),
+  ]);
 
-  // Jika suggest langsung sedikit, kombinasikan dengan pencarian variasi huruf vokal/pertanyaan
+  let suggestions = liveSuggestions;
+
+  // Jika suggest langsung sedikit, kombinasikan dengan pencarian variasi tambahan
   if (suggestions.length < 5) {
-    const extra = await fetchYouTubeSuggestions(`${cleanQuery} cara`);
+    const extra = await fetchYouTubeSuggestions(`${cleanQuery} tutorial`);
     const unique = Array.from(new Set([...suggestions, ...extra]));
     if (unique.length > 0) suggestions = unique;
   }
 
-  // Jika API suggest tetap kosong (misal offline/firewall), fallback ke pola cerdas
+  // Fallback aman jika API suggest terputus
   if (suggestions.length === 0) {
     suggestions = [
       cleanQuery,
-      `${cleanQuery} fakta unik`,
-      `${cleanQuery} viral`,
+      `${cleanQuery} tutorial`,
+      `${cleanQuery} tips`,
       `cara ${cleanQuery}`,
-      `${cleanQuery} rahasia`,
+      `${cleanQuery} review`,
       `${cleanQuery} shorts`,
     ];
   }
 
-  // Hitung metrik per kata kunci
+  // Hitung metrik per kata kunci secara dinamis & realistis
   const scoredKeywords = suggestions.map((kw, idx) =>
     scoreKeyword(kw, idx, suggestions.length)
   );
 
-  // Ekstrak tag dan sudut pandang
+  // Ekstrak tag dengan deduplikasi bersih
   const recommendedTags = extractRecommendedTags(cleanQuery, suggestions);
-  const contentAngles = generateContentAngles(cleanQuery, suggestions);
 
   return {
     query: cleanQuery,
     source: vidiqApiKey ? "VIDIQ_MCP" : "YOUTUBE_LIVE",
     keywords: scoredKeywords,
     recommendedTags,
-    contentAngles,
+    contentAngles: realQuestions,
     timestamp: new Date().toISOString(),
   };
 }

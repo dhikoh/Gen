@@ -14,10 +14,28 @@ const poppins = Poppins({
   display: "swap",
 });
 
+import type { Viewport } from "next";
+
+export const viewport: Viewport = {
+  themeColor: "#ff7600",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
+};
+
 export const metadata: Metadata = {
   title: "Prompt Gen",
   description: "Prompt Generator SaaS",
   manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Prompt Gen",
+  },
+  formatDetection: {
+    telephone: false,
+  },
 };
 
 import { getServerSession } from "next-auth/next";
@@ -25,6 +43,8 @@ import { authOptions } from "@/lib/authOptions";
 import NextAuthProvider from "@/components/providers/NextAuthProvider";
 import FloatingCsWidget from "@/components/cs/FloatingCsWidget";
 
+
+import InstallPWABanner from "@/components/InstallPWABanner";
 
 export default async function RootLayout({
   children,
@@ -52,6 +72,7 @@ export default async function RootLayout({
             <ToastProvider />
             {children}
             <FloatingCsWidget />
+            <InstallPWABanner />
           </NextAuthProvider>
         </NextIntlClientProvider>
       </body>

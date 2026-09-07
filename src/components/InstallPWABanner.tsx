@@ -79,27 +79,28 @@ export default function InstallPWABanner() {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 pg-surface dark:pg-surface-dim border pg-border dark:pg-border shadow-xl rounded-xl p-4 flex items-start gap-4 z-[100] animate-in slide-in-from-bottom-5 fade-in duration-300">
-      <div className="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 p-2 rounded-lg shrink-0">
+    <div className="fixed bottom-20 left-4 right-4 md:left-auto md:right-4 md:bottom-4 md:w-96 pg-surface dark:pg-surface-dim border pg-border dark:pg-border shadow-2xl rounded-2xl p-4 flex items-start gap-4 z-[100] animate-in slide-in-from-bottom-5 fade-in duration-300">
+      <div className="p-2.5 rounded-xl shrink-0 text-white" style={{ background: "var(--pg-brand)", boxShadow: "0 2px 8px var(--pg-brand-glow)" }}>
         <DownloadIcon />
       </div>
-      <div className="flex-1">
-        <h3 className="font-semibold pg-text-sub dark:text-white text-sm">
-          Install Aplikasi
+      <div className="flex-1 min-w-0">
+        <h3 className="font-bold text-sm pg-text-heading">
+          Install Aplikasi Prompt Gen
         </h3>
-        <p className="text-xs pg-text-sub dark:pg-text-sub mt-1">
-          Install Prompt Gen ke perangkat Anda untuk akses lebih cepat dan pengalaman terbaik.
+        <p className="text-xs pg-text-sub mt-1 leading-relaxed">
+          Install Prompt Gen ke layar utama HP / perangkat Anda untuk akses instan tanpa browser bar.
         </p>
         <div className="flex gap-2 mt-3">
           <button
             onClick={handleInstallClick}
-            className="text-xs font-medium bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-md transition-colors"
+            className="text-xs font-semibold text-white px-3.5 py-1.5 rounded-lg transition-all active:scale-95 shadow-sm"
+            style={{ background: "var(--pg-brand)" }}
           >
-            Install
+            Install Sekarang
           </button>
           <button
             onClick={handleDismiss}
-            className="text-xs font-medium pg-text-sub dark:pg-text-sub pg-surface-dim hover:pg-surface-dim dark:pg-surface-dim dark:hover:pg-surface-dim px-3 py-1.5 rounded-md transition-colors"
+            className="text-xs font-medium pg-text-sub hover:pg-text-heading px-3 py-1.5 rounded-lg transition-colors border pg-border"
           >
             Lain kali
           </button>

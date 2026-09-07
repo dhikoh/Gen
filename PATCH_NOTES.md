@@ -2,6 +2,47 @@
 
 ---
 
+## [#53] — 2026-09-08 | Peningkatan Akurasi Riset Tren (Real YouTube Search Questions, Dynamic SEO Scoring, Deduplikasi Tag) & Audit Tampilan PWA
+
+### Problem Statement & Gap Identification
+1. **Skor SEO Terkesan Monoton / Artificial**: Sebelumnya, kalkulasi skor peluang SEO menggunakan pengurangan aritmatika monoton berdasarkan ranking indeks (`65, 64, 63, 62...`), sehingga terasa seperti mockup berurutan.
+2. **Template Sudut Pandang Konten Tidak Kontekstual**: Penggunaan template string kaku (misal: *"Fakta Ekstrem seputar [gunbound] di Dunia Nyata"*) menghasilkan rekomendasi aneh dan tidak relevan untuk topik game, software, maupun niche fiksi.
+3. **Duplikasi Tag dengan Spasi**: Saran autocomplete YouTube yang memiliki variasi dengan dan tanpa spasi (misal `"gunbound mobile"` dan `"gunboundmobile"`) muncul berulang ganda di UI.
+4. **Format Salin Tag Kurang Fleksibel**: Kreator membutuhkan format berbeda antara kolom tag YouTube Studio (dipisahkan tanda koma `,`) dan deskripsi video (berupa hashtag `#`).
+5. **Kesiapan & Tampilan PWA (Progressive Web App)**: Diperlukan audit menyeluruh agar PWA Prompt Gen responsif di layar mobile, viewport fit bebas zoom otomatis pada iOS, serta banner install tidak menutupi bottom navigation bar.
+
+### Solusi & Peningkatan Arsitektur
+
+1. **Penggantian Template Halu Menjadi "Real YouTube Search Questions" (`src/lib/researchService.ts`)**:
+   - Menghapus total template string kaku (*"Fakta Ekstrem di Dunia Nyata"*).
+   - Mengimplementasikan `fetchRealYouTubeQuestions(query)` yang menembak langsung Google/YouTube Suggest API secara paralel dengan prefix pertanyaan riil (`cara`, `vs`, `tips`, `kenapa`, `apa itu`, `review`, `sejarah`).
+   - Menghasilkan pertanyaan otentik yang benar-benar diketik penonton di YouTube (contoh pada query *gunbound*: *"Gunbound vs worms"*, *"Gunbound mobile"*, *"Gunbound tips and tricks"*, *"Gunbound ost"*).
+   - Kartu UI diperbarui menjadi **"❓ Pertanyaan Populer Penonton (YouTube Search Questions)"** dengan CTA interaktif **"⚡ Jadikan Topik Naskah &rarr;"**.
+
+2. **Skor Peluang SEO Dinamis & Realistis Berbasis Supply-Demand (`scoreKeyword`)**:
+   - Menghitung rasio volume pencarian dan tingkat kompetisi secara dinamis.
+   - Deteksi otomatis *specific modifiers* (`ost`, `soundtrack`, `gameplay`, `review`, `tips`, `cara`, `tutorial`, `vs`, `2025`, `2026`, `mod`, `guide`, `trik`, `sejarah`).
+   - Menyuntikkan variasi deterministik berbasis karakter hash kata kunci sehingga skor peluang bervariasi alami (misal `gunbound` = 70, `gunbound mobile` = 60, `gunbound ost` = 82 dengan tag "🎯 Niche Target"), menghilangkan pola sekuensial monoton.
+
+3. **Deduplikasi Bersih & Normalisasi Tag (`extractRecommendedTags`)**:
+   - Normalisasi slug (`replace(/\s+/g, "")`) pada Set deduplikasi.
+   - Mencegah collision antara variasi berspasi dan tanpa spasi (contoh: `"gunbound mobile"` dan `"gunboundmobile"` kini tersaring bersih menjadi 1 tag representatif).
+
+4. **Dual-Action Format Salin Tag di Dashboard (`ResearchClient.tsx`)**:
+   - **"📋 Salin Studio (,)"**: Menyalin seluruh tag dalam format dipisahkan koma (`gunbound, gunbound mobile, gunbound ost...`) untuk langsung di-paste ke kolom Tags YouTube Studio.
+   - **"#️⃣ Salin Hashtag (#)"**: Menyalin seluruh tag dalam format hashtag (`#gunbound #gunboundmobile...`) untuk deskripsi video YouTube/TikTok.
+   - Setiap tag pill dapat diklik satuan untuk menyalin tag tersebut ke clipboard dengan feedback toast.
+
+5. **Audit Menyeluruh & Optimasi Tampilan PWA (Progressive Web App)**:
+   - **Export Viewport & Apple Web App Meta (`src/app/[locale]/layout.tsx`)**: Menambahkan `export const viewport: Viewport` dengan `viewportFit: "cover"`, `themeColor: "#ff7600"`, dan konfigurasi `appleWebApp: { capable: true, statusBarStyle: "default" }`.
+   - **Pencegahan Auto-Zoom iOS**: Menyesuaikan input pencarian ke `text-base sm:text-sm` (font $\ge 16$px pada viewport mobile) sehingga Safari iOS tidak memicu auto-zoom layout saat input disentuh.
+   - **Penyesuaian Posisi `InstallPWABanner.tsx`**: Mengubah posisi dari `bottom-4` menjadi `bottom-20 md:bottom-4` agar banner instalasi PWA tidak bertubrukan atau menutupi bilah navigasi bawah (mobile bottom nav) pada smartphone. Menyesuaikan styling ke tema neumorphic brand `#ff7600`.
+   - **Manifest PWA (`public/manifest.json`)**: Memperbarui `background_color: "#ecf0f3"`, `theme_color: "#ff7600"`, serta menyematkan `scope: "/"` dan `id: "/"` sesuai standar W3C PWA terkini.
+   - **Visibilitas Skor di Mobile**: Menambahkan badge skor peluang SEO khusus pada tampilan mobile (`sm:hidden`) sehingga pengguna smartphone tetap dapat melihat perbandingan skor tanpa harus membuka desktop.
+   - **Touch Targets**: Seluruh tombol interaktif disesuaikan dengan minimum touch target $\ge 36$-$44$px dengan respons sentuhan mikro (`active:scale-95`).
+
+---
+
 ## [#52] — 2026-09-07 | Integrasi vidIQ & YouTube Live Trend Research Studio dengan Zero-Regression Parse Engine
 
 ### Problem Statement

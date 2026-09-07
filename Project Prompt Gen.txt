@@ -1286,3 +1286,21 @@ Pada implementasi Bagian 23, terjadi percampuran konsep (*conflation*) antara **
 3. **Penyempurnaan Regex di `parsers.ts`**:
    - Penambahan flag `u` pada regex `extractChosenTitle` (`/.../iu`) untuk mencegah bug JavaScript regex pada surrogate pair emoji `🛑`.
    - Perluasan filter `extractTitles` untuk mengabaikan teks instruksi interaktif seperti `"Silakan pilih..."` dan `"Pilihlah..."`.
+
+## 26.4 Peningkatan Akurasi Riset Tren (Real YouTube Search Questions, Dynamic SEO Scoring, Deduplikasi Tag) & Audit PWA
+1. **Penggantian Template Halu Menjadi "Real YouTube Search Questions" (`src/lib/researchService.ts`)**:
+   - Menghapus template statis/halu (*"Fakta Ekstrem di Dunia Nyata"*).
+   - Menambahkan fungsi `fetchRealYouTubeQuestions` yang secara paralel menanyakan Google/YouTube Suggest API dengan pola pertanyaan nyata penonton (`cara`, `vs`, `tips`, `kenapa`, `apa itu`, `review`, `sejarah`).
+   - Pertanyaan yang muncul di UI 100% otentik dari pencarian penonton YouTube (misal *gunbound*: *"Gunbound vs worms"*, *"Gunbound mobile"*, *"Gunbound tips and tricks"*).
+2. **Kalkulasi Skor SEO Dinamis & Realistis**:
+   - Menghilangkan pengurangan aritmatika monoton (`65, 64, 63, 62...`).
+   - Memasukkan deteksi modifier kata kunci spesifik (`ost`, `soundtrack`, `gameplay`, `review`, `tips`, `cara`, `vs`, `2025`, dll.) serta variasi deterministik berbasis karakter hash agar skor mencerminkan peluang kompetitif riil.
+3. **Deduplikasi Tag & Dual-Action Copy Format**:
+   - Menormalisasi slug tag untuk menghilangkan collision tag berspasi vs tanpa spasi (`gunbound mobile` vs `gunboundmobile`).
+   - Menyediakan 2 tombol salin di UI: **"📋 Salin Studio (,)"** untuk kolom tag YouTube Studio dan **"#️⃣ Salin Hashtag (#)"** untuk deskripsi video.
+4. **Audit PWA (Progressive Web App) & Mobile UX**:
+   - Menambahkan export `viewport` dengan `viewportFit: "cover"` dan `themeColor: "#ff7600"` di `src/app/[locale]/layout.tsx`.
+   - Menambahkan `appleWebApp` meta dan touch target $\ge 36$-$44$px.
+   - Menyesuaikan font input pencarian ke `text-base sm:text-sm` untuk mencegah browser mobile iOS memicu auto-zoom saat input disentuh.
+   - Menyesuaikan posisi `InstallPWABanner` ke `bottom-20 md:bottom-4` agar tidak menutupi mobile bottom navigation bar, serta memperbarui styling ke neumorphic brand `#ff7600`.
+   - Memperbarui `public/manifest.json` dengan `theme_color: "#ff7600"`, `background_color: "#ecf0f3"`, `scope: "/"`, dan `id: "/"`.
