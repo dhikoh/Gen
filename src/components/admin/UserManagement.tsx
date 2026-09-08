@@ -32,19 +32,27 @@ function generateRandomPassword(): string {
   return Math.random().toString(36).slice(-8);
 }
 
-export default function UserManagement({ initialPlans }: { initialPlans: Plan[] }) {
+export default function UserManagement({
+  initialPlans,
+  initialUsers = [],
+  initialTotal = 0,
+}: {
+  initialPlans: Plan[];
+  initialUsers?: User[];
+  initialTotal?: number;
+}) {
   const t = useTranslations("Admin");
   const tu = useTranslations("AdminUsers");
 
-  const [users, setUsers] = useState<User[]>([]);
-  const [total, setTotal] = useState(0);
+  const [users, setUsers] = useState<User[]>(initialUsers);
+  const [total, setTotal] = useState(initialTotal);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [planFilter, setPlanFilter] = useState("");
   const [page, setPage] = useState(1);
   const pageSize = 20;
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(initialUsers.length === 0);
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [userDetail, setUserDetail] = useState<UserDetail | null>(null);
@@ -70,7 +78,7 @@ export default function UserManagement({ initialPlans }: { initialPlans: Plan[] 
       params.set("page", page.toString());
       params.set("pageSize", pageSize.toString());
       const res = await fetch(`/api/admin/users?${params.toString()}`);
-      if (res.ok) { const data = await res.json(); setUsers(data.users); setTotal(data.total); }
+      if (res.ok) { const data = await res.json(); setUsers(data.users || []); setTotal(data.total || 0); }
     } catch (e) { console.error(e); } finally {
       setLoading(false);
     }
@@ -79,6 +87,13 @@ export default function UserManagement({ initialPlans }: { initialPlans: Plan[] 
   useEffect(() => {
     let ignore = false;
     async function load() {
+      // If we already have initial users on first load (no search/filter on page 1),
+      // avoid redundant client fetch that could overwrite or flash
+      if (initialUsers.length > 0 && page === 1 && !search && !roleFilter && !statusFilter && !planFilter) {
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
       try {
         const params = new URLSearchParams();
         if (search) params.set("search", search);
@@ -90,14 +105,20 @@ export default function UserManagement({ initialPlans }: { initialPlans: Plan[] 
         const res = await fetch(`/api/admin/users?${params.toString()}`);
         if (res.ok && !ignore) {
           const data = await res.json();
-          setUsers(data.users);
-          setTotal(data.total);
+          setUsers(data.users || []);
+          setTotal(data.total || 0);
         }
-      } catch (e) { console.error(e); }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
     }
     load();
     return () => { ignore = true; };
-  }, [page, roleFilter, statusFilter, planFilter, search, pageSize]);
+  }, [page, roleFilter, statusFilter, planFilter, search, pageSize, initialUsers.length]);
 
   const handleSearch = (e: React.FormEvent) => { e.preventDefault(); setPage(1); fetchUsers(); };
 

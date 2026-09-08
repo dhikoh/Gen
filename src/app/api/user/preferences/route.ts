@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
+import type { Prisma } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { applyRateLimit } from "@/lib/rateLimit";
@@ -31,7 +32,9 @@ const videoConfigSchema = z.object({
   includeHtmlBlog: z.boolean().optional().nullable(),
   affiliateAngle: z.boolean().optional().nullable(),
   affiliateAngleMode: z.enum(["CTA", "SOFT"]).optional().nullable(),
-}).strict();
+  targetKeywords: z.union([z.array(z.string()), z.string()]).optional().nullable(),
+  narrationModeOverride: z.string().optional().nullable(),
+}).passthrough();
 
 const imageConfigSchema = z.object({
   aspectRatio: z.string().optional(),
@@ -45,7 +48,7 @@ const imageConfigSchema = z.object({
   colorGrading: z.string().optional(),
   visualStyle: z.string().optional(),
   variations: z.number().optional(),
-}).strict();
+}).passthrough();
 
 const generatorFormStateSchema = z.object({
   type: z.enum(["VIDEO", "IMAGE"]).optional(),
@@ -61,6 +64,7 @@ const generatorFormStateSchema = z.object({
   musicPreference: z.boolean().optional(),
   sfxPreference: z.boolean().optional(),
   voPreference: z.boolean().optional(),
+  narrationModeOverride: z.string().optional().nullable(),
   cameraMovementEnabled: z.boolean().optional(),
   cameraMovementPresets: z.array(z.string()).optional(),
   cameraMovementCustom: z.string().max(300).optional(),
@@ -76,7 +80,7 @@ const generatorFormStateSchema = z.object({
   generatedPrompt: z.string().max(50000).optional(),
   aiResultJson: z.string().max(50000).optional(),
   manualTitle: z.string().max(300).optional(),
-}).strict();
+}).passthrough();
 
 const scenePromptStateSchema = z.object({
   rawText: z.string().max(150000).optional(),
@@ -167,7 +171,7 @@ export async function PUT(req: Request) {
 
     const updatedUser = await prisma.user.update({
       where: { id: session.user.id },
-      data: { generatorPreferences: merged },
+      data: { generatorPreferences: merged as unknown as Prisma.InputJsonValue },
     });
 
     return NextResponse.json({
