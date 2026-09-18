@@ -17,7 +17,7 @@ export default function DraftActions({ draftId, rawJson, locale }: { draftId: st
       try {
         const parsed = JSON.parse(rawJson);
         formattedJson = JSON.stringify(parsed, null, 2);
-      } catch (e) {
+      } catch {
         // keep as is
       }
       const blob = new Blob([formattedJson], { type: "application/json;charset=utf-8" });
@@ -30,7 +30,7 @@ export default function DraftActions({ draftId, rawJson, locale }: { draftId: st
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       toast.success(t("downloadSuccess"));
-    } catch (err) {
+    } catch {
       toast.error(t("downloadError"));
     }
   };

@@ -51,7 +51,7 @@ export default async function GeneratorPage({ params }: { params: Promise<{ loca
         </p>
       </div>
 
-      <Suspense fallback={<div className="p-8 text-center text-sm text-slate-500">Memuat Generator Studio...</div>}>
+      <Suspense fallback={<div className="p-8 text-center text-sm pg-text-muted">{t('loadingStudio')}</div>}>
         <GeneratorForm channels={channels} promptSettings={promptSettings} planFeatures={planFeatures} />
       </Suspense>
     </div>

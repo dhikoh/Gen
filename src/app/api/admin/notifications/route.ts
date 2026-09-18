@@ -3,23 +3,25 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
+import { getClientIp, applyRateLimit } from "@/lib/rateLimit";
 
-export async function GET() {
+export async function GET(req: Request) {
   const t = await getApiTranslator();
   try {
     const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== "SUPERADMIN") {
+    if (!session) {
       return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
     }
+    if (session.user.role !== "SUPERADMIN") {
+      return NextResponse.json({ error: t("forbidden") }, { status: 403 });
+    }
 
-    // Superadmins can see all system-wide notifications they received.
-    // In our system, notifyAllSuperadmins sends notifications to all superadmins.
-    // If they want to see all user notifications, we can fetch all, 
-    // but typically they just need what's addressed to them or broadcasts.
-    // Let's fetch all notifications where the user is a superadmin, 
-    // OR just fetch all notifications in the system if they want a global view.
-    // The prompt says "Semua notifikasi platform untuk admin", let's fetch all.
-    
+    const ip = getClientIp(req);
+    const isAllowed = await applyRateLimit(`admin_notifications_get_${session.user.id}_${ip}`, 60, 60);
+    if (!isAllowed) {
+      return NextResponse.json({ error: t("tooManyRequests") }, { status: 429 });
+    }
+
     const notifications = await prisma.notification.findMany({
       orderBy: { createdAt: "desc" },
       take: 100,

@@ -95,9 +95,14 @@ model User {
   id                    String              @id @default(cuid())
   name                  String
   username              String              @unique
+  usernameLower         String?             @unique
   email                 String              @unique
+  emailLower            String?             @unique
   phoneNumber           String?
+  phoneNormalized       String?             @unique
   passwordHash          String
+  mustChangePassword    Boolean             @default(false)
+  passwordChangedAt     DateTime?
   dateOfBirth           DateTime?
   role                  Role                @default(USER)
   registrationStatus    RegistrationStatus  @default(APPROVED)
@@ -109,6 +114,8 @@ model User {
   currentPlan           Plan?               @relation(fields: [currentPlanId], references: [id])
   subscriptionStatus    SubscriptionStatus  @default(INACTIVE)
   subscriptionExpiresAt DateTime?
+  pendingPlanId         String?
+  pendingPlanEffectiveAt DateTime?
 
   generatorPreferences  Json?
 
@@ -132,6 +139,8 @@ model Plan {
   priceMonthly          Int      // dalam Rupiah utuh, tanpa desimal
   currency              String   @default("IDR")
   maxChannels           Int
+  periodDays            Int      @default(30)
+  trialDays             Int      @default(0)
   features              Json?    // contoh: { "imagePromptStudio": true, "htmlBlogExport": true }
   isActive              Boolean  @default(true)
   isPubliclyPurchasable Boolean  @default(true)
@@ -225,6 +234,7 @@ model Draft {
   estimatedDurationSec Int?
   durationSource       String?
   isTemplate           Boolean   @default(false)
+  isStub               Boolean   @default(false)
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 }
@@ -392,5 +402,36 @@ model ContentArchetype {
   updatedAt               DateTime         @updatedAt
 
   channels                ProfileChannel[]
+}
+
+model AdminAuditLog {
+  id         String   @id @default(cuid())
+  actorId    String
+  action     String
+  targetType String
+  targetId   String?
+  beforeData Json?
+  afterData  Json?
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId])
+  @@index([action])
+  @@index([targetType, targetId])
+}
+
+model EmailLog {
+  id           String   @id @default(cuid())
+  userId       String?
+  recipient    String
+  subject      String
+  templateType String
+  status       String   // "SUCCESS" | "FAILED"
+  error        String?  @db.Text
+  attempts     Int      @default(1)
+  createdAt    DateTime @default(now())
+
+  @@index([recipient])
+  @@index([status])
 }
 

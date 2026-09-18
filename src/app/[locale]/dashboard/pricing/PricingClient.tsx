@@ -38,7 +38,7 @@ export default function PricingClient({ plans, locale }: { plans: PricingPlanDto
  toast.error(data.error || t('systemError'));
  setLoading(null);
  }
- } catch (error) {
+ } catch {
  toast.error(t('networkError'));
  setLoading(null);
  }

@@ -2,10 +2,11 @@ import { getApiTranslator } from "@/lib/apiI18n";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
-import { applyRateLimit } from "@/lib/rateLimit";
+import { getClientIp, applyDualRateLimit } from "@/lib/rateLimit";
 import crypto from "crypto";
 import { sendEmail } from "@/lib/email";
-import { getBaseEmailTemplate } from "@/lib/emailTemplates";
+import { getBaseEmailTemplate, escapeHtml } from "@/lib/emailTemplates";
+import { logEmailDelivery } from "@/lib/emailLog";
 
 const forgotPasswordSchema = z.object({
   identifier: z.string().min(1, "Identifier is required"),
@@ -14,14 +15,7 @@ const forgotPasswordSchema = z.object({
 export async function POST(req: Request) {
   const t = await getApiTranslator();
   try {
-    
     const body = await req.json();
-    const identifierStr = typeof body.identifier === 'string' ? body.identifier.toLowerCase() : 'unknown';
-    const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
-    const isAllowed = await applyRateLimit(`forgot_pw_${ip}_${identifierStr}`, 3, 60 * 15); // 3 requests per 15 minutes
-    if (!isAllowed) {
-      return NextResponse.json({ error: t("authRateLimit") }, { status: 429 });
-    }
     const parsedData = forgotPasswordSchema.safeParse(body);
 
     if (!parsedData.success) {
@@ -29,10 +23,27 @@ export async function POST(req: Request) {
     }
 
     const { identifier } = parsedData.data;
+    const normIdentifier = identifier.trim().toLowerCase();
+    const ip = getClientIp(req);
+
+    // Dual rate limit: IP bucket (max 10 requests / 15 min), identifier bucket (max 3 requests / 15 min)
+    const isAllowed = await applyDualRateLimit(
+      "forgot_password",
+      ip,
+      normIdentifier,
+      3,
+      15 * 60
+    );
+
+    if (!isAllowed) {
+      return NextResponse.json({ error: t("authRateLimit") }, { status: 429 });
+    }
 
     const user = await prisma.user.findFirst({
       where: {
         OR: [
+          { emailLower: normIdentifier },
+          { usernameLower: normIdentifier },
           { email: { equals: identifier, mode: "insensitive" } },
           { username: { equals: identifier, mode: "insensitive" } }
         ]
@@ -40,8 +51,8 @@ export async function POST(req: Request) {
     });
 
     if (user) {
-      const token = crypto.randomBytes(32).toString('hex');
-      const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+      const token = crypto.randomBytes(32).toString("hex");
+      const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
       const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
       await prisma.passwordResetToken.create({
@@ -54,29 +65,36 @@ export async function POST(req: Request) {
 
       const { cookies } = await import("next/headers");
       const cookieStore = await cookies();
-      const locale = cookieStore.get('NEXT_LOCALE')?.value || 'id';
+      const locale = cookieStore.get("NEXT_LOCALE")?.value || "id";
       const resetUrl = `${process.env.NEXTAUTH_URL}/${locale}/auth/reset-password?token=${token}`;
       
       const { getTranslations } = await import("next-intl/server");
-      const tEmail = await getTranslations({ locale, namespace: 'Emails' });
+      const tEmail = await getTranslations({ locale, namespace: "Emails" });
 
-      await sendEmail({
+      const emailResult = await sendEmail({
         to: user.email,
-        subject: tEmail('resetSubject'),
+        subject: tEmail("resetSubject"),
         html: getBaseEmailTemplate(`
-          <h2>${tEmail('resetSubject')}</h2>
-          <p>${tEmail('resetGreeting')}</p>
-          <p>${tEmail('resetInstruction')}</p>
+          <h2>${tEmail("resetSubject")}</h2>
+          <p>${tEmail("resetGreeting")}</p>
+          <p>${tEmail("resetInstruction")}</p>
           <div class="button-container">
-            <a href="${resetUrl}" class="button">${tEmail('resetButton')}</a>
+            <a href="${escapeHtml(resetUrl)}" class="button">${tEmail("resetButton")}</a>
           </div>
-          <p>${tEmail('resetIgnore')}</p>
-          <p>${tEmail('resetExpiry')}</p>
-        `, tEmail('resetSubject'))
+          <p>${tEmail("resetIgnore")}</p>
+          <p>${tEmail("resetExpiry")}</p>
+        `, tEmail("resetSubject"))
+      });
+
+      await logEmailDelivery({
+        recipient: user.email,
+        templateName: "PASSWORD_RESET",
+        status: emailResult.success ? "DELIVERED" : "FAILED",
+        errorDetails: emailResult.error
       });
     }
 
-    // Always return success
+    // Always return success to prevent username enumeration
     return NextResponse.json({ success: true, message: t("resetLinkSent") }, { status: 200 });
 
   } catch (error) {

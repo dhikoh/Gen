@@ -11,7 +11,28 @@ export async function enforceChannelLimits(userId: string, tx?: Prisma.Transacti
 
   if (!user) return;
 
-  const maxChannels = user.currentPlan?.maxChannels || 1;
+  const now = new Date();
+  const isSubscriptionActive =
+    user.subscriptionStatus === "ACTIVE" &&
+    user.subscriptionExpiresAt !== null &&
+    user.subscriptionExpiresAt > now;
+
+  let maxChannels = 1;
+
+  if (isSubscriptionActive && user.currentPlan) {
+    maxChannels = user.currentPlan.maxChannels ?? 1;
+  } else {
+    // P0-7: Saat langganan kadaluarsa atau inaktif, kunci channel sesuai batas paket gratis
+    const freePlan = await db.plan.findFirst({
+      where: {
+        OR: [
+          { code: "DEMO" },
+          { priceMonthly: 0 }
+        ]
+      }
+    });
+    maxChannels = freePlan?.maxChannels ?? 1;
+  }
 
   const channels = await db.profileChannel.findMany({
     where: { userId },

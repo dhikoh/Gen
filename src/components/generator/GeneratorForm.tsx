@@ -16,22 +16,6 @@ interface ProductItem {
  link?: string | null;
 }
 
-interface PlatformOptionItem {
- id: string;
- label: string;
-}
-
-interface PersonaPresetItem {
- id: string;
- label: string;
- description?: string | null;
-}
-
-interface VisualAestheticItem {
- id: string;
- label: string;
-}
-
 interface GeneratorFormChannel {
   id: string;
   channelName: string;
@@ -86,12 +70,10 @@ export default function GeneratorForm({
  const [channelId, setChannelId] = useState(channels.length > 0 ? channels[0].id : "");
  const [topic, setTopic] = useState("");
  const [targetKeywords, setTargetKeywords] = useState<string[]>([]);
- const [newKeywordInput, setNewKeywordInput] = useState("");
  const [outputLanguage, setOutputLanguage] = useState("Indonesian");
  const [additionalContext, setAdditionalContext] = useState("");
  const [loading, setLoading] = useState(false);
  const [error, setError] = useState<string | null>(null);
- const [result, setResult] = useState<string>("");
 
  // Sync with URL search params from Research Studio (e.g. ?topic=...&keywords=...&channelId=...)
  useEffect(() => {
@@ -228,7 +210,6 @@ export default function GeneratorForm({
  ],
  },
  ];
- const ALL_CAMERA_PRESETS = CAMERA_MOVEMENT_CATEGORIES.flatMap(c => c.items);
 
  // Quick Add Product Modal state
  const [showProductModal, setShowProductModal] = useState(false);
@@ -549,7 +530,6 @@ export default function GeneratorForm({
 
  setLoading(true);
  setError(null);
- setResult("");
  setManualTitle("");
 
  const selectedChannel = channels.find((c) => c.id === channelId);
@@ -615,7 +595,7 @@ export default function GeneratorForm({
  setStep(2);
  }
  }
- } catch (err) {
+ } catch {
  setError(t("networkError"));
  } finally {
  setLoading(false);
@@ -660,13 +640,12 @@ export default function GeneratorForm({
  const data = await res.json();
 
  if (res.ok) {
- setResult(t("draftSavedSuccess"));
  toast.success(t("draftSavedSuccess"));
  router.push(`/${document.documentElement.lang || "id"}/dashboard/drafts`);
  } else {
  setError(data.error || t("saveDraftFail"));
  }
- } catch (err) {
+ } catch {
  setError(t("serverError"));
  } finally {
  setSaving(false);
@@ -688,7 +667,7 @@ export default function GeneratorForm({
  null,
  2
  );
- } catch (e) {
+ } catch {
  jsonString = generatedPrompt;
  }
  } else {
@@ -696,7 +675,7 @@ export default function GeneratorForm({
  try {
  const parsed = JSON.parse(jsonString);
  jsonString = JSON.stringify(parsed, null, 2);
- } catch (e) {
+ } catch {
  // Keep raw text
  }
  }

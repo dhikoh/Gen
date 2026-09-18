@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcrypt";
 import { z } from "zod";
-import { applyRateLimit } from "@/lib/rateLimit";
+import { getClientIp, applyDualRateLimit } from "@/lib/rateLimit";
 import { notifyAllSuperadmins } from "@/lib/notifications";
 
 const registerSchema = z.object({
@@ -44,10 +44,9 @@ export async function POST(req: Request) {
     const userLocale = cookieStore.get('NEXT_LOCALE')?.value || 'id';
     
     const body = await req.json();
-    const emailStr = typeof body.email === 'string' ? body.email.toLowerCase() : 'unknown';
-    const rawIp = req.headers.get("x-forwarded-for") || "127.0.0.1";
-    const ip = rawIp.split(",")[0].trim();
-    const isAllowed = await applyRateLimit(`register_${ip}_${emailStr}`, 10, 60 * 60); // 10 registers per hour per IP+email
+    const emailStr = typeof body.email === 'string' ? body.email.toLowerCase().trim() : 'unknown';
+    const ip = getClientIp(req);
+    const isAllowed = await applyDualRateLimit("register", ip, emailStr, 10, 60 * 60); // 10 per hour dual bucket
     if (!isAllowed) {
       return NextResponse.json({ error: t("registerRateLimit") }, { status: 429 });
     }
@@ -68,10 +67,17 @@ export async function POST(req: Request) {
       audioBGM, audioSFX, audioVO, socialLinks
     } = parsedData.data;
 
-    // Case-insensitive check
+    const emailLower = email.toLowerCase().trim();
+    const usernameLower = username.toLowerCase().trim();
+    const phoneNormalized = phoneNumber ? phoneNumber.trim().replace(/[^\d+]/g, '') : null;
+
+    // Case-insensitive & normalized uniqueness check (P0-8)
     const existingUser = await prisma.user.findFirst({
       where: {
         OR: [
+          { emailLower },
+          { usernameLower },
+          ...(phoneNormalized ? [{ phoneNormalized }] : []),
           { email: { equals: email, mode: "insensitive" } },
           { username: { equals: username, mode: "insensitive" } },
           ...(phoneNumber ? [{ phoneNumber }] : [])
@@ -80,10 +86,10 @@ export async function POST(req: Request) {
     });
 
     if (existingUser) {
-      if (existingUser.email.toLowerCase() === email.toLowerCase()) {
+      if ((existingUser.emailLower && existingUser.emailLower === emailLower) || existingUser.email.toLowerCase() === emailLower) {
         return NextResponse.json({ error: t("emailUsed") }, { status: 409 });
       }
-      if (existingUser.username.toLowerCase() === username.toLowerCase()) {
+      if ((existingUser.usernameLower && existingUser.usernameLower === usernameLower) || existingUser.username.toLowerCase() === usernameLower) {
         return NextResponse.json({ error: t("usernameUsed") }, { status: 409 });
       }
       return NextResponse.json({ error: t("phoneUsed") }, { status: 409 });
@@ -97,8 +103,11 @@ export async function POST(req: Request) {
         data: {
           name,
           username,
+          usernameLower,
           email,
+          emailLower,
           phoneNumber: phoneNumber || null,
+          phoneNormalized,
           passwordHash,
           dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
           role: "USER",

@@ -49,11 +49,11 @@ export default function EditChannelClient({
   >([]);
 
   const speechRateOptions: PresetOption[] = [
-    { value: 0.25, label: "0.25 s/kata (Super Fast)" },
-    { value: 0.30, label: "0.30 s/kata (Cepat)" },
-    { value: 0.35, label: "0.35 s/kata (Normal / Standard)" },
-    { value: 0.40, label: "0.40 s/kata (Santai)" },
-    { value: 0.50, label: "0.50 s/kata (Lambat)" },
+    { value: 0.25, label: t("speechRateSuperFast") },
+    { value: 0.30, label: t("speechRateFast") },
+    { value: 0.35, label: t("speechRateNormal") },
+    { value: 0.40, label: t("speechRateRelaxed") },
+    { value: 0.50, label: t("speechRateSlow") },
   ];
 
   useEffect(() => {
@@ -196,7 +196,7 @@ export default function EditChannelClient({
       } else {
         toast.error(data.error || t("saveFail"));
       }
-    } catch (err) {
+    } catch {
       toast.error(t("networkError"));
     } finally {
       setLoading(false);
@@ -382,7 +382,7 @@ export default function EditChannelClient({
                 name="audioBGM"
                 checked={formData.audioBGM}
                 onChange={handleCheckboxChange}
-                className="rounded pg-border text-blue-600 focus:ring-blue-500"
+                className="rounded pg-border text-brand focus:ring-[var(--pg-brand)] accent-[var(--pg-brand)]"
               />
               <span>Sertakan Musik Latar (BGM)</span>
             </label>
@@ -392,7 +392,7 @@ export default function EditChannelClient({
                 name="audioSFX"
                 checked={formData.audioSFX}
                 onChange={handleCheckboxChange}
-                className="rounded pg-border text-blue-600 focus:ring-blue-500"
+                className="rounded pg-border text-brand focus:ring-[var(--pg-brand)] accent-[var(--pg-brand)]"
               />
               <span>Sertakan Efek Suara (SFX)</span>
             </label>
@@ -402,7 +402,7 @@ export default function EditChannelClient({
                 name="audioVO"
                 checked={formData.audioVO}
                 onChange={handleCheckboxChange}
-                className="rounded pg-border text-blue-600 focus:ring-blue-500"
+                className="rounded pg-border text-brand focus:ring-[var(--pg-brand)] accent-[var(--pg-brand)]"
               />
               <span>Sertakan Voice Over (VO) Prompt</span>
             </label>
@@ -461,9 +461,9 @@ export default function EditChannelClient({
           <button
             type="submit"
             disabled={loading}
-            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-lg shadow-md transition-colors disabled:opacity-50"
+            className="neu-btn-brand px-5 py-2.5 text-sm font-medium rounded-lg transition-all disabled:opacity-50"
           >
-            {loading ? t("saving") : isNew ? "Buat Channel" : t("saveChanges")}
+            {loading ? t("saving") : isNew ? t("createNew") : t("saveChanges")}
           </button>
         </div>
       </form>

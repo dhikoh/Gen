@@ -238,7 +238,7 @@ export default function AuthForm() {
           setConfirmPassword("");
         }
       }
-    } catch (err) {
+    } catch {
       setError(t('sysError'));
     } finally {
       setLoading(false);

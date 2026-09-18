@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import UploadProofClient from "./UploadProofClient";
 import { CsEscalationBanner } from "@/components/cs/CsEscalationBanner";
@@ -151,8 +152,17 @@ export default function InvoiceHistoryClient({
  {inv.status}
  </span>
  </div>
- <div className="pg-text-muted">
+ <div className="flex items-center justify-between gap-2">
+ <span className="pg-text-muted">
  {new Date(inv.createdAt).toLocaleDateString(locale === 'en' ? 'en-US' : 'id-ID')}
+ </span>
+ <Link
+ href={`/${locale}/dashboard/billing/invoices/${inv.id}`}
+ className="neu-btn px-2.5 py-1 text-xs font-medium text-[var(--pg-brand)] hover:underline inline-flex items-center gap-1"
+ title="Lihat Kuitansi"
+ >
+ 🧾 Kuitansi
+ </Link>
  </div>
  </div>
  {inv.status === "PENDING" && inv.method === "MANUAL_TRANSFER" && (

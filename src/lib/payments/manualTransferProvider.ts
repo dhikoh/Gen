@@ -18,21 +18,21 @@ export class ManualTransferProvider implements PaymentProvider {
         amount: input.amount,
         method: "MANUAL_TRANSFER",
         status: "PENDING",
-        periodDays: 30 // hardcoded for now, could fetch from plan
+        periodDays: plan.periodDays || 30 // P0-3: Baca dari plan.periodDays
       }
     });
     
     return { invoiceId: invoice.id };
   }
 
-  async verifyPayment(invoiceId: string, proofData?: string): Promise<boolean> {
+  async verifyPayment(invoiceId: string): Promise<boolean> {
     // Manual transfer relies on admin approval, so verifyPayment just checks if proof exists
     const invoice = await prisma.invoice.findUnique({ where: { id: invoiceId } });
     return !!(invoice && invoice.proofUrl);
   }
 
   getPaymentInstructions(): string {
-    return "Please transfer to our bank account and upload proof of payment.";
+    return "Silakan transfer ke rekening bank kami dan unggah bukti transfer pembayaran Anda.";
   }
 }
 
@@ -48,8 +48,11 @@ export async function activateSubscription(invoiceId: string, reviewedById: stri
     if (!invoice) throw new Error("Invoice not found");
 
     const updateResult = await tx.invoice.updateMany({
-      where: { id: invoiceId, status: "PENDING" },
-      data: { 
+      where: {
+        id: invoiceId,
+        status: "PENDING"
+      },
+      data: {
         status: "APPROVED",
         reviewedById,
         reviewedAt: new Date()
@@ -60,26 +63,48 @@ export async function activateSubscription(invoiceId: string, reviewedById: stri
       throw new Error("Invoice is no longer PENDING or already processed.");
     }
 
-    const user = await tx.user.findUnique({ where: { id: invoice.userId } });
+    const user = await tx.user.findUnique({
+      where: { id: invoice.userId },
+      include: { currentPlan: true }
+    });
     if (!user) throw new Error("User not found");
 
     const now = new Date();
     let newExpiresAt = new Date();
-    
-    // Cumulative expiry logic
-    if (user.subscriptionStatus === "ACTIVE" && user.subscriptionExpiresAt && user.subscriptionExpiresAt > now) {
+    const isCurrentlyActive = user.subscriptionStatus === "ACTIVE" && user.subscriptionExpiresAt && user.subscriptionExpiresAt > now;
+
+    if (isCurrentlyActive && user.subscriptionExpiresAt) {
       newExpiresAt = new Date(user.subscriptionExpiresAt);
     }
     newExpiresAt.setDate(newExpiresAt.getDate() + invoice.periodDays);
 
-    await tx.user.update({
-      where: { id: invoice.userId },
-      data: {
-        subscriptionStatus: "ACTIVE",
-        currentPlanId: invoice.planId,
-        subscriptionExpiresAt: newExpiresAt
-      }
-    });
+    // P1-11: Kebijakan Upgrade / Downgrade Eksplisit
+    const isDowngrade = isCurrentlyActive && user.currentPlan && (invoice.plan.priceMonthly < user.currentPlan.priceMonthly);
+
+    if (isDowngrade) {
+      // Downgrade: jadwalkan setelah masa paket aktif yang lebih tinggi habis
+      await tx.user.update({
+        where: { id: invoice.userId },
+        data: {
+          subscriptionStatus: "ACTIVE",
+          subscriptionExpiresAt: newExpiresAt,
+          pendingPlanId: invoice.planId,
+          pendingPlanEffectiveAt: new Date(user.subscriptionExpiresAt!)
+        }
+      });
+    } else {
+      // Upgrade atau perpanjangan setara: langsung naik tier dan kumulatif
+      await tx.user.update({
+        where: { id: invoice.userId },
+        data: {
+          subscriptionStatus: "ACTIVE",
+          currentPlanId: invoice.planId,
+          subscriptionExpiresAt: newExpiresAt,
+          pendingPlanId: null,
+          pendingPlanEffectiveAt: null
+        }
+      });
+    }
 
     await enforceChannelLimits(invoice.userId, tx);
 

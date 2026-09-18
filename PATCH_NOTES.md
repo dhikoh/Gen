@@ -1454,3 +1454,295 @@ Migrasi menggunakan 3-layer approach:
 - Menambal bug di backend `api/generate/route.ts` dan frontend `GeneratorPage` yang menyebabkan fitur "HTML Blog Export" terkunci meskipun sudah diaktifkan di admin.
 - Mengintegrasikan `KNOWN_PLAN_FEATURES` sebagai nilai fallback bawaan jika konfigurasi JSON `features` pada data paket lama tidak memuat flag tersebut secara spesifik.
 - Memperbaiki validasi variabel form `includeHtmlBlog` dengan skema Zod di backend.
+
+---
+
+## [#55] Batch 1: P0 Remediation — Keamanan Kritis & Financial Integrity — 2026-09-18
+
+### SECURITY & FINANCIAL INTEGRITY (P0)
+- **[P0-1] Hardcoded Superadmin Password & Seed Security Gate**:
+  - `prisma/seed.js:15-32`: Memindahkan security gate ke baris pertama fungsi `main()`. Mengharuskan variabel lingkungan `SUPERADMIN_EMAIL` dan `SUPERADMIN_SEED_PASSWORD`, memvalidasi panjang minimum 12 karakter dan menolak template rentan (`Admin123!`, `superadmin123`, dsb.). Menetapkan flag `mustChangePassword: true` dan mengisi kolom `usernameLower`/`emailLower`.
+- **[P0-2] Hidden Plan Purchase Bypass**:
+  - `src/app/api/invoice/route.ts:56-59`: Menambahkan validasi `if (!plan.isPubliclyPurchasable)` dengan respon 403 Forbidden untuk mencegah pemesanan paket non-publik oleh user biasa.
+- **[P0-3] PeriodDays & TrialDays Hardcoding**:
+  - `prisma/schema.prisma:178,212`: Menambahkan kolom `periodDays` (default 30) dan `trialDays` (default 3) pada model `Plan` serta `periodDays` pada model `Invoice`.
+  - `src/lib/payments/manualTransferProvider.ts:50-80`: Membaca durasi langsung dari `plan.periodDays || 30` saat mengaktifkan invoice.
+  - `src/app/api/admin/plans/route.ts:25-85`: Mengekspos field `periodDays` dan `trialDays` pada endpoint CRUD paket admin.
+  - `src/app/[locale]/admin/plans/AdminPlansClient.tsx:18-120`: Menambahkan input durasi hari dan trial hari pada modal Create/Edit Plan dan tampilan card list.
+- **[P0-4] Rate Limiting pada Rute Kritis & Superadmin**:
+  - `src/app/api/user/password/route.ts:20-25`: Rate limit 5 request / 15 menit dan menetapkan `passwordChangedAt = new Date()`, `mustChangePassword = false`.
+  - `src/app/api/research/trends/route.ts:16-20`: Rate limit 20 request / 60 detik dan pembatasan panjang query maks 200 karakter.
+  - `src/app/api/admin/users/route.ts`, `src/app/api/admin/users/[id]/route.ts`: Rate limit GET, PATCH, DELETE.
+  - `src/app/api/admin/settings/route.ts`, `src/app/api/admin/prompt-settings/route.ts`: Rate limit konfigurasi platform.
+  - `src/app/api/admin/content-archetypes/route.ts`, `src/app/api/admin/content-archetypes/[id]/route.ts`: Rate limit manajemen archetype.
+  - `src/app/api/admin/notifications/route.ts`, `src/app/api/drafts/export/route.ts`, `src/app/api/user/invoices/route.ts`, `src/app/api/user/profile/route.ts`, `src/app/api/support/tickets/[id]/route.ts`: Diterapkan rate limiting terstandarisasi.
+- **[P0-5] Rate Limit Bypass via IP / Username Rotation (Dual-Bucket Limiter)**:
+  - `src/lib/rateLimit.ts:60-150`: Menambahkan fungsi `getClientIp(req)` yang menghormati konfigurasi `TRUSTED_PROXY === "true"`, serta fungsi `applyDualRateLimit` yang mengevaluasi bucket IP dan bucket identifier secara paralel.
+  - `src/lib/authOptions.ts:40-65`: Login dilindungi dengan `applyDualRateLimit`.
+  - `src/app/api/auth/register/route.ts:25-45`: Registrasi dilindungi dengan `applyDualRateLimit`.
+  - `src/app/api/auth/forgot-password/route.ts:28-38`: Permintaan reset password dilindungi dengan `applyDualRateLimit`.
+- **[P0-6] Stale JWT Session Invalidation**:
+  - `src/lib/authOptions.ts:109-158`: Mengimplementasikan revalidasi berkala token JWT terhadap database (> 5 menit). Sesi langsung digugurkan jika user dihapus, status registrasi non-APPROVED, atau jika `passwordChangedAt` lebih baru daripada waktu penerbitan token (`token.iat`).
+  - `src/types/next-auth.d.ts`: Menambahkan properti `mustChangePassword`, `checkedAt`, dan `passwordChangedAt` ke tipe sesi dan JWT.
+- **[P0-7] Channel Lock Expiration & Fallback Bug**:
+  - `src/lib/channelLockLogic.ts:38-75`: Memperbaiki pengecekan status langganan agar memverifikasi `subscriptionStatus === "ACTIVE"` dan `subscriptionExpiresAt > now`. Saat kadaluarsa, batas channel kembali ke batas paket gratis/demo (`demoPlan.maxChannels ?? 1`), memperbaiki bug falsy `|| 1`.
+- **[P0-8] Case-Insensitive Uniqueness (Casing Spoofing Prevention)**:
+  - `prisma/schema.prisma:100-112`: Menambahkan kolom `@unique` bernilai lowercase: `usernameLower`, `emailLower`, dan `phoneNormalized` pada model `User`.
+  - `src/lib/authOptions.ts:45-55`: Pencarian user saat autentikasi menggunakan pencocokan exact lowercase pada kolom normalisasi.
+  - `src/app/api/auth/register/route.ts:40-75`: Pengecekan duplikasi dan pembuatan akun menyimpan nilai yang dinormalisasi.
+- **[P0-9] Proof Upload Memory Flood & Base64 DoS**:
+  - `src/app/api/admin/payments/route.ts:35-80`: Menambahkan pagination (`page`, `limit`) dan filter status. Data base64 `proofUrl` dihilangkan dari list query dan digantikan dengan boolean `hasProof: Boolean(proofUrl)`.
+  - `src/app/api/admin/payments/[id]/proof/route.ts:1-75`: Endpoint baru untuk superadmin yang mengalirkan file binary murni hasil decode base64 dengan header `X-Content-Type-Options: nosniff`, `Content-Security-Policy: default-src 'none'`, dan caching private.
+  - `src/app/[locale]/admin/payments/AdminPaymentsClient.tsx:13-130`, `page.tsx:24-35`: Disesuaikan untuk menggunakan `hasProof` dan membuka bukti melalui URL endpoint binary aman.
+- **[P0-10] Arbitrary Proof File Upload (Magic Byte Verification)**:
+  - `src/app/api/invoice/upload/route.ts:40-60`: Menambahkan validasi server-side decoding base64 dan verifikasi magic byte murni: JPEG (`0xFF, 0xD8, 0xFF`) dan PNG (`0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A`), memblokir MIME spoofing dan file script berbahaya.
+- **[P0-11] HTML Injection pada Email Transaksional & Pengumuman**:
+  - `src/lib/emailTemplates.ts:3-10`: Mengekspor helper `escapeHtml(str)` untuk menetralkan karakter HTML berbahaya.
+  - `src/app/api/admin/payments/route.ts`, `src/app/api/admin/registrations/route.ts`, `src/app/api/auth/forgot-password/route.ts`, `src/app/api/admin/announcements/route.ts`: Seluruh interpolasi variabel pengguna ke dalam email dan notifikasi disanitasi dengan `escapeHtml`.
+
+### AUDIT LOGGING & OBSERVABILITY (B-1 & P1-12)
+- `src/lib/auditLog.ts`: Helper `logAdminAction` untuk mencatat aktivitas admin ke model `AdminAuditLog`.
+- `src/lib/emailLog.ts`: Helper `logEmailDelivery` untuk mencatat riwayat dan status pengiriman email ke model `EmailLog`.
+- `prisma/migrations/20260918_audit_remediation/migration.sql`: Script migrasi SQL mencakup seluruh penambahan model dan kolom baru.
+
+### BUILD & VERIFIKASI
+- `npx tsc --noEmit`: Exit 0 (Zero TypeScript errors)
+- `npm run lint`: Exit 0 (0 errors, 37 non-blocking unused var warnings)
+- `npm run build`: Exit 0 (Seluruh 40 halaman dan 49 rute API berhasil terkompilasi)
+
+---
+
+## [#56] Batch 2: P1 Remediation — Fungsionalitas, Workflow, & Integritas Data — 2026-09-18
+
+### WORKFLOW & FUNCTIONAL GAPS (P1)
+- **[P1-1 & P1-8] Settings Navigation & Superadmin Dashboard Access**:
+  - `src/app/[locale]/dashboard/layout.tsx:12-45`: Menambahkan link Settings (`/dashboard/settings`, ⚙️) pada menu navigasi desktop. Mengubah guard role menjadi `requireRole(["USER", "SUPERADMIN"], locale)` agar superadmin dapat mengakses dan menguji seluruh fitur studio/dashboard pengguna tanpa diblokir; menampilkan banner/tombol shortcut "Admin Panel" untuk mempermudah navigasi kembali.
+  - `src/components/layout/MobileDashboardNav.tsx:30-65`: Menambahkan item menu Pengaturan pada drawer navigasi mobile.
+- **[P1-2] Guest Support Ticket Email Dispatch**:
+  - `src/app/api/support/tickets/[id]/messages/route.ts:50-85`: Ketika admin membalas tiket support guest, sistem otomatis mengirimkan email balasan ke `guestEmail` dengan isi pesan balasan dan tautan akses langsung ke tiket, serta mencatat aktivitas ke `EmailLog` dan `AdminAuditLog`.
+- **[P1-3] Draft Overwrite Prevention**:
+  - `src/app/api/drafts/route.ts:180-195`: Logika update draft hanya mencocokkan baris stub (`isStub: true`). Draft yang sudah selesai ditulis/digenerate tidak akan pernah ditimpa meskipun memiliki judul yang sama; draft baru dibuat secara independen dan properti `isTemplate` selalu dipertahankan.
+- **[P1-4] Subscription Guarding pada Drafts & Titles**:
+  - `src/app/api/drafts/route.ts:40-42`, `src/app/api/drafts/import-titles/route.ts:60-66`: Memetakan `SubscriptionInactiveError` menjadi HTTP 403 Forbidden dengan pesan terstandarisasi `t("subscriptionInactive")`.
+- **[P1-5] Narration Mode Integration in Draft Estimation**:
+  - `src/app/api/drafts/route.ts:140-165`: Menerima `narrationMode` dari body request, memprioritaskannya di atas archetype channel untuk penentuan kalkulasi durasi dan jumlah kata.
+- **[P1-6] Dynamic Archetype Composition Category Validation**:
+  - `src/app/api/generate/route.ts:80-95, 250-290`: Menghapus validasi refine statis `education === 0 && entertainment === 0 && marketing === 0`. Memvalidasi komposisi secara dinamis setelah archetype channel di-resolve: memeriksa ketersediaan kategori wajib dari archetype, dan memvalidasi total 100% hanya jika archetype memang berbasis komposisi.
+- **[P1-7] Archetype Section Defaults Hierarchy**:
+  - `src/lib/promptGenerator.ts:100-115`: Menyempurnakan pembacaan seksi hook/CTA/caption/thumbnail agar menghormati konfigurasi `defaultIncludedSections` dari archetype sebelum beralih ke fallback default `true`.
+- **[P1-9] DoS & Payload Overflow Protection**:
+  - `src/app/api/drafts/import-titles/route.ts:20-55`: Membatasi muatan request maksimum 1MB (`Content-Length`), dan membatasi impor maksimum 1000 judul per permintaan.
+  - `src/app/api/drafts/route.ts:15-25`: Membatasi `rawJson` maksimum 500.000 karakter dan `title` maksimum 500 karakter pada Zod schema.
+- **[P1-10] Drafts Offset Pagination & Lean Metadata**:
+  - `src/app/api/drafts/route.ts:220-280`: Menambahkan pagination query (`page`, `limit`) pada endpoint `GET /api/drafts` dengan `select` metadata ramping tanpa menarik seluruh field besar `rawJson` pada tampilan daftar.
+- **[P1-13] Strict Enum Parameter Validation & Standardized IP Handling**:
+  - `src/app/api/support/tickets/route.ts`: Memvalidasi parameter `status` menggunakan `z.nativeEnum(SupportTicketStatus)`.
+  - `src/app/api/notifications/route.ts`: Memvalidasi parameter `type` menggunakan `z.nativeEnum(NotificationType).or(z.literal("ALL"))`.
+  - `src/app/api/channels/route.ts`: Menggunakan `getClientIp(req)` dan menambahkan rate limiting pada endpoint `GET`.
+- **[P1-14] Boundary-Safe Banned Words Scanning**:
+  - `src/app/api/generate/route.ts:120-145`: Memindai seluruh input (`topic`, `additionalContext`, `keywords`, `visualStyle`, `customHookText`, `cameraMovementCustom`) terhadap kata terlarang menggunakan regex boundary-safe `(^|\\W)...($|\\W)` untuk mencegah false positive pada substring.
+- **[P1-15] Server-Side Sanitization**:
+  - `src/app/api/drafts/route.ts:70-80`: Melakukan sanitasi `parsedData.html_blog` menggunakan `sanitize-html` di server sebelum disimpan ke database.
+  - `src/app/api/drafts/import-titles/route.ts:80-90`: Membersihkan karakter kontrol ASCII dan membatasi panjang tiap judul maksimal 500 karakter.
+
+### BUILD & VERIFIKASI
+- `npx tsc --noEmit`: Exit 0 (Zero TypeScript errors)
+- `npm run lint`: Exit 0 (0 errors, 35 non-blocking unused var warnings)
+- `npm run build`: Exit 0 (Seluruh 40 halaman dan 49 rute API berhasil terkompilasi)
+
+---
+
+## [#57] Batch 3: Systemic Sweeps S-1 (Routes), S-2 (APIs), S-3 (Prisma Models) — 2026-09-18
+
+### SYSTEMIC SWEEPS & ARCHITECTURAL RECONCILIATION
+- **[S-1] Orphan Route Sweep (27 Page Routes)**:
+  - Audit menyeluruh terhadap seluruh 27 halaman di bawah `src/app/[locale]/`. Terbukti 100% halaman (27/27) memiliki minimal 1 tautan navigasi aktif (desktop sidebar, mobile drawer, action links, atau breadcrumbs).
+  - Menambahkan link langsung `Pilihan Paket` (`/${locale}/dashboard/pricing`, 💎) pada `navLinks` desktop layout (`src/app/[locale]/dashboard/layout.tsx:34`) dan `DRAWER_ITEMS` mobile nav (`src/components/layout/MobileDashboardNav.tsx:59`) agar pengguna dapat mengakses paket langganan secara instan dengan 1 klik dari mana saja.
+- **[S-2] Orphan API Sweep (49 API Endpoints)**:
+  - Audit seluruh 49 file `route.ts` di bawah `src/app/api/`. Terkonfirmasi 48 endpoint aktif memiliki pemanggil di frontend atau fungsionalitas sistem (stream/cron/webhook). Satu endpoint tanpa pemanggil adalah `/api/support/settings`, yang memang berstatus `@deprecated` dan dipertahankan untuk backward compatibility setelah migrasi ke `/api/cs/contact-info`.
+  - Penegasan batas arsitektur antara `/api/content-archetypes` (endpoint read-only publik untuk pengguna terautentikasi saat mengonfigurasi channel, kini dilengkapi dengan `applyRateLimit`) vs `/api/admin/content-archetypes` (endpoint CRUD manajemen lengkap dengan channel relation count, auditing, dan proteksi role SUPERADMIN).
+- **[S-3] Orphan Prisma Model & Field Sweep (21 Models)**:
+  - Audit seluruh 21 model Prisma. Semua model memiliki jalur baca dan tulis aktif di aplikasi.
+  - Bidang `Invoice.externalRef`, `Plan.currency`, dan `Invoice.currency` didokumentasikan statusnya (eksplisit dicadangkan untuk gateway otomatis masa depan dan default mata uang IDR).
+  - `Product.link`: Ditambahkan tautan visual eksternal (🔗) pada list produk channel di `src/app/[locale]/dashboard/channels/ProductsClient.tsx:181-189`.
+  - `PromptSettings.defaultSpeechRate`: Diintegrasikan ke dalam instruksi panduan tempo & kecepatan bicara pada generator naskah di `src/lib/promptGenerator.ts:571, 599-601`, serta menyelaraskan interface `ProfileChannelData` dengan schema Prisma.
+
+### BUILD & VERIFIKASI
+- `npx tsc --noEmit`: Exit 0 (Zero TypeScript errors)
+- `npm run lint`: Exit 0 (0 errors, 35 non-blocking unused var warnings)
+- `npm run build`: Exit 0 (Seluruh 40 halaman dan 49 rute API berhasil terkompilasi)
+
+---
+
+## [#58] Batch 4: Systemic Sweeps S-4 (i18n Parity & Localization) & S-5 (Design System Enforcement) — 2026-09-18
+
+### INTERNATIONALIZATION & LOCALIZATION SWEEP (S-4)
+- **[S-4.1] Enum Localization Architecture (`src/lib/enumMapping.ts`)**:
+  - Merekonstruksi dan memperluas `src/lib/enumMapping.ts` untuk menyediakan pemetaan label dan badge terstandar bagi seluruh enum domain Prompt Gen:
+    - `SubscriptionStatus`: `ACTIVE`, `INACTIVE`, `EXPIRED`
+    - `PaymentStatus`: `PENDING`, `APPROVED`, `REJECTED`, `PAID`, `FAILED`
+    - `RegistrationStatus`: `PENDING_APPROVAL`, `APPROVED`, `REJECTED`
+    - `PlanCode`: `STANDARD`, `PRO`, `ULTRA`, `DEMO`
+    - `Role`: `SUPERADMIN`, `USER`
+    - `PaymentMethod`: `MANUAL_TRANSFER`, `AUTOMATIC_GATEWAY`
+    - `NotificationType`: 14 notifikasi sistem & transaksi
+    - `NarrationMode`: `VOICE_OVER`, `DIEGETIC_ONLY`, `SILENT_TEXT_ONLY`, `HYBRID`
+    - `DurationCalcMode`: `NARRATION_WORDCOUNT`, `SEGMENT_SELF_ESTIMATE`, `HYBRID`
+    - `DraftType`: `VIDEO`, `IMAGE`
+    - `SupportTicketStatus`: `OPEN`, `REPLIED`, `CLOSED`
+  - Seluruh fungsi helper mendukung passing fungsi `t` (`next-intl`) dengan fallback lokal, serta menghasilkan badge dengan token desain Prompt Gen resmi (`bg-[var(--pg-brand-light)]`, `text-brand`, `pg-surface-dim`, `pg-text-sub`, `pg-border`).
+- **[S-4.2] 100% Key Parity & Penambahan Namespace (`messages/id.json` & `messages/en.json`)**:
+  - Total keys meningkat dari 1.000 menjadi **1.161 keys** dengan 100% key parity (0 missing keys pada kedua bahasa).
+  - Menambahkan namespace `Enums` (seluruh enum domain terjemahan ID & EN).
+  - Menambahkan namespace `AdminArchetypes` (seluruh form, tabel, toast, dan modal manajemen model konten).
+  - Menambahkan namespace `Research` (seluruh studio riset tren, scoring SEO, metrik volume/kompetisi, dan tombol aksi).
+  - Memperluas namespace `AdminSupport`, `Admin`, `Support`, `Generator`, `Settings`, dan `Channels` untuk mengeliminasi string hardcoded.
+- **[S-4.3] Eliminasi Hardcoded Strings di Komponen UI**:
+  - `AdminArchetypesTab.tsx`: 100% string antarmuka, judul, deskripsi, form, opsi select, alert konfirmasi, dan toast notifikasi kini menggunakan `useTranslations("AdminArchetypes")` dan `useTranslations("Enums")`.
+  - `ResearchClient.tsx`: 100% string pencarian, header, label channel, pill volume/kompetisi, skor peluang, kartu pertanyaan YouTube, dan aksi salin tag kini menggunakan `useTranslations("Research")`.
+  - `AdminSupportClient.tsx`: Menambahkan `useTranslations("AdminSupport")` untuk judul halaman, subjudul, label stats counter, filter tabs ("Semua Tiket"), loading state, dan empty hint.
+  - `UserSupportClient.tsx`: Menghilangkan teks hardcoded pada label detail tiket, role admin/user ("👨‍💼 Admin Support", "👤 Anda"), serta placeholder formulir tiket baru.
+  - `AdminAnalyticsCharts.tsx`: Melokalisasi teks chart fallback ("Belum ada data..."), label tooltip "Total", dan "Jumlah".
+  - `dashboard/generator/page.tsx`: Melokalisasi fallback loading Suspense menggunakan `t('loadingStudio')`.
+  - `dashboard/settings/page.tsx`: Mengonversi Server Component menjadi async dan melokalisasi judul serta deskripsi halaman via `getTranslations({ locale, namespace: 'Settings' })`.
+  - `EditChannelClient.tsx`: Melokalisasi label speech rate options via `t("speechRateSuperFast")` s/d `t("speechRateSlow")` dan tombol buat channel via `t("createNew")`.
+  - `AdminSettingsClient.tsx`: Melokalisasi judul tab via `t("tabArchetypes")`.
+
+### DESIGN SYSTEM ENFORCEMENT & TOKEN AUDIT (S-5)
+- **[S-5.1] Migrasi Raw Color Classes ke Token Desain Prompt Gen**:
+  - Mengganti utility class Tailwind mentah (`bg-purple-600`, `hover:bg-purple-700`, `focus:ring-purple-500`, `bg-blue-600`, `text-blue-600`, `text-slate-*`) pada komponen yang disentuh dengan token CSS Variables resmi:
+    - Tombol utama: `.neu-btn-brand` dan `bg-[var(--pg-brand)]`
+    - Input & focus ring: `focus:ring-[var(--pg-brand)]` dan `.neu-input`
+    - Permukaan panel & modal: `.pg-surface`, `.pg-surface-dim`, dan `.pg-border`
+    - Tipografi: `.pg-text-heading`, `.pg-text-sub`, `.pg-text-muted`, `.text-brand`
+    - Tombol sekunder: `.neu-btn`
+    - Status pills: `bg-emerald-500/10`, `bg-amber-500/10`, `bg-rose-500/10`
+- **[S-5.2] Script Otomasi Audit (`scripts/audit-i18n.mjs` & `scripts/audit-design.mjs`)**:
+  - Dibuat script `scripts/audit-i18n.mjs` yang memvalidasi integritas JSON dan rekursi 100% key parity antara `messages/id.json` dan `messages/en.json`.
+  - Dibuat script `scripts/audit-design.mjs` yang memindai seluruh komponen UI (78 file komponen) untuk memastikan tingkat adopsi token desain di atas 80% (terkonfirmasi 1.703 kemunculan token, tingkat adopsi 87,2%).
+  - Didaftarkan sebagai npm script: `npm run audit:i18n` dan `npm run audit:design`.
+
+### BUILD & VERIFIKASI
+- `npm run audit:i18n`: Exit 0 (100% key parity, 1.161 keys pada id.json dan en.json)
+- `npm run audit:design`: Exit 0 (1.703 kemunculan token desain, tingkat adopsi 87,2%)
+- `npx tsc --noEmit`: Exit 0 (Zero TypeScript errors)
+- `npm run lint`: Exit 0 (0 errors, 35 warnings non-blocking)
+- `npm run build`: Exit 0 (Seluruh 79 rute aplikasi terkompilasi bersih)
+
+---
+
+## [#59] Batch 5: Systemic Sweeps S-6 (Type Safety), S-7 (Lint 0 Warnings), S-8 (HTTP Status 401/403) — 2026-09-18
+
+### TYPE SAFETY & LINT SWEEP (S-6, S-7)
+- **[S-6] Eliminasi 100% `as unknown as` di Seluruh Repositori**:
+  - `src/app/api/generate/route.ts:289-340`: Mengonversi casting `as unknown as ProfileChannelData` dan `as unknown as ContentArchetypeData` menjadi mapping tipe eksplisit yang aman dan terstruktur murni (`mappedChannel`, `typedArchetype`).
+  - `src/app/api/user/preferences/route.ts:174`: Mengganti `as unknown as Prisma.InputJsonValue` dengan tipe langsung `as Prisma.InputJsonValue`.
+  - `src/app/[locale]/dashboard/drafts/[id]/page.tsx:94`: Mengganti casting kasar `as unknown as DraftParsedData` dengan pemeriksaan tipe objek runtime `(draft.parsedData && typeof draft.parsedData === "object" ? draft.parsedData : {}) as DraftParsedData`.
+  - `src/app/[locale]/dashboard/pricing/page.tsx:37`: Memetakan field `features` ke `Record<string, boolean> | null` tanpa `as unknown as`.
+  - `src/lib/db.ts:3`: Mengonversi singleton Prisma global dari `global as unknown as { prisma: PrismaClient }` menjadi deklarasi TypeScript idiomatik `declare global { var prisma: PrismaClient | undefined; }`.
+  - `src/lib/env.ts:18`: Menyediakan fallback objek statis untuk fase build tanpa casting paksa `as unknown as z.infer<typeof envSchema>`.
+  - **Hasil Audit**: Total kemunculan `as unknown as` di seluruh direktori `src/` kini **0 (Nol)**.
+- **[S-7] Perbaikan Regresi Interupsi & Pembersihan Lint (0 Errors, 0 Warnings)**:
+  - Memperbaiki 7 error kompilasi TS yang terhenti akibat pembersihan otomatis sebelumnya:
+    - `src/app/[locale]/dashboard/channels/ProductsClient.tsx`: Mengembalikan parameter `err` pada fungsi `fetchProducts` dan `load`.
+    - `src/app/[locale]/dashboard/drafts/[id]/DraftActions.tsx`: Mengembalikan parameter `e` dan `error` pada blok `catch`.
+    - `src/app/api/channels/route.ts`: Mengembalikan parameter `error` pada endpoint pembuatan channel.
+    - `src/components/generator/GeneratorForm.tsx`: Menghapus pemanggilan `setResult("")` yang tertinggal.
+  - Memperbaiki peringatan unused ESLint directive pada `src/lib/db.ts`.
+  - Mengimplementasikan evaluasi dinamis prop `mode` pada `getDurationCalcModeBadge` di `src/lib/enumMapping.ts` untuk membedakan badge per mode durasi narasi.
+  - **Hasil Lint**: `npm run lint` menghasilkan **0 Errors** dan **0 Warnings** (100% clean).
+
+### STANDARISASI STATUS HTTP (S-8)
+- Menyelaraskan seluruh 12 file rute di bawah `src/app/api/admin/`:
+  - Request tanpa sesi autentikasi (`!session`): Menghasilkan status **401 Unauthorized** (`t("unauthorized")`).
+  - Request dengan sesi namun role bukan SUPERADMIN (`session.user.role !== "SUPERADMIN"`): Menghasilkan status **403 Forbidden** (`t("forbidden")`).
+  - Diperbaiki pada `src/app/api/admin/plans/route.ts` (GET, POST, PUT, DELETE) dan `src/app/api/admin/registrations/route.ts` (GET, POST).
+
+### BUILD & VERIFIKASI
+- `npx tsc --noEmit`: Exit 0 (Zero TypeScript errors)
+- `npm run lint`: Exit 0 (Zero errors, Zero warnings)
+- `npm run audit:i18n`: Exit 0 (100% key parity, 1.161 keys)
+- `npm run audit:design`: Exit 0 (87.2% design token adoption)
+- `npm run build`: Exit 0 (Seluruh 40 halaman dan 49 rute API berhasil terkompilasi bersih)
+
+---
+
+## [#60] Batch 6: Rekonsiliasi Dokumen Otoritatif (D-1 s/d D-5) — 2026-09-18
+
+### REKONSILIASI FINAL HANDOFF REPORT (D-1, D-2, D-3)
+- **[D-1] Konfigurasi Layanan Email Produksi**:
+  - Memperbarui panduan deployment pada Bagian 4 `FINAL_HANDOFF_REPORT.md` agar mencantumkan variabel lingkungan SMTP lengkap (`SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`) menggantikan klaim lama `EMAIL_PROVIDER_API_KEY`.
+- **[D-2] Eliminasi Hardcoded Seed Credentials**:
+  - Menghapus total seluruh teks referensi password default `Admin123!` dan username `admin@promptgen.com`. Menggantinya dengan panduan konfigurasi `SUPERADMIN_EMAIL` dan `SUPERADMIN_SEED_PASSWORD` (min 12 karakter) serta penegasan flag `mustChangePassword: true` pada login pertama.
+- **[D-3] Rekonsiliasi Matriks Inventaris & Status Tindak Lanjut**:
+  - Menyelaraskan matriks pengujian ke jumlah rute riil: 40 halaman dan 49 rute API (total 89 rute).
+  - Menegaskan penggunaan `sanitize-html` pada server dan dual-bucket rate limiter.
+  - Menambahkan Bagian 5 wajib: **"BELUM SELESAI / PERLU TINDAK LANJUT (FOLLOW-UP & MONITORING)"** sesuai blueprint 9.3 (kesiapan gateway otomatis masa depan, retensi arsip bukti transfer, dan skalabilitas rate limit).
+
+### REKONSILIASI BLUEPRINT (Project Prompt Gen.txt) (D-4, D-5)
+- **[D-4] Sinkronisasi Aturan Bisnis & Navigasi**:
+  - Bagian 2: Mengunci stack email transaksional resmi ke `nodemailer + Standard SMTP` terisolasi dengan `EmailLog`.
+  - Bagian 5.2: Memperbarui aturan akses RBAC di mana SUPERADMIN diizinkan mengakses `/dashboard*` untuk pengujian Studio/fitur user, dilengkapi banner kembali ke Admin Panel.
+  - Bagian 5.7.2: Memperbarui tabel paket dengan kolom `Period (Hari)`, `Trial (Hari)`, dan status `Publik` (paket DEMO berstatus non-publik dan diberikan otomatis via approval registrasi).
+  - Bagian 5.7.3 langkah 4: Mendokumentasikan endpoint pengaliran bukti transfer murni `/api/admin/payments/[id]/proof`.
+- **[D-5] Sinkronisasi Skema Database Prisma (Bagian 4)**:
+  - Memperbarui Bagian 4 `Project Prompt Gen.txt` sehingga mencerminkan seluruh **21 model riil** dan seluruh enum yang ada pada `prisma/schema.prisma` (termasuk `AdminAuditLog`, `EmailLog`, `ContentArchetype`, `UsedTitle`, `ParsedOutput`, field case-insensitive `emailLower`/`usernameLower`/`phoneNormalized`, dsb.).
+
+---
+
+## [#61] Batch 7: Kematangan Bisnis & Automated Testing (B-1 s/d B-8) — 2026-09-18
+
+### IMPLEMENTASI FITUR KEMATANGAN BISNIS (B-1 s/d B-6, B-8)
+- **[B-1] Admin Audit Log Viewer**:
+  - Endpoint `GET /api/admin/audit-logs` dengan verifikasi sesi SUPERADMIN, rate limiting, filter pencarian (`action`, `targetType`), dan paginasi.
+  - Komponen UI `AdminAuditLogsTab.tsx` yang terpasang pada `AdminSettingsClient.tsx` dengan badge status warna token, timestamp localized, dan format detail JSON payload.
+  - Penambahan translation key `tabAuditLogs` pada `messages/id.json` dan `messages/en.json`.
+- **[B-2] Email Pengingat Kadaluarsa Otomatis (Cron)**:
+  - Endpoint `POST` & `GET` `/api/cron/subscription-reminders` dilindungi `CRON_SECRET`.
+  - Mengidentifikasi langganan aktif yang akan berakhir dalam H-7 s/d H-1 atau hari ini berakhir.
+  - Deduplikasi pengiriman via tabel `EmailLog` (rentang 20 jam) untuk mencegah email berulang.
+  - Mengirimkan email notifikasi transaksional terformat profesional serta `notifyUser()` in-app.
+- **[B-3] Halaman Kuitansi Invoice Resmi Siap Cetak**:
+  - Rute `/dashboard/billing/invoices/[id]/page.tsx` dan komponen `PrintableInvoiceClient.tsx`.
+  - Layout kuitansi bersih dan profesional dengan trigger `window.print()`, metadata invoice lengkap, rincian paket, nomor referensi, status lunas, dan stempel digital.
+  - Integrasi tombol aksi "🧾 Kuitansi" pada `InvoiceHistoryClient.tsx`.
+- **[B-4] Hapus Akun & Ekspor Data Pribadi (GDPR/Compliance)**:
+  - Endpoint `DELETE /api/user/profile`: Menghapus data akun secara aman dengan verifikasi password bcrypt, mengunci login selanjutnya, dan mencatat audit log.
+  - Endpoint `GET /api/user/data-export`: Menghasilkan bundle arsip JSON lengkap berisi profil, channel, produk, draft, dan riwayat invoice pengguna.
+- **[B-5] Health Check System (`/api/health`)**:
+  - Endpoint `GET /api/health` memeriksa konektivitas database via query ping `prisma.$queryRaw(SELECT 1)`, mengukur latency koneksi milidetik, konsumsi memori, dan status kesehatan layanan platform.
+- **[B-6] Onboarding Checklist Widget**:
+  - Widget interaktif di dashboard utama (`src/app/[locale]/dashboard/page.tsx`) yang membimbing pengguna baru: 1. Membuat Channel Pertama -> 2. Menghasilkan Konten di Studio -> 3. Mengatur Langganan.
+  - Desain dinamis dengan progress bar persentase dan navigasi langsung ke halaman terkait.
+- **[B-8] Kebijakan Retensi Bukti Transfer (Transfer Proof Retention Cron)**:
+  - Endpoint `POST` & `GET` `/api/cron/cleanup-proofs` dilindungi `CRON_SECRET`.
+  - Mendukung parameter retensi dinamis `days` (default: 180 hari) dan mode simulasi `dryRun=true`.
+  - Mengosongkan data base64 `proofUrl` pada invoice berstatus `APPROVED` atau `REJECTED` yang telah melewati masa retensi untuk efisiensi penyimpanan dan kepatuhan privasi, serta mencatat tindakan di `AdminAuditLog`.
+
+### AUTOMATED UNIT TESTING (B-7)
+- **Pemasangan Test Runner**:
+  - Pemasangan `vitest` v3.2.7 yang kompatibel penuh dengan Node 20/22 dan konfigurasi `@/*` path alias via `vitest.config.mts`.
+  - Menambahkan script `"test": "vitest run"` pada `package.json`.
+- **Rangkaian Test Suite (6 File, 38 Test Cases, 100% Pass Rate)**:
+  - `tests/enumMapping.test.ts`: 9 pengujian untuk pemetaan label & badge badge warna seluruh enum status domain.
+  - `tests/rateLimit.test.ts`: 7 pengujian untuk ekstraksi IP client, single-bucket rate limit, dan dual-bucket protection.
+  - `tests/subscription.test.ts`: 7 pengujian untuk kalkulasi status langganan, auto-downgrade pending plan, dan bypass SUPERADMIN.
+  - `tests/channelLockLogic.test.ts`: 4 pengujian untuk penguncian channel berlebih sesuai kuota paket dan fallback demo.
+  - `tests/planFeatures.test.ts`: 5 pengujian untuk evaluasi feature flags, fail-open policy, dan bypass SUPERADMIN.
+  - `tests/parsers.test.ts`: 6 pengujian untuk utilitas pembersihan markdown, ekstraksi thumbnail data, dan sanitasi output generator.
+
+### BUILD & VERIFIKASI AKHIR BATCH 7
+- `npx tsc --noEmit`: Exit 0 (Zero TypeScript errors)
+- `npm run lint`: Exit 0 (Zero errors, Zero warnings)
+- `npm run audit:i18n`: Exit 0 (100% key parity, 1.162 keys)
+- `npm run audit:design`: Exit 0 (86.4% design token adoption, 1.833 occurrences)
+- `npm test`: Exit 0 (6 test suites passed, 38/38 unit tests passed 100%)
+- `npm run build`: Exit 0 (Seluruh 45 halaman dan 55 rute API berhasil terkompilasi bersih di Next.js 16.3.1 Turbopack)
+
+
+
+
+
+
+
+

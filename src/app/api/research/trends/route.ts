@@ -3,12 +3,21 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { performKeywordResearch } from "@/lib/researchService";
+import { getClientIp, applyRateLimit } from "@/lib/rateLimit";
+import { getApiTranslator } from "@/lib/apiI18n";
 
 export async function GET(req: NextRequest) {
+  const t = await getApiTranslator();
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
+    }
+
+    const ip = getClientIp(req);
+    const isAllowed = await applyRateLimit(`research_trends_${session.user.id}_${ip}`, 20, 60);
+    if (!isAllowed) {
+      return NextResponse.json({ error: t("tooManyRequests") }, { status: 429 });
     }
 
     const { searchParams } = new URL(req.url);
@@ -40,6 +49,11 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    // Limit maximum query length to prevent abuse
+    if (query.length > 200) {
+      query = query.substring(0, 200);
+    }
+
     const result = await performKeywordResearch(query);
 
     return NextResponse.json({
@@ -49,7 +63,7 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     console.error("Research API error:", error);
     return NextResponse.json(
-      { error: "Gagal mengambil data riset tren" },
+      { error: t("systemError") },
       { status: 500 }
     );
   }

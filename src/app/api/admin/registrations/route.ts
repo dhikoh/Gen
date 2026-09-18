@@ -6,12 +6,14 @@ import { RegistrationStatus } from "@prisma/client";
 import { getApiTranslator } from "@/lib/apiI18n";
 import { getTranslations } from "next-intl/server";
 import { sendEmail } from "@/lib/email";
-import { getBaseEmailTemplate } from "@/lib/emailTemplates";
+import { getBaseEmailTemplate, escapeHtml } from "@/lib/emailTemplates";
 import { notifyUser } from "@/lib/notifications";
 import { enforceChannelLimits } from "@/lib/channelLockLogic";
+import { applyRateLimit, getClientIp } from "@/lib/rateLimit";
+import { logAdminAction } from "@/lib/auditLog";
+import { logEmailDelivery } from "@/lib/emailLog";
 import { z } from "zod";
 
-// 4.4 fix: Explicit Zod schema replacing manual string checks
 const registrationActionSchema = z.object({
   userId: z.string().min(1),
   action: z.enum(["APPROVE", "REJECT"]),
@@ -21,17 +23,28 @@ export async function GET(req: Request) {
   const t = await getApiTranslator();
   const session = await getServerSession(authOptions);
 
-  if (!session || session.user.role !== "SUPERADMIN") {
-    return NextResponse.json({ error: t("unauthorized") }, { status: 403 });
+  if (!session) {
+    return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
+  }
+  if (session.user.role !== "SUPERADMIN") {
+    return NextResponse.json({ error: t("forbidden") }, { status: 403 });
+  }
+
+  const ip = getClientIp(req);
+  const isAllowed = await applyRateLimit(`admin_registrations_${session.user.id}_${ip}`, 60, 60);
+  if (!isAllowed) {
+    return NextResponse.json({ error: t("rateLimit") }, { status: 429 });
   }
 
   const { searchParams } = new URL(req.url);
-  const statusParam = searchParams.get("status") || "PENDING_APPROVAL";
+  const rawStatus = searchParams.get("status") || "PENDING_APPROVAL";
+  const parsedStatus = z.nativeEnum(RegistrationStatus).safeParse(rawStatus);
+  const statusParam = parsedStatus.success ? parsedStatus.data : RegistrationStatus.PENDING_APPROVAL;
 
   try {
     const users = await prisma.user.findMany({
       where: {
-        registrationStatus: statusParam as RegistrationStatus
+        registrationStatus: statusParam
       },
       select: {
         ...SAFE_USER_SELECT,
@@ -59,8 +72,17 @@ export async function POST(req: Request) {
   const t = await getApiTranslator();
   const session = await getServerSession(authOptions);
 
-  if (!session || session.user.role !== "SUPERADMIN") {
-    return NextResponse.json({ error: t("unauthorized") }, { status: 403 });
+  if (!session) {
+    return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
+  }
+  if (session.user.role !== "SUPERADMIN") {
+    return NextResponse.json({ error: t("forbidden") }, { status: 403 });
+  }
+
+  const ip = getClientIp(req);
+  const isAllowed = await applyRateLimit(`admin_registrations_action_${session.user.id}_${ip}`, 30, 60);
+  if (!isAllowed) {
+    return NextResponse.json({ error: t("rateLimit") }, { status: 429 });
   }
 
   try {
@@ -81,7 +103,7 @@ export async function POST(req: Request) {
 
     const newStatus = action === "APPROVE" ? "APPROVED" : "REJECTED";
 
-    // Auto-assign DEMO plan for 3 days on approval if user has not used trial yet
+    // P0-3: Auto-assign DEMO plan based on demoPlan.trialDays (not hardcoded 3)
     let demoPlanId: string | undefined = undefined;
     let subscriptionExpiresAt: Date | undefined = undefined;
     let grantTrial = false;
@@ -91,7 +113,8 @@ export async function POST(req: Request) {
       if (demoPlan) {
         demoPlanId = demoPlan.id;
         const ends = new Date();
-        ends.setDate(ends.getDate() + 3);
+        const trialDays = demoPlan.trialDays ?? 3;
+        ends.setDate(ends.getDate() + trialDays);
         subscriptionExpiresAt = ends;
         grantTrial = true;
       }
@@ -119,8 +142,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: t("registrationAlreadyProcessed") }, { status: 400 });
     }
 
-    // P1-1: Call enforceChannelLimits after plan assignment to ensure channel limits are enforced
-    // This is consistent with other plan-assignment paths (admin/users/[id] and activateSubscription)
+    // B-1: Log admin action
+    await logAdminAction({
+      actorId: session.user.id,
+      action: action === "APPROVE" ? "APPROVE_REGISTRATION" : "REJECT_REGISTRATION",
+      targetType: "User",
+      targetId: userId,
+      beforeData: { registrationStatus: targetUser.registrationStatus },
+      afterData: { registrationStatus: newStatus, grantTrial },
+      ip
+    });
+
     if (action === "APPROVE") {
       await enforceChannelLimits(userId);
     }
@@ -141,19 +173,60 @@ export async function POST(req: Request) {
       "/auth"
     );
 
-    // Send email notification asynchronously
+    // P0-11: Escape HTML strings inserted into email; P1-12: track email failures
+    const safeName = escapeHtml(targetUser.name);
     if (action === "APPROVE") {
+      const subject = emailT("regApproveSubject");
       sendEmail({
         to: targetUser.email,
-        subject: emailT("regApproveSubject"),
-        html: getBaseEmailTemplate(`<p>${emailT("regApproveBody", { name: targetUser.name })}</p>`, emailT("regApproveSubject"))
-      }).catch(err => console.error("Registration approval email fail:", err));
+        subject,
+        html: getBaseEmailTemplate(`<p>${emailT("regApproveBody", { name: safeName })}</p>`, subject)
+      }).then(res => {
+        logEmailDelivery({
+          userId: targetUser.id,
+          recipient: targetUser.email,
+          subject,
+          templateType: "REGISTRATION_APPROVED",
+          status: res.success ? "SUCCESS" : "FAILED",
+          error: res.error ? String(res.error) : null
+        });
+      }).catch(err => {
+        console.error("Registration approval email fail:", err);
+        logEmailDelivery({
+          userId: targetUser.id,
+          recipient: targetUser.email,
+          subject,
+          templateType: "REGISTRATION_APPROVED",
+          status: "FAILED",
+          error: String(err)
+        });
+      });
     } else {
+      const subject = emailT("regRejectSubject");
       sendEmail({
         to: targetUser.email,
-        subject: emailT("regRejectSubject"),
-        html: getBaseEmailTemplate(`<p>${emailT("regRejectBody", { name: targetUser.name })}</p>`, emailT("regRejectSubject"))
-      }).catch(err => console.error("Registration rejection email fail:", err));
+        subject,
+        html: getBaseEmailTemplate(`<p>${emailT("regRejectBody", { name: safeName })}</p>`, subject)
+      }).then(res => {
+        logEmailDelivery({
+          userId: targetUser.id,
+          recipient: targetUser.email,
+          subject,
+          templateType: "REGISTRATION_REJECTED",
+          status: res.success ? "SUCCESS" : "FAILED",
+          error: res.error ? String(res.error) : null
+        });
+      }).catch(err => {
+        console.error("Registration rejection email fail:", err);
+        logEmailDelivery({
+          userId: targetUser.id,
+          recipient: targetUser.email,
+          subject,
+          templateType: "REGISTRATION_REJECTED",
+          status: "FAILED",
+          error: String(err)
+        });
+      });
     }
 
     const messageKey = action === "APPROVE" ? "approveRegistrationSuccess" : "rejectRegistrationSuccess";

@@ -46,6 +46,8 @@
     "support": "CS Support",
     "scenePromptStudio": "Scene Prompt Studio",
     "research": "Trends & Keywords",
+    "settings": "Account Settings",
+    "pricingPlans": "Pricing Plans",
     "profile": "Profile"
   },
   "Auth": {
@@ -235,7 +237,12 @@
     "editChannel": "Edit Channel & Products ▼",
     "typeCustomNiche": "Type Custom Niche...",
     "typeCustomPersona": "Type Custom Persona...",
-    "channelDescPlaceholder": "Brief description of this channel's content focus..."
+    "channelDescPlaceholder": "Brief description of this channel's content focus...",
+    "speechRateSuperFast": "0.25 s/word (Super Fast)",
+    "speechRateFast": "0.30 s/word (Fast)",
+    "speechRateNormal": "0.35 s/word (Normal / Standard)",
+    "speechRateRelaxed": "0.40 s/word (Relaxed)",
+    "speechRateSlow": "0.50 s/word (Slow)"
   },
   "Generator": {
     "pageTitle": "Generator Studio",
@@ -370,7 +377,8 @@
     "productDescPlaceholder": "Brief explanation of product advantages...",
     "productLink": "Purchase Link / Landing Page",
     "addProductBtn": "+ Add Product",
-    "cancelBtn": "Cancel"
+    "cancelBtn": "Cancel",
+    "loadingStudio": "Loading Generator Studio..."
   },
   "Drafts": {
     "pageTitleTab": "Prompt History",
@@ -478,7 +486,11 @@
     "activeSubscribers": "Active Subscribers",
     "announcements": "Broadcast Announcements",
     "systemNotifications": "System Notifications",
-    "adminPortalLabel": "Admin Portal"
+    "adminPortalLabel": "Admin Portal",
+    "noRevenueByPlan": "No revenue data by plan yet.",
+    "noSubscriptionDist": "No subscription status data yet.",
+    "total": "Total",
+    "count": "Count"
   },
   "AdminUsers": {
     "usersManagement": "Users Management",
@@ -627,7 +639,9 @@
     "deleting": "Deleting...",
     "codeRequired": "Plan code must be selected",
     "featureFlagsNewPlanNote": "All feature flags below must be explicitly set for this new plan.",
-    "featureCameraMovementPro": "Professional Camera Movement (PRO)"
+    "featureCameraMovementPro": "Professional Camera Movement (PRO)",
+    "periodDays": "Active Period (Days)",
+    "trialDays": "Trial Period (Days)"
   },
   "AdminSettings": {
     "pageTitleTab": "Settings - Admin Prompt Gen",
@@ -656,7 +670,9 @@
     "defaultNegativePrompt": "Default Negative Prompt (Image)",
     "bannedWords": "Banned Words",
     "bannedWordsHelp": "Comma-separated list. User prompt generation containing these words will be rejected.",
-    "promptUpdateSuccess": "Prompt settings updated successfully!"
+    "promptUpdateSuccess": "Prompt settings updated successfully!",
+    "tabArchetypes": "Content Archetypes",
+    "tabAuditLogs": "Audit Logs"
   },
   "API": {
     "unauthorized": "Unauthorized",
@@ -729,7 +745,13 @@
     "noRecipientsFound": "No recipients found for the specified criteria.",
     "csModeDIRECT_WHATSAPP": "Direct WhatsApp",
     "csModeDIRECT_EMAIL": "Direct Email",
-    "csModeTICKET": "Internal Ticket System"
+    "csModeTICKET": "Internal Ticket System",
+    "compositionCategoryRequired": "Required composition category '{category}' must be greater than 0%.",
+    "compError": "Total composition of Education, Entertainment, and Marketing must be exactly 100%.",
+    "subscriptionInactive": "Your subscription is inactive or has expired. Please renew your plan.",
+    "payloadTooLarge": "Payload too large (max 1MB).",
+    "maxTitlesExceeded": "Maximum 1000 titles per request.",
+    "noTitlesProvided": "No titles provided."
   },
   "Emails": {
     "resetSubject": "Reset Password - Prompt Gen",
@@ -750,7 +772,8 @@
     "regApproveSubject": "Registration Approved - Prompt Gen",
     "regApproveBody": "Hello {name}, Your account registration at Prompt Gen has been approved by the admin. You can now log in to the dashboard and start using the app.",
     "regRejectSubject": "Registration Rejected - Prompt Gen",
-    "regRejectBody": "Hello {name}, We regret to inform you that your account registration at Prompt Gen could not be approved by the admin at this time."
+    "regRejectBody": "Hello {name}, We regret to inform you that your account registration at Prompt Gen could not be approved by the admin at this time.",
+    "ticketReplySubject": "Support Ticket Reply - Prompt Gen"
   },
   "Notifications": {
     "title": "Notifications",
@@ -886,7 +909,12 @@
     "selectTicketHint": "Select a ticket from the list on the left to view the conversation.",
     "ticketClosedMsg": "This ticket has been closed by Admin.",
     "sendTicket": "Send Ticket",
-    "loadingTickets": "Loading tickets..."
+    "loadingTickets": "Loading tickets...",
+    "createdAtLabel": "Created:",
+    "adminRole": "👨‍💼 Support Admin",
+    "userRole": "👤 You",
+    "subjectNewPlaceholder": "e.g., Payment issue via manual transfer",
+    "messageNewPlaceholder": "Describe your issue in detail..."
   },
   "Error": {
     "title": "Something went wrong",
@@ -1042,7 +1070,9 @@
     "changePassword": "Change Password",
     "passwordUpdatedSuccess": "Password updated successfully.",
     "passwordUpdateFail": "Failed to update password.",
-    "generalError": "An error occurred."
+    "generalError": "An error occurred.",
+    "pageTitle": "Account Settings",
+    "pageDesc": "Manage your profile and account security."
   },
   "InstallPWA": {
     "installTitle": "Install Application",
@@ -1052,10 +1082,183 @@
     "closeLabel": "Close"
   },
   "AdminSupport": {
-    "replyPlaceholder": "Type official admin reply here..."
+    "replyPlaceholder": "Type official admin reply here...",
+    "title": "Support Ticket Management",
+    "desc": "Centralized verification and response for Prompt Gen user assistance tickets.",
+    "newTickets": "New Tickets (Open)",
+    "repliedTickets": "Replied Tickets",
+    "closedTickets": "Closed Tickets",
+    "allTickets": "All Tickets",
+    "loadingTickets": "Loading tickets...",
+    "noTicketsFilter": "No tickets match this filter.",
+    "selectTicketPrompt": "Select a ticket from the list on the left to respond."
   },
   "SceneStudio": {
     "selectTitle": "Select",
     "selectedTitle": "✓ Selected"
+  },
+  "Enums": {
+    "SubscriptionStatus": {
+      "ACTIVE": "Active",
+      "INACTIVE": "Inactive",
+      "EXPIRED": "Expired"
+    },
+    "PaymentStatus": {
+      "PENDING": "Pending Confirmation",
+      "APPROVED": "Approved",
+      "REJECTED": "Rejected",
+      "PAID": "Paid",
+      "FAILED": "Failed"
+    },
+    "RegistrationStatus": {
+      "PENDING_APPROVAL": "Pending Approval",
+      "APPROVED": "Approved",
+      "REJECTED": "Rejected"
+    },
+    "PlanCode": {
+      "STANDARD": "Standard",
+      "PRO": "Pro",
+      "ULTRA": "Ultra",
+      "DEMO": "Demo"
+    },
+    "Role": {
+      "SUPERADMIN": "Superadmin",
+      "USER": "User"
+    },
+    "PaymentMethod": {
+      "MANUAL_TRANSFER": "Manual Transfer",
+      "AUTOMATIC_GATEWAY": "Automatic Payment Gateway"
+    },
+    "NotificationType": {
+      "PAYMENT_APPROVED": "Payment Approved",
+      "PAYMENT_REJECTED": "Payment Rejected",
+      "REGISTRATION_APPROVED": "Registration Approved",
+      "REGISTRATION_REJECTED": "Registration Rejected",
+      "SUBSCRIPTION_EXPIRING_SOON": "Subscription Expiring Soon",
+      "SUBSCRIPTION_EXPIRED": "Subscription Expired",
+      "CHANNEL_LOCKED": "Channel Locked",
+      "CHANNEL_UNLOCKED": "Channel Unlocked",
+      "NEW_PENDING_PAYMENT": "New Pending Payment",
+      "NEW_PENDING_REGISTRATION": "New Pending Registration",
+      "SYSTEM_ANNOUNCEMENT": "System Announcement",
+      "SUPPORT_TICKET_NEW": "New Support Ticket",
+      "SUPPORT_TICKET_REPLIED": "Support Ticket Replied",
+      "SUPPORT_TICKET_CLOSED": "Support Ticket Closed"
+    },
+    "DraftType": {
+      "VIDEO": "Video Script",
+      "IMAGE": "Image Prompt"
+    },
+    "SupportTicketStatus": {
+      "OPEN": "Open (Pending)",
+      "REPLIED": "Replied",
+      "CLOSED": "Closed"
+    },
+    "CsMode": {
+      "TICKET": "Internal Ticket System",
+      "DIRECT_WHATSAPP": "Direct WhatsApp",
+      "DIRECT_EMAIL": "Direct Email"
+    },
+    "NarrationMode": {
+      "VOICE_OVER": "Voice Over",
+      "DIEGETIC_ONLY": "Pure Diegetic (In-Scene Sound)",
+      "SILENT_TEXT_ONLY": "On-Screen Text Only (Silent)",
+      "HYBRID": "Hybrid (VO + Diegetic)"
+    },
+    "DurationCalcMode": {
+      "NARRATION_WORDCOUNT": "Narration Word Count (WPM)",
+      "SEGMENT_SELF_ESTIMATE": "Per-Segment Duration Estimate",
+      "HYBRID": "Hybrid (Word Count + Segments)"
+    }
+  },
+  "AdminArchetypes": {
+    "title": "Content Archetype Management",
+    "desc": "Manage emotional arc templates, narration modes (VO vs Diegetic), and channel default script components.",
+    "addBtn": "+ Add Content Archetype",
+    "loading": "Loading content archetypes...",
+    "empty": "No content archetypes yet. Please add your first archetype.",
+    "systemBadge": "SYSTEM",
+    "customBadge": "CUSTOM",
+    "emotionalArc": "Emotional Arc",
+    "activeComponents": "Active Components",
+    "none": "None",
+    "connectedTo": "Connected to",
+    "channelsCount": "{count} Channels",
+    "edit": "Edit",
+    "delete": "Delete",
+    "modalTitleAdd": "Add New Content Archetype",
+    "modalTitleEdit": "Edit Content Archetype: {name}",
+    "nameLabel": "Archetype Name",
+    "namePlaceholder": "e.g. Storytelling Education, Nostalgia Reconstruction",
+    "systemNameWarning": "Default system archetype name cannot be changed.",
+    "descLabel": "Description",
+    "descPlaceholder": "Brief explanation of this archetype's characteristics and objectives...",
+    "narrationModeLabel": "Narration & Audio Mode",
+    "durationCalcModeLabel": "Duration Calculation Method",
+    "emotionalArcLabel": "Emotional Arc Template",
+    "emotionalArcPlaceholder": "e.g. Hook -> Problem -> Solution -> CTA",
+    "emotionalArcHint": "Emotional segment sequence instructed to AI (e.g., Setup -> Recognition -> Emotional Payoff).",
+    "defaultSectionsLabel": "Default Included Sections",
+    "includeHook": "Include Hook",
+    "includeCta": "Include Call to Action (CTA)",
+    "includeCaption": "Include Social Caption",
+    "includeThumbnail": "Include Thumbnail Idea",
+    "cancel": "Cancel",
+    "saving": "Saving...",
+    "saveChanges": "Save Changes",
+    "createBtn": "Create Archetype",
+    "loadError": "Failed to load content archetypes",
+    "loadNetworkError": "Network error while loading content archetypes",
+    "deleteSystemForbidden": "Default system archetypes cannot be deleted",
+    "deleteInUse": "Cannot delete: Still used by {count} channel(s)",
+    "deleteConfirm": "Are you sure you want to delete archetype \"{name}\"?",
+    "deleteSuccess": "Content archetype deleted successfully",
+    "deleteError": "Failed to delete content archetype",
+    "deleteNetworkError": "Network error while deleting archetype",
+    "nameRequired": "Archetype name is required",
+    "updateSuccess": "Content archetype updated successfully",
+    "createSuccess": "Content archetype created successfully",
+    "saveError": "Failed to save content archetype",
+    "saveNetworkError": "Network error while saving archetype"
+  },
+  "Research": {
+    "title": "Trend & SEO Keyword Research",
+    "desc": "Discover real-time YouTube & Google search keywords before generating AI scripts so your content gets discovered by algorithms.",
+    "channelLabel": "Channel:",
+    "topicLabel": "Content Topic or Primary Keyword",
+    "searchPlaceholder": "e.g., Arctic Fox, Gunbound, Beginner Stock Tips...",
+    "clearText": "Clear text",
+    "analyzing": "Analyzing Trends...",
+    "analyzeBtn": "Analyze Keywords",
+    "topicRequired": "Enter a topic or select a channel with a niche first.",
+    "keywordsFound": "Found {count} popular keywords!",
+    "popularKeywordsTitle": "Popular Keywords for \"{query}\"",
+    "source": "Data Source:",
+    "sourceVidiq": "vidIQ MCP Intelligence",
+    "sourceYoutube": "Live YouTube Search Intelligence",
+    "createScriptSelected": "Generate Script ({count} Keywords)",
+    "selectKeywordAria": "Select keyword {keyword}",
+    "volume": "Volume:",
+    "volumeHigh": "🔥 High",
+    "volumeMedium": "⚡ Medium",
+    "volumeLow": "💤 Low",
+    "competition": "Competition:",
+    "competitionLow": "🟢 Low",
+    "competitionMedium": "🟡 Medium",
+    "competitionHigh": "🔴 High",
+    "opportunityScore": "Opportunity Score",
+    "selectBtn": "Select",
+    "audienceQuestionsTitle": "Popular Audience Questions",
+    "audienceQuestionsDesc": "Real questions viewers search most on YouTube around this topic. Click to generate script immediately:",
+    "makeScriptTopic": "Use as Script Topic →",
+    "popularTagsTitle": "Popular Tags",
+    "copyStudioTags": "Copy Studio (,)",
+    "copyStudioTagsTitle": "Comma format (,) for YouTube Studio Tags field",
+    "copyHashtags": "Copy Hashtags (#)",
+    "copyHashtagsTitle": "Hashtag format (#) for video description",
+    "hashtagsCopied": "Hashtags (#) copied for Video Description!",
+    "commaTagsCopied": "Comma tags (,) copied for YouTube Studio!",
+    "tagCopied": "Tag \"{tag}\" copied!",
+    "clickToCopy": "Click to copy this tag"
   }
 }

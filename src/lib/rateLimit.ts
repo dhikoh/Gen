@@ -53,6 +53,57 @@ async function getGlobalLimits() {
   return { limit: cachedLimit, windowMs: cachedWindowMs };
 }
 
+/**
+ * Helper terstandarisasi untuk mengekstrak IP client secara aman.
+ * Hanya mempercayai X-Forwarded-For jika TRUSTED_PROXY === "true" di environment.
+ */
+interface HeaderGetter {
+  get(name: string): string | null;
+}
+
+function hasGetMethod(h: unknown): h is HeaderGetter {
+  return typeof h === "object" && h !== null && typeof (h as Record<string, unknown>).get === "function";
+}
+
+export function getClientIp(req: unknown): string {
+  let headerValue: string | null = null;
+
+  if (req && typeof req === "object") {
+    const r = req as Record<string, unknown>;
+    if (r.headers && typeof r.headers === "object") {
+      if (hasGetMethod(r.headers)) {
+        headerValue = r.headers.get("x-forwarded-for");
+      } else {
+        const h = r.headers as Record<string, unknown>;
+        const forwarded = h["x-forwarded-for"];
+        const realIp = h["x-real-ip"];
+        headerValue = typeof forwarded === "string"
+          ? forwarded
+          : typeof realIp === "string"
+            ? realIp
+            : null;
+      }
+    }
+  }
+
+  if (process.env.TRUSTED_PROXY === "true" && headerValue) {
+    const firstIp = headerValue.split(",")[0].trim();
+    if (firstIp) return firstIp;
+  }
+
+  if (req && typeof req === "object") {
+    const r = req as Record<string, unknown>;
+    if (r.socket && typeof r.socket === "object") {
+      const s = r.socket as Record<string, unknown>;
+      if (typeof s.remoteAddress === "string") {
+        return s.remoteAddress;
+      }
+    }
+  }
+
+  return "127.0.0.1";
+}
+
 export async function applyRateLimit(
   identifier: string,
   fallbackLimit: number = 30,
@@ -61,7 +112,7 @@ export async function applyRateLimit(
   const now = Date.now();
   const record = rateLimitStore.get(identifier);
 
-  // Bersihkan record yang sudah kadaluarsa (opsional, untuk mencegah memory leak)
+  // Pembersihan probabilistik (1% chance) untuk mencegah memory leak
   if (Math.random() < 0.01) {
     for (const [key, value] of rateLimitStore.entries()) {
       if (now > value.expiresAt) {
@@ -70,18 +121,10 @@ export async function applyRateLimit(
     }
   }
 
-  // Get dynamic limits, fallback to args if not globally set
+  // Ambil limit dinamis dari database (singleton AppSettings)
   const { limit: globalLimit, windowMs: globalWindowMs } = await getGlobalLimits();
-  // We use global limit if it's not the default fallback (or just strictly use global limit)
-  // To avoid breaking specific strict rate limits (like 5 uploads per 15 mins),
-  // we could just apply global limits only if fallbackLimit is >= 30, but let's just use 
-  // global limits as a baseline or strict override?
-  // Usually, global rate limit applies to generic API endpoints. 
-  // For specific endpoints, they pass specific fallbackLimits. 
-  // If we override EVERYTHING, it might break specific strict limits.
-  // Actually, BIZ-6 says "Add Rate Limit fields to AppSettings, update rateLimit.ts".
-  // Let's use the strictest of the two (global vs specific).
-  
+
+  // Evaluasi limit efektif: terapkan batas terketat antara konfigurasi global dan spesifik endpoint
   const actualLimit = Math.min(globalLimit, fallbackLimit);
   const actualWindowMs = Math.max(globalWindowMs, fallbackWindowSeconds * 1000);
 
@@ -98,5 +141,39 @@ export async function applyRateLimit(
   }
 
   record.count += 1;
+  return true;
+}
+
+/**
+ * Terapkan dua bucket paralel (P0-5):
+ * 1. Bucket per-IP (mencegah penyerang merotasi username/identifier)
+ * 2. Bucket per-identifier (mencegah penyerang merotasi IP terhadap target yang sama)
+ * Tolak request jika salah satu bucket melampaui limit.
+ */
+export async function applyDualRateLimit(
+  action: string,
+  ip: string,
+  identifierKey?: string | null,
+  limit: number = 5,
+  windowSec: number = 60
+): Promise<boolean> {
+  // 1. Cek bucket per-IP
+  const ipAllowed = await applyRateLimit(`${action}_ip_${ip}`, limit, windowSec);
+  if (!ipAllowed) {
+    return false;
+  }
+
+  // 2. Cek bucket per-identifier (bila ada)
+  if (identifierKey && identifierKey.trim()) {
+    const idAllowed = await applyRateLimit(
+      `${action}_id_${identifierKey.trim().toLowerCase()}`,
+      limit,
+      windowSec
+    );
+    if (!idAllowed) {
+      return false;
+    }
+  }
+
   return true;
 }

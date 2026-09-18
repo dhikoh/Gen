@@ -29,7 +29,7 @@ export default function DraftTitle({ draftId, initialTitle }: { draftId: string,
         setTitle(initialTitle);
         setIsEditing(false);
       }
-    } catch (err) {
+    } catch {
       setTitle(initialTitle);
       setIsEditing(false);
     } finally {

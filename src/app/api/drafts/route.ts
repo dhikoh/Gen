@@ -5,39 +5,39 @@ import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { Prisma, DraftType } from "@prisma/client";
 import { z } from "zod";
-import { requireActiveSubscription } from "@/lib/subscription";
-import { applyRateLimit } from "@/lib/rateLimit";
+import { requireActiveSubscription, SubscriptionInactiveError } from "@/lib/subscription";
+import { getClientIp, applyRateLimit } from "@/lib/rateLimit";
+import sanitizeHtml from "sanitize-html";
 
 const saveDraftSchema = z.object({
   channelId: z.string(),
   type: z.enum(["VIDEO", "IMAGE"]),
-  // topic opsional untuk defense-in-depth — fix audit 3.1: ScenePromptStudio tidak punya
-  // konsep topic eksplisit; backend membuat fallback agar pemanggil manapun aman
-  topic: z.string().optional(),
-  rawJson: z.string(),
+  topic: z.string().max(500).optional(),
+  rawJson: z.string().max(500_000),
   speechRate: z.number().optional(),
-  title: z.string().optional(),
+  title: z.string().max(500).optional(),
   targetDurationSec: z.number().optional(),
   targetSceneCount: z.number().optional(),
-  narrativeLoopStyle: z.string().optional(),
-  visualLoopStyle: z.string().optional(),
+  narrativeLoopStyle: z.string().max(100).optional(),
+  visualLoopStyle: z.string().max(100).optional(),
+  narrationMode: z.enum(["VOICE_OVER", "DIEGETIC_ONLY", "SILENT_TEXT_ONLY", "HYBRID"]).optional(),
 });
 
 export async function POST(req: Request) {
   const t = await getApiTranslator();
   try {
-    
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
     }
 
-    const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
+    const ip = getClientIp(req);
     const isAllowed = await applyRateLimit(`draft_create_${session.user.id}_${ip}`, 10, 60);
     if (!isAllowed) {
       return NextResponse.json({ error: t("rateLimit") }, { status: 429 });
     }
 
+    // P1-4: Protected by active subscription guard
     await requireActiveSubscription(session.user.id);
 
     const body = await req.json();
@@ -58,14 +58,24 @@ export async function POST(req: Request) {
       targetSceneCount,
       narrativeLoopStyle,
       visualLoopStyle,
+      narrationMode,
     } = parsedInput.data;
 
     // Parse the pasted JSON to validate it and extract data
     let parsedData: Record<string, unknown>;
     try {
       parsedData = JSON.parse(rawJson);
-    } catch (e) {
+    } catch {
       return NextResponse.json({ error: t("invalidJson") }, { status: 400 });
+    }
+
+    // P1-15: Server-side sanitization of html_blog before saving to DB
+    if (parsedData && typeof parsedData.html_blog === "string") {
+      parsedData.html_blog = sanitizeHtml(parsedData.html_blog, {
+        allowedTags: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'ul', 'ol', 'li', 'strong', 'em', 'b', 'i', 'a', 'br', 'hr', 'blockquote'],
+        allowedAttributes: { a: ['href', 'target', 'rel'] },
+        allowedSchemes: ['http', 'https', 'mailto']
+      });
     }
 
     const channel = await prisma.profileChannel.findUnique({
@@ -94,12 +104,10 @@ export async function POST(req: Request) {
       return null;
     };
 
-    // Calculate word count and estimated duration (Bagian 23.3)
     let wordCount = 0;
     let estimatedDurationSec = 0;
     let durationSource: "SEGMENT_ESTIMATE" | "WORDCOUNT_FALLBACK" = "SEGMENT_ESTIMATE";
 
-    // Fix audit 3.1: topic sekarang optional — fallback ke manualTitle, parsedData, atau default
     const effectiveTopic = topic || manualTitle || (typeof parsedData.judul_konten === "string" ? parsedData.judul_konten : "") || `Draft ${type}`;
     const title = manualTitle || (typeof parsedData.judul_konten === "string" ? parsedData.judul_konten : "") || `Draft ${type}: ${effectiveTopic.substring(0, 30)}`;
 
@@ -140,17 +148,16 @@ export async function POST(req: Request) {
       }
 
       wordCount = totalWords;
-      const isVoiceOverMode = !channel.contentArchetype || channel.contentArchetype.narrationMode === "VOICE_OVER" || channel.contentArchetype.narrationMode === "HYBRID";
+
+      // P1-5: Respect explicit narrationMode if passed, or channel archetype fallback
+      const effectiveNarrationMode = narrationMode || channel.contentArchetype?.narrationMode || "VOICE_OVER";
+      const isVoiceOverMode = effectiveNarrationMode === "VOICE_OVER" || effectiveNarrationMode === "HYBRID";
       const effectiveRate = speechRate && speechRate > 0 ? speechRate : (channel.speechRate || 0.35);
 
-      // 1. Sumber utama: jumlah estimasi durasi per segmen dari AI eksternal
       if (totalSegmentDuration > 0 && validSegmentDurationCount > 0) {
         estimatedDurationSec = totalSegmentDuration;
         durationSource = "SEGMENT_ESTIMATE";
       } else if (isVoiceOverMode && totalWords > 0) {
-        // 2. Fallback: kalkulasi durasi naskah berbasis wordCount dan rate
-        // Jika effectiveRate <= 2: satuannya adalah detik per kata (misal 0.35 s/kata)
-        // Jika effectiveRate > 2: satuannya adalah Words Per Minute (WPM, misal 130 atau 150 WPM)
         if (effectiveRate <= 2) {
           estimatedDurationSec = Math.round(totalWords * effectiveRate);
         } else {
@@ -159,7 +166,6 @@ export async function POST(req: Request) {
         }
         durationSource = "WORDCOUNT_FALLBACK";
       } else if (targetDurationSec && targetDurationSec > 0) {
-        // 3. Fallback untuk diegetic/faceless tanpa durasi eksplisit per segmen
         estimatedDurationSec = targetDurationSec;
         durationSource = "SEGMENT_ESTIMATE";
       } else {
@@ -169,13 +175,12 @@ export async function POST(req: Request) {
     } else if (type === "IMAGE" && parsedData.variations && Array.isArray(parsedData.variations)) {
       let totalWords = 0;
       parsedData.variations.forEach((v: Record<string, unknown>) => {
-         if (v.prompt_text && typeof v.prompt_text === "string") {
-           totalWords += v.prompt_text.split(/\s+/).filter(Boolean).length;
-         }
+        if (v.prompt_text && typeof v.prompt_text === "string") {
+          totalWords += v.prompt_text.split(/\s+/).filter(Boolean).length;
+        }
       });
       wordCount = totalWords;
     }
-
 
     const draft = await prisma.$transaction(async (tx) => {
       await tx.profileChannel.update({
@@ -183,12 +188,14 @@ export async function POST(req: Request) {
         data: { usageCount: { increment: 1 }, lastUsedAt: new Date() }
       });
 
+      // P1-3: ONLY match existing stub drafts with isStub: true. Never overwrite real finished drafts!
       const existingStub = await tx.draft.findFirst({
         where: {
           userId: session.user.id,
           channelId: channel.id,
           type: type,
           title: { equals: String(title), mode: "insensitive" },
+          isStub: true,
         },
         orderBy: { createdAt: "desc" }
       });
@@ -206,7 +213,9 @@ export async function POST(req: Request) {
             targetSceneCount: targetSceneCount || null,
             narrativeLoopStyle: narrativeLoopStyle || null,
             visualLoopStyle: visualLoopStyle || null,
-            isTemplate: false
+            isStub: false,
+            // Preserve isTemplate state from existing draft
+            isTemplate: existingStub.isTemplate
           }
         });
       }
@@ -226,6 +235,7 @@ export async function POST(req: Request) {
           targetSceneCount: targetSceneCount || null,
           narrativeLoopStyle: narrativeLoopStyle || null,
           visualLoopStyle: visualLoopStyle || null,
+          isStub: false,
           isTemplate: false
         }
       });
@@ -234,6 +244,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, draftId: draft.id }, { status: 201 });
 
   } catch (error) {
+    // P1-4: Map SubscriptionInactiveError to HTTP 403
+    if (error instanceof SubscriptionInactiveError) {
+      return NextResponse.json({ error: t("subscriptionInactive") }, { status: 403 });
+    }
     console.error("Save Draft API error:", error);
     return NextResponse.json({ error: t("draftSaveError") }, { status: 500 });
   }
@@ -242,27 +256,53 @@ export async function POST(req: Request) {
 export async function GET(req: Request) {
   const t = await getApiTranslator();
   try {
-    
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
     }
 
+    const ip = getClientIp(req);
+    const isAllowed = await applyRateLimit(`drafts_get_${session.user.id}_${ip}`, 60, 60);
+    if (!isAllowed) {
+      return NextResponse.json({ error: t("tooManyRequests") }, { status: 429 });
+    }
+
     const { searchParams } = new URL(req.url);
     const channelId = searchParams.get('channelId');
-    const type = searchParams.get('type');
+    const typeParam = searchParams.get('type')?.toUpperCase();
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "50", 10) || 50));
+    const skip = (page - 1) * limit;
 
     const whereClause: Prisma.DraftWhereInput = { userId: session.user.id };
     if (channelId) whereClause.channelId = channelId;
-    if (type) whereClause.type = type as DraftType;
 
-    const drafts = await prisma.draft.findMany({
-      where: whereClause,
-      orderBy: { createdAt: "desc" },
-    });
+    // P1-13: Strict enum validation for type query parameter
+    if (typeParam && (typeParam === "VIDEO" || typeParam === "IMAGE")) {
+      whereClause.type = typeParam as DraftType;
+    }
 
-    return NextResponse.json({ drafts }, { status: 200 });
+    const [total, drafts] = await Promise.all([
+      prisma.draft.count({ where: whereClause }),
+      prisma.draft.findMany({
+        where: whereClause,
+        skip,
+        take: limit,
+        orderBy: { createdAt: "desc" },
+      })
+    ]);
+
+    return NextResponse.json({
+      drafts,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    }, { status: 200 });
   } catch (error) {
+    console.error("GET drafts API error:", error);
     return NextResponse.json({ error: t("serverError") }, { status: 500 });
   }
 }

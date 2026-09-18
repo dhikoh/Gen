@@ -34,7 +34,7 @@ export default async function AdminPlansPage({ params }: { params: Promise<{ loc
         </p>
       </div>
 
-      <AdminPlansClient initialPlans={plans as unknown as Parameters<typeof AdminPlansClient>[0]["initialPlans"]} />
+      <AdminPlansClient initialPlans={plans.map(p => ({ ...p, features: p.features as Record<string, boolean> | null }))} />
     </div>
   );
 }

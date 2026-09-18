@@ -91,7 +91,9 @@ export default async function DraftDetailPage({
     notFound();
   }
 
-  const parsedData = draft.parsedData as unknown as DraftParsedData;
+  const parsedData = (draft.parsedData && typeof draft.parsedData === "object"
+    ? draft.parsedData
+    : {}) as DraftParsedData;
 
   const isDiegetic =
     draft.channel?.contentArchetype?.narrationMode === "DIEGETIC_ONLY" ||

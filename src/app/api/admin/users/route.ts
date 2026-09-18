@@ -4,14 +4,23 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { prisma, SAFE_USER_SELECT } from "@/lib/db";
 import { Prisma, Role, SubscriptionStatus } from "@prisma/client";
+import { getClientIp, applyRateLimit } from "@/lib/rateLimit";
 
 export async function GET(req: Request) {
   const t = await getApiTranslator();
   try {
-    
     const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== "SUPERADMIN") {
+    if (!session) {
       return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
+    }
+    if (session.user.role !== "SUPERADMIN") {
+      return NextResponse.json({ error: t("forbidden") }, { status: 403 });
+    }
+
+    const ip = getClientIp(req);
+    const isAllowed = await applyRateLimit(`admin_users_get_${session.user.id}_${ip}`, 60, 60);
+    if (!isAllowed) {
+      return NextResponse.json({ error: t("tooManyRequests") }, { status: 429 });
     }
 
     const { searchParams } = new URL(req.url);
@@ -28,7 +37,9 @@ export async function GET(req: Request) {
           { name: { contains: search, mode: 'insensitive' } },
           { email: { contains: search, mode: 'insensitive' } },
           { username: { contains: search, mode: 'insensitive' } },
-          { phoneNumber: { contains: search, mode: 'insensitive' } }
+          { phoneNumber: { contains: search, mode: 'insensitive' } },
+          { emailLower: { contains: search.toLowerCase() } },
+          { usernameLower: { contains: search.toLowerCase() } }
         ]
       } : {}),
       ...(role ? { role: role as Role } : {}),

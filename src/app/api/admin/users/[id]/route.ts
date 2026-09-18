@@ -5,28 +5,46 @@ import { authOptions } from "@/lib/authOptions";
 import { prisma, SAFE_USER_SELECT } from "@/lib/db";
 import { z } from "zod";
 import bcrypt from "bcrypt";
+import { getClientIp, applyRateLimit } from "@/lib/rateLimit";
+import { logAdminAction } from "@/lib/auditLog";
 
 const updateUserSchema = z.object({
   action: z.enum(["UPDATE_ROLE", "ADD_DAYS", "UPDATE_PLAN", "RESET_PASSWORD"]),
   role: z.enum(["USER", "SUPERADMIN"]).optional(),
   daysToAdd: z.number().optional(),
   planId: z.string().optional(),
-  newPassword: z.string().min(6).optional(),
+  newPassword: z.string().min(8).optional(),
 });
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const t = await getApiTranslator();
   try {
-    
     const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== "SUPERADMIN") return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
+    if (!session) return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
+    if (session.user.role !== "SUPERADMIN") return NextResponse.json({ error: t("forbidden") }, { status: 403 });
+
+    const ip = getClientIp(req);
+    const isAllowed = await applyRateLimit(`admin_users_del_${session.user.id}_${ip}`, 20, 60);
+    if (!isAllowed) return NextResponse.json({ error: t("tooManyRequests") }, { status: 429 });
 
     const { id } = await params;
     if (session.user.id === id) {
       return NextResponse.json({ error: t("cantDeleteSelf") }, { status: 400 });
     }
 
+    const target = await prisma.user.findUnique({ where: { id }, select: { email: true, username: true } });
+    if (!target) return NextResponse.json({ error: t("userNotFound") }, { status: 404 });
+
     await prisma.user.delete({ where: { id } });
+
+    await logAdminAction({
+      adminId: session.user.id,
+      action: "DELETE_USER",
+      targetType: "USER",
+      targetId: id,
+      metadata: { targetEmail: target.email, targetUsername: target.username }
+    });
+
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
     console.error("Delete user error:", error);
@@ -38,9 +56,12 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const t = await getApiTranslator();
   try {
     const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== "SUPERADMIN") {
-      return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
-    }
+    if (!session) return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
+    if (session.user.role !== "SUPERADMIN") return NextResponse.json({ error: t("forbidden") }, { status: 403 });
+
+    const ip = getClientIp(req);
+    const isAllowed = await applyRateLimit(`admin_users_get_detail_${session.user.id}_${ip}`, 60, 60);
+    if (!isAllowed) return NextResponse.json({ error: t("tooManyRequests") }, { status: 429 });
 
     const { id: userId } = await params;
 
@@ -105,9 +126,13 @@ const updateProfileSchema = z.object({
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const t = await getApiTranslator();
   try {
-    
     const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== "SUPERADMIN") return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
+    if (!session) return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
+    if (session.user.role !== "SUPERADMIN") return NextResponse.json({ error: t("forbidden") }, { status: 403 });
+
+    const ip = getClientIp(req);
+    const isAllowed = await applyRateLimit(`admin_users_patch_${session.user.id}_${ip}`, 30, 60);
+    if (!isAllowed) return NextResponse.json({ error: t("tooManyRequests") }, { status: 429 });
 
     const { id } = await params;
     const body = await req.json();
@@ -119,24 +144,27 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       }
 
       const { name, username, email, phoneNumber, dateOfBirth } = parsedData.data;
+      const emailLower = email ? email.trim().toLowerCase() : undefined;
+      const usernameLower = username ? username.trim().toLowerCase() : undefined;
+      const phoneNormalized = phoneNumber ? phoneNumber.replace(/\D/g, "") : undefined;
 
       // Unique check
       const existingUser = await prisma.user.findFirst({
         where: {
           id: { not: id },
           OR: [
-            ...(email ? [{ email: { equals: email, mode: 'insensitive' as const } }] : []),
-            ...(username ? [{ username: { equals: username, mode: 'insensitive' as const } }] : []),
-            ...(phoneNumber ? [{ phoneNumber }] : [])
+            ...(emailLower ? [{ emailLower }, { email: { equals: email, mode: 'insensitive' as const } }] : []),
+            ...(usernameLower ? [{ usernameLower }, { username: { equals: username, mode: 'insensitive' as const } }] : []),
+            ...(phoneNormalized ? [{ phoneNormalized }, { phoneNumber }] : [])
           ]
         }
       });
 
       if (existingUser) {
-        if (email && existingUser.email.toLowerCase() === email.toLowerCase()) {
+        if (emailLower && (existingUser.emailLower === emailLower || existingUser.email.toLowerCase() === emailLower)) {
           return NextResponse.json({ error: t("emailUsed") }, { status: 409 });
         }
-        if (username && existingUser.username.toLowerCase() === username.toLowerCase()) {
+        if (usernameLower && (existingUser.usernameLower === usernameLower || existingUser.username.toLowerCase() === usernameLower)) {
           return NextResponse.json({ error: t("usernameUsed") }, { status: 409 });
         }
         return NextResponse.json({ error: t("phoneUsed") }, { status: 409 });
@@ -146,12 +174,20 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         where: { id },
         data: {
           ...(name && { name }),
-          ...(username && { username }),
-          ...(email && { email }),
-          ...(phoneNumber !== undefined && { phoneNumber: phoneNumber || null }),
+          ...(username && { username, usernameLower }),
+          ...(email && { email, emailLower }),
+          ...(phoneNumber !== undefined && { phoneNumber: phoneNumber || null, phoneNormalized: phoneNormalized || null }),
           ...(dateOfBirth !== undefined && { dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null }),
         },
         select: SAFE_USER_SELECT
+      });
+
+      await logAdminAction({
+        adminId: session.user.id,
+        action: "UPDATE_USER_PROFILE",
+        targetType: "USER",
+        targetId: id,
+        metadata: { updatedFields: Object.keys(parsedData.data) }
       });
 
       return NextResponse.json({ success: true, user: updatedUser }, { status: 200 });
@@ -170,9 +206,18 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     if (action === "UPDATE_ROLE" && role) {
       if (session.user.id === id && role === "USER") {
-         return NextResponse.json({ error: t("cantRevokeSelf") }, { status: 400 });
+        return NextResponse.json({ error: t("cantRevokeSelf") }, { status: 400 });
       }
       const updatedUser = await prisma.user.update({ where: { id }, data: { role }, select: SAFE_USER_SELECT });
+
+      await logAdminAction({
+        adminId: session.user.id,
+        action: "UPDATE_USER_ROLE",
+        targetType: "USER",
+        targetId: id,
+        metadata: { oldRole: targetUser.role, newRole: role }
+      });
+
       return NextResponse.json({ success: true, message: t("roleUpdated"), user: updatedUser });
     }
 
@@ -198,6 +243,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       
       const { enforceChannelLimits } = await import("@/lib/channelLockLogic");
       await enforceChannelLimits(id);
+
+      await logAdminAction({
+        adminId: session.user.id,
+        action: "ADD_USER_SUBSCRIPTION_DAYS",
+        targetType: "USER",
+        targetId: id,
+        metadata: { daysAdded: daysToAdd, newExpiry: newExpiry.toISOString() }
+      });
       
       return NextResponse.json({ success: true, message: t("daysAdded").replace("{days}", daysToAdd.toString()), user: updatedUser });
     }
@@ -221,12 +274,37 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       const { enforceChannelLimits } = await import("@/lib/channelLockLogic");
       await enforceChannelLimits(id);
 
+      await logAdminAction({
+        adminId: session.user.id,
+        action: "UPDATE_USER_PLAN",
+        targetType: "USER",
+        targetId: id,
+        metadata: { oldPlanId: targetUser.currentPlanId, newPlanId: planId }
+      });
+
       return NextResponse.json({ success: true, message: t("planUpdated"), user: updatedUser });
     }
 
     if (action === "RESET_PASSWORD" && newPassword) {
       const passwordHash = await bcrypt.hash(newPassword, 10);
-      const updatedUser = await prisma.user.update({ where: { id }, data: { passwordHash }, select: SAFE_USER_SELECT });
+      const updatedUser = await prisma.user.update({
+        where: { id },
+        data: {
+          passwordHash,
+          mustChangePassword: true,
+          passwordChangedAt: new Date()
+        },
+        select: SAFE_USER_SELECT
+      });
+
+      await logAdminAction({
+        adminId: session.user.id,
+        action: "ADMIN_RESET_PASSWORD",
+        targetType: "USER",
+        targetId: id,
+        metadata: { targetEmail: targetUser.email }
+      });
+
       return NextResponse.json({ success: true, message: t("passwordReset"), user: updatedUser });
     }
 

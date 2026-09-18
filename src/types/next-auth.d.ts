@@ -1,4 +1,4 @@
-import NextAuth, { DefaultSession, DefaultUser } from "next-auth";
+import { DefaultSession, DefaultUser } from "next-auth";
 import { DefaultJWT } from "next-auth/jwt";
 
 declare module "next-auth" {
@@ -7,6 +7,7 @@ declare module "next-auth" {
       id: string;
       role: string;
       registrationStatus?: string;
+      mustChangePassword?: boolean;
     } & DefaultSession["user"];
   }
 
@@ -15,6 +16,7 @@ declare module "next-auth" {
     role: string;
     registrationStatus?: string;
     rememberMe?: boolean;
+    mustChangePassword?: boolean;
   }
 }
 
@@ -24,5 +26,8 @@ declare module "next-auth/jwt" {
     role: string;
     registrationStatus?: string;
     rememberMe?: boolean;
+    mustChangePassword?: boolean;
+    checkedAt?: number;
+    passwordChangedAt?: string | null;
   }
 }

@@ -172,7 +172,7 @@ export default function UserSupportClient() {
                     </span>
                   </div>
                   <p className="text-xs mt-1" style={{ color: 'var(--pg-text-muted)' }}>
-                    ID Tiket: #{selectedTicket.id} • Dibuat: {new Date(selectedTicket.createdAt).toLocaleString()}
+                    ID Tiket: #{selectedTicket.id} • {t("createdAtLabel")} {new Date(selectedTicket.createdAt).toLocaleString()}
                   </p>
                 </div>
               </div>
@@ -187,7 +187,7 @@ export default function UserSupportClient() {
                         style={isAdmin ? { background: 'var(--pg-surface)', border: '1px solid var(--pg-shadow-dark)', color: 'var(--pg-text)' } : {}}
                       >
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-[11px] font-bold opacity-80">{isAdmin ? "👨‍💼 Admin Support" : "👤 Anda"}</span>
+                          <span className="text-[11px] font-bold opacity-80">{isAdmin ? t("adminRole") : t("userRole")}</span>
                           <span className="text-[10px] opacity-60">{new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                         </div>
                         <p className="whitespace-pre-wrap leading-relaxed">{msg.body}</p>
@@ -235,13 +235,13 @@ export default function UserSupportClient() {
               <div>
                 <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--pg-text)' }}>{t("subject")}</label>
                 <input type="text" required value={newSubject} onChange={(e) => setNewSubject(e.target.value)}
-                  placeholder="Misal: Kendala pembayaran via transfer manual"
+                  placeholder={t("subjectNewPlaceholder")}
                   className="w-full px-4 py-2 text-sm outline-none neu-input rounded-lg" />
               </div>
               <div>
                 <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--pg-text)' }}>{t("message")}</label>
                 <textarea required rows={4} value={newMessage} onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Jelaskan kendala Anda secara rinci..."
+                  placeholder={t("messageNewPlaceholder")}
                   className="w-full px-4 py-2 text-sm outline-none resize-none neu-input rounded-lg" />
               </div>
               <div className="flex justify-end gap-3 pt-2">

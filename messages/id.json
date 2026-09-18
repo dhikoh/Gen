@@ -46,6 +46,8 @@
     "support": "Dukungan CS",
     "scenePromptStudio": "Scene Prompt Studio",
     "research": "Riset Tren & Keyword",
+    "settings": "Pengaturan Akun",
+    "pricingPlans": "Pilihan Paket",
     "profile": "Profil"
   },
   "Auth": {
@@ -235,7 +237,12 @@
     "editChannel": "Edit Channel & Produk ▼",
     "typeCustomNiche": "Ketik Niche Kustom...",
     "typeCustomPersona": "Ketik Persona Kustom...",
-    "channelDescPlaceholder": "Deskripsi singkat mengenai fokus konten channel ini..."
+    "channelDescPlaceholder": "Deskripsi singkat mengenai fokus konten channel ini...",
+    "speechRateSuperFast": "0.25 s/kata (Sangat Cepat)",
+    "speechRateFast": "0.30 s/kata (Cepat)",
+    "speechRateNormal": "0.35 s/kata (Normal / Standar)",
+    "speechRateRelaxed": "0.40 s/kata (Santai)",
+    "speechRateSlow": "0.50 s/kata (Lambat)"
   },
   "Generator": {
     "pageTitle": "Studio Generator",
@@ -370,7 +377,8 @@
     "productDescPlaceholder": "Penjelasan keunggulan produk...",
     "productLink": "Link Pembelian / Landing Page",
     "addProductBtn": "+ Tambah Produk",
-    "cancelBtn": "Batal"
+    "cancelBtn": "Batal",
+    "loadingStudio": "Memuat Generator Studio..."
   },
   "Drafts": {
     "pageTitleTab": "Riwayat Prompt",
@@ -478,7 +486,11 @@
     "activeSubscribers": "Subscriber Aktif",
     "announcements": "Broadcast Pengumuman",
     "systemNotifications": "Notifikasi Sistem",
-    "adminPortalLabel": "Admin Portal"
+    "adminPortalLabel": "Admin Portal",
+    "noRevenueByPlan": "Belum ada data pendapatan per paket.",
+    "noSubscriptionDist": "Belum ada data status langganan.",
+    "total": "Total",
+    "count": "Jumlah"
   },
   "AdminUsers": {
     "usersManagement": "Manajemen Pengguna",
@@ -627,7 +639,9 @@
     "deleting": "Menghapus...",
     "codeRequired": "Kode paket harus dipilih",
     "featureFlagsNewPlanNote": "Semua flag fitur berikut wajib diatur secara eksplisit untuk paket baru ini.",
-    "featureCameraMovementPro": "Camera Movement Profesional (PRO)"
+    "featureCameraMovementPro": "Camera Movement Profesional (PRO)",
+    "periodDays": "Masa Aktif (Hari)",
+    "trialDays": "Masa Trial (Hari)"
   },
   "AdminSettings": {
     "pageTitleTab": "Pengaturan - Admin Prompt Gen",
@@ -656,7 +670,9 @@
     "defaultNegativePrompt": "Negative Prompt Default (Gambar)",
     "bannedWords": "Banned Words (Kata Terlarang)",
     "bannedWordsHelp": "Pisahkan dengan tanda koma (,). Input prompt yang mengandung kata ini akan ditolak.",
-    "promptUpdateSuccess": "Pengaturan prompt berhasil diperbarui!"
+    "promptUpdateSuccess": "Pengaturan prompt berhasil diperbarui!",
+    "tabArchetypes": "Model Konten (Archetypes)",
+    "tabAuditLogs": "Riwayat Audit"
   },
   "API": {
     "unauthorized": "Unauthorized",
@@ -729,7 +745,13 @@
     "noRecipientsFound": "Tidak ada pengguna penerima yang ditemukan untuk kriteria ini.",
     "csModeDIRECT_WHATSAPP": "Direct WhatsApp",
     "csModeDIRECT_EMAIL": "Direct Email",
-    "csModeTICKET": "Sistem Tiket Internal"
+    "csModeTICKET": "Sistem Tiket Internal",
+    "compositionCategoryRequired": "Kategori komposisi wajib '{category}' harus memiliki nilai lebih dari 0%.",
+    "compError": "Total komposisi Edukasi, Hiburan, dan Marketing harus tepat 100%.",
+    "subscriptionInactive": "Langganan Anda tidak aktif atau telah kedaluwarsa. Silakan perpanjang paket Anda.",
+    "payloadTooLarge": "Ukuran muatan terlalu besar (maksimal 1MB).",
+    "maxTitlesExceeded": "Maksimal 1000 judul per permintaan.",
+    "noTitlesProvided": "Tidak ada judul yang diberikan."
   },
   "Emails": {
     "resetSubject": "Reset Password - Prompt Gen",
@@ -750,7 +772,8 @@
     "regApproveSubject": "Pendaftaran Disetujui - Prompt Gen",
     "regApproveBody": "Halo {name}, Pendaftaran akun Anda di Prompt Gen telah disetujui oleh admin. Anda sekarang dapat masuk ke dashboard dan mulai menggunakan aplikasi.",
     "regRejectSubject": "Pendaftaran Ditolak - Prompt Gen",
-    "regRejectBody": "Halo {name}, Mohon maaf, pendaftaran akun Anda di Prompt Gen belum dapat disetujui oleh admin saat ini."
+    "regRejectBody": "Halo {name}, Mohon maaf, pendaftaran akun Anda di Prompt Gen belum dapat disetujui oleh admin saat ini.",
+    "ticketReplySubject": "Balasan Dukungan Tiket - Prompt Gen"
   },
   "Notifications": {
     "title": "Notifikasi",
@@ -886,7 +909,12 @@
     "selectTicketHint": "Pilih tiket dari daftar di sebelah kiri untuk melihat percakapan.",
     "ticketClosedMsg": "Tiket ini telah ditutup oleh Admin.",
     "sendTicket": "Kirim Tiket",
-    "loadingTickets": "Memuat tiket..."
+    "loadingTickets": "Memuat tiket...",
+    "createdAtLabel": "Dibuat:",
+    "adminRole": "👨‍💼 Admin Support",
+    "userRole": "👤 Anda",
+    "subjectNewPlaceholder": "Misal: Kendala pembayaran via transfer manual",
+    "messageNewPlaceholder": "Jelaskan kendala Anda secara rinci..."
   },
   "Error": {
     "title": "Terjadi Kesalahan",
@@ -1042,7 +1070,9 @@
     "changePassword": "Ubah Kata Sandi",
     "passwordUpdatedSuccess": "Kata sandi berhasil diperbarui.",
     "passwordUpdateFail": "Gagal memperbarui kata sandi.",
-    "generalError": "Terjadi kesalahan."
+    "generalError": "Terjadi kesalahan.",
+    "pageTitle": "Pengaturan Akun",
+    "pageDesc": "Kelola profil dan keamanan akun Anda."
   },
   "InstallPWA": {
     "installTitle": "Install Aplikasi",
@@ -1052,10 +1082,183 @@
     "closeLabel": "Tutup"
   },
   "AdminSupport": {
-    "replyPlaceholder": "Ketik balasan resmi admin di sini..."
+    "replyPlaceholder": "Ketik balasan resmi admin di sini...",
+    "title": "Manajemen Tiket Support",
+    "desc": "Verifikasi dan balasan tiket bantuan pengguna Prompt Gen secara terpusat.",
+    "newTickets": "Tiket Baru (Open)",
+    "repliedTickets": "Telah Dibalas (Replied)",
+    "closedTickets": "Selesai (Closed)",
+    "allTickets": "Semua Tiket",
+    "loadingTickets": "Memuat tiket...",
+    "noTicketsFilter": "Tidak ada tiket sesuai filter.",
+    "selectTicketPrompt": "Pilih tiket dari daftar di sebelah kiri untuk merespons."
   },
   "SceneStudio": {
     "selectTitle": "Pilih",
     "selectedTitle": "✓ Terpilih"
+  },
+  "Enums": {
+    "SubscriptionStatus": {
+      "ACTIVE": "Aktif",
+      "INACTIVE": "Tidak Aktif",
+      "EXPIRED": "Kedaluwarsa"
+    },
+    "PaymentStatus": {
+      "PENDING": "Menunggu Konfirmasi",
+      "APPROVED": "Disetujui",
+      "REJECTED": "Ditolak",
+      "PAID": "Lunas",
+      "FAILED": "Gagal"
+    },
+    "RegistrationStatus": {
+      "PENDING_APPROVAL": "Menunggu Persetujuan",
+      "APPROVED": "Disetujui",
+      "REJECTED": "Ditolak"
+    },
+    "PlanCode": {
+      "STANDARD": "Standard",
+      "PRO": "Pro",
+      "ULTRA": "Ultra",
+      "DEMO": "Demo"
+    },
+    "Role": {
+      "SUPERADMIN": "Superadmin",
+      "USER": "Pengguna"
+    },
+    "PaymentMethod": {
+      "MANUAL_TRANSFER": "Transfer Manual",
+      "AUTOMATIC_GATEWAY": "Payment Gateway Otomatis"
+    },
+    "NotificationType": {
+      "PAYMENT_APPROVED": "Pembayaran Disetujui",
+      "PAYMENT_REJECTED": "Pembayaran Ditolak",
+      "REGISTRATION_APPROVED": "Pendaftaran Disetujui",
+      "REGISTRATION_REJECTED": "Pendaftaran Ditolak",
+      "SUBSCRIPTION_EXPIRING_SOON": "Langganan Segera Berakhir",
+      "SUBSCRIPTION_EXPIRED": "Langganan Kedaluwarsa",
+      "CHANNEL_LOCKED": "Channel Terkunci",
+      "CHANNEL_UNLOCKED": "Channel Terbuka",
+      "NEW_PENDING_PAYMENT": "Pembayaran Baru Menunggu Konfirmasi",
+      "NEW_PENDING_REGISTRATION": "Pendaftaran Baru Menunggu Persetujuan",
+      "SYSTEM_ANNOUNCEMENT": "Pengumuman Sistem",
+      "SUPPORT_TICKET_NEW": "Tiket Bantuan Baru",
+      "SUPPORT_TICKET_REPLIED": "Balasan Tiket Bantuan",
+      "SUPPORT_TICKET_CLOSED": "Tiket Bantuan Ditutup"
+    },
+    "DraftType": {
+      "VIDEO": "Naskah Video",
+      "IMAGE": "Prompt Gambar"
+    },
+    "SupportTicketStatus": {
+      "OPEN": "Buka (Pending)",
+      "REPLIED": "Telah Dibalas",
+      "CLOSED": "Selesai (Ditutup)"
+    },
+    "CsMode": {
+      "TICKET": "Sistem Tiket Internal",
+      "DIRECT_WHATSAPP": "Direct WhatsApp",
+      "DIRECT_EMAIL": "Direct Email"
+    },
+    "NarrationMode": {
+      "VOICE_OVER": "Voice Over (Narator Suara)",
+      "DIEGETIC_ONLY": "Diegetik Murni (Suara Adegan)",
+      "SILENT_TEXT_ONLY": "Teks Layar Saja (Tanpa Suara)",
+      "HYBRID": "Hybrid (VO + Diegetik)"
+    },
+    "DurationCalcMode": {
+      "NARRATION_WORDCOUNT": "Hitung Kata Narasi (WPM)",
+      "SEGMENT_SELF_ESTIMATE": "Estimasi Durasi per Segmen",
+      "HYBRID": "Hybrid (Kata Narasi + Segmen)"
+    }
+  },
+  "AdminArchetypes": {
+    "title": "Manajemen Model Konten (Archetypes)",
+    "desc": "Kelola template alur emosi, mode suara (VO vs Diegetic), dan komponen naskah bawaan channel.",
+    "addBtn": "+ Tambah Model Konten",
+    "loading": "Memuat daftar model konten...",
+    "empty": "Belum ada model konten. Silakan tambahkan model konten pertama Anda.",
+    "systemBadge": "SISTEM",
+    "customBadge": "KUSTOM",
+    "emotionalArc": "Alur Emosi",
+    "activeComponents": "Komponen Aktif",
+    "none": "Tidak ada",
+    "connectedTo": "Terhubung ke",
+    "channelsCount": "{count} Channel",
+    "edit": "Edit",
+    "delete": "Hapus",
+    "modalTitleAdd": "Tambah Model Konten Baru",
+    "modalTitleEdit": "Edit Model Konten: {name}",
+    "nameLabel": "Nama Model Konten",
+    "namePlaceholder": "e.g. Edukasi Storytelling, Nostalgia Reconstruction",
+    "systemNameWarning": "Nama model bawaan sistem tidak dapat diubah.",
+    "descLabel": "Deskripsi",
+    "descPlaceholder": "Penjelasan ringkas tentang karakteristik dan tujuan model konten ini...",
+    "narrationModeLabel": "Mode Narasi & Audio",
+    "durationCalcModeLabel": "Metode Kalkulasi Durasi",
+    "emotionalArcLabel": "Template Alur Emosi (Emotional Arc Template)",
+    "emotionalArcPlaceholder": "e.g. Hook -> Problem -> Solution -> CTA",
+    "emotionalArcHint": "Urutan segmen emosional yang diinstruksikan kepada AI (misal: Setup -> Recognition -> Emotional Payoff).",
+    "defaultSectionsLabel": "Komponen Naskah Bawaan (Default Included Sections)",
+    "includeHook": "Sertakan Hook",
+    "includeCta": "Sertakan Call to Action (CTA)",
+    "includeCaption": "Sertakan Social Caption",
+    "includeThumbnail": "Sertakan Ide Thumbnail",
+    "cancel": "Batal",
+    "saving": "Menyimpan...",
+    "saveChanges": "Simpan Perubahan",
+    "createBtn": "Buat Model Konten",
+    "loadError": "Gagal memuat model konten",
+    "loadNetworkError": "Terjadi kesalahan jaringan saat memuat model konten",
+    "deleteSystemForbidden": "Model konten bawaan sistem tidak dapat dihapus",
+    "deleteInUse": "Tidak dapat menghapus: Masih digunakan oleh {count} channel",
+    "deleteConfirm": "Yakin ingin menghapus model konten \"{name}\"?",
+    "deleteSuccess": "Model konten berhasil dihapus",
+    "deleteError": "Gagal menghapus model konten",
+    "deleteNetworkError": "Terjadi kesalahan jaringan saat menghapus",
+    "nameRequired": "Nama model konten wajib diisi",
+    "updateSuccess": "Model konten berhasil diperbarui",
+    "createSuccess": "Model konten berhasil dibuat",
+    "saveError": "Gagal menyimpan model konten",
+    "saveNetworkError": "Terjadi kesalahan jaringan saat menyimpan"
+  },
+  "Research": {
+    "title": "Riset Tren & Keyword SEO",
+    "desc": "Temukan kata kunci pencarian real-time YouTube & Google sebelum membuat naskah AI agar konten Anda mudah ditemukan algoritma.",
+    "channelLabel": "Channel:",
+    "topicLabel": "Topik Konten atau Kata Kunci Utama",
+    "searchPlaceholder": "Misal: Rubah Kutub, Gunbound, Tips Saham Pemula...",
+    "clearText": "Hapus teks",
+    "analyzing": "Menganalisis Tren...",
+    "analyzeBtn": "Analisis Kata Kunci",
+    "topicRequired": "Masukkan topik atau pilih channel dengan niche terlebih dahulu.",
+    "keywordsFound": "Ditemukan {count} kata kunci populer!",
+    "popularKeywordsTitle": "Kata Kunci Populer untuk \"{query}\"",
+    "source": "Sumber Data:",
+    "sourceVidiq": "vidIQ MCP Intelligence",
+    "sourceYoutube": "Live YouTube Search Intelligence",
+    "createScriptSelected": "Buat Naskah ({count} Kata Kunci)",
+    "selectKeywordAria": "Pilih kata kunci {keyword}",
+    "volume": "Volume:",
+    "volumeHigh": "🔥 Tinggi",
+    "volumeMedium": "⚡ Sedang",
+    "volumeLow": "💤 Rendah",
+    "competition": "Kompetisi:",
+    "competitionLow": "🟢 Rendah",
+    "competitionMedium": "🟡 Sedang",
+    "competitionHigh": "🔴 Tinggi",
+    "opportunityScore": "Skor Peluang",
+    "selectBtn": "Pilih",
+    "audienceQuestionsTitle": "Pertanyaan Populer Penonton",
+    "audienceQuestionsDesc": "Pertanyaan riil yang paling sering dicari penonton di YouTube seputar topik ini. Klik untuk langsung dijadikan naskah:",
+    "makeScriptTopic": "Jadikan Topik Naskah →",
+    "popularTagsTitle": "Tag Populer",
+    "copyStudioTags": "Salin Studio (,)",
+    "copyStudioTagsTitle": "Format Koma (,) untuk kolom Tags di YouTube Studio",
+    "copyHashtags": "Salin Hashtag (#)",
+    "copyHashtagsTitle": "Format Hashtag (#) untuk deskripsi video",
+    "hashtagsCopied": "Hashtag (#) disalin untuk Deskripsi Video!",
+    "commaTagsCopied": "Tag Koma (,) disalin untuk YouTube Studio!",
+    "tagCopied": "Tag \"{tag}\" disalin!",
+    "clickToCopy": "Klik untuk menyalin tag ini"
   }
 }

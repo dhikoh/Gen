@@ -54,7 +54,7 @@ export default function UploadProofClient({ invoiceId, currentProof }: { invoice
  } else {
  setError(data.error || t('uploadFail'));
  }
- } catch (err) {
+ } catch {
  setError(t('networkError'));
  } finally {
  setLoading(false);
@@ -69,7 +69,8 @@ export default function UploadProofClient({ invoiceId, currentProof }: { invoice
  
  <div className="flex flex-col space-y-3">
  {preview && (
- <img src={preview} alt="Bukti Transfer" className="w-32 h-32 object-cover rounded border pg-border" />
+  // eslint-disable-next-line @next/next/no-img-element
+  <img src={preview} alt="Bukti Transfer" className="w-32 h-32 object-cover rounded border pg-border" />
  )}
  
  <input 

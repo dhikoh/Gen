@@ -59,7 +59,7 @@ Validasi input	zod di setiap route API tanpa kecuali
 Styling	Tailwind CSS v4 + design token kustom (lihat Bagian 5.9)
 Lokalisasi	next-intl (Bahasa Indonesia sebagai default, Bahasa Inggris sebagai alternatif) — wajib dipakai di semua komponen yang menampilkan teks ke pengguna, bukan hanya landing page
 PWA	next-pwa
-Email transaksional	Provider apa pun yang tersedia di lingkungan Anda (Resend/SMTP/Postmark) — wajib benar-benar mengirim email, lihat 0.2 poin 3
+Email transaksional	nodemailer + Standard SMTP (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM) — terpasang pada src/lib/email.ts, terisolasi dengan logging transaksional EmailLog
 Desain	Stitch Design System — API key tersedia di environment variable STITCH_API_KEY (isi sendiri di .env, jangan pernah menuliskan nilainya langsung di kode atau commit ke git)
 3. ARSITEKTUR & PRINSIP DESAIN SISTEM
 
@@ -138,6 +138,7 @@ enum PlanCode {
   STANDARD
   PRO
   ULTRA
+  DEMO
 }
 
 enum SubscriptionStatus {
@@ -159,50 +160,118 @@ enum PaymentStatus {
   FAILED
 }
 
+enum RegistrationStatus {
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+}
+
 enum DraftType {
   VIDEO
   IMAGE
+}
+
+enum NotificationType {
+  PAYMENT_APPROVED
+  PAYMENT_REJECTED
+  REGISTRATION_APPROVED
+  REGISTRATION_REJECTED
+  SUBSCRIPTION_EXPIRING_SOON
+  SUBSCRIPTION_EXPIRED
+  CHANNEL_LOCKED
+  CHANNEL_UNLOCKED
+  NEW_PENDING_PAYMENT
+  NEW_PENDING_REGISTRATION
+  SYSTEM_ANNOUNCEMENT
+  SUPPORT_TICKET_NEW
+  SUPPORT_TICKET_REPLIED
+  SUPPORT_TICKET_CLOSED
+}
+
+enum SupportTicketStatus {
+  OPEN
+  REPLIED
+  CLOSED
+}
+
+enum CsMode {
+  TICKET
+  DIRECT_WHATSAPP
+  DIRECT_EMAIL
+}
+
+enum NarrationMode {
+  VOICE_OVER
+  DIEGETIC_ONLY
+  SILENT_TEXT_ONLY
+  HYBRID
+}
+
+enum DurationCalcMode {
+  NARRATION_WORDCOUNT
+  SEGMENT_SELF_ESTIMATE
+  HYBRID
 }
 
 model User {
   id                    String              @id @default(cuid())
   name                  String
   username              String              @unique
+  usernameLower         String?             @unique
   email                 String              @unique
+  emailLower            String?             @unique
   phoneNumber           String?
+  phoneNormalized       String?             @unique
   passwordHash          String
+  mustChangePassword    Boolean             @default(false)
+  passwordChangedAt     DateTime?
   dateOfBirth           DateTime?
   role                  Role                @default(USER)
+  registrationStatus    RegistrationStatus  @default(APPROVED)
+  approvedAt            DateTime?
+  preferredLocale       String?             @default("id")
+  hasUsedTrial          Boolean             @default(false)
 
   currentPlanId         String?
   currentPlan           Plan?               @relation(fields: [currentPlanId], references: [id])
   subscriptionStatus    SubscriptionStatus  @default(INACTIVE)
   subscriptionExpiresAt DateTime?
+  pendingPlanId         String?
+  pendingPlanEffectiveAt DateTime?
+
+  generatorPreferences  Json?
 
   createdAt             DateTime            @default(now())
-  updatedAt              DateTime            @updatedAt
+  updatedAt             DateTime            @updatedAt
 
   channels              ProfileChannel[]
   invoices              Invoice[]
   drafts                Draft[]
+  usedTitles            UsedTitle[]
+  parsedOutputs         ParsedOutput[]
   resetTokens           PasswordResetToken[]
+  notifications         Notification[]
+  supportTickets        SupportTicket[]
 }
 
 model Plan {
-  id           String   @id @default(cuid())
-  code         PlanCode @unique
-  name         String
-  priceMonthly Int      // dalam Rupiah utuh, tanpa desimal
-  currency     String   @default("IDR")
-  maxChannels  Int
-  features     Json?    // contoh: { "imagePromptStudio": true, "htmlBlogExport": true }
-  isActive     Boolean  @default(true)
-  sortOrder    Int      @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                    String   @id @default(cuid())
+  code                  PlanCode @unique
+  name                  String
+  priceMonthly          Int      // dalam Rupiah utuh, tanpa desimal
+  currency              String   @default("IDR")
+  maxChannels           Int
+  periodDays            Int      @default(30)
+  trialDays             Int      @default(0)
+  features              Json?    // contoh: { "imagePromptStudio": true, "htmlBlogExport": true }
+  isActive              Boolean  @default(true)
+  isPubliclyPurchasable Boolean  @default(true)
+  sortOrder             Int      @default(0)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
-  users        User[]
-  invoices     Invoice[]
+  users                 User[]
+  invoices              Invoice[]
 }
 
 model ProfileChannel {
@@ -214,6 +283,9 @@ model ProfileChannel {
   description     String?
   cta1            String?
   cta2            String?
+  targetPlatform  String?
+  personaPov      String?
+  speechRate      Float?   @default(0.35)
   visualAesthetic String?
   audioBGM        Boolean  @default(true)
   audioSFX        Boolean  @default(true)
@@ -228,6 +300,9 @@ model ProfileChannel {
 
   products        Product[]
   drafts          Draft[]
+  usedTitles      UsedTitle[]
+  contentArchetypeId String?
+  contentArchetype   ContentArchetype? @relation(fields: [contentArchetypeId], references: [id], onDelete: SetNull)
 }
 
 model Product {
@@ -253,6 +328,8 @@ model Invoice {
   method       PaymentMethod @default(MANUAL_TRANSFER)
   status       PaymentStatus @default(PENDING)
   proofUrl     String?       // khusus MANUAL_TRANSFER
+  proofUploadedAt DateTime?
+  rejectionReason String?    @db.Text
   externalRef  String?       // cadangan untuk gateway otomatis di masa depan
   periodDays   Int           @default(30)
   reviewedById String?
@@ -272,8 +349,14 @@ model Draft {
   rawJson              String    @db.Text
   parsedData           Json?
   targetDurationSec    Int?
+  targetSceneCount     Int?
+  narrativeLoopStyle   String?
+  visualLoopStyle      String?
   wordCount            Int?
   estimatedDurationSec Int?
+  durationSource       String?
+  isTemplate           Boolean   @default(false)
+  isStub               Boolean   @default(false)
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 }
@@ -289,13 +372,182 @@ model PasswordResetToken {
 }
 
 model AppSettings {
-  id              String   @id @default("singleton")
-  bankName        String?
-  bankAccountNo   String?
-  bankAccountName String?
-  heroTitle       String?
-  heroSubtitle    String?
-  updatedAt       DateTime @updatedAt
+  id                          String   @id @default("singleton")
+  bankName                    String?
+  bankAccountNo               String?
+  bankAccountName             String?
+  heroTitle                   String?
+  heroSubtitle                String?
+  csMode                      CsMode   @default(TICKET)
+  csWhatsappNumber            String?
+  csEmail                     String?
+  csOperatingHours            String?
+  csWidgetEnabled             Boolean  @default(true)
+  registrationPendingAlertHours Int?   @default(24)
+  paymentPendingAlertHours      Int?   @default(12)
+  rateLimitRequests           Int      @default(30)
+  rateLimitWindowMs           Int      @default(60000)
+  updatedAt                   DateTime @updatedAt
+}
+
+model PromptSettings {
+  id                     String   @id @default("singleton")
+  videoSystemInstruction String?  @db.Text
+  imageSystemInstruction String?  @db.Text
+  defaultSpeechRate      String?  @default("medium")
+  defaultNegativePrompt  String?  @db.Text
+  bannedWords            Json?
+  updatedAt              DateTime @updatedAt
+}
+
+model Notification {
+  id               String           @id @default(cuid())
+  userId           String
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type             NotificationType
+  title            String
+  message          String           @db.Text
+  link             String?
+  isRead           Boolean          @default(false)
+  broadcastGroupId String?
+  createdAt        DateTime         @default(now())
+
+  @@index([userId, isRead])
+  @@index([broadcastGroupId])
+}
+
+model SupportTicket {
+  id         String              @id @default(cuid())
+  userId     String?
+  user       User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  guestName  String?
+  guestEmail String?
+  subject    String
+  status     SupportTicketStatus @default(OPEN)
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+
+  messages   SupportMessage[]
+
+  @@index([status])
+  @@index([userId])
+}
+
+model SupportMessage {
+  id         String        @id @default(cuid())
+  ticketId   String
+  ticket     SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  senderRole Role
+  body       String        @db.Text
+  createdAt  DateTime      @default(now())
+}
+
+model PlatformOption {
+  id              String   @id @default(cuid())
+  label           String   @unique
+  isSystem        Boolean  @default(true)
+  createdByUserId String?
+  createdAt       DateTime @default(now())
+}
+
+model PersonaPreset {
+  id              String   @id @default(cuid())
+  label           String
+  description     String?
+  isSystem        Boolean  @default(true)
+  createdByUserId String?
+  createdAt       DateTime @default(now())
+}
+
+model VisualAestheticPreset {
+  id              String   @id @default(cuid())
+  label           String
+  isSystem        Boolean  @default(true)
+  createdByUserId String?
+  createdAt       DateTime @default(now())
+}
+
+model NicheCategoryPreset {
+  id              String   @id @default(cuid())
+  label           String
+  isSystem        Boolean  @default(true)
+  createdByUserId String?
+  createdAt       DateTime @default(now())
+}
+
+model ParsedOutput {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rawInput     String   @db.Text
+  parsedResult Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model UsedTitle {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channelId String
+  channel   ProfileChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  type      DraftType
+  title     String
+  createdAt DateTime  @default(now())
+
+  @@unique([channelId, type, title])
+  @@index([channelId, type])
+  @@index([userId])
+}
+
+model ContentArchetype {
+  id                      String           @id @default(cuid())
+  name                    String           @unique
+  description             String?
+  narrationMode           NarrationMode    @default(VOICE_OVER)
+  emotionalArcTemplate    String           @default("Hook -> Problem -> Solution -> CTA") @db.Text
+  defaultIncludedSections Json             // { hook: boolean, cta: boolean, caption: boolean, thumbnail: boolean }
+  compositionCategories   Json             // [ { label: string, required: boolean } ]
+  durationCalcMode        DurationCalcMode @default(HYBRID)
+  cameraMovementRoleMap   Json?            // override mapping peran -> camera movement
+  isSystem                Boolean          @default(false)
+  createdAt               DateTime         @default(now())
+  updatedAt               DateTime         @updatedAt
+
+  channels                ProfileChannel[]
+}
+
+model AdminAuditLog {
+  id         String   @id @default(cuid())
+  actorId    String
+  action     String
+  targetType String
+  targetId   String?
+  beforeData Json?
+  afterData  Json?
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId])
+  @@index([action])
+  @@index([targetType, targetId])
+}
+
+model EmailLog {
+  id           String   @id @default(cuid())
+  userId       String?
+  recipient    String
+  subject      String
+  templateType String
+  status       String   // "SUCCESS" | "FAILED"
+  error        String?  @db.Text
+  attempts     Int      @default(1)
+  createdAt    DateTime @default(now())
+
+  @@index([recipient])
+  @@index([status])
 }
 
 Catatan wajib:
@@ -345,7 +597,7 @@ Arsitektur proteksi akses dan pengalihan rute dibagi menjadi dua lapisan utama u
    - Proteksi Peran Pengguna (RBAC - `SUPERADMIN` vs `USER`) diselenggarakan secara aman dan dinamis pada Server Component Layout (`src/app/[locale]/admin/layout.tsx` dan `src/app/[locale]/dashboard/layout.tsx`).
    - Tanpa token / Sesi habis + akses `/dashboard*` atau `/admin*` -> Redirect ke `/auth` dengan parameter `callbackUrl`.
    - Token ada, role `USER`, akses `/admin*` -> Redirect otomatis ke `/dashboard`.
-   - Token ada, role `SUPERADMIN`, akses `/dashboard*` -> Redirect otomatis ke `/admin`.
+   - Token ada, role `SUPERADMIN`, akses `/dashboard*` -> Diizinkan (`requireRole(["USER", "SUPERADMIN"], locale)`) untuk pengujian Studio/fitur user, dilengkapi banner navigasi untuk kembali ke Panel Admin.
    - Token ada, akses `/auth` -> Redirect otomatis ke rute utama sesuai peran (`/admin` untuk SUPERADMIN, `/dashboard` untuk USER).
    - Wajib divalidasi bahwa `NEXTAUTH_SECRET` tersedia di environment variable saat build/start.
 5.3 Manajemen Profile Channel
@@ -394,18 +646,18 @@ Saat langganan kedaluwarsa: status otomatis menjadi EXPIRED, channel melebihi ba
 
 5.7.2 Paket Langganan (dikelola dari tabel Plan, bukan hardcode) Isi awal (seed) sebagai titik mulai — sesuaikan lewat panel admin (5.8) setelah aplikasi jalan:
 
-Kode	Nama	Harga/bulan	Maks. Channel
-DEMO	Trial (3 Hari)	Rp 0		1
-STANDARD	Standard	Rp 10.000 	1
-PRO	Pro	Rp 25.000 3
-ULTRA	Ultra	Rp 50.000	10
+Kode	Nama	Harga/bulan	Maks. Channel	Period (Hari)	Trial (Hari)	Publik
+DEMO	Trial (3 Hari)	Rp 0		1		3		3		Tidak (Auto via Approval)
+STANDARD	Standard	Rp 10.000 	1		30		0		Ya
+PRO	Pro	Rp 25.000 	3		30		0		Ya
+ULTRA	Ultra	Rp 50.000	10		30		0		Ya
 
 5.7.3 Alur Pembayaran Manual (aktif sekarang)
 
 User memilih paket di halaman Billing → sistem menampilkan instruksi transfer memakai data dari AppSettings (nama bank, no rekening, atas nama — bukan hardcode di komponen).
-User unggah bukti transfer (JPG/PNG, maks 2MB) → dikonversi base64 di client, divalidasi ulang di server (format MIME regex, ukuran ulang dihitung dari panjang base64, bukan cuma dipercaya dari client) → simpan sebagai Invoice dengan status: PENDING, method: MANUAL_TRANSFER, amount & planId diambil ulang dari tabel Plan di server, bukan dari body request (cegah user memanipulasi harga lewat devtools).
+User unggah bukti transfer (JPG/PNG, maks 2MB) → dikonversi base64 di client, divalidasi ulang di server (format MIME regex, ukuran ulang dihitung dari panjang base64, verifikasi magic bytes gambar, bukan cuma dipercaya dari client) → simpan sebagai Invoice dengan status: PENDING, method: MANUAL_TRANSFER, amount & planId diambil ulang dari tabel Plan di server, bukan dari body request (cegah user memanipulasi harga lewat devtools).
 Endpoint ini wajib rate-limited per user.
-Admin melihat daftar invoice pending (5.8), bisa lihat bukti transfer lewat endpoint khusus yang mendekode base64 jadi gambar, lalu Approve atau Reject.
+Admin melihat daftar invoice pending (5.8), bisa lihat bukti transfer lewat endpoint khusus yang mendekode base64 jadi stream gambar murni (/api/admin/payments/[id]/proof), lalu Approve atau Reject.
 Saat Approve (dalam satu transaksi Prisma, idempoten — tolak jika status invoice bukan lagi PENDING untuk mencegah approve ganda/race condition):
 Invoice.status → APPROVED.
 User.currentPlanId → invoice.planId, subscriptionStatus → ACTIVE.
@@ -1304,3 +1556,63 @@ Pada implementasi Bagian 23, terjadi percampuran konsep (*conflation*) antara **
    - Menyesuaikan font input pencarian ke `text-base sm:text-sm` untuk mencegah browser mobile iOS memicu auto-zoom saat input disentuh.
    - Menyesuaikan posisi `InstallPWABanner` ke `bottom-20 md:bottom-4` agar tidak menutupi mobile bottom navigation bar, serta memperbarui styling ke neumorphic brand `#ff7600`.
    - Memperbarui `public/manifest.json` dengan `theme_color: "#ff7600"`, `background_color: "#ecf0f3"`, `scope: "/"`, dan `id: "/"`.
+
+# Addendum — Bagian 27: Kematangan Bisnis, Kepatuhan Privasi, Retensi Data, & Automated Testing
+
+## 27.1 Admin Audit Trail Engine & Log Viewer
+1. **Model Audit Log**:
+   - Model `AdminAuditLog` di Prisma mencatat seluruh tindakan administratif yang berpengaruh pada sistem (`actorId`, `action`, `targetType`, `targetId`, `beforeData`, `afterData`, `ip`, `createdAt`).
+2. **Endpoint API (`src/app/api/admin/audit-logs/route.ts`)**:
+   - `GET /api/admin/audit-logs`: Dilindungi otentikasi role `SUPERADMIN`, sliding-window rate limit, mendukung filter pencarian (`action`, `targetType`), dan paginasi terstruktur.
+3. **Komponen UI Admin (`AdminAuditLogsTab.tsx`)**:
+   - Terintegrasi di tab Pengaturan Admin (`AdminSettingsClient.tsx`) dengan token desain `pg-*`, status warna, timestamp terformat lokal, dan inspector JSON payload sebelum/sesudah perubahan.
+
+## 27.2 Scheduler Pengingat Langganan Otomatis (Cron)
+1. **Endpoint API (`src/app/api/cron/subscription-reminders/route.ts`)**:
+   - `POST` & `GET` /api/cron/subscription-reminders: Dilindungi header `Authorization: Bearer CRON_SECRET` atau URL query parameter `?secret=...`.
+   - Mengidentifikasi langganan aktif yang akan berakhir dalam H-7 s/d H-1 atau baru saja berakhir hari ini.
+   - Mencegah email duplikat dengan memeriksa histori tabel `EmailLog` dalam 20 jam terakhir.
+   - Mengirimkan email notifikasi transaksional terstandarisasi serta in-app notification (`notifyUser`).
+
+## 27.3 Halaman Kuitansi Resmi Siap Cetak (Printable Invoice)
+1. **Rute Halaman (`src/app/[locale]/dashboard/billing/invoices/[id]/page.tsx`)**:
+   - Komponen klien `PrintableInvoiceClient.tsx` dengan desain kuitansi profesional, nomor invoice unik, metadata pembayaran, rincian paket langganan, tombol trigger cetak langsung (`window.print()`), dan stempel digital bukti lunas.
+2. **Integrasi UI**:
+   - Tombol aksi cepat **"🧾 Kuitansi"** pada daftar riwayat invoice (`InvoiceHistoryClient.tsx`).
+
+## 27.4 Kepatuhan Privasi & Perlindungan Data Pribadi (Hapus Akun & Ekspor Data)
+1. **Hapus Akun Mandiri (`DELETE /api/user/profile`)**:
+   - Mengharuskan verifikasi password aktif melalui `bcrypt.compare`.
+   - Melakukan soft-delete/anonymization akun, mengunci sesi login, dan mencatat event di `AdminAuditLog`.
+2. **Ekspor Data Portabilitas (`GET /api/user/data-export`)**:
+   - Menghasilkan bundle arsip file JSON (`promptgen-export-{username}-{timestamp}.json`) yang memuat seluruh entitas relasional pengguna: data profil, channel, produk, draft naskah, tiket support, dan riwayat invoice.
+
+## 27.5 Sistem Health Check Platform
+1. **Endpoint API (`src/app/api/health/route.ts`)**:
+   - `GET /api/health`: Memeriksa ketersediaan koneksi database PostgreSQL via query ping `prisma.$queryRaw(SELECT 1)`, mengukur waktu latensi milidetik, konsumsi memori server (`process.memoryUsage()`), serta status kesiapan operasional sistem.
+
+## 27.6 Widget Onboarding Progresif
+1. **Komponen Dashboard (`src/app/[locale]/dashboard/page.tsx`)**:
+   - Membimbing pengguna baru dalam 3 tahapan utama aktivasi akun:
+     - Tahap 1: Membuat Channel Profil Pertama (`/dashboard/channels`).
+     - Tahap 2: Menghasilkan Naskah Pertama di Studio Generator (`/dashboard/generator`).
+     - Tahap 3: Memeriksa dan Memilih Paket Langganan (`/dashboard/pricing`).
+   - Menyajikan indikator persentase penyelesaian dan progress bar dinamis berdesain token sistem.
+
+## 27.7 Kebijakan Retensi Bukti Transfer (Transfer Proof Retention Cron)
+1. **Endpoint API (`src/app/api/cron/cleanup-proofs/route.ts`)**:
+   - `POST` & `GET` /api/cron/cleanup-proofs: Dilindungi `CRON_SECRET`.
+   - Mengosongkan data base64 `proofUrl` pada invoice dengan status `APPROVED` atau `REJECTED` yang telah melampaui masa simpan (default 180 hari) untuk efisiensi basis data dan kepatuhan privasi finansial.
+   - Mendukung simulasi dry-run (`?dryRun=true`) serta pencatatan otomatis di `AdminAuditLog`.
+
+## 27.8 Infrastruktur Pengujian Otomatis (Vitest Automated Test Suite)
+1. **Konfigurasi Test Runner (`vitest.config.mts`)**:
+   - Menggunakan `vitest` v3.2.7 dengan modul resolver alias `@/*` mengarah ke `./src/*`.
+   - Script npm: `"test": "vitest run"`.
+2. **Rangkaian Pengujian (38 Test Cases, 100% Pass Rate)**:
+   - `tests/enumMapping.test.ts`: Pemetaan badge & status terjemahan domain.
+   - `tests/rateLimit.test.ts`: Ekstraksi IP dan proteksi dual-bucket rate limit.
+   - `tests/subscription.test.ts`: Logika masa aktif langganan, auto-downgrade, dan bypass role superadmin.
+   - `tests/channelLockLogic.test.ts`: Algoritma penguncian channel melampaui kuota paket.
+   - `tests/planFeatures.test.ts`: Evaluasi feature flags dan fail-open policy.
+   - `tests/parsers.test.ts`: Parser markdown, thumbnail extractor, dan sanitasi output.

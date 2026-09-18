@@ -5,12 +5,12 @@ import { prisma } from "@/lib/db";
 import { getApiTranslator } from "@/lib/apiI18n";
 import { notifyUser } from "@/lib/notifications";
 import { z } from "zod";
+import { getClientIp, applyRateLimit } from "@/lib/rateLimit";
+import { logAdminAction } from "@/lib/auditLog";
 
-// 4.4 fix: Zod schema for ticket status update
 const ticketPatchSchema = z.object({
   status: z.enum(["OPEN", "REPLIED", "CLOSED"]),
 });
-
 
 export async function GET(
   req: Request,
@@ -22,6 +22,12 @@ export async function GET(
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
+    }
+
+    const ip = getClientIp(req);
+    const isAllowed = await applyRateLimit(`ticket_get_${session.user.id}_${ip}`, 60, 60);
+    if (!isAllowed) {
+      return NextResponse.json({ error: t("tooManyRequests") }, { status: 429 });
     }
 
     const ticket = await prisma.supportTicket.findUnique({
@@ -37,7 +43,7 @@ export async function GET(
     }
 
     if (session.user.role !== "SUPERADMIN" && ticket.userId !== session.user.id) {
-      return NextResponse.json({ error: t("unauthorized") }, { status: 403 });
+      return NextResponse.json({ error: t("forbidden") }, { status: 403 });
     }
 
     return NextResponse.json({ ticket });
@@ -55,8 +61,17 @@ export async function PATCH(
   const { id } = await params;
   try {
     const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== "SUPERADMIN") {
-      return NextResponse.json({ error: t("unauthorized") }, { status: 403 });
+    if (!session) {
+      return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
+    }
+    if (session.user.role !== "SUPERADMIN") {
+      return NextResponse.json({ error: t("forbidden") }, { status: 403 });
+    }
+
+    const ip = getClientIp(req);
+    const isAllowed = await applyRateLimit(`ticket_patch_${session.user.id}_${ip}`, 30, 60);
+    if (!isAllowed) {
+      return NextResponse.json({ error: t("tooManyRequests") }, { status: 429 });
     }
 
     const rawBody = await req.json();
@@ -81,6 +96,14 @@ export async function PATCH(
         { ticketId: updatedTicket.id.slice(-6) }
       );
     }
+
+    await logAdminAction({
+      adminId: session.user.id,
+      action: "UPDATE_TICKET_STATUS",
+      targetType: "SUPPORT_TICKET",
+      targetId: id,
+      metadata: { newStatus: status }
+    });
 
     return NextResponse.json({ success: true, ticket: updatedTicket });
   } catch (error) {

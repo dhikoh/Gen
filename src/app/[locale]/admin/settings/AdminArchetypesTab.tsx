@@ -2,6 +2,13 @@
 
 import { useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
+import { useTranslations } from "next-intl";
+import {
+  getNarrationModeLabel,
+  getNarrationModeBadge,
+  getDurationCalcModeBadge,
+  getDurationCalcModeLabel,
+} from "@/lib/enumMapping";
 
 interface ContentArchetypeItem {
   id: string;
@@ -26,6 +33,9 @@ interface ContentArchetypeItem {
 }
 
 export default function AdminArchetypesTab() {
+  const t = useTranslations("AdminArchetypes");
+  const tEnums = useTranslations("Enums");
+
   const [archetypes, setArchetypes] = useState<ContentArchetypeItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -54,14 +64,14 @@ export default function AdminArchetypesTab() {
       if (data.success && data.archetypes) {
         setArchetypes(data.archetypes);
       } else {
-        toast.error(data.error || "Gagal memuat model konten");
+        toast.error(data.error || t("loadError"));
       }
     } catch {
-      toast.error("Terjadi kesalahan jaringan saat memuat model konten");
+      toast.error(t("loadNetworkError"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     let ignore = false;
@@ -72,17 +82,17 @@ export default function AdminArchetypesTab() {
         if (data.success && !ignore) {
           setArchetypes(data.archetypes);
         } else if (!ignore) {
-          toast.error(data.error || "Gagal memuat model konten");
+          toast.error(data.error || t("loadError"));
         }
       } catch {
-        if (!ignore) toast.error("Terjadi kesalahan jaringan saat memuat model konten");
+        if (!ignore) toast.error(t("loadNetworkError"));
       } finally {
         if (!ignore) setLoading(false);
       }
     }
     load();
     return () => { ignore = true; };
-  }, []);
+  }, [t]);
 
   const openCreateModal = () => {
     setEditingId(null);
@@ -128,14 +138,14 @@ export default function AdminArchetypesTab() {
 
   const handleDelete = async (item: ContentArchetypeItem) => {
     if (item.isSystem) {
-      toast.error("Model konten bawaan sistem tidak dapat dihapus");
+      toast.error(t("deleteSystemForbidden"));
       return;
     }
     if (item._count && item._count.channels > 0) {
-      toast.error(`Tidak dapat menghapus: Masih digunakan oleh ${item._count.channels} channel`);
+      toast.error(t("deleteInUse", { count: item._count.channels }));
       return;
     }
-    if (!confirm(`Yakin ingin menghapus model konten "${item.name}"?`)) return;
+    if (!confirm(t("deleteConfirm", { name: item.name }))) return;
 
     try {
       const res = await fetch(`/api/admin/content-archetypes/${item.id}`, {
@@ -143,20 +153,20 @@ export default function AdminArchetypesTab() {
       });
       const data = await res.json();
       if (res.ok) {
-        toast.success("Model konten berhasil dihapus");
+        toast.success(t("deleteSuccess"));
         fetchArchetypes();
       } else {
-        toast.error(data.error || "Gagal menghapus model konten");
+        toast.error(data.error || t("deleteError"));
       }
     } catch {
-      toast.error("Terjadi kesalahan jaringan saat menghapus");
+      toast.error(t("deleteNetworkError"));
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) {
-      toast.error("Nama model konten wajib diisi");
+      toast.error(t("nameRequired"));
       return;
     }
 
@@ -190,14 +200,14 @@ export default function AdminArchetypesTab() {
 
       const data = await res.json();
       if (res.ok) {
-        toast.success(editingId ? "Model konten berhasil diperbarui" : "Model konten berhasil dibuat");
+        toast.success(editingId ? t("updateSuccess") : t("createSuccess"));
         setModalOpen(false);
         fetchArchetypes();
       } else {
-        toast.error(data.error || "Gagal menyimpan model konten");
+        toast.error(data.error || t("saveError"));
       }
     } catch {
-      toast.error("Terjadi kesalahan jaringan saat menyimpan");
+      toast.error(t("saveNetworkError"));
     } finally {
       setSubmitting(false);
     }
@@ -209,127 +219,131 @@ export default function AdminArchetypesTab() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold pg-text-heading">Manajemen Model Konten (Archetypes)</h3>
+          <h3 className="text-lg font-semibold pg-text-heading">{t("title")}</h3>
           <p className="text-xs pg-text-muted mt-0.5">
-            Kelola template alur emosi, mode suara (VO vs Diegetic), dan komponen naskah bawaan channel.
+            {t("desc")}
           </p>
         </div>
         <button
           type="button"
           onClick={openCreateModal}
-          className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors"
+          className="neu-btn-brand px-4 py-2 text-xs font-semibold rounded-lg shadow-sm transition-all"
         >
-          + Tambah Model Konten
+          {t("addBtn")}
         </button>
       </div>
 
       {loading ? (
         <div className="p-8 text-center pg-text-muted text-sm pg-surface rounded-xl border pg-border">
-          Memuat daftar model konten...
+          {t("loading")}
         </div>
       ) : archetypes.length === 0 ? (
         <div className="p-8 text-center pg-text-muted text-sm pg-surface rounded-xl border pg-border">
-          Belum ada model konten. Silakan tambahkan model konten pertama Anda.
+          {t("empty")}
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4">
-          {archetypes.map((arch) => (
-            <div
-              key={arch.id}
-              className="pg-surface border pg-border rounded-xl p-5 shadow-sm space-y-3 glass-panel"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h4 className="font-semibold text-sm pg-text-heading">{arch.name}</h4>
-                    {arch.isSystem ? (
-                      <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
-                        SISTEM
-                      </span>
-                    ) : (
-                      <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
-                        KUSTOM
-                      </span>
-                    )}
-                    <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-slate-100 dark:bg-slate-800 pg-text-sub border pg-border">
-                      {arch.narrationMode === "VOICE_OVER" && "🎙️ Voice Over"}
-                      {arch.narrationMode === "DIEGETIC_ONLY" && "🔇 Diegetik Murni"}
-                      {arch.narrationMode === "SILENT_TEXT_ONLY" && "📄 Teks Saja"}
-                      {arch.narrationMode === "HYBRID" && "🔀 Hybrid"}
-                    </span>
-                    <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
-                      ⏱️ {arch.durationCalcMode}
-                    </span>
-                  </div>
-                  {arch.description && (
-                    <p className="text-xs pg-text-muted mt-1">{arch.description}</p>
-                  )}
-                </div>
+          {archetypes.map((arch) => {
+            const narrationBadge = getNarrationModeBadge(arch.narrationMode);
+            const durationBadge = getDurationCalcModeBadge(arch.durationCalcMode);
 
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => openEditModal(arch)}
-                    className="px-3 py-1 text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 pg-text-heading rounded-md transition-colors"
-                  >
-                    Edit
-                  </button>
-                  {!arch.isSystem && (
+            return (
+              <div
+                key={arch.id}
+                className="pg-surface border pg-border rounded-xl p-5 shadow-sm space-y-3 glass-panel"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="font-semibold text-sm pg-text-heading">{arch.name}</h4>
+                      {arch.isSystem ? (
+                        <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-[var(--pg-brand-light)] text-[var(--pg-brand)] border border-[var(--pg-brand)]/20">
+                          {t("systemBadge")}
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                          {t("customBadge")}
+                        </span>
+                      )}
+                      <span className={`px-2 py-0.5 text-[10px] font-medium rounded-full ${narrationBadge.className}`}>
+                        {narrationBadge.icon} {getNarrationModeLabel(arch.narrationMode, (k) => tEnums(k as Parameters<typeof tEnums>[0]))}
+                      </span>
+                      <span className={`px-2 py-0.5 text-[10px] font-medium rounded-full ${durationBadge.className}`}>
+                        {durationBadge.icon} {getDurationCalcModeLabel(arch.durationCalcMode, (k) => tEnums(k as Parameters<typeof tEnums>[0]))}
+                      </span>
+                    </div>
+                    {arch.description && (
+                      <p className="text-xs pg-text-muted mt-1">{arch.description}</p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       type="button"
-                      onClick={() => handleDelete(arch)}
-                      className="px-3 py-1 text-xs font-medium bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-950/40 dark:hover:bg-red-900/60 dark:text-red-400 rounded-md transition-colors"
+                      onClick={() => openEditModal(arch)}
+                      className="neu-btn px-3 py-1 text-xs font-medium rounded-md transition-colors"
                     >
-                      Hapus
+                      {t("edit")}
                     </button>
-                  )}
+                    {!arch.isSystem && (
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(arch)}
+                        className="px-3 py-1 text-xs font-medium bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 rounded-md transition-colors"
+                      >
+                        {t("delete")}
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              <div className="p-3 bg-slate-50/70 dark:bg-slate-800/40 border pg-border rounded-lg text-xs space-y-1.5">
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold pg-text-sub shrink-0">Alur Emosi:</span>
-                  <code className="text-[11px] bg-white dark:bg-slate-900 px-2 py-0.5 rounded border pg-border text-purple-700 dark:text-purple-300">
-                    {arch.emotionalArcTemplate}
-                  </code>
-                </div>
-                <div className="flex items-center gap-3 flex-wrap text-[11px] pg-text-muted pt-1">
-                  <span>
-                    Komponen Aktif:{" "}
-                    <strong>
-                      {[
-                        arch.defaultIncludedSections?.hook !== false && "Hook",
-                        arch.defaultIncludedSections?.cta !== false && "CTA",
-                        arch.defaultIncludedSections?.caption !== false && "Caption",
-                        arch.defaultIncludedSections?.thumbnail !== false && "Thumbnail",
-                      ]
-                        .filter(Boolean)
-                        .join(", ") || "Tidak ada"}
-                    </strong>
-                  </span>
-                  <span>•</span>
-                  <span>
-                    Terhubung ke: <strong>{arch._count?.channels || 0} Channel</strong>
-                  </span>
+                <div className="p-3 pg-surface-dim border pg-border rounded-lg text-xs space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold pg-text-sub shrink-0">{t("emotionalArc")}:</span>
+                    <code className="text-[11px] pg-surface px-2 py-0.5 rounded border pg-border text-brand">
+                      {arch.emotionalArcTemplate}
+                    </code>
+                  </div>
+                  <div className="flex items-center gap-3 flex-wrap text-[11px] pg-text-muted pt-1">
+                    <span>
+                      {t("activeComponents")}:{" "}
+                      <strong>
+                        {[
+                          arch.defaultIncludedSections?.hook !== false && "Hook",
+                          arch.defaultIncludedSections?.cta !== false && "CTA",
+                          arch.defaultIncludedSections?.caption !== false && "Caption",
+                          arch.defaultIncludedSections?.thumbnail !== false && "Thumbnail",
+                        ]
+                          .filter(Boolean)
+                          .join(", ") || t("none")}
+                      </strong>
+                    </span>
+                    <span>•</span>
+                    <span>
+                      {t("connectedTo")}: <strong>{t("channelsCount", { count: arch._count?.channels || 0 })}</strong>
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
       {/* Modal Form Tambah / Edit */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-900 border pg-border rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
+          <div className="pg-surface border pg-border rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div className="flex items-center justify-between border-b pg-border pb-3">
               <h4 className="text-base font-bold pg-text-heading">
-                {editingId ? `Edit Model Konten: ${editingItem?.name}` : "Tambah Model Konten Baru"}
+                {editingId
+                  ? t("modalTitleEdit", { name: editingItem?.name || "" })
+                  : t("modalTitleAdd")}
               </h4>
               <button
                 type="button"
                 onClick={() => setModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg"
+                className="pg-text-muted hover:pg-text-heading text-lg"
               >
                 ✕
               </button>
@@ -338,36 +352,36 @@ export default function AdminArchetypesTab() {
             <form onSubmit={handleSubmit} className="space-y-4 text-xs">
               <div>
                 <label className="block font-medium pg-text-sub mb-1">
-                  Nama Model Konten <span className="text-red-500">*</span>
+                  {t("nameLabel")} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   disabled={editingItem?.isSystem}
-                  placeholder="e.g. Edukasi Storytelling, Nostalgia Reconstruction"
-                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border pg-border rounded-lg outline-none focus:ring-2 focus:ring-purple-500 pg-text-heading disabled:opacity-60"
+                  placeholder={t("namePlaceholder")}
+                  className="w-full p-2.5 pg-surface-dim border pg-border rounded-lg outline-none focus:ring-2 focus:ring-[var(--pg-brand)] pg-text-heading disabled:opacity-60"
                   required
                 />
                 {editingItem?.isSystem && (
-                  <p className="text-[10px] text-amber-500 mt-1">Nama model bawaan sistem tidak dapat diubah.</p>
+                  <p className="text-[10px] text-amber-500 mt-1">{t("systemNameWarning")}</p>
                 )}
               </div>
 
               <div>
-                <label className="block font-medium pg-text-sub mb-1">Deskripsi</label>
+                <label className="block font-medium pg-text-sub mb-1">{t("descLabel")}</label>
                 <textarea
                   rows={2}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Penjelasan ringkas tentang karakteristik dan tujuan model konten ini..."
-                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border pg-border rounded-lg outline-none focus:ring-2 focus:ring-purple-500 pg-text-heading"
+                  placeholder={t("descPlaceholder")}
+                  className="w-full p-2.5 pg-surface-dim border pg-border rounded-lg outline-none focus:ring-2 focus:ring-[var(--pg-brand)] pg-text-heading"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-medium pg-text-sub mb-1">Mode Narasi & Audio</label>
+                  <label className="block font-medium pg-text-sub mb-1">{t("narrationModeLabel")}</label>
                   <select
                     value={formData.narrationMode}
                     onChange={(e) =>
@@ -376,17 +390,17 @@ export default function AdminArchetypesTab() {
                         narrationMode: e.target.value as ContentArchetypeItem["narrationMode"],
                       })
                     }
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border pg-border rounded-lg outline-none focus:ring-2 focus:ring-purple-500 pg-text-heading"
+                    className="w-full p-2.5 pg-surface-dim border pg-border rounded-lg outline-none focus:ring-2 focus:ring-[var(--pg-brand)] pg-text-heading"
                   >
-                    <option value="VOICE_OVER">VOICE_OVER (Narator Suara)</option>
-                    <option value="DIEGETIC_ONLY">DIEGETIC_ONLY (Suara In-Scene Murni)</option>
-                    <option value="SILENT_TEXT_ONLY">SILENT_TEXT_ONLY (Teks di Layar Saja)</option>
-                    <option value="HYBRID">HYBRID (Kombinasi VO + Diegetic)</option>
+                    <option value="VOICE_OVER">VOICE_OVER ({getNarrationModeLabel("VOICE_OVER", (k) => tEnums(k as Parameters<typeof tEnums>[0]))})</option>
+                    <option value="DIEGETIC_ONLY">DIEGETIC_ONLY ({getNarrationModeLabel("DIEGETIC_ONLY", (k) => tEnums(k as Parameters<typeof tEnums>[0]))})</option>
+                    <option value="SILENT_TEXT_ONLY">SILENT_TEXT_ONLY ({getNarrationModeLabel("SILENT_TEXT_ONLY", (k) => tEnums(k as Parameters<typeof tEnums>[0]))})</option>
+                    <option value="HYBRID">HYBRID ({getNarrationModeLabel("HYBRID", (k) => tEnums(k as Parameters<typeof tEnums>[0]))})</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block font-medium pg-text-sub mb-1">Metode Kalkulasi Durasi</label>
+                  <label className="block font-medium pg-text-sub mb-1">{t("durationCalcModeLabel")}</label>
                   <select
                     value={formData.durationCalcMode}
                     onChange={(e) =>
@@ -395,35 +409,35 @@ export default function AdminArchetypesTab() {
                         durationCalcMode: e.target.value as ContentArchetypeItem["durationCalcMode"],
                       })
                     }
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border pg-border rounded-lg outline-none focus:ring-2 focus:ring-purple-500 pg-text-heading"
+                    className="w-full p-2.5 pg-surface-dim border pg-border rounded-lg outline-none focus:ring-2 focus:ring-[var(--pg-brand)] pg-text-heading"
                   >
-                    <option value="HYBRID">HYBRID (Segmen + Wordcount)</option>
-                    <option value="SEGMENT_SELF_ESTIMATE">SEGMENT_SELF_ESTIMATE (Durasi Adegan)</option>
-                    <option value="NARRATION_WORDCOUNT">NARRATION_WORDCOUNT (Hitung Kata VO)</option>
+                    <option value="HYBRID">HYBRID ({getDurationCalcModeLabel("HYBRID", (k) => tEnums(k as Parameters<typeof tEnums>[0]))})</option>
+                    <option value="SEGMENT_SELF_ESTIMATE">SEGMENT_SELF_ESTIMATE ({getDurationCalcModeLabel("SEGMENT_SELF_ESTIMATE", (k) => tEnums(k as Parameters<typeof tEnums>[0]))})</option>
+                    <option value="NARRATION_WORDCOUNT">NARRATION_WORDCOUNT ({getDurationCalcModeLabel("NARRATION_WORDCOUNT", (k) => tEnums(k as Parameters<typeof tEnums>[0]))})</option>
                   </select>
                 </div>
               </div>
 
               <div>
                 <label className="block font-medium pg-text-sub mb-1">
-                  Template Alur Emosi (Emotional Arc Template) <span className="text-red-500">*</span>
+                  {t("emotionalArcLabel")} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={formData.emotionalArcTemplate}
                   onChange={(e) => setFormData({ ...formData, emotionalArcTemplate: e.target.value })}
-                  placeholder="e.g. Hook -> Problem -> Solution -> CTA"
-                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border pg-border rounded-lg outline-none focus:ring-2 focus:ring-purple-500 pg-text-heading font-mono text-[11px]"
+                  placeholder={t("emotionalArcPlaceholder")}
+                  className="w-full p-2.5 pg-surface-dim border pg-border rounded-lg outline-none focus:ring-2 focus:ring-[var(--pg-brand)] pg-text-heading font-mono text-[11px]"
                   required
                 />
                 <p className="text-[10px] pg-text-muted mt-1">
-                  Urutan segmen emosional yang diinstruksikan kepada AI (misal: <code>Setup -&gt; Recognition -&gt; Emotional Payoff</code>).
+                  {t("emotionalArcHint")}
                 </p>
               </div>
 
               <div>
-                <label className="block font-medium pg-text-sub mb-2">Komponen Naskah Bawaan (Default Included Sections)</label>
-                <div className="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-slate-800 p-3 rounded-lg border pg-border">
+                <label className="block font-medium pg-text-sub mb-2">{t("defaultSectionsLabel")}</label>
+                <div className="grid grid-cols-2 gap-2 pg-surface-dim p-3 rounded-lg border pg-border">
                   <label className="flex items-center space-x-2 cursor-pointer">
                     <input
                       type="checkbox"
@@ -437,9 +451,9 @@ export default function AdminArchetypesTab() {
                           },
                         })
                       }
-                      className="rounded"
+                      className="rounded accent-[var(--pg-brand)]"
                     />
-                    <span>Sertakan Hook</span>
+                    <span>{t("includeHook")}</span>
                   </label>
                   <label className="flex items-center space-x-2 cursor-pointer">
                     <input
@@ -454,9 +468,9 @@ export default function AdminArchetypesTab() {
                           },
                         })
                       }
-                      className="rounded"
+                      className="rounded accent-[var(--pg-brand)]"
                     />
-                    <span>Sertakan Call to Action (CTA)</span>
+                    <span>{t("includeCta")}</span>
                   </label>
                   <label className="flex items-center space-x-2 cursor-pointer">
                     <input
@@ -471,9 +485,9 @@ export default function AdminArchetypesTab() {
                           },
                         })
                       }
-                      className="rounded"
+                      className="rounded accent-[var(--pg-brand)]"
                     />
-                    <span>Sertakan Social Caption</span>
+                    <span>{t("includeCaption")}</span>
                   </label>
                   <label className="flex items-center space-x-2 cursor-pointer">
                     <input
@@ -488,9 +502,9 @@ export default function AdminArchetypesTab() {
                           },
                         })
                       }
-                      className="rounded"
+                      className="rounded accent-[var(--pg-brand)]"
                     />
-                    <span>Sertakan Ide Thumbnail</span>
+                    <span>{t("includeThumbnail")}</span>
                   </label>
                 </div>
               </div>
@@ -499,16 +513,16 @@ export default function AdminArchetypesTab() {
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-semibold rounded-lg pg-text-sub transition-colors"
+                  className="neu-btn px-4 py-2 text-xs font-semibold rounded-lg pg-text-sub transition-colors"
                 >
-                  Batal
+                  {t("cancel")}
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors disabled:opacity-50"
+                  className="neu-btn-brand px-5 py-2 text-xs font-semibold rounded-lg shadow-sm transition-all disabled:opacity-50"
                 >
-                  {submitting ? "Menyimpan..." : editingId ? "Simpan Perubahan" : "Buat Model Konten"}
+                  {submitting ? t("saving") : editingId ? t("saveChanges") : t("createBtn")}
                 </button>
               </div>
             </form>

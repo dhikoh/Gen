@@ -26,7 +26,7 @@ export default function TemplateToggle({ draftId, initialIsTemplate }: { draftId
       } else {
         toast.error(t('updateError'));
       }
-    } catch (err) {
+    } catch {
       toast.error(t('generalError'));
     } finally {
       setLoading(false);

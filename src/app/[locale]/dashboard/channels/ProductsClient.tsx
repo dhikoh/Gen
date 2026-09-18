@@ -21,19 +21,19 @@ export default function ProductsClient({ channelId }: { channelId: string }) {
  const [formData, setFormData] = useState({ name: "", description: "", price: 0, link: "" });
  const [submitLoading, setSubmitLoading] = useState(false);
 
- const fetchProducts = async () => {
- try {
- const res = await fetch(`/api/channels/${channelId}/products`);
- if (res.ok) {
- const data = await res.json();
- setProducts(data.products);
- }
- } catch (err) {
- console.error(err);
- } finally {
- setLoading(false);
- }
- };
+  const fetchProducts = async () => {
+    try {
+      const res = await fetch(`/api/channels/${channelId}/products`);
+      if (res.ok) {
+        const data = await res.json();
+        setProducts(data.products);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     let ignore = false;
@@ -99,7 +99,7 @@ export default function ProductsClient({ channelId }: { channelId: string }) {
  const data = await res.json();
  toast.error(data.error || t('saveProductFail'));
  }
- } catch (err) {
+ } catch {
  toast.error(t('networkError'));
  } finally {
  setSubmitLoading(false);
@@ -113,7 +113,7 @@ export default function ProductsClient({ channelId }: { channelId: string }) {
  if (res.ok) {
  fetchProducts();
  }
- } catch (err) {
+ } catch {
  toast.error(t('networkError'));
  }
  };
@@ -178,6 +178,16 @@ export default function ProductsClient({ channelId }: { channelId: string }) {
  <div>
  <h4 className="font-semibold text-sm pg-text-heading">{p.name} <span className="ml-2 font-normal text-green-600 dark:text-green-400">Rp {p.price.toLocaleString('id-ID')}</span></h4>
  {p.description && <p className="text-xs pg-text-muted mt-0.5 line-clamp-1">{p.description}</p>}
+ {p.link && (
+ <a
+ href={p.link}
+ target="_blank"
+ rel="noopener noreferrer"
+ className="text-xs text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1 mt-1 truncate max-w-xs block"
+ >
+ 🔗 {p.link}
+ </a>
+ )}
  </div>
  <div className="flex space-x-2">
  <button type="button" onClick={() => handleStartEdit(p)} className="px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 dark:hover:pg-surface-dim rounded">{t('edit')}</button>

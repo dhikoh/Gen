@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
-import { Prisma } from "@prisma/client";
+import { Prisma, NotificationType } from "@prisma/client";
 import { getApiTranslator } from "@/lib/apiI18n";
+import { applyRateLimit, getClientIp } from "@/lib/rateLimit";
 import { z } from "zod";
 
 const querySchema = z.object({
   unreadOnly: z.string().optional().transform((val) => val === "true"),
-  type: z.string().optional(),
+  type: z.nativeEnum(NotificationType).or(z.literal("ALL")).optional(),
   days: z.string().optional().transform((val) => val ? parseInt(val, 10) : undefined),
   page: z.string().optional().transform((val) => Math.max(1, parseInt(val || "1", 10))),
   pageSize: z.string().optional().transform((val) => Math.min(50, Math.max(1, parseInt(val || "10", 10)))),
@@ -20,6 +21,12 @@ export async function GET(req: Request) {
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
+    }
+
+    const ip = getClientIp(req);
+    const isAllowed = await applyRateLimit(`notifications_${session.user.id}_${ip}`, 60, 60);
+    if (!isAllowed) {
+      return NextResponse.json({ error: t("rateLimit") }, { status: 429 });
     }
 
     const { searchParams } = new URL(req.url);
@@ -36,7 +43,7 @@ export async function GET(req: Request) {
       where.isRead = false;
     }
     if (type && type !== "ALL") {
-      where.type = type as Prisma.EnumNotificationTypeFilter;
+      where.type = type;
     }
     if (days && days > 0) {
       const dateCutoff = new Date();

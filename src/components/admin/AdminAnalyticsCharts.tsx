@@ -107,7 +107,7 @@ export default function AdminAnalyticsCharts({ data }: AdminAnalyticsChartsProps
           </h3>
           <div className="h-64 w-full flex items-center justify-center">
             {data.revenueByPlan.length === 0 || data.revenueByPlan.every((d) => d.value === 0) ? (
-              <p className="text-sm" style={{ color: 'var(--pg-text-muted)' }}>Belum ada data pendapatan per paket.</p>
+              <p className="text-sm" style={{ color: 'var(--pg-text-muted)' }}>{t("noRevenueByPlan")}</p>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -122,7 +122,7 @@ export default function AdminAnalyticsCharts({ data }: AdminAnalyticsChartsProps
                       <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(val: unknown) => [`Rp ${Number(val ?? 0).toLocaleString("id-ID")}`, "Total"]} contentStyle={TOOLTIP_STYLE} />
+                  <Tooltip formatter={(val: unknown) => [`Rp ${Number(val ?? 0).toLocaleString("id-ID")}`, t("total")]} contentStyle={TOOLTIP_STYLE} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
@@ -137,7 +137,7 @@ export default function AdminAnalyticsCharts({ data }: AdminAnalyticsChartsProps
           </h3>
           <div className="h-64 w-full flex items-center justify-center">
             {data.subscriptionStatusDist.length === 0 || data.subscriptionStatusDist.every((d) => d.value === 0) ? (
-              <p className="text-sm" style={{ color: 'var(--pg-text-muted)' }}>Belum ada data status langganan.</p>
+              <p className="text-sm" style={{ color: 'var(--pg-text-muted)' }}>{t("noSubscriptionDist")}</p>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -152,7 +152,7 @@ export default function AdminAnalyticsCharts({ data }: AdminAnalyticsChartsProps
                       <Cell key={`status-cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(val: unknown) => [`${String(val ?? 0)} User`, "Jumlah"]} contentStyle={TOOLTIP_STYLE} />
+                  <Tooltip formatter={(val: unknown) => [`${String(val ?? 0)} User`, t("count")]} contentStyle={TOOLTIP_STYLE} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>

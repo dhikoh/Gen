@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { DraftType } from "@prisma/client";
 import { getApiTranslator } from "@/lib/apiI18n";
+import { getClientIp, applyRateLimit } from "@/lib/rateLimit";
 
 export const dynamic = 'force-dynamic';
 
@@ -12,6 +13,10 @@ export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
+
+    const ip = getClientIp(req);
+    const isAllowed = await applyRateLimit(`drafts_export_${session.user.id}_${ip}`, 10, 60);
+    if (!isAllowed) return NextResponse.json({ error: t("tooManyRequests") }, { status: 429 });
 
     const { searchParams } = new URL(req.url);
     const channelId = searchParams.get("channelId");

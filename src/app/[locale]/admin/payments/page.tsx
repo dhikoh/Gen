@@ -23,12 +23,22 @@ export default async function AdminPaymentsPage({ params }: { params: Promise<{ 
 
   const pendingInvoices = await prisma.invoice.findMany({
     where: { status: "PENDING" },
-    include: {
+    select: {
+      id: true,
+      amount: true,
+      status: true,
+      method: true,
+      proofUrl: true,
       user: { select: { name: true, email: true } },
-      plan: { select: { name: true } }
+      plan: { select: { name: true } },
     },
     orderBy: { createdAt: "desc" }
   });
+
+  const sanitizedInvoices = pendingInvoices.map(({ proofUrl, ...inv }) => ({
+    ...inv,
+    hasProof: Boolean(proofUrl),
+  }));
 
   return (
     <div className="p-8">
@@ -37,7 +47,7 @@ export default async function AdminPaymentsPage({ params }: { params: Promise<{ 
         <p className="pg-text-muted">{t('description')}</p>
       </div>
 
-      <AdminPaymentsClient invoices={pendingInvoices} />
+      <AdminPaymentsClient invoices={sanitizedInvoices} />
     </div>
   );
 }

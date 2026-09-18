@@ -6,6 +6,21 @@ const prisma = new PrismaClient()
 async function main() {
   console.log('Starting seed...')
 
+  // 0. Pre-flight Security Gate: Enforce Superadmin Credentials
+  if (!process.env.SUPERADMIN_EMAIL || !process.env.SUPERADMIN_SEED_PASSWORD) {
+    console.error('❌ SECURITY FATAL: SUPERADMIN_EMAIL and SUPERADMIN_SEED_PASSWORD MUST be set in environment variables! No hardcoded credentials allowed.');
+    process.exit(1);
+  }
+
+  const superadminEmail = process.env.SUPERADMIN_EMAIL.trim();
+  const seedPassword = process.env.SUPERADMIN_SEED_PASSWORD;
+  const FORBIDDEN_PASSWORDS = ['superadmin123', 'Admin123!', 'password123', 'admin@promptgen.com'];
+
+  if (seedPassword.length < 12 || FORBIDDEN_PASSWORDS.includes(seedPassword)) {
+    console.error('❌ SECURITY FATAL: SUPERADMIN_SEED_PASSWORD is too weak or uses a forbidden default/example! Minimum length is 12 characters.');
+    process.exit(1);
+  }
+
   // 1. Create AppSettings (singleton)
   await prisma.appSettings.upsert({
     where: { id: 'singleton' },
@@ -35,6 +50,8 @@ async function main() {
       name: 'Demo 3 Hari',
       priceMonthly: 0,
       maxChannels: 1,
+      periodDays: 3,
+      trialDays: 3,
       features: { imagePromptStudio: true, htmlBlogExport: true, cameraMovementPro: false },
       isActive: true,
       isPubliclyPurchasable: false,
@@ -45,6 +62,8 @@ async function main() {
       name: 'Standard',
       priceMonthly: 10000,
       maxChannels: 1,
+      periodDays: 30,
+      trialDays: 0,
       features: { imagePromptStudio: true, htmlBlogExport: true, cameraMovementPro: false },
       isActive: true,
       isPubliclyPurchasable: true,
@@ -55,6 +74,8 @@ async function main() {
       name: 'Pro',
       priceMonthly: 25000,
       maxChannels: 3,
+      periodDays: 30,
+      trialDays: 0,
       features: { imagePromptStudio: true, htmlBlogExport: true, cameraMovementPro: true },
       isActive: true,
       isPubliclyPurchasable: true,
@@ -65,6 +86,8 @@ async function main() {
       name: 'Ultra',
       priceMonthly: 50000,
       maxChannels: 10,
+      periodDays: 30,
+      trialDays: 0,
       features: { imagePromptStudio: true, htmlBlogExport: true, cameraMovementPro: true },
       isActive: true,
       isPubliclyPurchasable: true,
@@ -79,6 +102,8 @@ async function main() {
         name: plan.name,
         priceMonthly: plan.priceMonthly,
         maxChannels: plan.maxChannels,
+        periodDays: plan.periodDays,
+        trialDays: plan.trialDays,
         features: plan.features,
         isPubliclyPurchasable: plan.isPubliclyPurchasable,
         sortOrder: plan.sortOrder,
@@ -192,14 +217,7 @@ async function main() {
   console.log('Created PromptSettings')
 
   // 8. Create Superadmin User
-  if (process.env.NODE_ENV === 'production' && (!process.env.SUPERADMIN_EMAIL || !process.env.SUPERADMIN_SEED_PASSWORD)) {
-    console.error('❌ SECURITY FATAL: SUPERADMIN_EMAIL and SUPERADMIN_SEED_PASSWORD MUST be set in production mode!');
-    process.exit(1);
-  }
-
-  const superadminEmail = process.env.SUPERADMIN_EMAIL || 'admin@promptgen.com'
-  const seedPassword = process.env.SUPERADMIN_SEED_PASSWORD || 'superadmin123'
-  const passwordHash = await bcrypt.hash(seedPassword, 10)
+  const passwordHash = await bcrypt.hash(seedPassword, 10);
 
   await prisma.user.upsert({
     where: { email: superadminEmail },
@@ -207,14 +225,17 @@ async function main() {
     create: {
       name: 'Super Admin',
       username: 'superadmin',
+      usernameLower: 'superadmin',
       email: superadminEmail,
+      emailLower: superadminEmail.toLowerCase(),
       passwordHash,
       role: 'SUPERADMIN',
       registrationStatus: 'APPROVED',
       approvedAt: new Date(),
+      mustChangePassword: true,
     },
-  })
-  console.log('Created Superadmin')
+  });
+  console.log('Created Superadmin (mustChangePassword: true)');
 
   // 9. Seed ContentArchetypes (Bagian 23: Universal / Model-Agnostic Content Structure Engine)
   const defaultMarketingArchetype = await prisma.contentArchetype.upsert({

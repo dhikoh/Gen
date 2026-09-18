@@ -44,6 +44,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: t("planNotAvailable") }, { status: 400 });
     }
 
+    // P0-2: Mencegah pembelian paket DEMO atau paket khusus non-publik
+    if (!plan.isPubliclyPurchasable) {
+      return NextResponse.json({ error: "Paket ini tidak dapat dibeli." }, { status: 403 });
+    }
+
     // Pastikan user tidak memiliki invoice PENDING untuk paket ini
     const existingPending = await prisma.invoice.findFirst({
       where: { 

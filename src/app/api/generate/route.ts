@@ -6,7 +6,7 @@ import { prisma } from "@/lib/db";
 import { z } from "zod";
 import { applyRateLimit } from "@/lib/rateLimit";
 import { requireActiveSubscription } from "@/lib/subscription";
-import { generateMasterPrompt, ProfileChannelData } from "@/lib/promptGenerator";
+import { generateMasterPrompt, ProfileChannelData, ContentArchetypeData } from "@/lib/promptGenerator";
 import { generateImagePrompt } from "@/lib/imagePromptGenerator";
 import { hasFeature } from "@/lib/planFeatures";
 const videoConfigSchema = z.object({
@@ -81,17 +81,6 @@ const generateSchema = z.object({
   videoConfig: videoConfigSchema.optional().nullable(),
   imageConfig: imageConfigSchema.optional().nullable(),
   outputLanguage: z.string().optional().nullable(),
-}).refine(data => {
-  if (data.type === "VIDEO" && data.videoConfig?.composition) {
-    const { education, entertainment, marketing } = data.videoConfig.composition;
-    // Skip validasi 100% jika semua nilai 0 (archetype non-komposisi seperti faceless)
-    if (education === 0 && entertainment === 0 && marketing === 0) return true;
-    return education + entertainment + marketing === 100;
-  }
-  return true;
-}, {
-  message: "Total composition of Education, Entertainment, and Marketing must be exactly 100%.",
-  path: ["videoConfig", "composition"]
 });
 
 export async function POST(req: Request) {
@@ -124,14 +113,26 @@ export async function POST(req: Request) {
       where: { id: "singleton" }
     });
 
-    // Content filter: Check banned words
+    // Content filter: Check banned words (P1-14: comprehensive boundary-safe scan)
     if (promptSettings && Array.isArray(promptSettings.bannedWords) && promptSettings.bannedWords.length > 0) {
-      const inputContent = `${topic || ""} ${additionalContext || ""}`.toLowerCase();
+      const keywordsStr = Array.isArray(videoConfig?.targetKeywords) 
+        ? videoConfig.targetKeywords.join(" ") 
+        : typeof videoConfig?.targetKeywords === "string" 
+          ? videoConfig.targetKeywords 
+          : "";
+      const visualStyleStr = imageConfig?.visualStyle || "";
+      const customHookStr = videoConfig?.customHookText || "";
+      const cameraCustomStr = videoConfig?.cameraMovementCustom || "";
+      const inputContent = `${topic || ""} ${additionalContext || ""} ${keywordsStr} ${visualStyleStr} ${customHookStr} ${cameraCustomStr}`.toLowerCase();
       const bannedList = promptSettings.bannedWords as unknown[];
+
       const containsBannedWord = bannedList.some((word) => {
         if (typeof word !== "string") return false;
         const cleanWord = word.trim().toLowerCase();
-        return cleanWord.length > 0 && inputContent.includes(cleanWord);
+        if (!cleanWord) return false;
+        const escaped = cleanWord.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const regex = new RegExp(`(^|\\W)${escaped}($|\\W)`, "i");
+        return regex.test(inputContent);
       });
 
       if (containsBannedWord) {
@@ -247,19 +248,107 @@ export async function POST(req: Request) {
         if (customArch) effectiveArchetype = customArch;
       }
 
+      // P1-6: Dynamic composition category validation based on resolved archetype
+      const compCategories = Array.isArray(effectiveArchetype?.compositionCategories)
+        ? (effectiveArchetype.compositionCategories as Array<{ label: string; required?: boolean }>)
+        : [];
+      const hasRequiredCategories = compCategories.length > 0 && compCategories.some((c) => c && c.required);
+
+      if (hasRequiredCategories) {
+        for (const cat of compCategories) {
+          if (cat && cat.required) {
+            const labelLower = (cat.label || "").toLowerCase();
+            const val = videoConfig.composition
+              ? (labelLower.includes("edukasi") || labelLower.includes("education")
+                  ? videoConfig.composition.education
+                  : labelLower.includes("hiburan") || labelLower.includes("entertainment")
+                    ? videoConfig.composition.entertainment
+                    : labelLower.includes("marketing") || labelLower.includes("promosi")
+                      ? videoConfig.composition.marketing
+                      : 0)
+              : 0;
+            if (val <= 0) {
+              return NextResponse.json({
+                error: t("compositionCategoryRequired", { category: cat.label })
+              }, { status: 400 });
+            }
+          }
+        }
+      }
+
+      // If standard composition applies (no custom archetype, or archetype has required categories):
+      if (!effectiveArchetype || hasRequiredCategories) {
+        if (videoConfig.composition) {
+          const { education = 0, entertainment = 0, marketing = 0 } = videoConfig.composition;
+          // If any composition value is configured (> 0), ensure the sum equals 100
+          if (education > 0 || entertainment > 0 || marketing > 0) {
+            if (education + entertainment + marketing !== 100) {
+              return NextResponse.json({ error: t("compError") }, { status: 400 });
+            }
+          }
+        }
+      }
+
+      const typedArchetype: ContentArchetypeData | null = effectiveArchetype
+        ? {
+            id: effectiveArchetype.id,
+            name: effectiveArchetype.name,
+            narrationMode: effectiveArchetype.narrationMode,
+            emotionalArcTemplate: effectiveArchetype.emotionalArcTemplate,
+            defaultIncludedSections: effectiveArchetype.defaultIncludedSections as { hook?: boolean; cta?: boolean; caption?: boolean; thumbnail?: boolean } | null,
+            compositionCategories: effectiveArchetype.compositionCategories as Array<{ label: string; required: boolean }> | null,
+            durationCalcMode: effectiveArchetype.durationCalcMode,
+            cameraMovementRoleMap: effectiveArchetype.cameraMovementRoleMap as Record<string, string[]> | null,
+          }
+        : null;
+
       const fullVideoConfig = {
         ...videoConfig,
-        contentArchetype: effectiveArchetype as unknown as import("@/lib/promptGenerator").ContentArchetypeData,
+        contentArchetype: typedArchetype,
         narrationMode: videoConfig.narrationMode || effectiveArchetype?.narrationMode,
         selectedProduct,
         cameraMovementProEnabled, // server-resolved PRO entitlement — never read from client body
       };
 
-      const result = generateMasterPrompt(channel as unknown as ProfileChannelData, effectiveTopic, additionalContext || "", fullVideoConfig, promptSettings, previousTitles, outputLanguage);
+      const mappedChannel: ProfileChannelData = {
+        channelName: channel.channelName,
+        niche: channel.niche,
+        description: channel.description,
+        visualAesthetic: channel.visualAesthetic,
+        cta1: channel.cta1,
+        cta2: channel.cta2,
+        audioBGM: channel.audioBGM,
+        audioSFX: channel.audioSFX,
+        audioVO: channel.audioVO,
+        products: channel.products,
+        socialLinks: channel.socialLinks as Array<{ platform: string; url: string }> | null,
+        contentArchetypeId: channel.contentArchetypeId,
+        contentArchetype: typedArchetype,
+        speechRate: channel.speechRate,
+        targetPlatform: channel.targetPlatform,
+      };
+
+      const result = generateMasterPrompt(mappedChannel, effectiveTopic, additionalContext || "", fullVideoConfig, promptSettings, previousTitles, outputLanguage);
       masterPrompt = result.masterPrompt;
       systemInstruction = result.systemInstruction;
     } else if (type === "IMAGE" && imageConfig) {
-      const result = generateImagePrompt(channel as unknown as ProfileChannelData, effectiveTopic, additionalContext || "", imageConfig, promptSettings, previousTitles, outputLanguage);
+      const mappedChannel: ProfileChannelData = {
+        channelName: channel.channelName,
+        niche: channel.niche,
+        description: channel.description,
+        visualAesthetic: channel.visualAesthetic,
+        cta1: channel.cta1,
+        cta2: channel.cta2,
+        audioBGM: channel.audioBGM,
+        audioSFX: channel.audioSFX,
+        audioVO: channel.audioVO,
+        products: channel.products,
+        socialLinks: channel.socialLinks as Array<{ platform: string; url: string }> | null,
+        contentArchetypeId: channel.contentArchetypeId,
+        speechRate: channel.speechRate,
+        targetPlatform: channel.targetPlatform,
+      };
+      const result = generateImagePrompt(mappedChannel, effectiveTopic, additionalContext || "", imageConfig, promptSettings, previousTitles, outputLanguage);
       masterPrompt = result.masterPrompt;
       systemInstruction = result.systemInstruction;
       finalJson = result.finalJson;

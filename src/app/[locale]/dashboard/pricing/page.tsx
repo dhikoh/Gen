@@ -34,7 +34,15 @@ export default async function PricingPage({ params }: { params: Promise<{ locale
         </p>
       </div>
 
-      <PricingClient plans={plans as unknown as Parameters<typeof PricingClient>[0]["plans"]} locale={locale} />
+      <PricingClient
+        plans={plans.map((p) => ({
+          ...p,
+          features: (typeof p.features === "object" && p.features !== null
+            ? (p.features as Record<string, boolean>)
+            : null),
+        }))}
+        locale={locale}
+      />
     </div>
   );
 }

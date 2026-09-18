@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
-import { applyRateLimit } from "@/lib/rateLimit";
+import { getClientIp, applyRateLimit } from "@/lib/rateLimit";
 import { notifyAllSuperadmins } from "@/lib/notifications";
 
 const uploadSchema = z.object({
@@ -15,13 +15,12 @@ const uploadSchema = z.object({
 export async function PUT(req: Request) {
   const t = await getApiTranslator();
   try {
-    
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
     }
 
-    const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
+    const ip = getClientIp(req);
     const isAllowed = await applyRateLimit(`upload_invoice_${session.user.id}_${ip}`, 5, 60 * 15); // 5 uploads per 15 mins
     if (!isAllowed) {
       return NextResponse.json({ error: t("tooManyUploads") }, { status: 429 });
@@ -36,22 +35,52 @@ export async function PUT(req: Request) {
 
     const { invoiceId, proofBase64 } = parsedData.data;
 
-    // Validate size (max 2MB ~ approx 2.8MB base64)
+    // Validate overall string size (max 2.8MB base64 string ~ 2MB binary)
     if (proofBase64.length > 2800000) {
       return NextResponse.json({ error: t("fileTooLarge") }, { status: 400 });
     }
-    
-    // Exact MIME validation (only JPEG/PNG)
+
+    // Must have data URI scheme
     if (!proofBase64.startsWith("data:image/jpeg;base64,") && !proofBase64.startsWith("data:image/png;base64,")) {
-       return NextResponse.json({ error: t("invalidImageFormat") }, { status: 400 });
+      return NextResponse.json({ error: t("invalidImageFormat") }, { status: 400 });
+    }
+
+    const base64Data = proofBase64.split(",")[1];
+    if (!base64Data) {
+      return NextResponse.json({ error: t("invalidImageFormat") }, { status: 400 });
+    }
+
+    const buffer = Buffer.from(base64Data, "base64");
+    if (buffer.length < 8 || buffer.length > 2 * 1024 * 1024) {
+      return NextResponse.json({ error: buffer.length > 2 * 1024 * 1024 ? t("fileTooLarge") : t("invalidImageFormat") }, { status: 400 });
+    }
+
+    // P0-10: Strict magic byte verification server-side
+    const isJpeg = buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+    const isPng =
+      buffer[0] === 0x89 &&
+      buffer[1] === 0x50 &&
+      buffer[2] === 0x4e &&
+      buffer[3] === 0x47 &&
+      buffer[4] === 0x0d &&
+      buffer[5] === 0x0a &&
+      buffer[6] === 0x1a &&
+      buffer[7] === 0x0a;
+
+    if (!isJpeg && !isPng) {
+      return NextResponse.json({ error: t("invalidImageFormat") }, { status: 400 });
     }
 
     const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId }
     });
 
-    if (!invoice || invoice.userId !== session.user.id || invoice.status !== "PENDING") {
+    if (!invoice || invoice.status !== "PENDING") {
       return NextResponse.json({ error: t("invalidInvoice") }, { status: 400 });
+    }
+
+    if (invoice.userId !== session.user.id && session.user.role !== "SUPERADMIN") {
+      return NextResponse.json({ error: t("forbidden") }, { status: 403 });
     }
 
     const updated = await prisma.invoice.update({

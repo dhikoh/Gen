@@ -7,12 +7,15 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   return { title: `${t('settings')} - Prompt Gen` };
 }
 
-export default function SettingsPage() {
+export default async function SettingsPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'Settings' });
+
   return (
     <div className="p-8 max-w-4xl">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold pg-text-heading">Pengaturan Akun</h1>
-        <p className="pg-text-muted">Kelola profil dan keamanan akun Anda.</p>
+        <h1 className="text-2xl font-bold pg-text-heading">{t('pageTitle')}</h1>
+        <p className="pg-text-muted">{t('pageDesc')}</p>
       </div>
       <SettingsClient />
     </div>

@@ -171,7 +171,7 @@ export async function PUT(req: Request) {
 
     const updatedUser = await prisma.user.update({
       where: { id: session.user.id },
-      data: { generatorPreferences: merged as unknown as Prisma.InputJsonValue },
+      data: { generatorPreferences: merged as Prisma.InputJsonValue },
     });
 
     return NextResponse.json({

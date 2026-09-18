@@ -3,13 +3,20 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { getApiTranslator } from "@/lib/apiI18n";
+import { applyRateLimit, getClientIp } from "@/lib/rateLimit";
 
-export async function GET() {
+export async function GET(req: Request) {
   const t = await getApiTranslator();
   const session = await getServerSession(authOptions);
 
   if (!session) {
     return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
+  }
+
+  const ip = getClientIp(req);
+  const isAllowed = await applyRateLimit(`content_archetypes_${session.user.id}_${ip}`, 60, 60);
+  if (!isAllowed) {
+    return NextResponse.json({ error: t("rateLimit") }, { status: 429 });
   }
 
   try {

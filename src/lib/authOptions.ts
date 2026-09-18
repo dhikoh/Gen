@@ -3,8 +3,7 @@ import { encode as defaultEncode, decode as defaultDecode } from "next-auth/jwt"
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcrypt";
 import { prisma } from "@/lib/db";
-import { z } from "zod";
-import { applyRateLimit } from "@/lib/rateLimit";
+import { getClientIp, applyDualRateLimit } from "@/lib/rateLimit";
 
 export const authOptions: NextAuthOptions = {
   session: {
@@ -26,19 +25,32 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Missing credentials");
         }
         
-        // Rate limiting login
-        const ip = req.headers?.["x-forwarded-for"] || "127.0.0.1";
-        const isAllowed = await applyRateLimit(`login_${ip}_${credentials.identifier}`, 5, 60); // 5 tries per minute
+        // Rate limiting login: dual bucket (per-IP dan per-identifier) - P0-5
+        const ip = getClientIp(req);
+        const isAllowed = await applyDualRateLimit(
+          "login",
+          ip,
+          credentials.identifier,
+          5,
+          60 // 5 tries per minute
+        );
         if (!isAllowed) {
           throw new Error("RATE_LIMITED");
         }
 
+        const cleanId = credentials.identifier.trim();
+        const lowerId = cleanId.toLowerCase();
+
+        // P0-8: Case-insensitive lookup via normalized columns with fallback
         const user = await prisma.user.findFirst({
           where: {
             OR: [
-              { email: { equals: credentials.identifier, mode: "insensitive" } },
-              { username: { equals: credentials.identifier, mode: "insensitive" } },
-              { phoneNumber: credentials.identifier }
+              { emailLower: lowerId },
+              { usernameLower: lowerId },
+              { phoneNormalized: cleanId },
+              { email: { equals: cleanId, mode: "insensitive" } },
+              { username: { equals: cleanId, mode: "insensitive" } },
+              { phoneNumber: cleanId }
             ]
           }
         });
@@ -76,7 +88,8 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           role: user.role,
           registrationStatus: user.registrationStatus,
-          rememberMe: credentials.rememberMe === "true"
+          rememberMe: credentials.rememberMe === "true",
+          mustChangePassword: user.mustChangePassword
         };
       }
     })
@@ -88,15 +101,64 @@ export const authOptions: NextAuthOptions = {
         token.role = user.role;
         token.registrationStatus = user.registrationStatus;
         token.rememberMe = user.rememberMe;
+        token.mustChangePassword = user.mustChangePassword;
+        token.checkedAt = Date.now();
+        return token;
       }
+
+      // P0-6: Revalidasi berkala ke DB (> 5 menit)
+      const now = Date.now();
+      const lastCheck = typeof token.checkedAt === "number" ? token.checkedAt : 0;
+      if (token.id && now - lastCheck > 5 * 60 * 1000) {
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: {
+              role: true,
+              registrationStatus: true,
+              mustChangePassword: true,
+              passwordChangedAt: true,
+            }
+          });
+
+          // Jika user hilang atau registrasi ditolak/belum approved, gugurkan sesi
+          if (!dbUser || (dbUser.role !== "SUPERADMIN" && dbUser.registrationStatus !== "APPROVED")) {
+            token.id = "";
+            token.role = "USER";
+            return token;
+          }
+
+          // Jika password telah diganti setelah token diterbitkan, gugurkan sesi lama
+          if (dbUser.passwordChangedAt && token.iat) {
+            const pwChangedMs = new Date(dbUser.passwordChangedAt).getTime();
+            const tokenIssuedMs = (token.iat as number) * 1000;
+            if (pwChangedMs > tokenIssuedMs) {
+              token.id = "";
+              token.role = "USER";
+              return token;
+            }
+          }
+
+          token.role = dbUser.role;
+          token.registrationStatus = dbUser.registrationStatus;
+          token.mustChangePassword = dbUser.mustChangePassword;
+          token.checkedAt = now;
+        } catch (err) {
+          console.error("JWT DB revalidation error:", err);
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
-      if (token) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as string;
-        session.user.registrationStatus = token.registrationStatus as string;
+      if (!token.id) {
+        session.user.id = "";
+        return session;
       }
+      session.user.id = token.id as string;
+      session.user.role = token.role as string;
+      session.user.registrationStatus = token.registrationStatus as string;
+      session.user.mustChangePassword = token.mustChangePassword as boolean;
       return session;
     }
   },

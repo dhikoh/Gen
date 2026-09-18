@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import bcrypt from "bcrypt";
 import { z } from "zod";
 import { getApiTranslator } from "@/lib/apiI18n";
+import { getClientIp, applyRateLimit } from "@/lib/rateLimit";
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, "PASSWORD_TOO_SHORT"),
@@ -17,6 +18,12 @@ export async function PUT(req: Request) {
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
+    }
+
+    const ip = getClientIp(req);
+    const isAllowed = await applyRateLimit(`change_password_${session.user.id}_${ip}`, 5, 15 * 60);
+    if (!isAllowed) {
+      return NextResponse.json({ error: t("tooManyRequests") }, { status: 429 });
     }
 
     const body = await req.json();
@@ -45,7 +52,11 @@ export async function PUT(req: Request) {
 
     await prisma.user.update({
       where: { id: user.id },
-      data: { passwordHash: newPasswordHash }
+      data: {
+        passwordHash: newPasswordHash,
+        passwordChangedAt: new Date(),
+        mustChangePassword: false
+      }
     });
 
     return NextResponse.json({ success: true }, { status: 200 });

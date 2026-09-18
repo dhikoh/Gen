@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint .",
+    "test": "vitest run",
+    "audit:i18n": "node scripts/audit-i18n.mjs",
+    "audit:design": "node scripts/audit-design.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
@@ -35,6 +38,8 @@
     "eslint-config-next": "16.3.1",
     "prisma": "^6.19.3",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite": "^8.3.0",
+    "vitest": "^3.2.7"
   }
 }

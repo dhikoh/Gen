@@ -5,6 +5,8 @@ import { prisma } from "@/lib/db";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { getApiTranslator } from "@/lib/apiI18n";
+import { getClientIp, applyRateLimit } from "@/lib/rateLimit";
+import { logAdminAction } from "@/lib/auditLog";
 
 const archetypeSchema = z.object({
   name: z.string().trim().min(1, "Nama archetype wajib diisi"),
@@ -25,12 +27,21 @@ const archetypeSchema = z.object({
   cameraMovementRoleMap: z.record(z.string(), z.array(z.string())).optional().nullable(),
 });
 
-export async function GET() {
+export async function GET(req: Request) {
   const t = await getApiTranslator();
   const session = await getServerSession(authOptions);
 
-  if (!session || session.user.role !== "SUPERADMIN") {
-    return NextResponse.json({ error: t("unauthorized") }, { status: 403 });
+  if (!session) {
+    return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
+  }
+  if (session.user.role !== "SUPERADMIN") {
+    return NextResponse.json({ error: t("forbidden") }, { status: 403 });
+  }
+
+  const ip = getClientIp(req);
+  const isAllowed = await applyRateLimit(`admin_archetypes_get_${session.user.id}_${ip}`, 60, 60);
+  if (!isAllowed) {
+    return NextResponse.json({ error: t("tooManyRequests") }, { status: 429 });
   }
 
   try {
@@ -54,8 +65,17 @@ export async function POST(req: Request) {
   const t = await getApiTranslator();
   const session = await getServerSession(authOptions);
 
-  if (!session || session.user.role !== "SUPERADMIN") {
-    return NextResponse.json({ error: t("unauthorized") }, { status: 403 });
+  if (!session) {
+    return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
+  }
+  if (session.user.role !== "SUPERADMIN") {
+    return NextResponse.json({ error: t("forbidden") }, { status: 403 });
+  }
+
+  const ip = getClientIp(req);
+  const isAllowed = await applyRateLimit(`admin_archetypes_post_${session.user.id}_${ip}`, 20, 60);
+  if (!isAllowed) {
+    return NextResponse.json({ error: t("tooManyRequests") }, { status: 429 });
   }
 
   try {
@@ -90,6 +110,14 @@ export async function POST(req: Request) {
           : Prisma.DbNull,
         isSystem: false,
       },
+    });
+
+    await logAdminAction({
+      adminId: session.user.id,
+      action: "CREATE_CONTENT_ARCHETYPE",
+      targetType: "CONTENT_ARCHETYPE",
+      targetId: created.id,
+      metadata: { name: created.name }
     });
 
     return NextResponse.json({ success: true, archetype: created }, { status: 201 });

@@ -15,12 +15,23 @@ const envSchema = z.object({
 
 const isBuildPhase = process.env.npm_lifecycle_event === 'build' || process.env.NEXT_PHASE === 'phase-production-build';
 
-let envParsed;
-if (isBuildPhase) {
-  envParsed = { success: true, data: process.env as unknown as z.infer<typeof envSchema> };
-} else {
-  envParsed = envSchema.safeParse(process.env);
-}
+const envParsed = isBuildPhase
+  ? {
+      success: true as const,
+      data: {
+        DATABASE_URL: process.env.DATABASE_URL || '',
+        NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || '',
+        NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
+        STITCH_API_KEY: process.env.STITCH_API_KEY,
+        SMTP_HOST: process.env.SMTP_HOST || '',
+        SMTP_PORT: process.env.SMTP_PORT || '',
+        SMTP_SECURE: process.env.SMTP_SECURE,
+        SMTP_USER: process.env.SMTP_USER || '',
+        SMTP_PASSWORD: process.env.SMTP_PASSWORD || '',
+        SMTP_FROM: process.env.SMTP_FROM || '',
+      },
+    }
+  : envSchema.safeParse(process.env);
 
 if (!envParsed.success) {
   console.error('❌ Invalid environment variables:', envParsed.error?.format());

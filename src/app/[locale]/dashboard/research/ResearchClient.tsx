@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import { useTranslations } from "next-intl";
 
 interface Channel {
   id: string;
@@ -35,6 +36,8 @@ interface Props {
 
 export default function ResearchClient({ channels, locale }: Props) {
   const router = useRouter();
+  const t = useTranslations("Research");
+
   const [selectedChannelId, setSelectedChannelId] = useState<string>(channels[0]?.id || "");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
@@ -53,7 +56,7 @@ export default function ResearchClient({ channels, locale }: Props) {
     if (e) e.preventDefault();
     const queryToUse = searchQuery.trim() || channels.find((c) => c.id === selectedChannelId)?.niche || "";
     if (!queryToUse) {
-      toast.error("Masukkan topik atau pilih channel dengan niche terlebih dahulu.");
+      toast.error(t("topicRequired"));
       return;
     }
 
@@ -62,15 +65,15 @@ export default function ResearchClient({ channels, locale }: Props) {
       const res = await fetch(`/api/research/trends?query=${encodeURIComponent(queryToUse)}&channelId=${selectedChannelId}`);
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "Gagal melakukan riset tren.");
+        throw new Error(data.error || t("analyzing"));
       }
       setResult(data.data);
       if (data.data?.keywords?.length > 0) {
         setSelectedKeywords([data.data.keywords[0].keyword]);
       }
-      toast.success(`Ditemukan ${data.data?.keywords?.length || 0} kata kunci populer!`);
+      toast.success(t("keywordsFound", { count: data.data?.keywords?.length || 0 }));
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Terjadi kesalahan";
+      const msg = err instanceof Error ? err.message : t("analyzing");
       toast.error(msg);
     } finally {
       setLoading(false);
@@ -91,16 +94,16 @@ export default function ResearchClient({ channels, locale }: Props) {
 
   const handleCopyHashtags = () => {
     if (!result?.recommendedTags?.length) return;
-    const tagText = result.recommendedTags.map((t) => `#${t.replace(/\s+/g, "")}`).join(" ");
+    const tagText = result.recommendedTags.map((tTag) => `#${tTag.replace(/\s+/g, "")}`).join(" ");
     navigator.clipboard.writeText(tagText);
-    toast.success("Hashtag (#) disalin untuk Deskripsi Video!");
+    toast.success(t("hashtagsCopied"));
   };
 
   const handleCopyCommaTags = () => {
     if (!result?.recommendedTags?.length) return;
     const tagText = result.recommendedTags.join(", ");
     navigator.clipboard.writeText(tagText);
-    toast.success("Tag Koma (,) disalin untuk YouTube Studio!");
+    toast.success(t("commaTagsCopied"));
   };
 
   return (
@@ -110,19 +113,19 @@ export default function ResearchClient({ channels, locale }: Props) {
         <div>
           <h1 className="text-xl sm:text-2xl font-bold pg-text-heading flex items-center gap-2">
             <span>🔍</span>
-            <span>Riset Tren & Keyword SEO</span>
+            <span>{t("title")}</span>
           </h1>
           <p className="text-xs pg-text-sub mt-1">
-            Temukan kata kunci pencarian real-time YouTube & Google sebelum membuat naskah AI agar konten Anda mudah ditemukan algoritma.
+            {t("desc")}
           </p>
         </div>
         {channels.length > 0 && (
           <div className="flex items-center gap-2 text-xs flex-wrap">
-            <span className="pg-text-sub font-medium">Channel:</span>
+            <span className="pg-text-sub font-medium">{t("channelLabel")}</span>
             <select
               value={selectedChannelId}
               onChange={(e) => handleChannelChange(e.target.value)}
-              className="px-3 py-2 rounded-lg border pg-border pg-surface text-xs font-medium focus:ring-1 focus:ring-blue-500 outline-none max-w-full"
+              className="px-3 py-2 rounded-lg border pg-border pg-surface text-xs font-medium focus:ring-1 focus:ring-[var(--pg-brand)] outline-none max-w-full"
             >
               {channels.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -137,7 +140,7 @@ export default function ResearchClient({ channels, locale }: Props) {
       {/* ── Search Bar ───────────────────────────────────── */}
       <form onSubmit={handleSearch} className="glass-panel p-4 rounded-xl shadow-sm space-y-3">
         <label className="block text-xs font-semibold pg-text-sub">
-          Topik Konten atau Kata Kunci Utama
+          {t("topicLabel")}
         </label>
         <div className="flex flex-col sm:flex-row gap-2">
           <div className="relative flex-1">
@@ -145,15 +148,15 @@ export default function ResearchClient({ channels, locale }: Props) {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Misal: Rubah Kutub, Gunbound, Tips Saham Pemula..."
-              className="w-full px-4 py-3 sm:py-2.5 rounded-lg border pg-border bg-white dark:bg-slate-800 text-base sm:text-sm focus:ring-2 focus:ring-blue-500 outline-none pr-10"
+              placeholder={t("searchPlaceholder")}
+              className="w-full px-4 py-3 sm:py-2.5 rounded-lg border pg-border pg-surface text-base sm:text-sm focus:ring-2 focus:ring-[var(--pg-brand)] outline-none pr-10 pg-text-heading"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-full"
-                aria-label="Hapus teks"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center pg-text-muted hover:pg-text-heading rounded-full"
+                aria-label={t("clearText")}
               >
                 ✕
               </button>
@@ -162,17 +165,17 @@ export default function ResearchClient({ channels, locale }: Props) {
           <button
             type="submit"
             disabled={loading}
-            className="px-6 py-3 sm:py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 min-h-[44px] active:scale-[0.99]"
+            className="neu-btn-brand px-6 py-3 sm:py-2.5 text-sm font-semibold rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 min-h-[44px] disabled:opacity-50 active:scale-[0.99]"
           >
             {loading ? (
               <>
                 <span className="animate-spin text-base">⏳</span>
-                <span>Menganalisis Tren...</span>
+                <span>{t("analyzing")}</span>
               </>
             ) : (
               <>
                 <span>🚀</span>
-                <span>Analisis Kata Kunci</span>
+                <span>{t("analyzeBtn")}</span>
               </>
             )}
           </button>
@@ -189,10 +192,10 @@ export default function ResearchClient({ channels, locale }: Props) {
                 <div>
                   <h2 className="text-sm font-bold pg-text-heading flex items-center gap-2">
                     <span>📊</span>
-                    <span>Kata Kunci Populer untuk &quot;{result.query}&quot;</span>
+                    <span>{t("popularKeywordsTitle", { query: result.query })}</span>
                   </h2>
                   <span className="text-[11px] pg-text-muted">
-                    Sumber Data: {result.source === "VIDIQ_MCP" ? "vidIQ MCP Intelligence" : "Live YouTube Search Intelligence"}
+                    {t("source")} {result.source === "VIDIQ_MCP" ? t("sourceVidiq") : t("sourceYoutube")}
                   </span>
                 </div>
                 {selectedKeywords.length > 0 && (
@@ -202,7 +205,7 @@ export default function ResearchClient({ channels, locale }: Props) {
                     className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors flex items-center gap-1.5 active:scale-95"
                   >
                     <span>⚡</span>
-                    <span>Buat Naskah ({selectedKeywords.length} Kata Kunci)</span>
+                    <span>{t("createScriptSelected", { count: selectedKeywords.length })}</span>
                   </button>
                 )}
               </div>
@@ -215,7 +218,7 @@ export default function ResearchClient({ channels, locale }: Props) {
                     <div
                       key={kw.keyword}
                       className={`py-3 px-2 sm:px-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg transition-colors ${
-                        isSelected ? "bg-blue-50/60 dark:bg-blue-900/20" : "hover:pg-surface-dim"
+                        isSelected ? "bg-[var(--pg-brand-light)]" : "hover:pg-surface-dim"
                       }`}
                     >
                       <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -223,46 +226,50 @@ export default function ResearchClient({ channels, locale }: Props) {
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => toggleKeywordSelection(kw.keyword)}
-                          className="mt-1 w-4 h-4 rounded cursor-pointer accent-blue-600 shrink-0"
-                          aria-label={`Pilih kata kunci ${kw.keyword}`}
+                          className="mt-1 w-4 h-4 rounded cursor-pointer accent-[var(--pg-brand)] shrink-0"
+                          aria-label={t("selectKeywordAria", { keyword: kw.keyword })}
                         />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-semibold text-xs text-slate-900 dark:text-slate-100 break-words">
+                            <span className="font-semibold text-xs pg-text-heading break-words">
                               {kw.keyword}
                             </span>
                             {kw.trendTag && (
-                              <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300 whitespace-nowrap">
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--pg-brand-light)] text-[var(--pg-brand)] whitespace-nowrap">
                                 {kw.trendTag}
                               </span>
                             )}
                           </div>
                           <div className="flex items-center gap-2 sm:gap-3 mt-1 text-[11px] pg-text-muted flex-wrap">
                             <span className="flex items-center gap-1">
-                              Volume:{" "}
+                              {t("volume")}{" "}
                               <strong
                                 className={
                                   kw.volume === "High"
                                     ? "text-emerald-600 dark:text-emerald-400"
-                                    : "text-blue-600 dark:text-blue-400"
+                                    : "text-brand"
                                 }
                               >
-                                {kw.volume === "High" ? "🔥 Tinggi" : "⚡ Sedang"}
+                                {kw.volume === "High" ? t("volumeHigh") : kw.volume === "Medium" ? t("volumeMedium") : t("volumeLow")}
                               </strong>
                             </span>
                             <span>•</span>
                             <span className="flex items-center gap-1">
-                              Kompetisi:{" "}
+                              {t("competition")}{" "}
                               <strong
                                 className={
                                   kw.competition === "Low"
                                     ? "text-emerald-600 dark:text-emerald-400"
                                     : kw.competition === "Medium"
                                     ? "text-amber-600 dark:text-amber-400"
-                                    : "text-red-500"
+                                    : "text-rose-500"
                                 }
                               >
-                                {kw.competition === "Low" ? "🟢 Rendah" : kw.competition === "Medium" ? "🟡 Sedang" : "🔴 Tinggi"}
+                                {kw.competition === "Low"
+                                  ? t("competitionLow")
+                                  : kw.competition === "Medium"
+                                  ? t("competitionMedium")
+                                  : t("competitionHigh")}
                               </strong>
                             </span>
                           </div>
@@ -273,16 +280,16 @@ export default function ResearchClient({ channels, locale }: Props) {
                       <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 pg-border">
                         {/* Mobile Score Badge */}
                         <div className="flex items-center gap-1.5 sm:hidden">
-                          <span className="text-[10px] pg-text-muted">Skor Peluang:</span>
-                          <span className="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 rounded-md border border-blue-200 dark:border-blue-900">
+                          <span className="text-[10px] pg-text-muted">{t("opportunityScore")}:</span>
+                          <span className="text-xs font-bold text-brand bg-[var(--pg-brand-light)] px-2 py-0.5 rounded-md border border-[var(--pg-brand)]/20">
                             {kw.score}/100
                           </span>
                         </div>
 
                         {/* Desktop Score Badge */}
                         <div className="text-right hidden sm:block mr-2">
-                          <span className="text-[10px] pg-text-muted block">Skor Peluang</span>
-                          <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
+                          <span className="text-[10px] pg-text-muted block">{t("opportunityScore")}</span>
+                          <span className="text-xs font-bold text-brand">
                             {kw.score}/100
                           </span>
                         </div>
@@ -290,10 +297,10 @@ export default function ResearchClient({ channels, locale }: Props) {
                         <button
                           type="button"
                           onClick={() => handleCreateScriptWithKeyword(kw.keyword)}
-                          className="px-3.5 py-1.5 min-h-[36px] bg-slate-100 dark:bg-slate-700 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 active:scale-95 ml-auto sm:ml-0"
+                          className="neu-btn px-3.5 py-1.5 min-h-[36px] hover:bg-[var(--pg-brand)] hover:text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 active:scale-95 ml-auto sm:ml-0"
                         >
                           <span>⚡</span>
-                          <span>Pilih</span>
+                          <span>{t("selectBtn")}</span>
                         </button>
                       </div>
                     </div>
@@ -309,10 +316,10 @@ export default function ResearchClient({ channels, locale }: Props) {
             <div className="glass-panel p-4 sm:p-5 rounded-xl shadow-sm space-y-3">
               <h3 className="text-xs font-bold pg-text-heading flex items-center gap-1.5">
                 <span>❓</span>
-                <span>Pertanyaan Populer Penonton</span>
+                <span>{t("audienceQuestionsTitle")}</span>
               </h3>
               <p className="text-[11px] pg-text-muted leading-relaxed">
-                Pertanyaan riil yang paling sering dicari penonton di YouTube seputar topik ini. Klik untuk langsung dijadikan naskah:
+                {t("audienceQuestionsDesc")}
               </p>
               <div className="space-y-2">
                 {result.contentAngles.map((angle, i) => (
@@ -322,18 +329,18 @@ export default function ResearchClient({ channels, locale }: Props) {
                       const url = `/${locale}/dashboard/generator?channelId=${selectedChannelId}&topic=${encodeURIComponent(angle)}&keywords=${encodeURIComponent(selectedKeywords.join(","))}`;
                       router.push(url);
                     }}
-                    className="p-3 rounded-xl border pg-border bg-slate-50/70 dark:bg-slate-800/50 hover:border-blue-500 hover:bg-blue-50/40 dark:hover:bg-blue-900/20 text-xs cursor-pointer transition-all active:scale-[0.99] flex items-start gap-2.5"
+                    className="p-3 rounded-xl border pg-border pg-surface-dim hover:border-[var(--pg-brand)] hover:bg-[var(--pg-brand-light)] text-xs cursor-pointer transition-all active:scale-[0.99] flex items-start gap-2.5"
                   >
-                    <span className="w-5 h-5 rounded-md bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
+                    <span className="w-5 h-5 rounded-md bg-[var(--pg-brand-light)] text-brand flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
                       Q
                     </span>
                     <div className="flex-1 min-w-0">
-                      <span className="font-semibold text-slate-800 dark:text-slate-200 leading-snug block">
+                      <span className="font-semibold pg-text-heading leading-snug block">
                         {angle}
                       </span>
-                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 dark:text-blue-400 mt-1.5">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-brand mt-1.5">
                         <span>⚡</span>
-                        <span>Jadikan Topik Naskah &rarr;</span>
+                        <span>{t("makeScriptTopic")}</span>
                       </span>
                     </div>
                   </div>
@@ -346,26 +353,26 @@ export default function ResearchClient({ channels, locale }: Props) {
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <h3 className="text-xs font-bold pg-text-heading flex items-center gap-1.5">
                   <span>🏷️</span>
-                  <span>Tag Populer</span>
+                  <span>{t("popularTagsTitle")}</span>
                 </h3>
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <button
                     type="button"
                     onClick={handleCopyCommaTags}
-                    className="px-2.5 py-1 bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60 rounded-md text-[10px] sm:text-[11px] font-semibold flex items-center gap-1 transition-colors border border-blue-200 dark:border-blue-800 active:scale-95"
-                    title="Format Koma (,) untuk kolom Tags di YouTube Studio"
+                    className="px-2.5 py-1 bg-[var(--pg-brand-light)] text-brand hover:opacity-90 rounded-md text-[10px] sm:text-[11px] font-semibold flex items-center gap-1 transition-colors border border-[var(--pg-brand)]/20 active:scale-95"
+                    title={t("copyStudioTagsTitle")}
                   >
                     <span>📋</span>
-                    <span>Salin Studio (,)</span>
+                    <span>{t("copyStudioTags")}</span>
                   </button>
                   <button
                     type="button"
                     onClick={handleCopyHashtags}
-                    className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md text-[10px] sm:text-[11px] font-semibold flex items-center gap-1 transition-colors border pg-border active:scale-95"
-                    title="Format Hashtag (#) untuk deskripsi video"
+                    className="neu-btn px-2.5 py-1 rounded-md text-[10px] sm:text-[11px] font-semibold flex items-center gap-1 transition-colors active:scale-95"
+                    title={t("copyHashtagsTitle")}
                   >
                     <span>#️⃣</span>
-                    <span>Salin Hashtag (#)</span>
+                    <span>{t("copyHashtags")}</span>
                   </button>
                 </div>
               </div>
@@ -375,10 +382,10 @@ export default function ResearchClient({ channels, locale }: Props) {
                     key={tag}
                     onClick={() => {
                       navigator.clipboard.writeText(tag);
-                      toast.success(`Tag "${tag}" disalin!`);
+                      toast.success(t("tagCopied", { tag }));
                     }}
-                    className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 border pg-border text-slate-700 dark:text-slate-300 rounded-md text-[11px] cursor-pointer hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors select-none active:scale-95"
-                    title="Klik untuk menyalin tag ini"
+                    className="px-2.5 py-1 pg-surface-dim border pg-border pg-text-sub rounded-md text-[11px] cursor-pointer hover:border-[var(--pg-brand)] hover:text-brand transition-colors select-none active:scale-95"
+                    title={t("clickToCopy")}
                   >
                     #{tag.replace(/\s+/g, "")}
                   </span>

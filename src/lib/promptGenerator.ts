@@ -25,6 +25,8 @@ export interface ProfileChannelData {
   socialLinks?: Array<{ platform: string; url: string }> | null;
   contentArchetypeId?: string | null;
   contentArchetype?: ContentArchetypeData | null;
+  speechRate?: number | null;
+  targetPlatform?: string | null;
 }
 
 export interface VideoConfigData {
@@ -101,8 +103,8 @@ export function buildStructuralInstructions(
   activeNarrationMode?: string | null,
   targetKeywords?: string[] | string | null
 ): StructuralInstructions {
-  const isHookEnabled = includedSections.hook !== false;
-  const isCtaEnabled = includedSections.cta !== false;
+  const isHookEnabled = includedSections?.hook ?? archetype?.defaultIncludedSections?.hook ?? true;
+  const isCtaEnabled = includedSections?.cta ?? archetype?.defaultIncludedSections?.cta ?? true;
   const effectiveNarrationMode = activeNarrationMode || archetype?.narrationMode || "VOICE_OVER";
   const emotionalArc = archetype?.emotionalArcTemplate?.trim() || "Hook -> Problem -> Solution -> CTA";
 
@@ -197,10 +199,30 @@ export function generateMasterPrompt(
   const finalVoPreference = videoConfig?.voPreference !== undefined ? Boolean(videoConfig.voPreference) : Boolean(channel?.audioVO !== false);
   const effectiveNarrationMode = videoConfig?.narrationMode || effectiveArchetype?.narrationMode || "VOICE_OVER";
 
-  const hasHook = videoConfig?.includeHook !== false && (!videoConfig?.selectedSections || videoConfig.selectedSections.includes("HOOK"));
-  const hasCTA = videoConfig?.includeCTA !== false && (!videoConfig?.selectedSections || videoConfig.selectedSections.includes("CTA"));
-  const hasCaption = !videoConfig?.selectedSections || videoConfig.selectedSections.includes("CAPTION");
-  const hasThumbnail = videoConfig?.thumbnailIdea || videoConfig?.selectedSections?.includes("THUMBNAIL");
+  const defaultSec = effectiveArchetype?.defaultIncludedSections;
+  const hasHook = videoConfig?.selectedSections 
+    ? videoConfig.selectedSections.includes("HOOK")
+    : videoConfig?.includeHook !== undefined && videoConfig?.includeHook !== null
+      ? Boolean(videoConfig.includeHook)
+      : (defaultSec?.hook ?? true);
+
+  const hasCTA = videoConfig?.selectedSections
+    ? videoConfig.selectedSections.includes("CTA")
+    : videoConfig?.includeCTA !== undefined && videoConfig?.includeCTA !== null
+      ? Boolean(videoConfig.includeCTA)
+      : (defaultSec?.cta ?? true);
+
+  const hasCaption = videoConfig?.selectedSections
+    ? videoConfig.selectedSections.includes("CAPTION")
+    : videoConfig?.socialCaption !== undefined && videoConfig?.socialCaption !== null
+      ? Boolean(videoConfig.socialCaption)
+      : (defaultSec?.caption ?? true);
+
+  const hasThumbnail = videoConfig?.selectedSections
+    ? videoConfig.selectedSections.includes("THUMBNAIL")
+    : videoConfig?.thumbnailIdea !== undefined && videoConfig?.thumbnailIdea !== null
+      ? Boolean(videoConfig.thumbnailIdea)
+      : Boolean(defaultSec?.thumbnail ?? false);
 
   const rawKeywords = videoConfig?.targetKeywords;
   const targetKeywordsList = Array.isArray(rawKeywords)
@@ -548,6 +570,8 @@ PENTING: Tulis URL pencarian yang VALID dan LENGKAP dengan nama produk sudah di-
   }
 
   // ── All Guidelines (Push-ported & Centralized via Bagian 23) ────────────
+  const effectiveSpeechRate = videoConfig.speechRate || (channel.speechRate ? `${channel.speechRate} detik/kata` : null) || promptSettings?.defaultSpeechRate || "medium";
+
   const allGuidelines = `
 ${structural.viralGuidelineSection}
 
@@ -576,6 +600,9 @@ ${videoLoopGuidelinesText}
 2. Jika scene tidak membutuhkan karakter (b-roll produk, pemandangan, transisi), tulis visual bebas tanpa memaksakan kehadiran karakter.
 
 ${structural.pacingGuidelineSection}
+
+[PANDUAN TEMPO & KECEPATAN BICARA (SPEECH RATE)]
+Kecepatan narasi ditetapkan pada: "${effectiveSpeechRate}". Susun panjang kalimat narasi setiap scene agar pas dengan kecepatan bicara ini dan target durasi ${videoConfig.targetDurationSec || 60} detik.
 
 ${structural.emotionalArcSection}
 

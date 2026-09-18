@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
 import { enforceChannelLimits } from "@/lib/channelLockLogic";
-import { applyRateLimit } from "@/lib/rateLimit";
+import { applyRateLimit, getClientIp } from "@/lib/rateLimit";
 import { requireActiveSubscription } from "@/lib/subscription";
 
 const channelSchema = z.object({
@@ -34,13 +34,19 @@ const channelSchema = z.object({
   ]).optional(),
 });
 
-export async function GET() {
+export async function GET(req: Request) {
   const t = await getApiTranslator();
   try {
     
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
+    }
+
+    const ip = getClientIp(req);
+    const isAllowed = await applyRateLimit(`get_channels_${session.user.id}_${ip}`, 60, 60);
+    if (!isAllowed) {
+      return NextResponse.json({ error: t("rateLimit") }, { status: 429 });
     }
 
     const channels = await prisma.profileChannel.findMany({
@@ -58,7 +64,7 @@ export async function GET() {
     const maxChannels = user?.currentPlan?.maxChannels || 1;
 
     return NextResponse.json({ channels, maxChannels }, { status: 200 });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: t("systemError") }, { status: 500 });
   }
 }
@@ -83,7 +89,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: t("inactiveSub") }, { status: 403 });
     }
 
-    const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
+    const ip = getClientIp(req);
     const isAllowed = await applyRateLimit(`create_channel_${session.user.id}_${ip}`, 10, 60 * 15); // 10 per 15 minutes
     if (!isAllowed) {
       return NextResponse.json({ error: t("tooManyChannels") }, { status: 429 });

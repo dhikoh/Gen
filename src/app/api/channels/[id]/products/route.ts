@@ -33,7 +33,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     });
 
     return NextResponse.json({ products }, { status: 200 });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: t("serverError") }, { status: 500 });
   }
 }
@@ -82,7 +82,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     });
 
     return NextResponse.json({ success: true, product }, { status: 201 });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: t("serverError") }, { status: 500 });
   }
 }

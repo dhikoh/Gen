@@ -2,15 +2,17 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
-import { applyRateLimit } from "@/lib/rateLimit";
+import { getClientIp, applyRateLimit } from "@/lib/rateLimit";
 import { NotificationType, PlanCode } from "@prisma/client";
 import { z } from "zod";
 import { getApiTranslator } from "@/lib/apiI18n";
 import { randomUUID } from "crypto";
+import { logAdminAction } from "@/lib/auditLog";
+import { escapeHtml } from "@/lib/emailTemplates";
 
 const announcementSchema = z.object({
-  title: z.string().trim().min(1),
-  message: z.string().trim().min(1),
+  title: z.string().trim().min(1).max(200),
+  message: z.string().trim().min(1).max(2000),
   link: z.string().trim().optional().or(z.literal("")),
   target: z.enum(["ALL", "PLAN", "USER", "STATUS"]),
   targetPlanCode: z.nativeEnum(PlanCode).optional(),
@@ -20,15 +22,18 @@ const announcementSchema = z.object({
 
 export async function POST(req: Request) {
   const t = await getApiTranslator();
-  const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
-  const limitRes = await applyRateLimit(ip, 10, 60);
-  if (!limitRes) {
-    return NextResponse.json({ error: t("rateLimit") }, { status: 429 });
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
+  }
+  if (session.user.role !== "SUPERADMIN") {
+    return NextResponse.json({ error: t("forbidden") }, { status: 403 });
   }
 
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "SUPERADMIN") {
-    return NextResponse.json({ error: t("forbidden") }, { status: 403 });
+  const ip = getClientIp(req);
+  const isAllowed = await applyRateLimit(`admin_announcements_post_${session.user.id}_${ip}`, 10, 60);
+  if (!isAllowed) {
+    return NextResponse.json({ error: t("tooManyRequests") }, { status: 429 });
   }
 
   try {
@@ -65,19 +70,34 @@ export async function POST(req: Request) {
     }
 
     // Fix 2.10: One broadcastGroupId per POST — shared by all recipient rows
-    // This lets the GET handler deduplicate: show 1 entry per broadcast, not 1 per recipient
     const broadcastGroupId = randomUUID();
+
+    // Sanitize title and message
+    const sanitizedTitle = escapeHtml(parsed.title);
+    const sanitizedMessage = escapeHtml(parsed.message);
 
     const notificationsData = recipientUserIds.map((userId) => ({
       userId,
       type: NotificationType.SYSTEM_ANNOUNCEMENT,
-      title: parsed.title,
-      message: parsed.message,
+      title: sanitizedTitle,
+      message: sanitizedMessage,
       link: parsed.link && parsed.link.length > 0 ? parsed.link : null,
       broadcastGroupId,
     }));
 
     await prisma.notification.createMany({ data: notificationsData });
+
+    await logAdminAction({
+      adminId: session.user.id,
+      action: "BROADCAST_ANNOUNCEMENT",
+      targetType: "NOTIFICATION",
+      targetId: broadcastGroupId,
+      metadata: {
+        title: parsed.title,
+        target: parsed.target,
+        recipientCount: recipientUserIds.length
+      }
+    });
 
     return NextResponse.json({ success: true, recipientCount: recipientUserIds.length });
   } catch (error) {
@@ -89,17 +109,23 @@ export async function POST(req: Request) {
   }
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   const t = await getApiTranslator();
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "SUPERADMIN") {
+  if (!session) {
+    return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
+  }
+  if (session.user.role !== "SUPERADMIN") {
     return NextResponse.json({ error: t("forbidden") }, { status: 403 });
   }
 
+  const ip = getClientIp(req);
+  const isAllowed = await applyRateLimit(`admin_announcements_get_${session.user.id}_${ip}`, 60, 60);
+  if (!isAllowed) {
+    return NextResponse.json({ error: t("tooManyRequests") }, { status: 429 });
+  }
+
   try {
-    // Fix 2.10: Group by broadcastGroupId — take ONE representative row per broadcast.
-    // Uses groupBy to get distinct broadcastGroupIds, then fetches the metadata row.
-    // Notifications without a broadcastGroupId (legacy rows) are shown individually.
     const grouped = await prisma.notification.groupBy({
       by: ["broadcastGroupId", "title", "message", "link", "createdAt"],
       where: { type: NotificationType.SYSTEM_ANNOUNCEMENT },

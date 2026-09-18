@@ -1,7 +1,13 @@
 import { prisma } from "./db";
-import { User, Plan } from "@prisma/client";
 import { enforceChannelLimits } from "./channelLockLogic";
 import { notifyUser } from "./notifications";
+
+export class SubscriptionInactiveError extends Error {
+  constructor(message = "Subscription inactive or expired.") {
+    super(message);
+    this.name = "SubscriptionInactiveError";
+  }
+}
 
 export async function getSubscriptionState(userId: string) {
   let user = await prisma.user.findUnique({
@@ -11,6 +17,21 @@ export async function getSubscriptionState(userId: string) {
   if (!user) throw new Error("User not found");
 
   const now = new Date();
+
+  // P1-11: Terapkan downgrade jika tanggal efektif pending plan sudah tiba
+  if (user.pendingPlanId && user.pendingPlanEffectiveAt && user.pendingPlanEffectiveAt <= now) {
+    user = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        currentPlanId: user.pendingPlanId,
+        pendingPlanId: null,
+        pendingPlanEffectiveAt: null
+      },
+      include: { currentPlan: true }
+    });
+    await enforceChannelLimits(userId);
+  }
+
   let isActive = user.subscriptionStatus === "ACTIVE" && 
                    user.subscriptionExpiresAt !== null && 
                    user.subscriptionExpiresAt > now;

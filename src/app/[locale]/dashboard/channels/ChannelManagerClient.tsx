@@ -44,7 +44,7 @@ export default function ChannelManagerClient({ channels, maxChannels }: { channe
  const data = await res.json();
  toast.error(data.error || t('deleteFail'));
  }
- } catch (err) {
+ } catch {
  toast.error(t('networkError'));
  }
  };

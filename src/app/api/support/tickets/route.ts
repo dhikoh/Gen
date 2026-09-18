@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { SupportTicketStatus } from "@prisma/client";
 import { z } from "zod";
-import { applyRateLimit } from "@/lib/rateLimit";
+import { applyRateLimit, getClientIp } from "@/lib/rateLimit";
 import { getApiTranslator } from "@/lib/apiI18n";
 import { notifyAllSuperadmins } from "@/lib/notifications";
 
@@ -25,10 +25,18 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const statusParam = searchParams.get("status");
+    let validatedStatus: SupportTicketStatus | undefined = undefined;
+    if (statusParam) {
+      const parsedStatus = z.nativeEnum(SupportTicketStatus).safeParse(statusParam);
+      if (!parsedStatus.success) {
+        return NextResponse.json({ error: t("invalidData") }, { status: 400 });
+      }
+      validatedStatus = parsedStatus.data;
+    }
 
     if (session.user.role === "SUPERADMIN") {
       const tickets = await prisma.supportTicket.findMany({
-        where: statusParam ? { status: statusParam as SupportTicketStatus } : undefined,
+        where: validatedStatus ? { status: validatedStatus } : undefined,
         include: {
           user: { select: { id: true, name: true, email: true } },
           messages: { orderBy: { createdAt: "desc" }, take: 1 }
@@ -56,7 +64,7 @@ export async function POST(req: Request) {
   const t = await getApiTranslator();
   try {
     const session = await getServerSession(authOptions);
-    const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
+    const ip = getClientIp(req);
 
     const isAllowed = await applyRateLimit(`create_ticket_${session?.user?.id || ip}`, 5, 60 * 60);
     if (!isAllowed) {

@@ -15,7 +15,7 @@ export default async function DashboardLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const session = await requireRole("USER", locale);
+  const session = await requireRole(["USER", "SUPERADMIN"], locale);
   const t = await getTranslations({ locale, namespace: "Dashboard" });
 
   const userInitial = session.user.name?.[0]?.toUpperCase() || "U";
@@ -31,9 +31,12 @@ export default async function DashboardLayout({
     { href: `/${locale}/dashboard/drafts`,        icon: "📄", label: t("drafts") },
     { href: `/${locale}/dashboard/channels`,      icon: "📺", label: t("channels") },
     { href: `/${locale}/dashboard/billing`,       icon: "💳", label: t("billing") },
+    { href: `/${locale}/dashboard/pricing`,       icon: "💎", label: t("pricingPlans") },
     { href: `/${locale}/dashboard/notifications`, icon: "🔔", label: t("notifications") },
     { href: `/${locale}/dashboard/support`,       icon: "🆘", label: t("support") },
+    { href: `/${locale}/dashboard/settings`,      icon: "⚙️", label: t("settings") },
     { href: `/${locale}/dashboard/panduan`,       icon: "📖", label: t("guide") },
+    ...(userRole === "SUPERADMIN" ? [{ href: `/${locale}/admin`, icon: "🛡️", label: t("admin") }] : []),
   ];
 
   return (

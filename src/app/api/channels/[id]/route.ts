@@ -86,7 +86,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     return NextResponse.json({ success: true, channel: updated }, { status: 200 });
 
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: t("serverError") }, { status: 500 });
   }
 }
@@ -119,7 +119,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
     return NextResponse.json({ success: true }, { status: 200 });
 
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: t("serverError") }, { status: 500 });
   }
 }

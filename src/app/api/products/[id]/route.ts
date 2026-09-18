@@ -49,7 +49,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     });
 
     return NextResponse.json({ success: true, product: updated }, { status: 200 });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: t("serverError") }, { status: 500 });
   }
 }
@@ -77,7 +77,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
     await prisma.product.delete({ where: { id } });
     return NextResponse.json({ success: true }, { status: 200 });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: t("serverError") }, { status: 500 });
   }
 }

@@ -25,37 +25,36 @@ interface Ticket {
 
 export default function AdminSupportClient() {
   const t = useTranslations("Support");
+  const tAdmin = useTranslations("AdminSupport");
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [loading, setLoading] = useState(true);
   const [replyBody, setReplyBody] = useState("");
   const [replying, setReplying] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
   const fetchTickets = useCallback(async () => {
     try {
-      const url = statusFilter === "ALL" ? "/api/support/tickets" : `/api/support/tickets?status=${statusFilter}`;
-      const res = await fetch(url);
+      const res = await fetch("/api/admin/support/tickets");
       const data = await res.json();
       if (res.ok) setTickets(data.tickets || []);
     } catch (err) {
-      console.error("Failed to fetch admin tickets:", err);
+      console.error("Failed to fetch tickets:", err);
     } finally {
       setLoading(false);
     }
-  }, [statusFilter]);
+  }, []);
 
   useEffect(() => {
     let ignore = false;
     async function load() {
       try {
-        const url = statusFilter === "ALL" ? "/api/support/tickets" : `/api/support/tickets?status=${statusFilter}`;
-        const res = await fetch(url);
+        const res = await fetch("/api/admin/support/tickets");
         const data = await res.json();
         if (!ignore && res.ok) setTickets(data.tickets || []);
       } catch (err) {
-        console.error("Failed to fetch admin tickets:", err);
+        console.error("Failed to fetch tickets:", err);
       } finally {
         if (!ignore) setLoading(false);
       }
@@ -64,11 +63,11 @@ export default function AdminSupportClient() {
     return () => {
       ignore = true;
     };
-  }, [statusFilter]);
+  }, []);
 
   const loadTicketDetail = async (id: string) => {
     try {
-      const res = await fetch(`/api/support/tickets/${id}`);
+      const res = await fetch(`/api/admin/support/tickets/${id}`);
       const data = await res.json();
       if (res.ok) setSelectedTicket(data.ticket);
     } catch (err) {
@@ -81,29 +80,47 @@ export default function AdminSupportClient() {
     if (!selectedTicket || !replyBody.trim()) return;
     setReplying(true);
     try {
-      const res = await fetch(`/api/support/tickets/${selectedTicket.id}/messages`, {
+      const res = await fetch(`/api/admin/support/tickets/${selectedTicket.id}/reply`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ body: replyBody.trim() }),
       });
-      if (res.ok) { setReplyBody(""); await loadTicketDetail(selectedTicket.id); await fetchTickets(); }
-    } catch (err) { console.error("Failed to send admin reply:", err); }
-    finally { setReplying(false); }
+      if (res.ok) {
+        setReplyBody("");
+        await loadTicketDetail(selectedTicket.id);
+        await fetchTickets();
+      }
+    } catch (err) {
+      console.error("Failed to send reply:", err);
+    } finally {
+      setReplying(false);
+    }
   };
 
   const handleUpdateStatus = async (newStatus: "OPEN" | "REPLIED" | "CLOSED") => {
     if (!selectedTicket) return;
     setUpdatingStatus(true);
     try {
-      const res = await fetch(`/api/support/tickets/${selectedTicket.id}`, {
+      const res = await fetch(`/api/admin/support/tickets/${selectedTicket.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),
       });
-      if (res.ok) { await loadTicketDetail(selectedTicket.id); await fetchTickets(); }
-    } catch (err) { console.error("Failed to update status:", err); }
-    finally { setUpdatingStatus(false); }
+      if (res.ok) {
+        await loadTicketDetail(selectedTicket.id);
+        await fetchTickets();
+      }
+    } catch (err) {
+      console.error("Failed to update status:", err);
+    } finally {
+      setUpdatingStatus(false);
+    }
   };
+
+  const filteredTickets = tickets.filter((t) => {
+    if (statusFilter === "ALL") return true;
+    return t.status === statusFilter;
+  });
 
   const openCount = tickets.filter((t) => t.status === "OPEN").length;
   const repliedCount = tickets.filter((t) => t.status === "REPLIED").length;
@@ -115,18 +132,18 @@ export default function AdminSupportClient() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold" style={{ color: 'var(--pg-text)' }}>Manajemen Tiket Support</h1>
+        <h1 className="text-2xl font-bold" style={{ color: 'var(--pg-text)' }}>{tAdmin("title")}</h1>
         <p className="text-sm mt-1" style={{ color: 'var(--pg-text-sub)' }}>
-          Verifikasi dan balasan tiket bantuan pengguna Prompt Gen secara terpusat.
+          {tAdmin("desc")}
         </p>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { label: 'Tiket Baru (Open)', count: openCount, color: 'var(--pg-warn)' },
-          { label: 'Telah Dibalas (Replied)', count: repliedCount, color: 'var(--pg-brand)' },
-          { label: 'Selesai (Closed)', count: closedCount, color: 'var(--pg-success)' },
+          { label: tAdmin("newTickets"), count: openCount, color: 'var(--pg-warn)' },
+          { label: tAdmin("repliedTickets"), count: repliedCount, color: 'var(--pg-brand)' },
+          { label: tAdmin("closedTickets"), count: closedCount, color: 'var(--pg-success)' },
         ].map(({ label, count, color }) => (
           <div key={label} className={`${panelCls} p-4`}>
             <div className="text-xs font-semibold uppercase tracking-wider" style={{ color }}>{label}</div>
@@ -147,7 +164,7 @@ export default function AdminSupportClient() {
               color: statusFilter === st ? '#fff' : 'var(--pg-text-sub)',
             }}
           >
-            {st === "ALL" ? "Semua Tiket" : t(`status${st}` as Parameters<typeof t>[0])}
+            {st === "ALL" ? tAdmin("allTickets") : t(`status${st}` as Parameters<typeof t>[0])}
           </button>
         ))}
       </div>
@@ -156,10 +173,10 @@ export default function AdminSupportClient() {
         {/* Ticket List */}
         <div className={`${panelCls} p-4 space-y-3 max-h-[75vh] overflow-y-auto lg:col-span-1`}>
           {loading ? (
-            <div className="py-8 text-center text-sm animate-pulse" style={{ color: 'var(--pg-text-muted)' }}>Memuat tiket...</div>
-          ) : tickets.length === 0 ? (
-            <div className="py-8 text-center text-xs" style={{ color: 'var(--pg-text-muted)' }}>Tidak ada tiket sesuai filter.</div>
-          ) : tickets.map((ticket) => {
+            <div className="py-8 text-center text-sm animate-pulse" style={{ color: 'var(--pg-text-muted)' }}>{tAdmin("loadingTickets")}</div>
+          ) : filteredTickets.length === 0 ? (
+            <div className="py-8 text-center text-xs" style={{ color: 'var(--pg-text-muted)' }}>{tAdmin("noTicketsFilter")}</div>
+          ) : filteredTickets.map((ticket) => {
             const badge = getTicketStatusBadge(ticket.status);
             const isSelected = selectedTicket?.id === ticket.id;
             const senderName = ticket.user?.name || ticket.guestName || "Guest User";
@@ -259,7 +276,7 @@ export default function AdminSupportClient() {
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-sm" style={{ color: 'var(--pg-text-muted)' }}>
               <span className="text-4xl mb-2">💬</span>
-              <p>Pilih tiket dari daftar di sebelah kiri untuk merespons.</p>
+              <p>{tAdmin("selectTicketPrompt")}</p>
             </div>
           )}
         </div>

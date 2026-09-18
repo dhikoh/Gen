@@ -42,7 +42,7 @@ export default function AdminRegistrationsClient({ initialUsers }: { initialUser
  } else {
  toast.error(data.error || (action === "APPROVE" ? t("approveFail") : t("rejectFail")));
  }
- } catch (err) {
+ } catch {
  toast.error(t("networkError"));
  } finally {
  setLoading(null);

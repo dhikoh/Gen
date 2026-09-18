@@ -22,6 +22,7 @@ interface AppSettings {
 
 import { PromptSettingsData } from "@/lib/promptGenerator";
 import AdminArchetypesTab from "./AdminArchetypesTab";
+import AdminAuditLogsTab from "./AdminAuditLogsTab";
 
 export default function AdminSettingsClient({
  settings,
@@ -33,7 +34,7 @@ export default function AdminSettingsClient({
  const router = useRouter();
  const t = useTranslations("AdminSettings");
  const st = useTranslations("Support");
- const [activeTab, setActiveTab] = useState<"general" | "prompt" | "archetypes">("general");
+ const [activeTab, setActiveTab] = useState<"general" | "prompt" | "archetypes" | "audit">("general");
  const [loading, setLoading] = useState(false);
 
  // Form State for AppSettings
@@ -91,7 +92,7 @@ export default function AdminSettingsClient({
  } else {
  toast.error(data.error || t("updateFail"));
  }
- } catch (err) {
+ } catch {
  toast.error(t("networkError"));
  } finally {
  setLoading(false);
@@ -115,7 +116,7 @@ export default function AdminSettingsClient({
  } else {
  toast.error(data.error || t("updateFail"));
  }
- } catch (err) {
+ } catch {
  toast.error(t("networkError"));
  } finally {
  setLoading(false);
@@ -131,7 +132,7 @@ export default function AdminSettingsClient({
  onClick={() => setActiveTab("general")}
  className={`pb-3 text-sm font-semibold border-b-2 transition-colors ${
  activeTab === "general"
- ? "border-purple-500 text-purple-600 dark:text-purple-400"
+ ? "border-[var(--pg-brand)] text-brand"
  : "border-transparent pg-text-muted hover:pg-text-sub dark:hover:pg-text-muted"
  }`}
  >
@@ -142,7 +143,7 @@ export default function AdminSettingsClient({
  onClick={() => setActiveTab("prompt")}
  className={`pb-3 text-sm font-semibold border-b-2 transition-colors ${
  activeTab === "prompt"
- ? "border-purple-500 text-purple-600 dark:text-purple-400"
+ ? "border-[var(--pg-brand)] text-brand"
  : "border-transparent pg-text-muted hover:pg-text-sub dark:hover:pg-text-muted"
  }`}
  >
@@ -153,11 +154,22 @@ export default function AdminSettingsClient({
  onClick={() => setActiveTab("archetypes")}
  className={`pb-3 text-sm font-semibold border-b-2 transition-colors ${
  activeTab === "archetypes"
- ? "border-purple-500 text-purple-600 dark:text-purple-400"
+ ? "border-[var(--pg-brand)] text-brand"
  : "border-transparent pg-text-muted hover:pg-text-sub dark:hover:pg-text-muted"
  }`}
  >
- Model Konten (Archetypes)
+ {t("tabArchetypes")}
+ </button>
+ <button
+ type="button"
+ onClick={() => setActiveTab("audit")}
+ className={`pb-3 text-sm font-semibold border-b-2 transition-colors ${
+ activeTab === "audit"
+ ? "border-[var(--pg-brand)] text-brand"
+ : "border-transparent pg-text-muted hover:pg-text-sub dark:hover:pg-text-muted"
+ }`}
+ >
+ {t("tabAuditLogs")}
  </button>
  </div>
 
@@ -293,7 +305,7 @@ export default function AdminSettingsClient({
  id="csWidgetEnabled"
  checked={appFormData.csWidgetEnabled}
  onChange={(e) => setAppFormData(prev => ({ ...prev, csWidgetEnabled: e.target.checked }))}
- className="rounded text-purple-600 focus:ring-purple-500 h-4 w-4"
+ className="rounded text-brand focus:ring-[var(--pg-brand)] accent-[var(--pg-brand)] h-4 w-4"
  />
  <label htmlFor="csWidgetEnabled" className="text-sm font-medium pg-text-sub cursor-pointer">
  {st("csWidgetEnabled")}
@@ -314,7 +326,7 @@ export default function AdminSettingsClient({
  value={appFormData.rateLimitRequests}
  onChange={handleAppChange}
  min={1}
- className="w-full px-4 py-2 pg-bg-page border pg-border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none pg-text-heading text-sm"
+ className="w-full px-4 py-2 pg-bg-page border pg-border rounded-lg focus:ring-2 focus:ring-[var(--pg-brand)] outline-none pg-text-heading text-sm"
  />
  <p className="text-xs pg-text-muted mt-1">Jumlah maksimal aksi yang diizinkan per user/IP dalam satu jendela waktu.</p>
  </div>
@@ -327,7 +339,7 @@ export default function AdminSettingsClient({
  onChange={handleAppChange}
  min={1000}
  step={1000}
- className="w-full px-4 py-2 pg-bg-page border pg-border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none pg-text-heading text-sm"
+ className="w-full px-4 py-2 pg-bg-page border pg-border rounded-lg focus:ring-2 focus:ring-[var(--pg-brand)] outline-none pg-text-heading text-sm"
  />
  <p className="text-xs pg-text-muted mt-1">Contoh: 60000 = 1 menit.</p>
  </div>
@@ -339,7 +351,7 @@ export default function AdminSettingsClient({
  <button
  type="submit"
  disabled={loading}
- className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg shadow-sm disabled:opacity-50 neu-flat"
+ className="neu-btn-brand px-6 py-2 font-medium rounded-lg shadow-sm disabled:opacity-50"
  >
  {loading ? t("saving") : t("saveSettings")}
  </button>
@@ -374,7 +386,7 @@ export default function AdminSettingsClient({
  value={promptFormData.imageSystemInstruction}
  onChange={handlePromptChange}
  placeholder="Tambahkan instruksi sistem tambahan untuk Image Prompt generator..."
- className="w-full px-4 py-2 pg-bg-page border pg-border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none pg-text-heading text-sm"
+ className="w-full px-4 py-2 pg-bg-page border pg-border rounded-lg focus:ring-2 focus:ring-[var(--pg-brand)] outline-none pg-text-heading text-sm"
  />
  <p className="text-xs pg-text-muted mt-1">{t("imageSystemInstructionHelp")}</p>
  </div>
@@ -386,7 +398,7 @@ export default function AdminSettingsClient({
  name="defaultSpeechRate"
  value={promptFormData.defaultSpeechRate}
  onChange={handlePromptChange}
- className="w-full px-4 py-2 pg-bg-page border pg-border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none pg-text-heading text-sm"
+ className="w-full px-4 py-2 pg-bg-page border pg-border rounded-lg focus:ring-2 focus:ring-[var(--pg-brand)] outline-none pg-text-heading text-sm"
  >
  <option value="slow">Slow</option>
  <option value="medium">Medium</option>
@@ -402,7 +414,7 @@ export default function AdminSettingsClient({
  value={promptFormData.defaultNegativePrompt}
  onChange={handlePromptChange}
  placeholder="blurry, distorted, low quality, bad anatomy"
- className="w-full px-4 py-2 pg-bg-page border pg-border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none pg-text-heading text-sm"
+ className="w-full px-4 py-2 pg-bg-page border pg-border rounded-lg focus:ring-2 focus:ring-[var(--pg-brand)] outline-none pg-text-heading text-sm"
  />
  </div>
  </div>
@@ -415,7 +427,7 @@ export default function AdminSettingsClient({
  value={promptFormData.bannedWords}
  onChange={handlePromptChange}
  placeholder="judi, slot, sara, nsfw, porn"
- className="w-full px-4 py-2 pg-bg-page border pg-border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none pg-text-heading text-sm"
+ className="w-full px-4 py-2 pg-bg-page border pg-border rounded-lg focus:ring-2 focus:ring-[var(--pg-brand)] outline-none pg-text-heading text-sm"
  />
  <p className="text-xs pg-text-muted mt-1">{t("bannedWordsHelp")}</p>
  </div>
@@ -426,7 +438,7 @@ export default function AdminSettingsClient({
  <button
  type="submit"
  disabled={loading}
- className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg shadow-sm disabled:opacity-50 neu-flat"
+ className="neu-btn-brand px-6 py-2 font-medium rounded-lg shadow-sm disabled:opacity-50"
  >
  {loading ? t("saving") : t("saveSettings")}
  </button>
@@ -436,6 +448,9 @@ export default function AdminSettingsClient({
 
  {/* Tab 3: Model Konten (Archetypes) */}
  {activeTab === "archetypes" && <AdminArchetypesTab />}
+
+ {/* Tab 4: Riwayat Audit (Audit Logs) */}
+ {activeTab === "audit" && <AdminAuditLogsTab />}
  </div>
  );
 }

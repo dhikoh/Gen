@@ -4,26 +4,35 @@ import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { getApiTranslator } from "@/lib/apiI18n";
 import { z } from "zod";
+import { getClientIp, applyRateLimit } from "@/lib/rateLimit";
+import { logAdminAction } from "@/lib/auditLog";
 
-// 4.4 fix: Explicit schema for prompt settings update
 const promptSettingsSchema = z.object({
   videoSystemInstruction: z.string().max(20000).optional().nullable(),
   imageSystemInstruction: z.string().max(20000).optional().nullable(),
   defaultSpeechRate: z.string().max(50).optional().nullable(),
   defaultNegativePrompt: z.string().max(5000).optional().nullable(),
-  // Accepts array of strings OR comma-separated string (both normalised to string[])
   bannedWords: z.union([
     z.array(z.string()),
     z.string(),
   ]).optional().nullable(),
 });
 
-export async function GET() {
+export async function GET(req: Request) {
   const t = await getApiTranslator();
   const session = await getServerSession(authOptions);
 
-  if (!session || session.user.role !== "SUPERADMIN") {
-    return NextResponse.json({ error: t("unauthorized") }, { status: 403 });
+  if (!session) {
+    return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
+  }
+  if (session.user.role !== "SUPERADMIN") {
+    return NextResponse.json({ error: t("forbidden") }, { status: 403 });
+  }
+
+  const ip = getClientIp(req);
+  const isAllowed = await applyRateLimit(`admin_prompt_settings_get_${session.user.id}_${ip}`, 60, 60);
+  if (!isAllowed) {
+    return NextResponse.json({ error: t("tooManyRequests") }, { status: 429 });
   }
 
   try {
@@ -53,8 +62,17 @@ export async function PUT(req: Request) {
   const t = await getApiTranslator();
   const session = await getServerSession(authOptions);
 
-  if (!session || session.user.role !== "SUPERADMIN") {
-    return NextResponse.json({ error: t("unauthorized") }, { status: 403 });
+  if (!session) {
+    return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
+  }
+  if (session.user.role !== "SUPERADMIN") {
+    return NextResponse.json({ error: t("forbidden") }, { status: 403 });
+  }
+
+  const ip = getClientIp(req);
+  const isAllowed = await applyRateLimit(`admin_prompt_settings_put_${session.user.id}_${ip}`, 20, 60);
+  if (!isAllowed) {
+    return NextResponse.json({ error: t("tooManyRequests") }, { status: 429 });
   }
 
   try {
@@ -72,8 +90,6 @@ export async function PUT(req: Request) {
       bannedWords,
     } = parsedBody.data;
 
-
-    // Process bannedWords array or string input
     let sanitizedBannedWords: string[] = [];
     if (Array.isArray(bannedWords)) {
       sanitizedBannedWords = bannedWords.map((w: unknown) => String(w).trim().toLowerCase()).filter(Boolean);
@@ -98,6 +114,14 @@ export async function PUT(req: Request) {
         defaultNegativePrompt: defaultNegativePrompt || "",
         bannedWords: sanitizedBannedWords
       }
+    });
+
+    await logAdminAction({
+      adminId: session.user.id,
+      action: "UPDATE_PROMPT_SETTINGS",
+      targetType: "PROMPT_SETTINGS",
+      targetId: "singleton",
+      metadata: { bannedWordsCount: sanitizedBannedWords.length }
     });
 
     return NextResponse.json({ success: true, settings: updated });

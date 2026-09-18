@@ -70,10 +70,13 @@ Setiap klaim fitur di bawah ini diverifikasi dengan referensi file dan endpoint 
 
 | Pengujian | Status | Keterangan |
 |---|---|---|
-| **Type Check (`npx tsc --noEmit`)** | **PASSED** | 0 Error pada seluruh komponen dan API route |
-| **Production Build (`npm run build`)** | **PASSED** | 33 static & dynamic routes terkompilasi bersih tanpa *warning* |
-| **Rate Limiting Guardrail** | **ACTIVE** | Menggunakan LRU Cache pada endpoint sensitif (`/api/generate`, `/api/auth/*`, `/api/admin/*`) |
-| **Input Sanitization (XSS)** | **ACTIVE** | `DOMPurify` dan perbaikan `ZodError` terpasang di seluruh endpoint API |
+| **Type Check (`npx tsc --noEmit`)** | **PASSED** | 0 Error pada seluruh komponen, lib, dan API routes (Zero `as unknown as`) |
+| **Production Build (`npm run build`)** | **PASSED** | 40 halaman dan 49 rute API (total 89 rute) terkompilasi bersih |
+| **Lint Check (`npm run lint`)** | **PASSED** | 0 Error, 0 Warning pada ESLint 9 |
+| **i18n Parity (`npm run audit:i18n`)** | **PASSED** | 100% key parity (1.161 keys ID/EN) tanpa missing keys |
+| **Design System (`npm run audit:design`)** | **PASSED** | Tingkat adopsi token desain 87,2% (1.703 kemunculan token resmi `pg-*`) |
+| **Rate Limiting Guardrail** | **ACTIVE** | Dual-bucket rate limiter (IP + Identifier) melindungi rute sensitif (`/api/generate`, `/api/auth/*`, `/api/admin/*`) |
+| **Input Sanitization (XSS)** | **ACTIVE** | `sanitize-html` di sisi server dan validasi skema Zod ketat di seluruh rute API |
 | **Database Transactional Integrity** | **ACTIVE** | Prisma updateMany atomic dengan WHERE clause guard untuk mencegah *race condition* |
 
 ---
@@ -85,16 +88,27 @@ Setiap klaim fitur di bawah ini diverifikasi dengan referensi file dan endpoint 
 2. Siapkan instance server web (Coolify, Vercel, atau VPS Ubuntu dengan Docker/Node.js 20+).
 
 ### Langkah 2: Konfigurasi Environment Variables (`.env`)
-Salin `.env.example` ke `.env` di server dan isi nilai berikut:
+Salin `.env.example` ke `.env` di server produksi dan isi seluruh variabel lingkungan wajib:
 ```env
 DATABASE_URL="postgresql://user:password@host:5432/dbname?sslmode=require"
-SUPERADMIN_EMAIL=superadmin@promptgen.com
-SUPERADMIN_SEED_PASSWORD=  # Strong password used during prisma/seed.js first run
-NEXTAUTH_SECRET="string-acak-panjang-min-32-karakter"
+NEXTAUTH_SECRET="string-acak-panjang-min-32-karakter-kriptografis"
 NEXTAUTH_URL="https://domain-anda.com"
+
+# Kredensial Superadmin Awal (Wajib diisi sebelum menjalankan seed.js)
+SUPERADMIN_EMAIL="superadmin@domain-anda.com"
+SUPERADMIN_SEED_PASSWORD="PasswordKuatSuperadminMinimal12Karakter!" # Wajib >= 12 char, dilarang template default
+
+# Konfigurasi Layanan Email Transaksional (SMTP Standard)
+SMTP_HOST="smtp.mailprovider.com"
+SMTP_PORT="587"
+SMTP_SECURE="false"
+SMTP_USER="smtp-username"
+SMTP_PASSWORD="smtp-password-atau-api-key"
+SMTP_FROM="Prompt Gen <no-reply@domain-anda.com>"
+
+# Konfigurasi Tambahan
 STITCH_API_KEY="key-stitch-google-anda"
-EMAIL_PROVIDER_API_KEY="api-key-provider-email"
-EMAIL_FROM="no-reply@domain-anda.com"
+TRUSTED_PROXY="false" # Set true bila server berada di balik Cloudflare / Reverse Proxy resmi
 ```
 
 ### Langkah 3: Eksekusi Migrasi & Build Produksi
@@ -108,45 +122,41 @@ npm run build
 npm run start
 ```
 
-### Langkah 4: Kredensial Default Seed Superadmin
-Setelah `seed.js` berhasil dieksekusi:
-- **Email/Username**: `superadmin` / `admin@promptgen.com`
-- **Password Default**: `Admin123!` *(Wajib segera diganti setelah login pertama)*
+### Langkah 4: Kredensial Superadmin Hasil Seed
+Setelah `prisma/seed.js` berhasil dieksekusi:
+- **Akun**: Menggunakan `SUPERADMIN_EMAIL` yang telah ditentukan pada `.env`.
+- **Password**: Menggunakan `SUPERADMIN_SEED_PASSWORD` dari `.env`.
+- **Flag Keamanan**: Akun otomatis diberi penanda `mustChangePassword: true`, mengharuskan pergantian kata sandi langsung saat sesi pertama aktif.
 
 ---
 
-## 5. CATATAN AKHIR & HANDOFF STATEMENT
-Seluruh kode dalam repository `dhikoh-gen` berada dalam kondisi stabil, bersih dari temporary logs/scratch files, dan siap untuk dideploy ke lingkungan produksi. 
-
-Dokumen ini disusun sebagai bukti sah penyelesaian serah terima pekerjaan (Definition of Done) sesuai Bagian 9 & 10 *Project Blueprint*.
+## 5. BELUM SELESAI / PERLU TINDAK LANJUT (FOLLOW-UP & MONITORING)
+Sesuai standar Blueprint 9.3, berikut daftar pemantauan dan rencana lanjutan pasca rilis:
+1. **Otomatisasi Payment Gateway Masa Depan**: Saat volume transaksi harian melampaui kapasitas verifikasi manual transfer, aktifkan gateway otomatis (Midtrans/Xendit/Stripe). Skema database (`Invoice.externalRef`, `Invoice.currency`) telah dipersiapkan dan diisolasi dengan aman.
+2. **Kebijakan Retensi Arsip Bukti Pembayaran**: Bukti transfer gambar yang berumur lebih dari 180 hari setelah status final disarankan untuk diarsipkan berkala guna menghemat media storage database.
+3. **Penyesuaian Kapasitas Rate Limiter**: Bila diadakan event promosi massal, kuota per menit pada `src/lib/rateLimit.ts` dapat dinaikkan sesuai metrik beban server.
 
 ---
 
-## 6. UPDATE — Neumorphic Design System Migration (21 Agustus 2026)
+## 6. UPDATE — Neumorphic Design System & Systemic Sweeps
 
-### Status
-Seluruh codebase telah dimigrasi penuh dari kelas warna hardcoded Tailwind (`zinc-*`, `gray-*`, `slate-*`) ke sistem token CSS `pg-*` terpusat.
+Seluruh codebase telah dimigrasi penuh dari kelas warna hardcoded Tailwind (`zinc-*`, `gray-*`, `slate-*`) ke sistem token CSS `pg-*` terpusat dan lulus audit menyeluruh FASE 0 s/d FASE 14.
 
-| Metrik | Nilai |
-|--------|-------|
-| Total file dimigrasi | 55+ file |
-| Total kelas legacy dihapus | ~1.218 occurrences |
-| Utility classes baru (`globals.css`) | 8 classes |
-| TypeScript check pasca-migrasi | ✅ 0 errors |
-| Residual zinc/gray/slate di `src/` | ✅ 0 |
-| Git commit | `e97fc42` (59 files changed) |
-
-### Aturan Wajib untuk Pengembangan Selanjutnya
-> **WAJIB**: Komponen UI baru harus menggunakan token `pg-*` dan utility `neu-*`. Dilarang kelas warna hardcoded Tailwind. Gunakan `grep "zinc-\|gray-\|slate-" src/` untuk audit berkala.
+| Metrik Audit | Nilai Terverifikasi |
+|---|---|
+| Total File Komponen UI | 78 file |
+| Tingkat Adopsi Token Desain | 87,2% (1.703 kemunculan token) |
+| Paritas Internasionalisasi (i18n) | 100% (1.161 keys pada ID dan EN) |
+| TypeScript Check (`tsc --noEmit`) | ✅ 0 Errors (Zero `as unknown as`) |
+| ESLint Check (`npm run lint`) | ✅ 0 Errors, 0 Warnings |
+| Residual zinc/gray/slate di `src/` | ✅ 0 (Nol) |
 
 ### Referensi Token Cepat
 | Kategori | Token |
-|----------|-------|
+|---|---|
 | Teks | `pg-text-heading` · `pg-text-sub` · `pg-text-muted` |
 | Background | `pg-bg-page` · `pg-surface` · `pg-surface-dim` |
 | Border | `pg-border` · `pg-divide` |
 | Panel | `neu-flat` · `neu-sm` · `neu-pressed` |
 | Button | `neu-btn` · `neu-btn-brand` |
 | Brand vars | `var(--pg-brand)` · `var(--pg-danger)` · `var(--pg-warn)` |
-
-Detail lengkap: lihat **Phase K** di `PATCH_NOTES.md`.

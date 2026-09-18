@@ -12,6 +12,8 @@ export interface PlanDto {
   name: string;
   priceMonthly: number;
   maxChannels: number;
+  periodDays: number;
+  trialDays: number;
   isActive: boolean;
   isPubliclyPurchasable: boolean;
   sortOrder: number;
@@ -25,6 +27,8 @@ const emptyCreate = {
   name: "",
   priceMonthly: 0,
   maxChannels: 1,
+  periodDays: 30,
+  trialDays: 0,
   isActive: true,
   isPubliclyPurchasable: false,
   sortOrder: 99,
@@ -71,6 +75,8 @@ export default function AdminPlansClient({ initialPlans }: { initialPlans: PlanD
           name: plan.name,
           priceMonthly: Number(plan.priceMonthly),
           maxChannels: Number(plan.maxChannels),
+          periodDays: Number(plan.periodDays ?? 30),
+          trialDays: Number(plan.trialDays ?? 0),
           isActive: plan.isActive,
           isPubliclyPurchasable: plan.isPubliclyPurchasable,
           sortOrder: Number(plan.sortOrder),
@@ -117,6 +123,8 @@ export default function AdminPlansClient({ initialPlans }: { initialPlans: PlanD
           name: createForm.name,
           priceMonthly: Number(createForm.priceMonthly),
           maxChannels: Number(createForm.maxChannels),
+          periodDays: Number(createForm.periodDays || 30),
+          trialDays: Number(createForm.trialDays || 0),
           isActive: createForm.isActive,
           isPubliclyPurchasable: createForm.isPubliclyPurchasable,
           sortOrder: Number(createForm.sortOrder),
@@ -229,6 +237,30 @@ export default function AdminPlansClient({ initialPlans }: { initialPlans: PlanD
                     onChange={e => handleChange(plan.id, "maxChannels", e.target.value)}
                     className={inputCls}
                   />
+                </div>
+
+                {/* Period Days & Trial Days (P0-3) */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs font-medium pg-text-muted mb-1">{t("periodDays")}</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={plan.periodDays ?? 30}
+                      onChange={e => handleChange(plan.id, "periodDays", Number(e.target.value))}
+                      className={inputCls}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium pg-text-muted mb-1">{t("trialDays")}</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={plan.trialDays ?? 0}
+                      onChange={e => handleChange(plan.id, "trialDays", Number(e.target.value))}
+                      className={inputCls}
+                    />
+                  </div>
                 </div>
 
                 {/* Sort Order */}
@@ -377,6 +409,29 @@ export default function AdminPlansClient({ initialPlans }: { initialPlans: PlanD
                   onChange={e => setCreateForm(prev => ({ ...prev, maxChannels: Number(e.target.value) }))}
                   className={inputCls}
                 />
+              </div>
+              {/* Period Days & Trial Days (P0-3) */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-medium pg-text-muted mb-1">{t("periodDays")}</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={createForm.periodDays}
+                    onChange={e => setCreateForm(prev => ({ ...prev, periodDays: Number(e.target.value) }))}
+                    className={inputCls}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium pg-text-muted mb-1">{t("trialDays")}</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={createForm.trialDays}
+                    onChange={e => setCreateForm(prev => ({ ...prev, trialDays: Number(e.target.value) }))}
+                    className={inputCls}
+                  />
+                </div>
               </div>
               {/* Sort Order */}
               <div>

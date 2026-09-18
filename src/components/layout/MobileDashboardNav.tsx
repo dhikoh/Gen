@@ -56,8 +56,10 @@ const DRAWER_ITEMS = [
   { key: "research",       icon: "🔍", labelKey: "research",          href: (l: string) => `/${l}/dashboard/research` },
   { key: "scene-prompt",   icon: "🎬", labelKey: "scenePromptStudio", href: (l: string) => `/${l}/dashboard/scene-prompt` },
   { key: "billing",        icon: "💳", labelKey: "billing",            href: (l: string) => `/${l}/dashboard/billing` },
+  { key: "pricing",        icon: "💎", labelKey: "pricingPlans",       href: (l: string) => `/${l}/dashboard/pricing` },
   { key: "notifications",  icon: "🔔", labelKey: "notifications",      href: (l: string) => `/${l}/dashboard/notifications` },
   { key: "support",        icon: "🆘", labelKey: "support",            href: (l: string) => `/${l}/dashboard/support` },
+  { key: "settings",       icon: "⚙️", labelKey: "settings",           href: (l: string) => `/${l}/dashboard/settings` },
   { key: "panduan",        icon: "📖", labelKey: "guide",              href: (l: string) => `/${l}/dashboard/panduan` },
 ];
 
@@ -307,6 +309,19 @@ export default function MobileDashboardNav({ userName, userEmail, userRole, user
                 </Link>
               );
             })}
+            {userRole === "SUPERADMIN" && (
+              <Link
+                href={`/${locale}/admin`}
+                className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium transition-all"
+                style={{
+                  color: "var(--pg-brand)",
+                  background: "var(--pg-brand-light)",
+                }}
+              >
+                <span className="text-lg w-6 text-center">🛡️</span>
+                <span>{t("admin")}</span>
+              </Link>
+            )}
           </div>
 
           {/* Logout */}
