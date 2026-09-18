@@ -117,6 +117,7 @@ export default function GeneratorForm({
  const [sfxPreference, setSfxPreference] = useState<boolean>(true);
  const [voPreference, setVoPreference] = useState<boolean>(true);
  const [narrationModeOverride, setNarrationModeOverride] = useState<string>("auto");
+ const [trendingAudio, setTrendingAudio] = useState<string>("");
 
  // Camera Movement state
  const [cameraMovementEnabled, setCameraMovementEnabled] = useState<boolean>(true);
@@ -290,6 +291,7 @@ export default function GeneratorForm({
            if (p.sfxPreference !== undefined) setSfxPreference(p.sfxPreference);
            if (p.voPreference !== undefined) setVoPreference(p.voPreference);
            if (p.narrationModeOverride !== undefined) setNarrationModeOverride(p.narrationModeOverride);
+           if (p.trendingAudio !== undefined) setTrendingAudio(p.trendingAudio);
            if (p.cameraMovementEnabled !== undefined) setCameraMovementEnabled(p.cameraMovementEnabled);
            if (p.cameraMovementPresets !== undefined) setCameraMovementPresets(p.cameraMovementPresets);
            if (p.cameraMovementCustom !== undefined) setCameraMovementCustom(p.cameraMovementCustom);
@@ -323,6 +325,7 @@ export default function GeneratorForm({
          if (p.sfxPreference !== undefined) setSfxPreference(p.sfxPreference);
          if (p.voPreference !== undefined) setVoPreference(p.voPreference);
          if (p.narrationModeOverride !== undefined) setNarrationModeOverride(p.narrationModeOverride);
+         if (p.trendingAudio !== undefined) setTrendingAudio(p.trendingAudio);
          if (p.cameraMovementEnabled !== undefined) setCameraMovementEnabled(p.cameraMovementEnabled);
          if (p.cameraMovementPresets !== undefined) setCameraMovementPresets(p.cameraMovementPresets);
          if (p.cameraMovementCustom !== undefined) setCameraMovementCustom(p.cameraMovementCustom);
@@ -357,7 +360,7 @@ export default function GeneratorForm({
  }, []);
 
  useEffect(() => {
-  const stateObj = { type, channelId, outputLanguage, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, narrationModeOverride, cameraMovementEnabled, cameraMovementPresets, cameraMovementCustom, cameraMovementProMode, affiliateAngle, affiliateAngleMode, affiliateMarketplaces, affiliateCustomUrl, videoConfig, imageConfig, step, generatedPrompt, aiResultJson, manualTitle };
+  const stateObj = { type, channelId, outputLanguage, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, narrationModeOverride, trendingAudio, cameraMovementEnabled, cameraMovementPresets, cameraMovementCustom, cameraMovementProMode, affiliateAngle, affiliateAngleMode, affiliateMarketplaces, affiliateCustomUrl, videoConfig, imageConfig, step, generatedPrompt, aiResultJson, manualTitle };
   localStorage.setItem("generatorFormState", JSON.stringify(stateObj));
 
   const timeoutId = setTimeout(() => {
@@ -369,7 +372,7 @@ export default function GeneratorForm({
   }, 3000); // 3 seconds debounce
 
   return () => clearTimeout(timeoutId);
-  }, [type, channelId, outputLanguage, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, narrationModeOverride, cameraMovementEnabled, cameraMovementPresets, cameraMovementCustom, cameraMovementProMode, affiliateAngle, affiliateAngleMode, affiliateMarketplaces, affiliateCustomUrl, videoConfig, imageConfig, step, generatedPrompt, aiResultJson, manualTitle]);
+  }, [type, channelId, outputLanguage, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, narrationModeOverride, trendingAudio, cameraMovementEnabled, cameraMovementPresets, cameraMovementCustom, cameraMovementProMode, affiliateAngle, affiliateAngleMode, affiliateMarketplaces, affiliateCustomUrl, videoConfig, imageConfig, step, generatedPrompt, aiResultJson, manualTitle]);
 
  // Fetch presets on mount
  useEffect(() => {
@@ -570,6 +573,7 @@ export default function GeneratorForm({
  isVideoPlatform: selectedChannel?.targetPlatform ? !/blog|podcast|article|web/i.test(selectedChannel.targetPlatform) : true,
  contentArchetypeId: selectedChannel?.contentArchetypeId || selectedChannel?.contentArchetype?.id,
  narrationMode: narrationModeOverride !== "auto" ? narrationModeOverride : selectedChannel?.contentArchetype?.narrationMode,
+ trendingAudio: trendingAudio.trim() || undefined,
  } : undefined,
  imageConfig: type === "IMAGE" ? imageConfig : undefined,
  };
@@ -1357,6 +1361,26 @@ export default function GeneratorForm({
       ? "Voice Over aktif (naskah narasi lengkap + visual lipsync)."
       : "Voice Over OFF (naskah narasi tetap ada untuk dubbing, visual prompt 'no voice over')."}
   </p>
+
+  {/* Sound / Trending Audio Input (Tugas 4) */}
+  <div className="pt-2.5 border-t pg-border space-y-1">
+    <div className="flex items-center justify-between">
+      <label className="block text-xs font-semibold pg-text-sub flex items-center gap-1.5">
+        <span>🎵</span>
+        <span>{t("trendingAudio")}</span>
+      </label>
+      <span className="text-[10px] text-purple-600 dark:text-purple-400 font-medium">Short-Form Boost</span>
+    </div>
+    <input
+      type="text"
+      value={trendingAudio}
+      onChange={(e) => setTrendingAudio(e.target.value)}
+      placeholder={t("trendingAudioPlaceholder")}
+      maxLength={200}
+      className="w-full px-3 py-1.5 text-xs bg-white dark:bg-slate-700/50 border pg-border rounded-lg outline-none pg-text-heading focus:ring-1 focus:ring-[var(--pg-brand)]"
+    />
+    <p className="text-[10px] pg-text-muted">{t("trendingAudioHelp")}</p>
+  </div>
   </div>
 
  {/* ── Camera Movement Section ── */}

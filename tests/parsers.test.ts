@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { cleanMarkdownLinks, cleanValue, cleanParsedValue, extractThumbnailData } from "@/lib/parsers";
+import { cleanMarkdownLinks, cleanValue, cleanParsedValue, extractThumbnailData, extractTitles } from "@/lib/parsers";
 
 describe("parsers", () => {
   describe("cleanMarkdownLinks", () => {
@@ -51,6 +51,49 @@ REKOMENDASI: Gunakan warna kontras tinggi.
       expect(result?.opsi1Overlay).toBe("AI Mengubah Semuanya!");
       expect(result?.opsi2Prompt).toBe("Minimalist aesthetic workspace");
       expect(result?.opsi2Overlay).toBe("Jangan Terlewat");
+    });
+  });
+
+  describe("extractTitles", () => {
+    it("extracts clean titles without fake viral percentages or metadata lines", () => {
+      const output = `
+# TAHAP 1: 10 IDE JUDUL & RISET
+JUDUL 1: "Cara Bikin Video AI 2026 yang Menghasilkan"
+FORMAT HOOK: Curiosity Gap
+TARGET AUDIENS: Konten Kreator Pemula
+ALASAN POTENSI: Topik AI video sedang trending dengan search demand tinggi
+
+JUDUL 2: "Rahasia Prompt Generator yang Jarang Diketahui"
+FORMAT HOOK: Negative Twist
+TARGET AUDIENS: Digital Marketer
+ALASAN POTENSI: Membuka rahasia yang memicu rasa ingin tahu audiens
+
+JUDUL 3: "5 Tool AI Gratis untuk Mengubah Konten Anda"
+FORMAT HOOK: Listicle
+TARGET AUDIENS: Freelancer
+ALASAN POTENSI: Memberikan solusi langsung dan aplikatif
+      `;
+      const titles = extractTitles(output);
+      expect(titles).toHaveLength(3);
+      expect(titles[0]).toBe("Cara Bikin Video AI 2026 yang Menghasilkan");
+      expect(titles[1]).toBe("Rahasia Prompt Generator yang Jarang Diketahui");
+      expect(titles[2]).toBe("5 Tool AI Gratis untuk Mengubah Konten Anda");
+      // Verify no metadata lines leaked into titles
+      expect(titles.some((t) => t.includes("FORMAT HOOK"))).toBe(false);
+      expect(titles.some((t) => t.includes("ALASAN POTENSI"))).toBe(false);
+      expect(titles.some((t) => t.includes("%"))).toBe(false);
+    });
+
+    it("cleans legacy percentage notation if encountered", () => {
+      const legacyOutput = `
+# VARIASI JUDUL
+1. "Trik Video AI Otomatis" (95%)
+2. "Bongkar Algoritma Reels" (88%)
+      `;
+      const titles = extractTitles(legacyOutput);
+      expect(titles).toHaveLength(2);
+      expect(titles[0]).toBe("Trik Video AI Otomatis");
+      expect(titles[1]).toBe("Bongkar Algoritma Reels");
     });
   });
 });

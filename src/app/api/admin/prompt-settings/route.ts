@@ -6,6 +6,7 @@ import { getApiTranslator } from "@/lib/apiI18n";
 import { z } from "zod";
 import { getClientIp, applyRateLimit } from "@/lib/rateLimit";
 import { logAdminAction } from "@/lib/auditLog";
+import { Prisma } from "@prisma/client";
 
 const promptSettingsSchema = z.object({
   videoSystemInstruction: z.string().max(20000).optional().nullable(),
@@ -14,6 +15,10 @@ const promptSettingsSchema = z.object({
   defaultNegativePrompt: z.string().max(5000).optional().nullable(),
   bannedWords: z.union([
     z.array(z.string()),
+    z.string(),
+  ]).optional().nullable(),
+  platformAlgorithmGuide: z.union([
+    z.record(z.string(), z.string()),
     z.string(),
   ]).optional().nullable(),
 });
@@ -47,6 +52,7 @@ export async function GET(req: Request) {
           defaultSpeechRate: "medium",
           defaultNegativePrompt: "",
           bannedWords: [],
+          platformAlgorithmGuide: Prisma.DbNull,
         },
       });
     }
@@ -88,6 +94,7 @@ export async function PUT(req: Request) {
       defaultSpeechRate,
       defaultNegativePrompt,
       bannedWords,
+      platformAlgorithmGuide,
     } = parsedBody.data;
 
     let sanitizedBannedWords: string[] = [];
@@ -97,6 +104,17 @@ export async function PUT(req: Request) {
       sanitizedBannedWords = bannedWords.split(",").map(w => w.trim().toLowerCase()).filter(Boolean);
     }
 
+    let parsedGuide: Record<string, string> | null = null;
+    if (typeof platformAlgorithmGuide === "string") {
+      try {
+        parsedGuide = JSON.parse(platformAlgorithmGuide);
+      } catch {
+        parsedGuide = null;
+      }
+    } else if (platformAlgorithmGuide && typeof platformAlgorithmGuide === "object") {
+      parsedGuide = platformAlgorithmGuide as Record<string, string>;
+    }
+
     const updated = await prisma.promptSettings.upsert({
       where: { id: "singleton" },
       update: {
@@ -104,7 +122,8 @@ export async function PUT(req: Request) {
         imageSystemInstruction: imageSystemInstruction || "",
         defaultSpeechRate: defaultSpeechRate || "medium",
         defaultNegativePrompt: defaultNegativePrompt || "",
-        bannedWords: sanitizedBannedWords
+        bannedWords: sanitizedBannedWords,
+        platformAlgorithmGuide: parsedGuide ?? Prisma.DbNull,
       },
       create: {
         id: "singleton",
@@ -112,7 +131,8 @@ export async function PUT(req: Request) {
         imageSystemInstruction: imageSystemInstruction || "",
         defaultSpeechRate: defaultSpeechRate || "medium",
         defaultNegativePrompt: defaultNegativePrompt || "",
-        bannedWords: sanitizedBannedWords
+        bannedWords: sanitizedBannedWords,
+        platformAlgorithmGuide: parsedGuide ?? Prisma.DbNull,
       }
     });
 

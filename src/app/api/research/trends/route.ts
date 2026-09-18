@@ -40,10 +40,12 @@ export async function GET(req: NextRequest) {
         success: true,
         data: {
           query: "",
-          source: "HEURISTIC",
+          source: "HEURISTIC_FALLBACK",
           keywords: [],
           recommendedTags: [],
           contentAngles: [],
+          isHeuristicEstimation: true,
+          disclaimer: "Topik pencarian kosong.",
           timestamp: new Date().toISOString(),
         },
       });

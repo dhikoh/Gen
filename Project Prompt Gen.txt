@@ -1616,3 +1616,59 @@ Pada implementasi Bagian 23, terjadi percampuran konsep (*conflation*) antara **
    - `tests/channelLockLogic.test.ts`: Algoritma penguncian channel melampaui kuota paket.
    - `tests/planFeatures.test.ts`: Evaluasi feature flags dan fail-open policy.
    - `tests/parsers.test.ts`: Parser markdown, thumbnail extractor, dan sanitasi output.
+
+# Addendum — Bagian 28: Akurasi Data Riset, Strategi Virality Multi-Platform, Sound Tren & Closed-Loop Performance Improvement
+
+## 28.1 Kejujuran Sumber Data Riset & Integrasi YouTube Data API v3
+1. **Pembersihan Kosmetik VIDIQ_MCP**:
+   - Menghapus seluruh label kosmetik "VIDIQ_MCP" pada service riset dan route API trends.
+2. **Arsitektur Sumber Data Bertingkat (`src/lib/researchService.ts`)**:
+   - `REAL_API`: Panggilan resmi ke YouTube Data API v3 (`search` dan `videos` endpoints) jika `YOUTUBE_API_KEY` tersedia. Menghasilkan statistik tayangan, komentar, dan tag riil.
+   - `YOUTUBE_AUTOCOMPLETE_HEURISTIC`: Pola query suggest Google/YouTube live dipadukan kalkulasi supply-demand berbasis posisi urutan ranking dan modifier intent.
+   - `HEURISTIC_FALLBACK`: Pola sintaksis lokal saat koneksi jaringan terputus.
+3. **Edukasi & Disclaimer UI (`ResearchClient.tsx`)**:
+   - Menampilkan badge sumber data transparan dan banner penjelasan bahwa estimasi Volume/Kompetisi/Skor berbasis pola autocomplete, bukan volume pencarian absolut pihak ketiga.
+
+## 28.2 Eliminasi Metrik Viral Fiktif & Ketahanan Parser Judul
+1. **Format Tahap 1 Master Prompt (`src/lib/promptGenerator.ts`)**:
+   - Menghapus total instruksi persentase fiktif `(Potensi Viral: %)`.
+   - Menggantikan dengan Opsi (b) kualitatif: `Alasan Potensi: [curiosity gap, relevansi tren, emosi spesifik, atau kontras yang kuat — TANPA angka persentase palsu]`.
+2. **Hardening Title Parser (`src/lib/parsers.ts`)**:
+   - Memperluas `TITLE_BLACKLIST_KEYWORDS` dengan keyword metadata (`alasan`, `potensi`, `target`, `format`) untuk menjamin zero-leakage pada parsing pilihan judul interaktif.
+
+## 28.3 Modul Algoritma Spesifik Per-Platform & Customization Admin
+1. **Modul Algoritma Mendalam (`DEFAULT_PLATFORM_ALGORITHM_GUIDE`)**:
+   - `TikTok`: Fokus Completion Rate & Rewatch Loop, open loops ditahan hingga 70-80%, pemicu rewatch kontraintuitif, eliminasi dead-air > 0.5s.
+   - `Instagram Reels`: Fokus Shareability & Saveability (bookmark), segmen layak simpan, narasi relatable untuk direct message (DM), visual safe-zone 9:16.
+   - `YouTube Shorts`: Fokus Session Time & APV (Average Percentage Viewed), smoothing kurva retensi 0-5s, Subtle Climax CTA pada titik emosional puncak.
+   - `Facebook`, `LinkedIn`, `Twitter/X`: Karakteristik platform terpersonalisasi.
+2. **Admin Config & Persistence**:
+   - Kolom `platformAlgorithmGuide` (Json) pada model `PromptSettings`.
+   - Admin settings textarea dengan validasi JSON di `/admin/settings` dan endpoint `/api/admin/prompt-settings`.
+
+## 28.4 Integrasi Sound / Audio Tren & Pacing Visual
+1. **Input Antarmuka Pengguna (`GeneratorForm.tsx`)**:
+   - Field opsional "Sound / Audio Tren" pada tab Audio dengan persistensi otomatis di `localStorage`.
+2. **Injeksi Master Prompt**:
+   - Terintegrasi pada `[PANDUAN AUDIO, SFX & BGM]` dan `PANDUAN SUARA` untuk sinkronisasi tempo visual editing, ketukan beat, dan ritme narasi.
+3. **Lokalisasi Penuh**:
+   - Terjemahan komprehensif pada `messages/id.json` dan `messages/en.json`.
+
+## 28.5 Closed-Loop Performance Improvement
+1. **Model Data `DraftPerformance` (`prisma/schema.prisma`)**:
+   - Relasi 1-to-1 dengan `Draft` dan `User`: `draftId`, `userId`, `views`, `likes`, `comments`, `shares`, `avgWatchTimeSec`, `retentionPct`, `notes`, `updatedAt`.
+2. **RESTful CRUD API (`src/app/api/drafts/[id]/performance/route.ts`)**:
+   - Operasi `GET`, `POST`/`PUT`, `DELETE` terproteksi session, role, Zod schema validation, dan rate limiting.
+3. **Komponen UI Pengguna (`DraftPerformanceForm.tsx`)**:
+   - Terintegrasi pada halaman detail draft (`/dashboard/drafts/[id]`) untuk pencatatan metrik nyata pasca-publikasi konten.
+4. **Pembelajaran Konten Berkinerja Tinggi (`/api/generate`)**:
+   - Mengambil 5 draft teratas dengan `views > 0` untuk channel aktif, mengekstraksi hook pembuka dan tone, lalu menginjeksikannya ke dalam section `[PEMBELAJARAN DARI KONTEN TERBAIK CHANNEL INI (CLOSED-LOOP INSIGHT)]`.
+
+## 28.6 Peningkatan Test Suite Otomatis (Vitest)
+1. **Ekspansi Test Runner**:
+   - `tests/researchService.test.ts`: Pengujian kejujuran sumber, disclaimer, skenario fallback, dan YouTube Data API v3 mock.
+   - `tests/promptGenerator.test.ts`: Pengujian eliminasi persentase viral, platform guides, audio tren, dan closed-loop insight.
+   - `tests/parsers.test.ts`: Pengujian parsing judul tanpa persentase dan tanpa kebocoran baris metadata.
+2. **Hasil Uji**:
+   - 8 test files, 57 automated tests passed (100% pass rate).
+

@@ -75,6 +75,7 @@ export interface VideoConfigData {
   contentArchetype?: ContentArchetypeData | null;
   narrationMode?: "VOICE_OVER" | "DIEGETIC_ONLY" | "SILENT_TEXT_ONLY" | "HYBRID" | string | null;
   targetKeywords?: string[] | string | null;
+  trendingAudio?: string | null;
 }
 
 export interface PromptSettingsData {
@@ -83,7 +84,57 @@ export interface PromptSettingsData {
   defaultSpeechRate?: string | null;
   defaultNegativePrompt?: string | null;
   bannedWords?: string[] | string | unknown;
+  platformAlgorithmGuide?: Record<string, string> | unknown;
 }
+
+export interface TopPerformingDraftSummary {
+  id: string;
+  title: string;
+  views: number;
+  retentionPct?: number | null;
+  likes: number;
+  hookText?: string | null;
+  toneOfVoice?: string | null;
+  targetKeywords?: string[] | string | null;
+}
+
+export const DEFAULT_PLATFORM_ALGORITHM_GUIDE: Record<string, string> = {
+  TikTok: `[STRATEGI ALGORITMA PLATFORM: TIKTOK]
+Fokus Utama: Completion Rate (Persentase Tonton Tuntas) & Rewatch Loop (Pemutaran Ulang).
+1. Psychological Retention Loop: Rancang naskah dengan 'open loops' yang ditahan hingga 70-80% durasi video, lalu berikan resolusi cepat dan memuaskan.
+2. Hook Pemicu Rewatch: Gunakan hook visual/verbal berkecepatan tinggi yang mengundang penonton mengulang video (misal: visual clue tersembunyi, punchline bersambung ke kalimat awal, atau fakta kontraintuitif).
+3. Pacing Bebas Dead-Air: Eliminasi jeda antar-kalimat lebih dari 0.5 detik. Setiap perpindahan scene wajib memiliki transisi dinamika audio/visual baru.`,
+
+  "Instagram Reels": `[STRATEGI ALGORITMA PLATFORM: INSTAGRAM REELS]
+Fokus Utama: Shareability (Kirim via DM) & Saveability (Simpan/Bookmark).
+1. Momen 'Worth Saving' (Layak Simpan): Sisipkan minimal 1 segmen berupa tips terstruktur, kerangka kerja (framework), daftar checklist, atau ringkasan aksi nyata yang memicu penonton menekan tombol simpan/bookmark untuk referensi masa depan.
+2. Momen 'Worth Sharing' (Layak Kirim): Buat 1-2 baris narasi yang sangat relatable atau menyentuh emosi personal ('ini gue banget', 'kamu harus tahu ini') sehingga memicu audiens mengirimkannya ke teman via direct message (DM).
+3. Visual First: Pastikan teks overlay terbaca jelas dalam safe zone 9:16 feed Instagram.`,
+
+  "YouTube Shorts": `[STRATEGI ALGORITMA PLATFORM: YOUTUBE SHORTS]
+Fokus Utama: Session Time, Audience Retention Curve & Subscribe-After-View.
+1. Retention Curve Smoothing: Hindari 'cliff drop-off' di detik 3-5. Hubungkan hook langsung ke premis inti tanpa basa-basi pembuka channel.
+2. Subtle Climax CTA: Sisipkan ajakan subscribe yang halus dan kontekstual di TITIK EMOSIONAL PUNCAK (sebelum solusi akhir terungkap sepenuhnya), bukan sekadar tempelan formal di akhir video.
+3. Search & Browse Synergy: Integrasikan kata kunci utama di 5 detik pertama narasi agar terindeks kuat pada algoritma YouTube Search & Recommended Feed.`,
+
+  Facebook: `[STRATEGI ALGORITMA PLATFORM: FACEBOOK]
+Fokus Utama: Social Sharing, Resonansi Komunitas & Silent Autoplay.
+1. Narrative Storytelling: Gunakan pendekatan cerita personal atau studi kasus bernuansa emosional dan kekeluargaan yang mudah dipahami lintas generasi.
+2. Silent-Friendly Visuals: Optimalkan teks overlay di setiap scene karena mayoritas pengguna Facebook menonton video pertama kali tanpa suara aktif.
+3. Conversation Trigger: Tutup dengan pertanyaan diskusi terbuka yang memicu debat sehat atau sharing opini di kolom komentar.`,
+
+  LinkedIn: `[STRATEGI ALGORITMA PLATFORM: LINKEDIN]
+Fokus Utama: Professional Insight, Otoritas Industri & Thought Leadership.
+1. Business/Career Framework: Sajikan informasi dengan logika bisnis terstruktur, analogi profesional, atau pembelajaran karier yang berbobot.
+2. Credibility-Driven Tone: Nada bicara tajam, berbasis observasi nyata atau data, tanpa hiperbola berlebihan.
+3. Actionable Takeaways: Berikan 1 kesimpulan taktis yang dapat langsung dipraktikkan audiens di tempat kerja mereka.`,
+
+  "Twitter/X": `[STRATEGI ALGORITMA PLATFORM: TWITTER/X]
+Fokus Utama: Hook Tajam, Tesis Berani & Diskusi Panas.
+1. Contrarian / Polarizing Angle: Awali dengan sudut pandang unik yang mendobrak asumsi umum seputar topik.
+2. Fast-Paced Argumentation: Argumen to the point, padat informasi, tanpa pengulangan kata.
+3. Thread-Style Caption: Siapkan caption pendek yang mengundang retweet dan kutipan tweet.`,
+};
 
 export interface StructuralInstructions {
   emotionalArcSection: string;
@@ -191,7 +242,8 @@ export function generateMasterPrompt(
   videoConfig: VideoConfigData,
   promptSettings?: PromptSettingsData | null,
   excludeTitles?: string[],
-  outputLanguage?: string | null
+  outputLanguage?: string | null,
+  topPerformers?: TopPerformingDraftSummary[] | null
 ): { masterPrompt: string; systemInstruction: string } {
 
   // ── Archetype & Structural Resolution (Bagian 23) ───────────────────────
@@ -310,6 +362,9 @@ export function generateMasterPrompt(
 
   // ── Audio Guidelines ───────────────────────────────────────────────────
   const audioParts: string[] = [];
+  if (videoConfig.trendingAudio && videoConfig.trendingAudio.trim()) {
+    audioParts.push(`0. SOUND / AUDIO TREN: Naskah dan visual ini WAJIB dirancang selaras dengan tempo & mood audio tren "${videoConfig.trendingAudio.trim()}". Sesuaikan ritme narasi per scene, jeda dramatis, dan pergantian visual agar mengalir pas dengan ketukan beat audio tersebut.`);
+  }
   if (finalSfx) {
     audioParts.push(`1. SFX tidak terbatas satu per scene. Sisipkan [SFX: Nama Efek Suara] di posisi relevan dalam NARASI. Cantumkan SAMA PERSIS di akhir VISUAL PROMPT: "accompanied by [SFX: ...]".`);
   } else {
@@ -519,7 +574,7 @@ PENTING: Tulis URL pencarian yang VALID dan LENGKAP dengan nama produk sudah di-
   }
 
   if (hasTitleSection) {
-    formatOutputWajib += `Proses pembuatan konten ini WAJIB dilakukan dalam 2 TAHAP interaktif:\n\nTAHAP 1: Tampilkan Ide Konten & Tunggu Konfirmasi (BERHENTI SEBELUM MENULIS NASKAH)\n1. Tampilkan tepat 10 ide judul konten kreatif yang memiliki potensi viral tinggi.\n2. Setiap ide ditulis dengan format:\n   [NOMOR]. [JUDUL IDE KONTEN] (Potensi Viral: [Persentase])\n   Deskripsi Singkat: [Penjelasan mengapa berpotensi viral]\n3. Setelah menampilkan 10 ide, WAJIB BERHENTI dan ketik:\n   "Silakan pilih nomor ide konten (1-10) yang ingin Anda buat naskah lengkapnya."\n${affiliateTitleDirective}\nTAHAP 2: Pembuatan Naskah Lengkap (Setelah Konfirmasi User)\nSetelah user memilih, tulis naskah lengkap dengan format berikut:\n\n## RISET & VARIASI JUDUL\nJUDUL TERPILIH: [Judul yang dipilih user]\n\n${structural.hookStrategyDirective}`;
+    formatOutputWajib += `Proses pembuatan konten ini WAJIB dilakukan dalam 2 TAHAP interaktif:\n\nTAHAP 1: Tampilkan Ide Konten & Tunggu Konfirmasi (BERHENTI SEBELUM MENULIS NASKAH)\n1. Tampilkan tepat 10 ide judul konten kreatif dengan daya tarik tinggi.\n2. Setiap ide ditulis dengan format:\n   [NOMOR]. [JUDUL IDE KONTEN]\n   Alasan Potensi: [Alasan kualitatif: curiosity gap, relevansi tren, emosi spesifik, atau kontras yang kuat — TANPA mencantumkan angka persentase palsu]\n3. Setelah menampilkan 10 ide, WAJIB BERHENTI dan ketik:\n   "Silakan pilih nomor ide konten (1-10) yang ingin Anda buat naskah lengkapnya."\n${affiliateTitleDirective}\nTAHAP 2: Pembuatan Naskah Lengkap (Setelah Konfirmasi User)\nSetelah user memilih, tulis naskah lengkap dengan format berikut:\n\n## RISET & VARIASI JUDUL\nJUDUL TERPILIH: [Judul yang dipilih user]\n\n${structural.hookStrategyDirective}`;
   } else {
     formatOutputWajib += `Kamu WAJIB mengembalikan output dengan format terstruktur berikut:\n\n${structural.hookStrategyDirective}`;
   }
@@ -544,9 +599,10 @@ PENTING: Tulis URL pencarian yang VALID dan LENGKAP dengan nama produk sudah di-
       ? `Tulis prompt video/visual sinematik siap-pakai dalam bahasa Inggris. WAJIB formula 5-bagian: [Shot Type & Camera Angle], [Subject & Action], [Environment & Lighting], [Camera Movement Path], [Style/Aesthetic]. Sangat ilustratif, dinamis, metaforis (HINDARI penerjemahan literal). Contoh: "Extreme macro shot, glowing double-helix DNA strands morphing, surrounded by holographic data streams, cinematic volumetric lighting, slow push-in${visualAudioSuffix}".`
       : `Tulis prompt gambar/visual sinematik siap-pakai dalam bahasa Inggris untuk Midjourney V6. WAJIB formula 5-bagian: [Shot Type & Camera Angle], [Subject & Action], [Environment & Lighting], [Cinematic Composition], [Style/Aesthetic]. Sangat ilustratif, dinamis, metaforis. Contoh: "Extreme macro shot, glowing double-helix DNA strands morphing, holographic biological data streams, cinematic volumetric lighting, shallow depth of field${visualAudioSuffix}".`;
 
+    const audioTrendNote = videoConfig.trendingAudio?.trim() ? ` | Audio: ${videoConfig.trendingAudio.trim()}` : "";
     const panduanSuaraExample = (effectiveNarrationMode === "DIEGETIC_ONLY" || effectiveNarrationMode === "SILENT_TEXT_ONLY")
-      ? `Context: <konteks/suasana suara lingkungan adegan> | Note: <petunjuk audio diegetic/SFX/foley> | Traits: <elemen audio in-scene dominan>`
-      : `Context: <konteks/suasana adegan> | Note: <petunjuk intonasi/kecepatan/jeda> | Traits: <karakteristik vokal, misal: deep voice, energetic>`;
+      ? `Context: <konteks/suasana suara lingkungan adegan> | Note: <petunjuk audio diegetic/SFX/foley> | Traits: <elemen audio in-scene dominan>${audioTrendNote}`
+      : `Context: <konteks/suasana adegan> | Note: <petunjuk intonasi/kecepatan/jeda> | Traits: <karakteristik vokal, misal: deep voice, energetic>${audioTrendNote}`;
 
     formatOutputWajib += `\n## SCENE 1\nNARASI: [${narasiExample}]\nTEKS OVERLAY: [Teks singkat yang muncul di layar (maks 3-7 kata), atau strip "—" jika tanpa overlay]\nPANDUAN SUARA: [${panduanSuaraExample}]\nVISUAL PROMPT: [${visualPromptInstruction}]${arSuffix}\nDURASI: [Estimasi durasi adegan dalam detik, contoh: 5 detik]\n`;
     formatOutputWajib += `\n## SCENE 2\nNARASI: [Narasi / dialog adegan kedua]\nTEKS OVERLAY: [Teks overlay layar adegan kedua]\nPANDUAN SUARA: [${panduanSuaraExample}]\nVISUAL PROMPT: [Tulis prompt visual adegan kedua, formula 5-bagian, bahasa Inggris.]${arSuffix}\nDURASI: [Estimasi durasi]\n`;
@@ -646,10 +702,62 @@ ${structural.narrationModeDirective}
   // ── Additional Context ─────────────────────────────────────────────────
   const contextText = additionalContext ? `\n[KONTEKS TAMBAHAN]\n${additionalContext}` : "";
 
-  // ── Platform ───────────────────────────────────────────────────────────
-  const platformText = videoConfig.targetPlatform
-    ? `\n[PLATFORM TARGET]\nKonten ini ditargetkan untuk: ${videoConfig.targetPlatform}. Sesuaikan format bahasa, durasi, dan layout visual.`
-    : "";
+  // ── Platform Strategy Guide (Tugas 3: Modul Algoritma Spesifik Per-Platform) ──
+  let platformGuideText = "";
+  if (videoConfig.targetPlatform) {
+    const rawPlat = videoConfig.targetPlatform.trim();
+    const adminGuides = (promptSettings?.platformAlgorithmGuide && typeof promptSettings.platformAlgorithmGuide === "object")
+      ? (promptSettings.platformAlgorithmGuide as Record<string, string>)
+      : null;
+
+    const norm = (s: string) => s.toLowerCase().replace(/[_\s-]+/g, "");
+    const normPlat = norm(rawPlat);
+
+    // Match platform in DEFAULT_PLATFORM_ALGORITHM_GUIDE or admin override
+    const matchedKey = Object.keys(DEFAULT_PLATFORM_ALGORITHM_GUIDE).find((k) => {
+      const nk = norm(k);
+      return nk === normPlat || normPlat.includes(nk) || nk.includes(normPlat);
+    });
+
+    const adminKey = adminGuides
+      ? Object.keys(adminGuides).find((k) => {
+          const nk = norm(k);
+          return nk === normPlat || normPlat.includes(nk) || nk.includes(normPlat);
+        })
+      : null;
+
+    const guideContent = (adminGuides && adminKey && adminGuides[adminKey])
+      ? adminGuides[adminKey]
+      : (matchedKey ? DEFAULT_PLATFORM_ALGORITHM_GUIDE[matchedKey] : null);
+
+    if (guideContent) {
+      platformGuideText = `\n${guideContent}\n`;
+    } else {
+      platformGuideText = `\n[PLATFORM TARGET: ${videoConfig.targetPlatform}]\nSesuaikan format bahasa, durasi, pacing scene, dan layout visual 9:16 agar optimal untuk algoritma ${videoConfig.targetPlatform}.\n`;
+    }
+  }
+
+  // ── Closed-Loop Performance Learnings (Tugas 5: Pembelajaran Konten Terbaik) ──
+  let closedLoopSection = "";
+  if (topPerformers && topPerformers.length > 0) {
+    closedLoopSection = `\n[PEMBELAJARAN DARI KONTEN TERBAIK CHANNEL INI (CLOSED-LOOP INSIGHT)]\n` +
+      `Sistem menganalisis data historis performa naskah terdahulu yang menghasilkan tontonan/retensi tertinggi pada channel "${channel.channelName}":\n` +
+      topPerformers.map((d, i) => {
+        let line = `${i + 1}. Judul: "${d.title}" | Metrik Nyata: ${d.views.toLocaleString()} Views`;
+        if (d.retentionPct !== undefined && d.retentionPct !== null) line += `, ${d.retentionPct}% Retensi`;
+        if (d.likes) line += `, ${d.likes.toLocaleString()} Likes`;
+        if (d.hookText) line += `\n   - Pola Hook Pembuka yang Sukses: "${d.hookText}"`;
+        if (d.toneOfVoice) line += `\n   - Gaya/Nada Bicara: ${d.toneOfVoice}`;
+        if (d.targetKeywords) {
+          const kws = Array.isArray(d.targetKeywords) ? d.targetKeywords.join(", ") : d.targetKeywords;
+          line += `\n   - Keyword Relevan: ${kws}`;
+        }
+        return line;
+      }).join("\n") +
+      `\n\nINSTRUKSI ADAPTASI PERFORMA TINGGI (CLOSED-LOOP):\n` +
+      `1. Pelajari pola rasa penasaran (curiosity gap), tempo pembuka, dan resonansi emosional yang terbukti berhasil pada konten-konten di atas.\n` +
+      `2. Terapkan intensitas hook, struktur kalimat, dan gaya penyampaian yang setara atau lebih kuat ke dalam naskah baru ini, sehingga selaras dengan preferensi nyata audiens channel ini.\n`;
+  }
 
   // ── SEO & Keywords Section ─────────────────────────────────────────────
   let seoSection = "";
@@ -664,7 +772,7 @@ ${structural.narrationModeDirective}
   }
 
   // ── Assemble Master Prompt ─────────────────────────────────────────────
-  const masterPrompt = `${povSection}[TOPIK UTAMA]\n${topic}${seoSection}${contextText}${productContext}${affiliateAngleGuide}${compositionText}${platformText}${excludeSection}${durationText}${formatOutputWajib}${cameraMovementGuide}\n\n${allGuidelines}`;
+  const masterPrompt = `${povSection}[TOPIK UTAMA]\n${topic}${seoSection}${closedLoopSection}${contextText}${productContext}${affiliateAngleGuide}${compositionText}${platformGuideText}${excludeSection}${durationText}${formatOutputWajib}${cameraMovementGuide}\n\n${allGuidelines}`;
 
   return { masterPrompt, systemInstruction };
 }

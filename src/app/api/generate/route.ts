@@ -6,7 +6,7 @@ import { prisma } from "@/lib/db";
 import { z } from "zod";
 import { applyRateLimit } from "@/lib/rateLimit";
 import { requireActiveSubscription } from "@/lib/subscription";
-import { generateMasterPrompt, ProfileChannelData, ContentArchetypeData } from "@/lib/promptGenerator";
+import { generateMasterPrompt, ProfileChannelData, ContentArchetypeData, TopPerformingDraftSummary } from "@/lib/promptGenerator";
 import { generateImagePrompt } from "@/lib/imagePromptGenerator";
 import { hasFeature } from "@/lib/planFeatures";
 const videoConfigSchema = z.object({
@@ -59,6 +59,7 @@ const videoConfigSchema = z.object({
   cameraMovementCustom: z.string().max(500).optional().nullable(),
   // SEO & Keyword Targets (vidIQ / YouTube Live)
   targetKeywords: z.union([z.array(z.string()), z.string()]).optional().nullable(),
+  trendingAudio: z.string().max(200).optional().nullable(),
 });
 
 const imageConfigSchema = z.object({
@@ -230,6 +231,59 @@ export async function POST(req: Request) {
     let systemInstruction = "";
     let finalJson: string | undefined = undefined;
 
+    // Closed-loop Performance Query (Tugas 5)
+    let topPerformers: TopPerformingDraftSummary[] = [];
+    if (type === "VIDEO") {
+      try {
+        const topPerformances = await prisma.draftPerformance.findMany({
+          where: {
+            draft: { channelId },
+            views: { gt: 0 },
+          },
+          include: {
+            draft: true,
+          },
+          orderBy: [
+            { views: "desc" },
+            { retentionPct: "desc" },
+          ],
+          take: 5,
+        });
+
+        topPerformers = topPerformances.map((perf) => {
+          const d = perf.draft;
+          interface ParsedShape {
+            scenes?: Array<{ narasi?: string; teksOverlay?: string }>;
+            segments?: Array<{ caption?: string; visual?: string }>;
+            metadata?: { toneOfVoice?: string; targetKeywords?: string[] | string };
+          }
+          const parsed: ParsedShape = (d.parsedData && typeof d.parsedData === "object" ? d.parsedData : {}) as ParsedShape;
+          let hookText = "";
+          if (Array.isArray(parsed.scenes) && parsed.scenes.length > 0) {
+            hookText = parsed.scenes[0].narasi || parsed.scenes[0].teksOverlay || "";
+          } else if (Array.isArray(parsed.segments) && parsed.segments.length > 0) {
+            hookText = parsed.segments[0].caption || parsed.segments[0].visual || "";
+          }
+          if (!hookText && d.title) {
+            hookText = d.title;
+          }
+
+          return {
+            id: d.id,
+            title: d.title || "Konten Video",
+            views: perf.views || 0,
+            retentionPct: perf.retentionPct,
+            likes: perf.likes || 0,
+            hookText: hookText ? hookText.substring(0, 150) : null,
+            toneOfVoice: parsed.metadata?.toneOfVoice || channel.visualAesthetic || null,
+            targetKeywords: parsed.metadata?.targetKeywords || null,
+          };
+        });
+      } catch (err) {
+        console.error("Closed-loop top drafts query failed:", err);
+      }
+    }
+
     if (type === "VIDEO" && videoConfig) {
       let selectedProduct;
       if (videoConfig.selectedProductId) {
@@ -328,7 +382,7 @@ export async function POST(req: Request) {
         targetPlatform: channel.targetPlatform,
       };
 
-      const result = generateMasterPrompt(mappedChannel, effectiveTopic, additionalContext || "", fullVideoConfig, promptSettings, previousTitles, outputLanguage);
+      const result = generateMasterPrompt(mappedChannel, effectiveTopic, additionalContext || "", fullVideoConfig, promptSettings, previousTitles, outputLanguage, topPerformers);
       masterPrompt = result.masterPrompt;
       systemInstruction = result.systemInstruction;
     } else if (type === "IMAGE" && imageConfig) {

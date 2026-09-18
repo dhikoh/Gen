@@ -6,6 +6,7 @@ import { notFound, redirect } from "next/navigation";
 import TemplateToggle from "./TemplateToggle";
 import DraftActions from "./DraftActions";
 import DraftTitle from "./DraftTitle";
+import DraftPerformanceForm from "./DraftPerformanceForm";
 import { getTranslations } from "next-intl/server";
 import CopyButton from "@/components/dashboard/CopyButton";
 import sanitizeHtml from "sanitize-html";
@@ -79,6 +80,7 @@ export default async function DraftDetailPage({
   const draft = await prisma.draft.findUnique({
     where: { id },
     include: {
+      performance: true,
       channel: {
         include: {
           contentArchetype: true,
@@ -211,13 +213,21 @@ export default async function DraftDetailPage({
         </div>
       ) : null}
 
+      {/* Closed-Loop Performance Logging Form */}
+      <div className="mb-6">
+        <DraftPerformanceForm
+          draftId={draft.id}
+          initialPerformance={draft.performance}
+        />
+      </div>
+
  {/* Output Visualisasi */}
  <div className="space-y-6">
  {parsedData?.opsi_judul && parsedData.opsi_judul.length > 0 && (
  <div className="glass-panel shadow-lg rounded-xl p-6">
  <div className="flex justify-between items-start mb-4">
  <h2 className="text-sm font-bold uppercase tracking-wider pg-text-muted">
- Opsi Judul Viral (Rekomendasi AI Tahap 1)
+ Rekomendasi Judul Konten (Tahap 1)
  </h2>
  </div>
  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

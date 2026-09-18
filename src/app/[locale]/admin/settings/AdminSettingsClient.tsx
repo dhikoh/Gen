@@ -58,12 +58,19 @@ export default function AdminSettingsClient({
  ? promptSettings.bannedWords.join(", ")
  : "";
 
+ const initialGuideStr = promptSettings?.platformAlgorithmGuide
+ ? (typeof promptSettings.platformAlgorithmGuide === "string"
+ ? promptSettings.platformAlgorithmGuide
+ : JSON.stringify(promptSettings.platformAlgorithmGuide, null, 2))
+ : "";
+
  const [promptFormData, setPromptFormData] = useState({
  videoSystemInstruction: promptSettings?.videoSystemInstruction || "",
  imageSystemInstruction: promptSettings?.imageSystemInstruction || "",
  defaultSpeechRate: promptSettings?.defaultSpeechRate || "medium",
  defaultNegativePrompt: promptSettings?.defaultNegativePrompt || "",
  bannedWords: initialBannedWordsStr,
+ platformAlgorithmGuide: initialGuideStr,
  });
 
  const handleAppChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -430,6 +437,23 @@ export default function AdminSettingsClient({
  className="w-full px-4 py-2 pg-bg-page border pg-border rounded-lg focus:ring-2 focus:ring-[var(--pg-brand)] outline-none pg-text-heading text-sm"
  />
  <p className="text-xs pg-text-muted mt-1">{t("bannedWordsHelp")}</p>
+ </div>
+
+ <div>
+ <label className="block text-sm font-medium pg-text-sub mb-1">
+ Strategi Algoritma Per-Platform (JSON Override)
+ </label>
+ <textarea
+ name="platformAlgorithmGuide"
+ rows={5}
+ value={promptFormData.platformAlgorithmGuide}
+ onChange={handlePromptChange}
+ placeholder='{"TikTok": "Fokus completion rate...", "Instagram Reels": "Fokus bookmark..."}'
+ className="w-full px-4 py-2 pg-bg-page border pg-border rounded-lg font-mono focus:ring-2 focus:ring-[var(--pg-brand)] outline-none pg-text-heading text-xs"
+ />
+ <p className="text-xs pg-text-muted mt-1">
+ Kustomisasi instruksi algoritma per platform (TikTok, Instagram Reels, YouTube Shorts, dll). Format JSON object key-value. Kosongkan untuk menggunakan panduan bawaan sistem.
+ </p>
  </div>
  </div>
  </div>

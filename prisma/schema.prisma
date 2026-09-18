@@ -130,6 +130,7 @@ model User {
   resetTokens           PasswordResetToken[]
   notifications         Notification[]
   supportTickets        SupportTicket[]
+  draftPerformances     DraftPerformance[]
 }
 
 model Plan {
@@ -235,8 +236,30 @@ model Draft {
   durationSource       String?
   isTemplate           Boolean   @default(false)
   isStub               Boolean   @default(false)
+  performance          DraftPerformance?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
+}
+
+model DraftPerformance {
+  id                String    @id @default(cuid())
+  draftId           String    @unique
+  draft             Draft     @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  views             Int       @default(0)
+  likes             Int       @default(0)
+  comments          Int       @default(0)
+  shares            Int       @default(0)
+  avgWatchTimeSec   Float?
+  retentionPct      Float?
+  notes             String?   @db.Text
+  recordedAt        DateTime  @default(now())
+  recordedByUserId  String
+  recordedByUser    User      @relation(fields: [recordedByUserId], references: [id], onDelete: Cascade)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([draftId])
+  @@index([recordedByUserId])
 }
 
 model PasswordResetToken {
@@ -275,6 +298,7 @@ model PromptSettings {
   defaultSpeechRate      String?  @default("medium")
   defaultNegativePrompt  String?  @db.Text
   bannedWords            Json?
+  platformAlgorithmGuide Json?
   updatedAt              DateTime @updatedAt
 }
 

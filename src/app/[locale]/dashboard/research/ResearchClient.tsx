@@ -194,9 +194,22 @@ export default function ResearchClient({ channels, locale }: Props) {
                     <span>📊</span>
                     <span>{t("popularKeywordsTitle", { query: result.query })}</span>
                   </h2>
-                  <span className="text-[11px] pg-text-muted">
-                    {t("source")} {result.source === "VIDIQ_MCP" ? t("sourceVidiq") : t("sourceYoutube")}
-                  </span>
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                    <span className="text-[11px] pg-text-muted">
+                      {t("source")}{" "}
+                      <span className={`font-semibold inline-flex items-center px-1.5 py-0.5 rounded text-[10px] ${
+                        result.source === "REAL_API"
+                          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                          : "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
+                      }`}>
+                        {result.source === "REAL_API"
+                          ? t("sourceRealApi")
+                          : result.source === "YOUTUBE_AUTOCOMPLETE_HEURISTIC"
+                          ? t("sourceAutocompleteHeuristic")
+                          : t("sourceHeuristicFallback")}
+                      </span>
+                    </span>
+                  </div>
                 </div>
                 {selectedKeywords.length > 0 && (
                   <button
@@ -208,6 +221,16 @@ export default function ResearchClient({ channels, locale }: Props) {
                     <span>{t("createScriptSelected", { count: selectedKeywords.length })}</span>
                   </button>
                 )}
+              </div>
+
+              {/* Informative Disclaimer Banner */}
+              <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-700 dark:text-amber-300 flex items-start gap-2">
+                <span className="shrink-0 text-xs">ℹ️</span>
+                <span>
+                  {result.source === "REAL_API"
+                    ? t("disclaimerRealApi")
+                    : t("disclaimerHeuristic")}
+                </span>
               </div>
 
               {/* List / Table */}

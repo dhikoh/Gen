@@ -2,6 +2,55 @@
 
 ---
 
+## [#55] — 2026-09-18 | Perbaikan Akurasi Data Riset, Strategi Virality Multi-Platform, Sound Tren, dan Closed-Loop Performance Improvement
+
+### Problem Statement & Audit Objective
+1. **Ketidakjujuran Label & Data Riset**: Fitur riset kata kunci (`src/lib/researchService.ts`) mencantumkan label kosmetik `"VIDIQ_MCP"` padahal tidak ada integrasi dengan API vidIQ, serta menghasilkan metrik volume/kompetisi berbasis hash karakter tanpa validasi API nyata atau penjelasan disclaimer ke pengguna.
+2. **Klaim Prediktif Palsu `(Potensi Viral: %)`**: Pada Tahap 1 master prompt (`src/lib/promptGenerator.ts`), AI diinstruksikan mengarang angka persentase potensi viral (`[angka]%`) yang murni halusinasi statistik tanpa dasar perhitungan data.
+3. **Instruksi Algoritma Platform Masih Generik**: Instruksi platform target (TikTok, Reels, Shorts) hanya berupa 1 kalimat umum tanpa membedakan mekanisme kurva retensi, rasio share/save, atau preferensi algoritma masing-masing platform.
+4. **Ketiadaan Input Sound / Audio Tren**: Tidak ada fitur bagi kreator untuk menentukan musik atau sound tren yang sedang viral di platform untuk menyelaraskan tempo naskah.
+5. **Ketiadaan Closed-Loop Improvement**: Tidak ada mekanisme pencatatan performa konten nyata pasca-publikasi untuk dijadikan pembelajaran peningkatan kualitas naskah berikutnya.
+
+### Solusi & Peningkatan Arsitektur yang Diterapkan
+
+1. **Kejujuran Sumber Data Riset & Integrasi YouTube Data API v3**:
+   - Menghapus 100% referensi kosmetik `VIDIQ_MCP` di codebase.
+   - Mengimplementasikan 3 tingkatan sumber data yang transparan:
+     - `REAL_API`: Menggunakan Google YouTube Data API v3 resmi (`search` dan `videos` endpoints) ketika `YOUTUBE_API_KEY` dikonfigurasi.
+     - `YOUTUBE_AUTOCOMPLETE_HEURISTIC`: Pola pencarian live dari Google/YouTube suggest dengan estimasi volume dan kompetisi berbasis posisi ranking dan modifier intent.
+     - `HEURISTIC_FALLBACK`: Pola sintaksis lokal yang aman saat jaringan terputus.
+   - Menambahkan banner disclaimer edukasi dan badge sumber data transparan pada UI `ResearchClient.tsx`.
+
+2. **Eliminasi Persentase Viral Fiktif & Penguatan Parser**:
+   - Menghapus format `(Potensi Viral: %)` di Tahap 1 master prompt, digantikan Opsi (b) kualitatif: `Alasan Potensi: [curiosity gap, relevansi tren, emosi spesifik, atau kontras yang kuat — TANPA mencantumkan angka persentase palsu]`.
+   - Menambahkan kata kunci metadata (`alasan`, `potensi`, `target`, `format`) pada `TITLE_BLACKLIST_KEYWORDS` di `src/lib/parsers.ts` guna mencegah kebocoran baris alasan ke dalam ekstraksi judul.
+
+3. **Modul Algoritma Spesifik Per-Platform**:
+   - Membangun `DEFAULT_PLATFORM_ALGORITHM_GUIDE`:
+     - **TikTok**: Completion Rate & Rewatch Loop, psychological open-loops hingga 70-80%, eliminasi dead-air > 0.5s.
+     - **Instagram Reels**: Shareability & Saveability (bookmark), konten layak simpan (framework/tips), narasi relatable untuk DM, safe-zone 9:16.
+     - **YouTube Shorts**: Audience Retention Curve (smoothing detik 0-5), Subtle Climax CTA saat titik puncak emosional.
+     - **Facebook, LinkedIn, Twitter/X**: Format naratif, thought leadership, dan argumen kontrarian.
+   - Menambahkan kolom `platformAlgorithmGuide` pada model `PromptSettings`, API endpoint `/api/admin/prompt-settings`, serta antarmuka konfigurasi admin di `AdminSettingsClient.tsx`.
+
+4. **Input Audio / Sound Tren**:
+   - Menambahkan input field opsional "Sound / Audio Tren" pada `GeneratorForm.tsx` (Audio section) dengan penyimpanan otomatis di `localStorage`.
+   - Menginjeksikan panduan tempo beat dan visual pacing ke dalam `[PANDUAN AUDIO, SFX & BGM]` dan `PANDUAN SUARA` di master prompt.
+   - Terjemahan multibahasa lengkap di `messages/id.json` dan `messages/en.json`.
+
+5. **Closed-Loop Performance Improvement**:
+   - Model database baru `DraftPerformance` di `prisma/schema.prisma` (`views`, `likes`, `comments`, `shares`, `avgWatchTimeSec`, `retentionPct`, `notes`).
+   - Endpoint CRUD lengkap `/api/drafts/[id]/performance` dengan validasi Zod, rate limiting, dan otorisasi pemilik draf.
+   - Komponen UI `DraftPerformanceForm.tsx` pada halaman detail draf `/dashboard/drafts/[id]`.
+   - Query closed-loop otomatis pada `/api/generate` yang mengidentifikasi hingga 5 video terbaik channel dengan `views > 0`, diinjeksikan ke master prompt sebagai referensi pola hook sukses.
+
+### Hasil Verifikasi & Jaminan Kualitas
+- **TypeScript (`tsc --noEmit`)**: **0 Error**, 100% type-safe.
+- **ESLint (`npm run lint`)**: **0 Error, 0 Warning**.
+- **Automated Tests (Vitest)**: **8 test files lolos, 57 unit/integration tests passed** (termasuk `researchService.test.ts`, `promptGenerator.test.ts`, `parsers.test.ts`).
+
+---
+
 ## [#54] — 2026-09-08 | Total Audit, Hardening Arsitektur, Eliminasi 100% Compiler Error React 19 & Zero Gap Integration
 
 ### Problem Statement & Audit Objective
