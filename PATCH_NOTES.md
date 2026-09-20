@@ -2,6 +2,42 @@
 
 ---
 
+## [#56-HF1] — 2026-09-21 | Hotfix: Caption Selalu Disuppress oleh selectedSections Archetype
+
+### Root Cause
+`hasCaption` dan `hasThumbnail` di `promptGenerator.ts` menggunakan kondisi ternary di mana `selectedSections` selalu dievaluasi lebih dulu. Jika channel memiliki archetype dengan `defaultIncludedSections` yang tidak menyertakan `"CAPTION"`, maka field `socialCaption: true` yang dikirim user dari GeneratorForm **diabaikan sepenuhnya** — caption tidak pernah di-inject ke prompt AI meskipun toggle sudah dicentang.
+
+### Bukti Bug
+Output AI menampilkan `## KONTEN PLATFORM` dengan `HASHTAGS:` saja — `CAPTION:` tidak muncul meskipun toggle "Caption Sosmed" sudah aktif di form generator.
+
+### Perbaikan (`src/lib/promptGenerator.ts`)
+- **`hasCaption`**: Jika `videoConfig.socialCaption === true` (dikirim eksplisit dari form), langsung bernilai `true` — mengabaikan `selectedSections`. Fallback ke `selectedSections` hanya jika `socialCaption` tidak dikirim.
+- **`hasThumbnail`**: Pola yang sama — jika `videoConfig.thumbnailIdea === true`, langsung `true` tanpa cek `selectedSections`.
+
+```ts
+// SEBELUM (bug):
+const hasCaption = videoConfig?.selectedSections
+  ? videoConfig.selectedSections.includes("CAPTION")  // ← memutus short-circuit
+  : Boolean(videoConfig.socialCaption) ?? defaultSec?.caption ?? true;
+
+// SESUDAH (fix):
+const hasCaption = videoConfig?.socialCaption === true
+  ? true   // ← explicit toggle ALWAYS wins
+  : videoConfig?.selectedSections
+    ? videoConfig.selectedSections.includes("CAPTION")
+    : Boolean(videoConfig.socialCaption) ?? defaultSec?.caption ?? true;
+```
+
+### Verifikasi
+- `tsc --noEmit`: **0 Error** ✅
+
+### Files Modified
+| File | Perubahan |
+|------|-----------|
+| `src/lib/promptGenerator.ts` | Fix `hasCaption` dan `hasThumbnail` override priority |
+
+---
+
 ## [#56] — 2026-09-21 | Copy All Narration, Enhanced Thumbnail Studio UI & Prompt Guideline Injection
 
 ### Problem Statement & Audit Objective

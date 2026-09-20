@@ -264,17 +264,24 @@ export function generateMasterPrompt(
       ? Boolean(videoConfig.includeCTA)
       : (defaultSec?.cta ?? true);
 
-  const hasCaption = videoConfig?.selectedSections
-    ? videoConfig.selectedSections.includes("CAPTION")
-    : videoConfig?.socialCaption !== undefined && videoConfig?.socialCaption !== null
-      ? Boolean(videoConfig.socialCaption)
-      : (defaultSec?.caption ?? true);
+  // Caption: selectedSections is authoritative, but explicit socialCaption=true ALWAYS wins
+  // (fixes bug where archetype selectedSections could suppress caption even when user toggled it ON)
+  const hasCaption = videoConfig?.socialCaption === true
+    ? true
+    : videoConfig?.selectedSections
+      ? videoConfig.selectedSections.includes("CAPTION")
+      : videoConfig?.socialCaption !== undefined && videoConfig?.socialCaption !== null
+        ? Boolean(videoConfig.socialCaption)
+        : (defaultSec?.caption ?? true);
 
-  const hasThumbnail = videoConfig?.selectedSections
-    ? videoConfig.selectedSections.includes("THUMBNAIL")
-    : videoConfig?.thumbnailIdea !== undefined && videoConfig?.thumbnailIdea !== null
-      ? Boolean(videoConfig.thumbnailIdea)
-      : Boolean(defaultSec?.thumbnail ?? false);
+  // Thumbnail: same pattern — explicit thumbnailIdea=true ALWAYS wins over selectedSections
+  const hasThumbnail = videoConfig?.thumbnailIdea === true
+    ? true
+    : videoConfig?.selectedSections
+      ? videoConfig.selectedSections.includes("THUMBNAIL")
+      : videoConfig?.thumbnailIdea !== undefined && videoConfig?.thumbnailIdea !== null
+        ? Boolean(videoConfig.thumbnailIdea)
+        : Boolean(defaultSec?.thumbnail ?? false);
 
   const rawKeywords = videoConfig?.targetKeywords;
   const targetKeywordsList = Array.isArray(rawKeywords)
