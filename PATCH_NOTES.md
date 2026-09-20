@@ -2,6 +2,80 @@
 
 ---
 
+## [#56] — 2026-09-21 | Copy All Narration, Enhanced Thumbnail Studio UI & Prompt Guideline Injection
+
+### Problem Statement & Audit Objective
+1. **Tidak Ada Tombol "Salin Semua Narasi"**: Scene Viewer tidak menyediakan cara cepat untuk menyalin seluruh narasi dari semua scene sekaligus dalam satu blok teks. User harus menyalin satu per satu tiap scene secara manual.
+2. **Thumbnail Studio Kurang Informatif**: Panel Thumbnail Studio hanya menampilkan prompt mentah tanpa breakdown detail (Subject, Lighting, Composition), tanpa panduan high-CTR yang terstruktur, dan tanpa tombol salin semua konsep thumbnail sekaligus.
+3. **Syntax Error Template Literal Bersarang**: Pada `src/lib/promptGenerator.ts`, blok panduan thumbnail high-CTR yang ditambahkan sebelumnya menggunakan nested backtick di dalam template literal `allGuidelines`, menyebabkan TypeScript compilation failure (exit code ≠ 0).
+4. **Konten Korup & Duplikasi**: Patch sebelumnya meninggalkan baris 619 yang terpotong di tengah string dan blok duplikasi baris 672–696, serta menghilangkan blok `hasHtmlBlog` dari `formatOutputWajib`.
+
+### Solusi & Perbaikan yang Diterapkan
+
+1. **Fitur "Salin Semua Narasi" (`ScenePromptStudioClient.tsx`)**:
+   - Fungsi `copyAllNarration` mengiterasi seluruh scene yang ter-parse, menggabungkan narasi per scene dalam format `[SCENE N]\n<narasi>`, dan menyalinnya ke clipboard dalam satu aksi.
+   - Tombol **"📋 Salin Semua Narasi"** ditambahkan pada toolbar Scene Viewer, hanya tampil saat ada scene ter-parse dan tab aktif adalah `scenes`.
+   - Toast feedback `allNarasiCopied` muncul setelah berhasil.
+   - Fallback pesan `noNarrationToCopy` jika semua scene tidak memiliki narasi (mode diegetik).
+
+2. **Enhanced Thumbnail Studio UI (`ScenePromptStudioClient.tsx`)**:
+   - Tombol **"📋 Salin Semua Thumbnail"** (`copyAllThumbnailConcept`) menggabungkan SEO text, Opsi 1 & 2 prompt+overlay, dan rekomendasi warna dalam satu blok teks ter-format.
+   - Breakdown detail prompt: label **Subject**, **Lighting**, **Composition** pada setiap opsi prompt (`breakdownTitle`, `breakdownSubject`, `breakdownLighting`, `breakdownComposition`) untuk memudahkan pemahaman struktur prompt AI gambar.
+   - Badge `🔵 Primary` dan `🔴 A/B Test` membedakan konsep Opsi 1 dan Opsi 2 secara visual.
+   - Tips section **"💡 Tips Thumbnail High-CTR"** menampilkan 3 best practice (`thumbnailTip1`, `thumbnailTip2`, `thumbnailTip3`).
+   - Tombol copy individual per elemen (SEO text, overlay teks, prompt raw, prompt dengan parameter).
+   - State kosong (`noThumbnailData`) ditangani dengan pesan informatif.
+
+3. **Panduan High-CTR Thumbnail di AI Prompt (`src/lib/promptGenerator.ts`)**:
+   - Variabel `thumbnailGuidelineSection` diekstrak ke luar template literal `allGuidelines` untuk menghindari nested backtick syntax error.
+   - Panduan 5 poin injected secara kondisional saat `hasThumbnail === true`:
+     - Fokal point & ekspresi dramatis
+     - Negative space untuk teks overlay
+     - Kontras tinggi & pencahayaan sinematik
+     - Teks overlay thumbnail (maks 3-4 kata)
+     - Formula wajib prompt thumbnail (Close-up/MCU, emotion, negative space, cinematic lighting)
+   - Section `## THUMBNAIL STUDIO` pada `formatOutputWajib` diperluas dengan field: Teks Overlay, Opsi 1 & 2 Prompt, Opsi 1 & 2 Teks Overlay, dan Rekomendasi Warna & Elemen.
+
+4. **Bug Fix — Konten Korup & Duplikasi (`src/lib/promptGenerator.ts`)**:
+   - Baris 619 yang terpotong di tengah string diperbaiki menjadi template string lengkap dan valid.
+   - Blok `}` penutup `if (hasThumbnail)` yang hilang dikembalikan.
+   - 26 baris duplikasi (baris 672–696) yang merupakan sisa patch gagal dihapus bersih.
+   - Blok `hasHtmlBlog` yang terhapus pada patch sebelumnya dikembalikan ke posisi yang benar.
+   - Penutup template literal `` `; `` untuk `allGuidelines` yang hilang dikembalikan.
+
+5. **Hardening Parser Thumbnail (`src/lib/parsers.ts`)**:
+   - Pola regex `extractThumbnailData` diperluas untuk menangani variasi output LLM yang lebih beragam (label dengan/tanpa spasi, bold markdown, maupun inline format).
+
+6. **i18n Lengkap — 17 Key Baru (`messages/id.json` & `messages/en.json`)**:
+   - Namespace `ScenePromptStudio`:
+     - `copyAllNarasi`, `allNarasiCopied`, `noNarrationToCopy`
+     - `thumbnailSubtitle`, `thumbnailAspectLabel`
+     - `seoOverlayTitle`, `seoOverlayDesc`
+     - `option1Title`, `option2Title`, `primaryBadge`, `abTestBadge`
+     - `overlayTextLabel`, `promptAiLabel`, `copyPromptWithParams`, `copyPromptRaw`, `promptWithParamsCopied`
+     - `copyAllThumbnail`, `allThumbnailCopied`
+     - `recommendationsTitle`
+     - `breakdownTitle`, `breakdownSubject`, `breakdownSubjectDesc`, `breakdownLighting`, `breakdownLightingDesc`, `breakdownComposition`, `breakdownCompositionDesc`
+     - `thumbnailTipsTitle`, `thumbnailTip1`, `thumbnailTip2`, `thumbnailTip3`
+     - `noThumbnailData`
+
+### Hasil Verifikasi & Jaminan Kualitas
+- **TypeScript (`tsc --noEmit`)**: **0 Error**, exit code 0 ✅
+- **i18n Parity**: 100% — semua key yang digunakan TSX tersedia di `id.json` & `en.json` ✅
+- **Tidak ada nested template literal**: `thumbnailGuidelineSection` diekstrak sebagai variabel terpisah ✅
+- **Integritas `htmlBlog` feature gate**: Blok `hasHtmlBlog` dikembalikan dan berfungsi normal ✅
+
+### Files Modified
+| File | Status | Perubahan |
+|------|--------|-----------|
+| `src/app/[locale]/dashboard/scene-prompt/ScenePromptStudioClient.tsx` | **MODIFIED** | `copyAllNarration`, `copyAllThumbnailConcept`, enhanced Thumbnail Studio UI |
+| `src/lib/promptGenerator.ts` | **MODIFIED** | Thumbnail guideline injection, fix nested backtick, fix corrupted lines, restore htmlBlog |
+| `src/lib/parsers.ts` | **MODIFIED** | Extended regex patterns for `extractThumbnailData` |
+| `messages/id.json` | **MODIFIED** | +29 keys baru di namespace `ScenePromptStudio` |
+| `messages/en.json` | **MODIFIED** | +29 keys baru di namespace `ScenePromptStudio` |
+
+---
+
 ## [#55] — 2026-09-18 | Perbaikan Akurasi Data Riset, Strategi Virality Multi-Platform, Sound Tren, dan Closed-Loop Performance Improvement
 
 ### Problem Statement & Audit Objective

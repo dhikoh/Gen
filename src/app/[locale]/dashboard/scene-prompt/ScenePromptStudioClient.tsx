@@ -93,6 +93,7 @@ export default function ScenePromptStudioClient({ channels }: Props) {
  const [draftTitle, setDraftTitle] = useState("");
  const [selectedChannelId, setSelectedChannelId] = useState(channels[0]?.id || "");
  const [ar, setAr] = useState("9:16");
+ const [thumbAr, setThumbAr] = useState<"16:9" | "9:16">("16:9");
  const [sref, setSref] = useState("");
  const [cref, setCref] = useState("");
  const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -221,6 +222,53 @@ export default function ScenePromptStudioClient({ channels }: Props) {
  if (p && p !== "—") { p += ` --ar ${ar}`; if (sref) { p += ` --sref ${sref}`; } if (cref) { p += ` --cref ${cref}`; } }
  return p;
  };
+
+ const buildThumbnailPrompt = useCallback((prompt: string, overrideAr?: string) => {
+ if (!prompt || prompt === "—") return "";
+ let p = prompt.replace(/\s*--ar\s+\S+/gi, "").trim();
+ const aspect = overrideAr || thumbAr || "16:9";
+ if (p) {
+ p += ` --ar ${aspect}`;
+ if (sref) { p += ` --sref ${sref}`; }
+ if (cref) { p += ` --cref ${cref}`; }
+ }
+ return p;
+ }, [thumbAr, sref, cref]);
+
+ const copyAllNarration = useCallback(() => {
+ const validNarrations = scenes
+ .filter(s => s.narasi && s.narasi !== "—" && !s.isDiegetic)
+ .map(s => s.narasi.trim());
+
+ if (!validNarrations.length) {
+ toast.error(t("noNarrationToCopy"));
+ return;
+ }
+
+ const fullNarrationText = validNarrations.join("\n\n");
+ copy("all-narration", fullNarrationText);
+ toast.success(t("allNarasiCopied"));
+ }, [scenes, copy, t]);
+
+ const copyAllThumbnailConcept = useCallback(() => {
+ if (!thumbnailData) return;
+ const parts: string[] = [];
+ parts.push(`=== ${t("thumbnailTab").toUpperCase()} ===`);
+ if (thumbnailData.seoText) {
+ parts.push(`[${t("seoOverlayTitle").toUpperCase()}]\n${thumbnailData.seoText}`);
+ }
+ if (thumbnailData.opsi1Prompt || thumbnailData.opsi1Overlay) {
+ parts.push(`[${t("option1Title").toUpperCase()}]\nPrompt AI: ${buildThumbnailPrompt(thumbnailData.opsi1Prompt)}\n${t("overlayTextLabel")}: ${thumbnailData.opsi1Overlay || "—"}`);
+ }
+ if (thumbnailData.opsi2Prompt || thumbnailData.opsi2Overlay) {
+ parts.push(`[${t("option2Title").toUpperCase()}]\nPrompt AI: ${buildThumbnailPrompt(thumbnailData.opsi2Prompt)}\n${t("overlayTextLabel")}: ${thumbnailData.opsi2Overlay || "—"}`);
+ }
+ if (thumbnailData.recommendations) {
+ parts.push(`[${t("recommendationsTitle").toUpperCase()}]\n${thumbnailData.recommendations}`);
+ }
+ copy("all-thumb", parts.join("\n\n"));
+ toast.success(t("allThumbnailCopied"));
+ }, [thumbnailData, buildThumbnailPrompt, copy, t]);
 
  const handleSaveDraft = async () => {
   if (!scenes.length) return;
@@ -416,8 +464,33 @@ export default function ScenePromptStudioClient({ channels }: Props) {
    </div>
   );
   })}
+  </div>
+  </div>
+  )}
+
   {activeTab === "scenes" && (
   <div className="space-y-4">
+    {/* Scene Viewer Actions Toolbar */}
+    <div className="flex flex-wrap items-center justify-between gap-3 glass-panel rounded-xl px-4 py-3 border border-slate-200/60 dark:border-slate-800/60 shadow-sm">
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-bold pg-text-heading flex items-center gap-1.5">
+          <span>🎬</span> {t("sceneViewerTab")}
+        </span>
+        <span className="text-xs pg-surface-dim px-2.5 py-0.5 rounded-full pg-text-muted font-medium">
+          {scenes.length} {t("scenesFound")}
+        </span>
+      </div>
+      <button
+        type="button"
+        onClick={copyAllNarration}
+        className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-sm active:scale-95"
+        title={t("copyAllNarasi")}
+      >
+        <span>🎤</span>
+        {copiedId === "all-narration" ? `✓ ${t("allNarasiCopied")}` : t("copyAllNarasi")}
+      </button>
+    </div>
+
   {scenes.map(scene => (
   <div key={scene.id} className="glass-panel rounded-xl p-5 space-y-3">
   <div className="flex items-center justify-between">
@@ -495,38 +568,328 @@ export default function ScenePromptStudioClient({ channels }: Props) {
   ))}
   </div>
   )}
-  </div>
-  </div>
-  )}
 
- {/* Thumbnail Studio */}
- {activeTab === "thumbnail" && thumbnailData && (
- <div className="glass-panel rounded-xl p-6 space-y-4">
- <h2 className="font-bold pg-text-heading">🖼️ Thumbnail Studio</h2>
- {[
- { label: "SEO Overlay Text", val: thumbnailData.seoText, id: "seo" },
- { label: "Opsi 1 — Prompt", val: thumbnailData.opsi1Prompt, id: "o1p" },
- { label: "Opsi 1 — Teks Overlay", val: thumbnailData.opsi1Overlay, id: "o1o" },
- { label: "Opsi 2 — Prompt", val: thumbnailData.opsi2Prompt, id: "o2p" },
- { label: "Opsi 2 — Teks Overlay", val: thumbnailData.opsi2Overlay, id: "o2o" },
- { label: "Rekomendasi Warna & Elemen", val: thumbnailData.recommendations, id: "rec" },
- ].map(({ label, val, id }) => val ? (
- <div key={id}>
- <div className="flex items-center justify-between mb-1">
- <span className="text-xs font-semibold pg-text-muted">{label}</span>
- <button onClick={() => copy(id, val)} className="text-xs text-blue-500 hover:underline">{copiedId === id ? "✓ Copied" : "Copy"}</button>
- </div>
- <p className="text-sm pg-text-sub pg-surface-dim rounded p-2">{val}</p>
- </div>
- ) : null)}
- {!thumbnailData.seoText && !thumbnailData.opsi1Prompt && (
- <p className="text-sm pg-text-muted">{t("noThumbnailData")}</p>
- )}
- </div>
- )}
- {activeTab === "thumbnail" && !thumbnailData && (
- <div className="glass-panel rounded-xl p-6 text-center pg-text-muted text-sm">{t("noThumbnailData")}</div>
- )}
+  {/* Thumbnail Studio */}
+  {activeTab === "thumbnail" && thumbnailData && (
+    <div className="space-y-6">
+      {/* Header & Global Actions Bar */}
+      <div className="glass-panel rounded-xl p-5 border border-slate-200/60 dark:border-slate-800/60 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base font-bold pg-text-heading flex items-center gap-2">
+              <span>🖼️</span> {t("thumbnailTab")}
+            </h2>
+            <p className="text-xs pg-text-muted mt-0.5">{t("thumbnailSubtitle")}</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Aspect Ratio Picker */}
+            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-lg border border-slate-200/50 dark:border-slate-700/50">
+              <span className="text-[11px] font-medium pg-text-muted px-1.5">{t("thumbnailAspectLabel")}:</span>
+              {(["16:9", "9:16"] as const).map((ratio) => (
+                <button
+                  key={ratio}
+                  type="button"
+                  onClick={() => setThumbAr(ratio)}
+                  className={`text-xs px-2.5 py-1 rounded-md font-medium transition-all ${
+                    thumbAr === ratio
+                      ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm font-semibold"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                  }`}
+                >
+                  {ratio} {ratio === "16:9" ? "(Landscape)" : "(Vertical)"}
+                </button>
+              ))}
+            </div>
+
+            {/* Copy All Concepts Button */}
+            <button
+              type="button"
+              onClick={copyAllThumbnailConcept}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-all shadow-sm active:scale-95"
+            >
+              <span>📋</span>
+              {copiedId === "all-thumb" ? `✓ ${t("allThumbnailCopied")}` : t("copyAllThumbnail")}
+            </button>
+          </div>
+        </div>
+
+        {/* SEO Hook Text Banner (jika ada) */}
+        {thumbnailData.seoText && (
+          <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/5 border border-amber-500/30 rounded-lg p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                  <span>🔥</span> {t("seoOverlayTitle")}
+                </span>
+                <span className="text-[10px] bg-amber-500/20 text-amber-700 dark:text-amber-300 px-1.5 py-0.2 rounded font-medium">
+                  Curiosity Gap
+                </span>
+              </div>
+              <p className="text-sm font-bold pg-text-heading tracking-wide">
+                &ldquo;{thumbnailData.seoText}&rdquo;
+              </p>
+              <p className="text-[11px] pg-text-muted">{t("seoOverlayDesc")}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => copy("seo", thumbnailData.seoText)}
+              className="self-start sm:self-center shrink-0 text-xs font-medium px-3 py-1.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-700 dark:text-amber-300 transition-colors"
+            >
+              {copiedId === "seo" ? "✓" : t("copy")}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Grid Opsi 1 & Opsi 2 */}
+      {(thumbnailData.opsi1Prompt || thumbnailData.opsi2Prompt) ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Card Opsi 1 */}
+          {thumbnailData.opsi1Prompt && (
+            <div className="glass-panel rounded-xl p-5 border border-blue-200/70 dark:border-blue-800/70 shadow-sm space-y-4 flex flex-col justify-between">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-blue-700 dark:text-blue-300 flex items-center gap-1.5">
+                      <span>🎯</span> {t("option1Title")}
+                    </span>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">
+                      {t("primaryBadge")}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Teks Overlay Opsi 1 */}
+                {thumbnailData.opsi1Overlay && (
+                  <div className="bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-800/50 rounded-lg p-3 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-semibold text-blue-700 dark:text-blue-300 flex items-center gap-1">
+                        <span>💬</span> {t("overlayTextLabel")}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => copy("o1o", thumbnailData.opsi1Overlay)}
+                        className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline"
+                      >
+                        {copiedId === "o1o" ? "✓" : t("copy")}
+                      </button>
+                    </div>
+                    <p className="text-sm font-bold pg-text-heading tracking-wide">
+                      &ldquo;{thumbnailData.opsi1Overlay}&rdquo;
+                    </p>
+                  </div>
+                )}
+
+                {/* Visual Prompt Opsi 1 */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold pg-text-muted uppercase flex items-center gap-1">
+                      <span>🎨</span> {t("promptAiLabel")}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => copy("o1p-raw", thumbnailData.opsi1Prompt)}
+                        className="text-[10px] text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                        title={t("copyPromptRaw")}
+                      >
+                        {copiedId === "o1p-raw" ? "✓" : t("copyPromptRaw")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => copy("o1p", buildThumbnailPrompt(thumbnailData.opsi1Prompt))}
+                        className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                      >
+                        {copiedId === "o1p" ? "✓" : t("copyPromptWithParams")}
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-xs font-mono pg-text-sub pg-surface-dim rounded-lg p-3 leading-relaxed break-words border border-slate-200/50 dark:border-slate-700/50">
+                    {buildThumbnailPrompt(thumbnailData.opsi1Prompt)}
+                  </p>
+                </div>
+
+                {/* Bedah Formula Visual Opsi 1 */}
+                <div className="rounded-lg p-3 bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/40 dark:border-slate-800/40 space-y-2">
+                  <span className="text-[11px] font-bold pg-text-muted uppercase tracking-wider flex items-center gap-1">
+                    <span>🔍</span> {t("breakdownTitle")}
+                  </span>
+                  <div className="grid grid-cols-1 gap-2 text-[11px]">
+                    <div className="flex items-start gap-2">
+                      <span className="shrink-0 font-semibold text-blue-600 dark:text-blue-400">👤 {t("breakdownSubject")}:</span>
+                      <span className="pg-text-sub">{t("breakdownSubjectDesc")}</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="shrink-0 font-semibold text-amber-600 dark:text-amber-400">💡 {t("breakdownLighting")}:</span>
+                      <span className="pg-text-sub">{t("breakdownLightingDesc")}</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="shrink-0 font-semibold text-emerald-600 dark:text-emerald-400">📐 {t("breakdownComposition")}:</span>
+                      <span className="pg-text-sub">{t("breakdownCompositionDesc")}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => copy("o1p-full", buildThumbnailPrompt(thumbnailData.opsi1Prompt))}
+                  className="w-full py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-medium text-xs transition-colors shadow-sm flex items-center justify-center gap-1.5"
+                >
+                  <span>📋</span>
+                  {copiedId === "o1p-full" ? t("promptWithParamsCopied") : t("copyPromptWithParams")}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Card Opsi 2 */}
+          {thumbnailData.opsi2Prompt && (
+            <div className="glass-panel rounded-xl p-5 border border-purple-200/70 dark:border-purple-800/70 shadow-sm space-y-4 flex flex-col justify-between">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-purple-700 dark:text-purple-300 flex items-center gap-1.5">
+                      <span>⚡</span> {t("option2Title")}
+                    </span>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300">
+                      {t("abTestBadge")}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Teks Overlay Opsi 2 */}
+                {thumbnailData.opsi2Overlay && (
+                  <div className="bg-purple-50/70 dark:bg-purple-950/30 border border-purple-200/50 dark:border-purple-800/50 rounded-lg p-3 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-semibold text-purple-700 dark:text-purple-300 flex items-center gap-1">
+                        <span>💬</span> {t("overlayTextLabel")}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => copy("o2o", thumbnailData.opsi2Overlay)}
+                        className="text-[11px] text-purple-600 dark:text-purple-400 hover:underline"
+                      >
+                        {copiedId === "o2o" ? "✓" : t("copy")}
+                      </button>
+                    </div>
+                    <p className="text-sm font-bold pg-text-heading tracking-wide">
+                      &ldquo;{thumbnailData.opsi2Overlay}&rdquo;
+                    </p>
+                  </div>
+                )}
+
+                {/* Visual Prompt Opsi 2 */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold pg-text-muted uppercase flex items-center gap-1">
+                      <span>🎨</span> {t("promptAiLabel")}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => copy("o2p-raw", thumbnailData.opsi2Prompt)}
+                        className="text-[10px] text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                        title={t("copyPromptRaw")}
+                      >
+                        {copiedId === "o2p-raw" ? "✓" : t("copyPromptRaw")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => copy("o2p", buildThumbnailPrompt(thumbnailData.opsi2Prompt))}
+                        className="text-xs font-medium text-purple-600 dark:text-purple-400 hover:underline"
+                      >
+                        {copiedId === "o2p" ? "✓" : t("copyPromptWithParams")}
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-xs font-mono pg-text-sub pg-surface-dim rounded-lg p-3 leading-relaxed break-words border border-slate-200/50 dark:border-slate-700/50">
+                    {buildThumbnailPrompt(thumbnailData.opsi2Prompt)}
+                  </p>
+                </div>
+
+                {/* Bedah Formula Visual Opsi 2 */}
+                <div className="rounded-lg p-3 bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/40 dark:border-slate-800/40 space-y-2">
+                  <span className="text-[11px] font-bold pg-text-muted uppercase tracking-wider flex items-center gap-1">
+                    <span>🔍</span> {t("breakdownTitle")}
+                  </span>
+                  <div className="grid grid-cols-1 gap-2 text-[11px]">
+                    <div className="flex items-start gap-2">
+                      <span className="shrink-0 font-semibold text-purple-600 dark:text-purple-400">👤 {t("breakdownSubject")}:</span>
+                      <span className="pg-text-sub">{t("breakdownSubjectDesc")}</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="shrink-0 font-semibold text-amber-600 dark:text-amber-400">💡 {t("breakdownLighting")}:</span>
+                      <span className="pg-text-sub">{t("breakdownLightingDesc")}</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="shrink-0 font-semibold text-emerald-600 dark:text-emerald-400">📐 {t("breakdownComposition")}:</span>
+                      <span className="pg-text-sub">{t("breakdownCompositionDesc")}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => copy("o2p-full", buildThumbnailPrompt(thumbnailData.opsi2Prompt))}
+                  className="w-full py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-medium text-xs transition-colors shadow-sm flex items-center justify-center gap-1.5"
+                >
+                  <span>📋</span>
+                  {copiedId === "o2p-full" ? t("promptWithParamsCopied") : t("copyPromptWithParams")}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : null}
+
+      {/* Rekomendasi Warna & Elemen */}
+      {thumbnailData.recommendations && (
+        <div className="glass-panel rounded-xl p-5 border border-emerald-200/60 dark:border-emerald-800/60 shadow-sm space-y-2">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
+              <span>🎨</span> {t("recommendationsTitle")}
+            </h3>
+            <button
+              type="button"
+              onClick={() => copy("rec", thumbnailData.recommendations)}
+              className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline font-medium"
+            >
+              {copiedId === "rec" ? "✓" : t("copy")}
+            </button>
+          </div>
+          <p className="text-sm pg-text-sub leading-relaxed pg-surface-dim rounded-lg p-3.5 border border-emerald-200/30 dark:border-emerald-900/30">
+            {thumbnailData.recommendations}
+          </p>
+        </div>
+      )}
+
+      {/* Tips Box */}
+      <div className="glass-panel rounded-xl p-4 border border-slate-200/40 dark:border-slate-800/40 bg-slate-50/50 dark:bg-slate-900/30 space-y-2">
+        <h4 className="text-xs font-bold pg-text-heading flex items-center gap-1.5">
+          <span>💡</span> {t("thumbnailTipsTitle")}
+        </h4>
+        <ul className="text-xs pg-text-muted space-y-1 list-disc list-inside">
+          <li>{t("thumbnailTip1")}</li>
+          <li>{t("thumbnailTip2")}</li>
+          <li>{t("thumbnailTip3")}</li>
+        </ul>
+      </div>
+
+      {!thumbnailData.seoText && !thumbnailData.opsi1Prompt && (
+        <p className="text-sm pg-text-muted text-center py-4">{t("noThumbnailData")}</p>
+      )}
+    </div>
+  )}
+  {activeTab === "thumbnail" && !thumbnailData && (
+    <div className="glass-panel rounded-xl p-8 text-center pg-text-muted text-sm space-y-2">
+      <div className="text-3xl">🖼️</div>
+      <p>{t("noThumbnailData")}</p>
+    </div>
+  )}
 
  {/* Platform Content */}
  {activeTab === "platform" && (

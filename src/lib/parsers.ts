@@ -74,12 +74,12 @@ export function extractThumbnailData(text: string): ThumbnailData | null {
   }
 
   const keys = [
-    { field: "seoText" as const, pattern: /(?:TEKS\s+OVERLAY\s+SEO|SEO\s+TEXT|TEKS\s+OVERLAY)\s*(?:\*\*|\*)*\s*:\s*/i },
-    { field: "opsi1Prompt" as const, pattern: /(?:OPSI\s+1\s+PROMPT|OPSI\s+1|OPTION\s+1\s+PROMPT|OPTION\s+1)\s*(?:\*\*|\*)*\s*:\s*/i },
-    { field: "opsi1Overlay" as const, pattern: /(?:OPSI\s+1\s+TEKS\s+OVERLAY|OPTION\s+1\s+TEXT\s+OVERLAY|TEXT\s+OVERLAY\s+OPTION\s+1|TEKS\s+OVERLAY\s+OPSI\s+1)\s*(?:\*\*|\*)*\s*:\s*/i },
-    { field: "opsi2Prompt" as const, pattern: /(?:OPSI\s+2\s+PROMPT|OPSI\s+2|OPTION\s+2\s+PROMPT|OPTION\s+2)\s*(?:\*\*|\*)*\s*:\s*/i },
-    { field: "opsi2Overlay" as const, pattern: /(?:OPSI\s+2\s+TEKS\s+OVERLAY|OPTION\s+2\s+TEXT\s+OVERLAY|TEXT\s+OVERLAY\s+OPTION\s+2|TEKS\s+OVERLAY\s+OPSI\s+2)\s*(?:\*\*|\*)*\s*:\s*/i },
-    { field: "recommendations" as const, pattern: /(?:REKOMENDASI\s+WARNA\s*(?:&\s*ELEMEN)?|REKOMENDASI|RECOMMENDATIONS)\s*(?:\*\*|\*)*\s*:\s*/i },
+    { field: "seoText" as const, pattern: /(?:TEKS\s+OVERLAY\s+SEO|SEO\s+OVERLAY\s+TEXT|SEO\s+TEXT|TEKS\s+OVERLAY)\s*(?:\*\*|\*)*\s*:\s*(?:\*\*|\*)*/i },
+    { field: "opsi1Prompt" as const, pattern: /(?:OPSI\s+1\s+(?:VISUAL\s+)?PROMPT|OPSI\s+1|OPTION\s+1\s+(?:VISUAL\s+)?PROMPT|OPTION\s+1)\s*(?:\*\*|\*)*\s*:\s*(?:\*\*|\*)*/i },
+    { field: "opsi1Overlay" as const, pattern: /(?:OPSI\s+1\s+TEKS\s+OVERLAY|OPTION\s+1\s+TEXT\s+OVERLAY|TEXT\s+OVERLAY\s+OPTION\s+1|TEKS\s+OVERLAY\s+OPSI\s+1)\s*(?:\*\*|\*)*\s*:\s*(?:\*\*|\*)*/i },
+    { field: "opsi2Prompt" as const, pattern: /(?:OPSI\s+2\s+(?:VISUAL\s+)?PROMPT|OPSI\s+2|OPTION\s+2\s+(?:VISUAL\s+)?PROMPT|OPTION\s+2)\s*(?:\*\*|\*)*\s*:\s*(?:\*\*|\*)*/i },
+    { field: "opsi2Overlay" as const, pattern: /(?:OPSI\s+2\s+TEKS\s+OVERLAY|OPTION\s+2\s+TEXT\s+OVERLAY|TEXT\s+OVERLAY\s+OPTION\s+2|TEKS\s+OVERLAY\s+OPSI\s+2)\s*(?:\*\*|\*)*\s*:\s*(?:\*\*|\*)*/i },
+    { field: "recommendations" as const, pattern: /(?:REKOMENDASI\s+WARNA\s*(?:&\s*ELEMEN)?|REKOMENDASI|RECOMMENDATIONS)\s*(?:\*\*|\*)*\s*:\s*(?:\*\*|\*)*/i },
   ];
 
   const cv = (v: string) => {

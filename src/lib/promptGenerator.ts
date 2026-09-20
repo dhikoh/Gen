@@ -616,7 +616,7 @@ PENTING: Tulis URL pencarian yang VALID dan LENGKAP dengan nama produk sudah di-
   }
 
   if (hasThumbnail) {
-    formatOutputWajib += `\n## THUMBNAIL STUDIO\nTEKS OVERLAY SEO: [3-4 kata memicu rasa ingin tahu, huruf kapital semua, SEO-friendly]\nOPSI 1 PROMPT: [Shot Type, Subject/Action, Environment, Emotion, Lighting, Style. Visual dramatis, kontras tinggi. Bahasa Inggris.]${arSuffix}\nOPSI 1 TEKS OVERLAY: [Teks singkat ditempel pada gambar Opsi 1 (maks 3-4 kata)]\nOPSI 2 PROMPT: [Visual prompt alternatif yang kontras dengan Opsi 1. Bahasa Inggris.]${arSuffix}\nOPSI 2 TEKS OVERLAY: [Teks singkat ditempel pada gambar Opsi 2 (maks 3-4 kata)]\nREKOMENDASI WARNA & ELEMEN: [Palet warna kontras, penempatan teks, elemen visual utama]\n`;
+    formatOutputWajib += `\n## THUMBNAIL STUDIO\nTEKS OVERLAY SEO: [3-4 kata memicu rasa ingin tahu, huruf kapital semua, SEO-friendly]\nOPSI 1 PROMPT: [Shot Type & Camera Angle (Close-up / Medium Shot), Subject & Emotional Expression (Focal point dramatis dengan emosi intens), Environment & Background Contrast, Lighting & Atmosphere (Rim light, dramatic shadows, vibrant highlights), Aesthetic Style. Sisakan negative space untuk teks di sisi kiri/kanan. Bahasa Inggris.]${arSuffix}\nOPSI 1 TEKS OVERLAY: [Teks singkat ditempel pada gambar Opsi 1 (maks 3-4 kata, punchy, font tebal)]\nOPSI 2 PROMPT: [Visual prompt alternatif yang kontras secara komposisi atau sudut pandang dengan Opsi 1 untuk keperluan A/B testing. Sisakan negative space. Bahasa Inggris.]${arSuffix}\nOPSI 2 TEKS OVERLAY: [Teks singkat ditempel pada gambar Opsi 2 (maks 3-4 kata)]\nREKOMENDASI WARNA & ELEMEN: [Palet warna kontras komplementer, penempatan teks overlay di negative space, elemen visual grafis pembantu]\n`;
   }
 
   // Fix 2.1: htmlBlog section — paid feature gate; must appear in output when enabled
@@ -625,8 +625,18 @@ PENTING: Tulis URL pencarian yang VALID dan LENGKAP dengan nama produk sudah di-
     formatOutputWajib += `\n## HTML BLOG\nTulis sebuah artikel blog berbasis naskah video di atas dengan ketentuan berikut:\n1. Panjang artikel: 400–600 kata, SEO-friendly, dengan sub-heading menggunakan tag <h2> dan <h3>.\n2. Meta Description: Tulis meta description 150-160 karakter di bawah judul artikel (label: META DESCRIPTION:).\n3. Judul Artikel (H1): Tulis judul artikel blog yang mengandung kata kunci utama, menarik untuk diklik.\n4. Isi Artikel: Kembangkan narasi video menjadi artikel lengkap. Gunakan paragraf pendek (2-4 kalimat), tambahkan contoh konkret, statistik fiktif yang masuk akal, dan CTA di akhir.\n5. Format output WAJIB HTML murni (bukan Markdown), siap ditempel ke CMS. Mulai dari <h1> hingga paragraf penutup.\n`;
   }
 
-  // ── All Guidelines (Push-ported & Centralized via Bagian 23) ────────────
   const effectiveSpeechRate = videoConfig.speechRate || (channel.speechRate ? `${channel.speechRate} detik/kata` : null) || promptSettings?.defaultSpeechRate || "medium";
+
+  // Extracted to avoid nested backtick syntax error
+  const thumbnailGuidelineSection = hasThumbnail
+    ? `
+[PANDUAN PEMBUATAN THUMBNAIL HIGH-CTR & VISUAL PROMPT]
+1. FOKAL POINT & EKSPRESI DRAMATIS: Subjek utama WAJIB memiliki ekspresi wajah yang sangat emosional dan intens (terkejut, heran, tegang, penasaran, atau mata terbelalak) dengan kontak visual kuat ke arah penonton, ATAU objek utama berskala kontras tinggi yang langsung menangkap perhatian dalam 0.5 detik pertama scroll feed.
+2. NEGATIVE SPACE (RUANG KOSONG UNTUK TEKS): Prompt visual WAJIB menyisakan area kosong bersih atau berlatar gelap/bokeh (biasanya di 1/3 sisi kiri atau kanan) khusus untuk penempatan teks overlay agar teks tidak menutupi wajah atau objek utama.
+3. KONTRAS TINGGI & PENCAHAYAAN SINEMATIK: Gunakan teknik pencahayaan dramatis (rim lighting, volumetric lighting, split lighting, warm foreground vs cool moody background) agar thumbnail tampak 3D dan menyala di layar mobile/desktop.
+4. TEKS OVERLAY THUMBNAIL: Maksimal 3-4 kata, huruf kapital, punchy, memicu curiosity gap yang tak tertahankan (BUKAN judul video, melainkan reaksi atau pertanyaan provokatif).
+5. FORMULA WAJIB PROMPT THUMBNAIL: [Shot Type (Close-up / Medium Close-up)], [Main Subject with Intense Facial Emotion & Action], [Atmospheric Environment with Clean Negative Space on One Side], [Cinematic Lighting & Striking Color Grading], [Aesthetic Style, Ultra-sharp 8k details].`
+    : "";
 
   const allGuidelines = `
 ${structural.viralGuidelineSection}
@@ -638,6 +648,7 @@ ${structural.viralGuidelineSection}
 4. DILARANG menampilkan visual secara harfiah. Gunakan metafora visual (misal: DNA → glowing double-helix hologram, bukan gambar manusia berdiri).
 5. Integrasi Gaya Estetika: Leburkan gaya visual ke dalam deskripsi kalimat, bukan hanya menempelkan kata kunci di akhir.
 6. DILARANG mencantumkan parameter referensi kosong seperti "--cref [url]" atau "--sref [url]" jika data URL tidak disediakan.
+${thumbnailGuidelineSection}
 
 [PANDUAN ANTI-DETEKSI AI & NATURALISASI BAHASA]
 1. Burstiness: Kombinasikan kalimat pendek, sedang, dan panjang secara dinamis. Gunakan kalimat 1-2 kata untuk penekanan dramatis.
