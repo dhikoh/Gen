@@ -2,6 +2,66 @@
 
 ---
 
+## [#57] — 2026-09-21 | Bugfix: CTA Bocor ke Narasi Meski Toggle "Include CTA" Dimatikan
+
+### Problem Statement
+Meskipun user **tidak mencentang "Include CTA"** di Generator Studio, output AI tetap menghasilkan:
+- **Scene retain/subscribe** (contoh: *"Worth sticking around for the next one?"*)
+- **Kalimat ajakan komentar yang bernada CTA** (contoh: *"What's your verdict? Drop it below."*)
+
+Root cause ditemukan dari dua titik kebocoran independen di `src/lib/promptGenerator.ts`.
+
+### Root Cause 1 — AIDA "Action" Step Bocor via Hook
+
+**Lokasi:** `buildStructuralInstructions()` — blok `viralGuidelineSection`
+
+```ts
+// SEBELUM (bug): cukup isHookEnabled=true → instruksi AIDA penuh disuntik
+if (isHookEnabled) {
+  // "Action" step disertakan tanpa cek isCtaEnabled
+  viralGuidelineSection += `Psikologi Copywriting: Gunakan kerangka PAS atau AIDA (→ Action).`;
+}
+```
+
+Instruksi AIDA "**Action**" dikirim ke AI setiap kali Hook aktif **tanpa melihat `isCtaEnabled`**. AI menginterpretasi step "Action" sebagai ajakan subscribe/follow/retain di scene akhir.
+
+### Root Cause 2 — Engagement Trigger Hardcoded Tanpa Guard
+
+**Lokasi:** template literal `allGuidelines` — blok `[PANDUAN ENGAGEMENT TRIGGERS]`
+
+Blok ini ditulis langsung ke template literal secara unconditional — `isCtaEnabled` tidak pernah dicek. AI menginterpretasi instruksi ini sebagai izin menambahkan CTA-style engagement di penutup video.
+
+### Perbaikan yang Diterapkan
+
+**Fix 1 — Gate AIDA "Action" step by `isCtaEnabled`:**
+```ts
+const aiaFramework = isCtaEnabled
+  ? `PAS atau AIDA (Attention → Interest → Desire → Action)`
+  : `PAS (Problem → Agitate → Solution) — TANPA step Action/CTA.
+     DILARANG mengakhiri narasi dengan ajakan follow, subscribe, atau retensi eksplisit`;
+viralGuidelineSection += `Psikologi Copywriting: Gunakan kerangka ${aiaFramework}.`;
+```
+
+**Fix 2 — `engagementTriggerDirective` field baru di `StructuralInstructions`:**
+- Ditambahkan field `engagementTriggerDirective: string` ke interface `StructuralInstructions`
+- Dibangun secara kondisional di `buildStructuralInstructions()`:
+  - **CTA ON** → perilaku original (boleh follow/subscribe trigger)
+  - **CTA OFF** → hanya pertanyaan diskusi terbuka; **DILARANG** follow, subscribe, "sticking around", "see you next week", dan frasa retensi sejenis
+- Template `allGuidelines` diganti dari hardcoded ke `${structural.engagementTriggerDirective}`
+
+### Desain Keputusan
+Toggle **"Include CTA"** yang sudah ada menjadi satu-satunya controller untuk semua perilaku CTA. Tidak ada toggle baru. Soft engagement (pertanyaan diskusi/komentar) **tetap dipertahankan** bahkan saat CTA OFF — hanya bahasa follow/subscribe/retention yang diblokir.
+
+### Verifikasi
+- `tsc --noEmit`: **exit code 0, 0 Error** ✅
+
+### Files Modified
+| File | Perubahan |
+|------|-----------|
+| `src/lib/promptGenerator.ts` | Fix 1: gate AIDA Action step; Fix 2: `engagementTriggerDirective` field + conditional build + inject ke `allGuidelines` |
+
+---
+
 ## [#56-HF1] — 2026-09-21 | Hotfix: Caption Selalu Disuppress oleh selectedSections Archetype
 
 ### Root Cause

@@ -142,6 +142,7 @@ export interface StructuralInstructions {
   pacingGuidelineSection: string;
   narrationModeDirective: string;
   hookStrategyDirective: string;
+  engagementTriggerDirective: string;
 }
 
 /**
@@ -179,7 +180,13 @@ export function buildStructuralInstructions(
   viralGuidelineSection += `${itemIndex++}. Spesifikasi Platform: Optimalkan pacing cepat, hindari jeda diam (dead air) lebih dari 1 detik.\n`;
   viralGuidelineSection += `${itemIndex++}. Arsitektur Konten & Tren: Buat alur autentik, rentan, retro, dan organik. Hindari gaya bahasa terlampau formal. Hubungkan secara relatable ke audiens modern.\n`;
   if (isHookEnabled) {
-    viralGuidelineSection += `${itemIndex++}. Psikologi Copywriting: Gunakan kerangka PAS (Problem → Agitate → Solution) atau AIDA (Attention → Interest → Desire → Action).\n`;
+    // Fix #57: Gate AIDA "Action" step by isCtaEnabled.
+    // Jika CTA dimatikan, gunakan PAS saja (tanpa step Action) agar AI tidak membuat
+    // scene subscribe/follow/retention CTA di akhir video.
+    const aiaFramework = isCtaEnabled
+      ? `PAS (Problem → Agitate → Solution) atau AIDA (Attention → Interest → Desire → Action)`
+      : `PAS (Problem → Agitate → Solution) — TANPA step Action/CTA. DILARANG mengakhiri narasi dengan ajakan follow, subscribe, atau retensi eksplisit`;
+    viralGuidelineSection += `${itemIndex++}. Psikologi Copywriting: Gunakan kerangka ${aiaFramework}.\n`;
   } else {
     viralGuidelineSection += `${itemIndex++}. Psikologi Visual: Bangun resonansi lewat kontras visual, estetika sinematik, dan atmosfer storytelling.\n`;
   }
@@ -226,12 +233,20 @@ export function buildStructuralInstructions(
     hookStrategyDirective = `## ANALISIS STRATEGI KONTEN & ALUR CERITA\n${seoKeywordsText}AUDIENS PERSONA & PSIKOLOGI: [Analisis singkat]\nFOKUS VISUAL & ATMOSFER (0-3 DETIK): [Cara memikat penonton lewat visual/SFX]\nALUR DRAMATIK KONTEN: [Alur penyampaian cerita]\n`;
   }
 
+  // Fix #57: Build engagement trigger directive conditional on isCtaEnabled.
+  // CTA OFF → hanya pertanyaan diskusi, DILARANG follow/subscribe/retention.
+  // CTA ON  → perilaku asli (boleh trigger follow/subscribe).
+  const engagementTriggerDirective = isCtaEnabled
+    ? `[PANDUAN ENGAGEMENT TRIGGERS]\n1. Sisipkan minimal 1-2 trigger interaksi (misal: "Coba tebak...", "Kalian tim mana nih?", "Tulis di komentar...", "Follow untuk konten serupa").\n2. Engagement trigger harus terasa natural dan relevan dengan konteks cerita.`
+    : `[PANDUAN ENGAGEMENT TRIGGERS]\n1. Sisipkan minimal 1 pertanyaan retoris atau diskusi terbuka (misal: "Coba tebak...", "Kalian tim mana nih?", "Mana yang menurut kalian benar?") yang memancing komentar secara natural.\n2. Engagement trigger HANYA boleh berupa pertanyaan diskusi atau pemancing pendapat — DILARANG mengajak follow, subscribe, "sticking around", atau retention CTA dalam bentuk apa pun.\n3. DILARANG menambahkan scene atau kalimat penutup yang bernada "worth sticking around", "follow for more", "see you next week", atau frasa retensi serupa.`;
+
   return {
     emotionalArcSection,
     viralGuidelineSection,
     pacingGuidelineSection,
     narrationModeDirective,
     hookStrategyDirective,
+    engagementTriggerDirective,
   };
 }
 
@@ -680,9 +695,7 @@ Kecepatan narasi ditetapkan pada: "${effectiveSpeechRate}". Susun panjang kalima
 
 ${structural.emotionalArcSection}
 
-[PANDUAN ENGAGEMENT TRIGGERS]
-1. Sisipkan minimal 1-2 trigger interaksi (misal: "Coba tebak...", "Kalian tim mana nih?", "Tulis di komentar...").
-2. Engagement trigger harus terasa natural dan relevan dengan konteks cerita.
+${structural.engagementTriggerDirective}
 ${structural.narrationModeDirective}
 `;
 

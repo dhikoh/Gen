@@ -1664,11 +1664,37 @@ Pada implementasi Bagian 23, terjadi percampuran konsep (*conflation*) antara **
 4. **Pembelajaran Konten Berkinerja Tinggi (`/api/generate`)**:
    - Mengambil 5 draft teratas dengan `views > 0` untuk channel aktif, mengekstraksi hook pembuka dan tone, lalu menginjeksikannya ke dalam section `[PEMBELAJARAN DARI KONTEN TERBAIK CHANNEL INI (CLOSED-LOOP INSIGHT)]`.
 
-## 28.6 Peningkatan Test Suite Otomatis (Vitest)
-1. **Ekspansi Test Runner**:
-   - `tests/researchService.test.ts`: Pengujian kejujuran sumber, disclaimer, skenario fallback, dan YouTube Data API v3 mock.
-   - `tests/promptGenerator.test.ts`: Pengujian eliminasi persentase viral, platform guides, audio tren, dan closed-loop insight.
-   - `tests/parsers.test.ts`: Pengujian parsing judul tanpa persentase dan tanpa kebocoran baris metadata.
 2. **Hasil Uji**:
    - 8 test files, 57 automated tests passed (100% pass rate).
+
+## 29. Bugfix #57 — CTA Leakage via AIDA Framework & Hardcoded Engagement Triggers (2026-09-21)
+
+### Latar Belakang
+Audit menemukan bahwa toggle "Include CTA" di Generator Studio tidak sepenuhnya mengontrol perilaku CTA di output AI. Dua titik kebocoran independen menyebabkan AI tetap menyisipkan scene/kalimat bernada subscribe, follow, atau retention — meskipun toggle CTA dimatikan.
+
+### Titik Kebocoran
+
+**1. AIDA "Action" Step via `buildStructuralInstructions()`**
+Fungsi ini menyuntik instruksi AIDA penuh (`Attention → Interest → Desire → Action`) setiap kali `isHookEnabled = true`, tanpa melihat `isCtaEnabled`. AI menginterpretasi step "Action" sebagai ajakan subscribe/follow/retain di scene akhir.
+
+**2. Hardcoded Engagement Trigger di `allGuidelines`**
+Blok `[PANDUAN ENGAGEMENT TRIGGERS]` ditulis langsung ke template literal secara unconditional — tidak ada pengecekan `isCtaEnabled`. AI menginterpretasi instruksi ini sebagai izin menambahkan CTA-style engagement di penutup video.
+
+### Perbaikan
+
+**Fix 1:** `aiaFramework` dibangun secara kondisional:
+- **CTA ON** → instruksi AIDA penuh termasuk step Action
+- **CTA OFF** → PAS saja, dengan larangan eksplisit terhadap follow/subscribe/retention
+
+**Fix 2:** `engagementTriggerDirective` field baru ditambahkan ke interface `StructuralInstructions`, dibangun kondisional di `buildStructuralInstructions()`, dan diinjeksikan via `${structural.engagementTriggerDirective}` di `allGuidelines`:
+- **CTA ON** → perilaku asli
+- **CTA OFF** → hanya pertanyaan diskusi; larangan eksplisit follow/subscribe/"sticking around"/"see you next week"
+
+### Desain Keputusan
+Toggle "Include CTA" yang sudah ada adalah satu-satunya controller untuk semua perilaku CTA — tidak ada toggle baru. Soft engagement (pertanyaan diskusi/komentar) tetap dipertahankan bahkan saat CTA OFF.
+
+### Checklist Verifikasi
+- [x] `tsc --noEmit`: 0 Error
+- [ ] Manual test: generate dengan CTA OFF → tidak ada scene retain/subscribe di output AI
+- [ ] Manual test: generate dengan CTA ON → perilaku asli dipertahankan
 
