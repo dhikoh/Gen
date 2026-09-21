@@ -622,7 +622,12 @@ Sanitasi prompt: pastikan tidak ada instruksi developer yang bocor ke output (ti
 B. Image Prompt Generator — WAJIB dibangun penuh, bukan placeholder
 
 Form input terpisah: Profile Channel, Estetika Visual, Subjek/deskripsi utama gambar, Camera Type (DSLR/Mirrorless/Smartphone/Drone/Film), Shot Type (close-up/wide/macro/aerial), Lighting (natural/studio/golden hour/neon/dramatic), Mood, Color Grading, Visual Style (photorealistic/3D render/ilustrasi/claymotion/anime), Aspect Ratio, Negative Prompt (opsional), jumlah variasi prompt yang diinginkan.
-Generator merakit prompt siap pakai untuk Midjourney/DALL-E/Stable Diffusion: gabungan tag deskriptif ringkas (dipisah koma) dan versi paragraf naratif, plus saran parameter (--ar, gaya) dan blok negative prompt bila diisi.
+Generator merakit prompt siap pakai untuk Midjourney/DALL-E/Stable Diffusion/Adobe Firefly. Output terdiri dari dua format per-variasi:
+- prompt_text: Format Midjourney v6.1 dengan parameter teknis lengkap (
+  --ar --v 6.1 --q 2 --stylize), dikalibrasi per visual style, siap paste ke /imagine.
+- 
+arrative_prompt: Format instruksi bahasa natural untuk DALL-E 3, GPT-Image-1, Adobe Firefly, Imagen.
+Setiap request menghasilkan hingga 5 variasi dengan komposisi berbeda (Hero Shot, Intimate Close-Up, Dramatic Wide, Cinematic Dark, Aerial Overview) untuk diversitas kreatif nyata. Target keywords dari form diintegrasikan ke kedua format prompt. [UPDATE 2026-09-21 #59]
 Hasil generate tersimpan sebagai Draft dengan type: IMAGE, sama seperti video.
 
 Kedua mode berbagi komponen modal hasil (tampilkan teks, tombol salin ke clipboard, tombol simpan sebagai Draft).

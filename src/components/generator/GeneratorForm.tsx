@@ -587,7 +587,11 @@ export default function GeneratorForm({
  narrationMode: narrationModeOverride !== "auto" ? narrationModeOverride : selectedChannel?.contentArchetype?.narrationMode,
  trendingAudio: trendingAudio.trim() || undefined,
  } : undefined,
- imageConfig: type === "IMAGE" ? imageConfig : undefined,
+ imageConfig: type === "IMAGE" ? {
+  ...imageConfig,
+  // Fix #59: pass targetKeywords to IMAGE path (previously only sent in videoConfig)
+  targetKeywords: targetKeywords.length > 0 ? targetKeywords : undefined,
+ } : undefined,
  };
 
  const res = await fetch("/api/generate", {

@@ -71,7 +71,9 @@ const imageConfigSchema = z.object({
   visualStyle: z.string().optional().nullable(),
   negativePrompt: z.string().optional().nullable(),
   variations: z.coerce.number().optional().nullable(),
-  aspectRatio: z.string().optional().nullable()
+  aspectRatio: z.string().optional().nullable(),
+  // Fix #59: targetKeywords terintegrasi di IMAGE path
+  targetKeywords: z.union([z.array(z.string()), z.string()]).optional().nullable(),
 });
 
 const generateSchema = z.object({
@@ -402,7 +404,16 @@ export async function POST(req: Request) {
         speechRate: channel.speechRate,
         targetPlatform: channel.targetPlatform,
       };
-      const result = generateImagePrompt(mappedChannel, effectiveTopic, additionalContext || "", imageConfig, promptSettings, previousTitles, outputLanguage);
+      const result = generateImagePrompt(
+        mappedChannel,
+        effectiveTopic,
+        additionalContext || "",
+        imageConfig,
+        promptSettings,
+        previousTitles,
+        outputLanguage,
+        imageConfig.targetKeywords, // Fix #59: pass keywords to IMAGE generator
+      );
       masterPrompt = result.masterPrompt;
       systemInstruction = result.systemInstruction;
       finalJson = result.finalJson;

@@ -2,7 +2,103 @@
 
 ---
 
+## [#59] — 2026-09-21 | Upgrade: Image Prompt Studio — Midjourney v6.1 Quality + Keywords Fix
+
+### Problem Statement (dari Audit #58)
+
+Tiga kelemahan ditemukan di `imagePromptGenerator.ts` melalui audit komprehensif Generator Studio:
+
+1. **`targetKeywords` tidak pernah sampai ke IMAGE prompt** — keywords diset user di form, tapi tidak dipass ke `generateImagePrompt()`. Hilang di tengah jalan.
+2. **Semua variasi gambar identik** — engine hanya mengulang string yang sama dengan nomor berbeda. Tidak ada perbedaan komposisi, angle, atau pencahayaan antar-variasi.
+3. **Sintaks Midjourney v6.1 tidak lengkap** — tidak ada `--v 6.1 --q 2 --stylize`, tidak ada kalkulasi stylize per visual style. Output belum siap-pakai untuk tool AI gambar premium.
+4. **`narrative_prompt` tidak jelas peruntukannya** — tidak ada label tool rekomendasi, tidak ada panduan kapan menggunakan `prompt_text` vs `narrative_prompt`.
+
+### Fix Detail
+
+#### Fix A — `targetKeywords` End-to-End Integration (3 file)
+
+```
+GeneratorForm.tsx (form payload)
+  → generate/route.ts (imageConfigSchema + pass ke generator)
+    → imagePromptGenerator.ts (integrasi ke prompt_text & narrative_prompt)
+```
+
+- `imageConfigSchema` di route.ts ditambah field `targetKeywords`
+- Form kini mengirim `{ ...imageConfig, targetKeywords }` untuk type IMAGE
+- Keywords diinjeksi secara natural ke `prompt_text` dan `narrative_prompt`
+
+#### Fix B — Variation Composition Profiles (5 angle berbeda)
+
+Ditambahkan `VARIATION_COMPOSITIONS` array dengan 5 profil kreatif berbeda:
+
+| # | Label | Angle | Lighting |
+|---|-------|-------|----------|
+| 1 | Hero Shot | Eye-level, centered | 3/4 key lighting |
+| 2 | Intimate Close-Up | Slightly elevated 3/4 | Rim / dramatic side |
+| 3 | Dramatic Wide | Low angle, worm's eye | Golden hour / backlight |
+| 4 | Cinematic Dark | Dutch angle slight tilt | Chiaroscuro, deep shadows |
+| 5 | Aerial Overview | Top-down 90°/45° | Even diffused, top shadows |
+
+Setiap variasi benar-benar berbeda dalam komposisi, depth of field, dan pencahayaan — bukan copy-paste bernomor.
+
+#### Fix C — Midjourney v6.1 Prompt Quality
+
+`prompt_text` kini mengikuti MJ v6 best practice:
+- **Urutan prioritas:** Subject → Keywords → Komposisi → Lighting → Mood/Color → DoF → Camera → Style → Brand
+- **Technical flags:** `--ar {ar} --v 6.1 --q 2 --stylize {n}` (dikalibrasi per visual style)
+- **Stylize calibration:** Painterly/artistic styles (ghibli, watercolor, oil-painting) → 850. Hybrid (pixar, flat-vector) → 650. Photorealistic → 300. Default → 750.
+- **Negative prompt:** `--no {negativePrompt}` hanya ditambahkan jika bukan "None"
+
+#### Fix D — `narrative_prompt` — Format DALL-E/GPT-Image-1
+
+`narrative_prompt` kini menggunakan format instruksi bahasa natural yang dioptimalkan untuk:
+- DALL-E 3 (ChatGPT Plus)
+- GPT-Image-1
+- Adobe Firefly
+- Google Imagen
+
+Setiap variasi mendapat `tool_recommendation` eksplisit (string).
+
+#### Fix E — `masterPrompt` → Tool Guide Informatif
+
+`masterPrompt` (teks yang muncul di atas JSON di layar user) kini menjadi panduan lengkap:
+- Kapan pakai `prompt_text` vs `narrative_prompt`
+- Daftar variasi yang dibuat + komposisi masing-masing
+- Tips --stylize dengan nilai yang sudah dikalibrasi
+- Tips --seed untuk konsistensi antar-variasi
+
+#### Fix F — `finalJson` Enhanced Output
+
+`finalJson` kini menyertakan metadata:
+```json
+{
+  "topic": "...",
+  "keywords": ["...", "..."],
+  "visual_style": "8k photography, hyper-detailed...",
+  "stylize": 300,
+  "channel": "Channel Name",
+  "variations": [...]
+}
+```
+
+### Verifikasi
+- `tsc --noEmit`: **exit code 0, 0 Error** ✅
+
+### Arsitektur: Tidak Ada AI Internal
+
+Sesuai desain aplikasi (external AI focus), `imagePromptGenerator.ts` **tidak memanggil API AI apapun**. Engine ini adalah **prompt builder** yang menghasilkan string siap-pakai untuk tools eksternal (Midjourney, DALL-E, Stable Diffusion, Adobe Firefly). AI yang "mengeksekusi" prompt adalah tool eksternal pilihan user.
+
+### Files Modified
+| File | Perubahan |
+|------|-----------|
+| `src/lib/imagePromptGenerator.ts` | Full rewrite — variation profiles, MJ v6.1 syntax, keywords integration, tool guide masterPrompt |
+| `src/app/api/generate/route.ts` | Tambah `targetKeywords` ke `imageConfigSchema`, pass ke `generateImagePrompt()` |
+| `src/components/generator/GeneratorForm.tsx` | Inject `targetKeywords` ke imageConfig payload untuk IMAGE type |
+
+---
+
 ## [#58] — 2026-09-21 | Fix: UsedTitlesDirectory CRUD Lengkap + Visual Style Sync Bug
+
 
 ### Problem Statement
 
