@@ -619,6 +619,13 @@ Fungsi generator (generateMasterPrompt) merakit prompt 2-Tahap (2-Stage AI Inter
   - Direktori Judul Terpakai: Judul yang TERPILIH oleh user (via tombol "Pilih" di Scene Prompt Studio) ditulis langsung ke tabel `UsedTitle` yang TERPISAH dari `Draft`. Artinya judul tetap terkunci meski draft dihapus. 9 opsi judul lainnya yang tidak dipilih tetap bersih dan tidak dikunci.
 Sanitasi prompt: pastikan tidak ada instruksi developer yang bocor ke output (tidak ada judul yang di-hardcode secara kaku), sehingga hasilnya bisa langsung dipakai user ke ChatGPT/Claude/Gemini tanpa perlu diedit ulang.
 
+Visual Style Priority System [UPDATE 2026-09-21 #60]:
+Generator Studio Visual Style Preset memiliki 3 sumber dengan hierarki prioritas:
+1. Custom (Ketik Sendiri) — user mengetik deskripsi gaya visual bebas langsung di Generator Studio (session-specific, tidak mengubah Channel Profile)
+2. Preset spesifik (15 opsi dari VISUAL_STYLE_MAP) — override channel aesthetic
+3. Auto — fallback otomatis ke channel.visualAesthetic dari Channel Profile
+Gaya visual yang resolved diinjeksi ke DUA tempat di master prompt: (a) povSection sebagai directive wajib, dan (b) PANDUAN PEMERKAYAAN VISUAL PROMPT sebagai GAYA ESTETIKA VISUAL WAJIB PER SCENE yang eksplisit. Ditambah directive KEBEBASAN ERA & KONTEKS untuk mencegah AI default ke setting historis spesifik kecuali topik membutuhkan.
+
 B. Image Prompt Generator — WAJIB dibangun penuh, bukan placeholder
 
 Form input terpisah: Profile Channel, Estetika Visual, Subjek/deskripsi utama gambar, Camera Type (DSLR/Mirrorless/Smartphone/Drone/Film), Shot Type (close-up/wide/macro/aerial), Lighting (natural/studio/golden hour/neon/dramatic), Mood, Color Grading, Visual Style (photorealistic/3D render/ilustrasi/claymotion/anime), Aspect Ratio, Negative Prompt (opsional), jumlah variasi prompt yang diinginkan.

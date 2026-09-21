@@ -373,11 +373,17 @@ export function generateMasterPrompt(
     povSection += `- Nada Penyampaian (Tone of Voice): Tulis naskah dengan gaya bahasa "${videoConfig.toneOfVoice}".\n`;
   }
 
-  if (videoConfig.visualStyle) {
-    const resolved = resolveVisualStyle(videoConfig.visualStyle);
-    if (resolved) {
-      povSection += `- Estetika Visual (Visual Style): Pada setiap VISUAL PROMPT per scene, sertakan elemen gaya estetika "${resolved}".\n`;
-    }
+  // Fix #60: Resolve visual style with fallback chain:
+  //   1. videoConfig.visualStyle (explicit Generator Studio selection / custom input)
+  //   2. channel.visualAesthetic (Channel Profile custom aesthetic — Opsi A fallback)
+  //   3. null (no style directive injected)
+  const rawVisualStyle = videoConfig.visualStyle || channel.visualAesthetic || null;
+  const resolvedVisualStyle: string | null = rawVisualStyle
+    ? (resolveVisualStyle(rawVisualStyle) || rawVisualStyle)
+    : null;
+
+  if (resolvedVisualStyle) {
+    povSection += `- Gaya Visual Wajib: Pada setiap VISUAL PROMPT per scene, WAJIB menerapkan gaya estetika berikut secara konsisten: "${resolvedVisualStyle}".\n`;
   }
 
   povSection += `Gabungkan keahlian, nada bicara, peran persona, dan gaya visual di atas secara harmonis.\n\n`;
@@ -668,8 +674,12 @@ ${structural.viralGuidelineSection}
 2. FORMULA WAJIB: [Shot Type & Camera Angle], [Subject & Action], [Environment & Lighting], [Camera Movement/Composition], [Style/Aesthetic].
 3. Pergerakan kamera aktif (khusus video): "slow push-in", "sweeping orbital", "crane down and tilt up", "zoom out to reveal".
 4. DILARANG menampilkan visual secara harfiah. Gunakan metafora visual (misal: DNA → glowing double-helix hologram, bukan gambar manusia berdiri).
-5. Integrasi Gaya Estetika: Leburkan gaya visual ke dalam deskripsi kalimat, bukan hanya menempelkan kata kunci di akhir.
-6. DILARANG mencantumkan parameter referensi kosong seperti "--cref [url]" atau "--sref [url]" jika data URL tidak disediakan.
+${resolvedVisualStyle
+  ? `5. GAYA ESTETIKA VISUAL WAJIB PER SCENE: "${resolvedVisualStyle}" — Terapkan gaya ini secara konsisten di SETIAP scene dalam bagian [Style/Aesthetic] Visual Prompt. Wajib dilebur ke dalam kalimat deskriptif secara natural, bukan ditempel sebagai tag terpisah di akhir kalimat.`
+  : `5. Integrasi Gaya Estetika: Leburkan gaya visual ke dalam deskripsi kalimat, bukan hanya menempelkan kata kunci di akhir.`
+}
+6. KEBEBASAN ERA & KONTEKS: Kecuali topik secara eksplisit membutuhkan era historis tertentu, HINDARI setting historis spesifik (Romawi kuno, Yunani kuno, era abad pertengahan, dll.). Visualisasikan konsep secara kontemporer, metaforis, atau universal — karakter, pakaian, lingkungan, dan environment HARUS bisa ditempatkan di era, budaya, dan lokasi manapun. Gunakan abstraksi visual yang melampaui waktu.
+7. DILARANG mencantumkan parameter referensi kosong seperti "--cref [url]" atau "--sref [url]" jika data URL tidak disediakan.
 ${thumbnailGuidelineSection}
 
 [PANDUAN ANTI-DETEKSI AI & NATURALISASI BAHASA]

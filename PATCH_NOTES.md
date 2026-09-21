@@ -2,7 +2,104 @@
 
 ---
 
+## [#60] — 2026-09-21 | Fix + Feature: Visual Style — Fallback Otomatis + Custom Input di Generator Studio
+
+### Problem Statement (dari Audit Visual Prompt)
+
+Dua bug teridentifikasi dari audit prompt yang dihasilkan Generator Studio:
+
+**Bug 1 — `channel.visualAesthetic` tidak pernah diinjeksi ke VIDEO prompt:**
+Ketika Visual Style Preset di Generator Studio diset ke "Auto", `videoConfig.visualStyle` adalah `undefined` → block visual style di `promptGenerator.ts` dilewati sepenuhnya. Field `channel.visualAesthetic` (yang menyimpan custom aesthetic panjang dari Channel Profile) **tidak pernah masuk ke master prompt**, meski field-nya sudah ada di interface dan database. AI eksternal (ChatGPT/Claude) tidak mendapat directive gaya visual apapun → default ke imagery paling literal untuk topik (misal: demokrasi/monarki → Yunani/Romawi kuno).
+
+**Bug 2 — Visual style tidak diinjeksi eksplisit ke PANDUAN PEMERKAYAAN VISUAL PROMPT:**
+Bahkan ketika visual style ada, ia hanya ditambahkan di `povSection` (bagian persona). Di `[PANDUAN PEMERKAYAAN VISUAL PROMPT]` hanya tertulis "Integrasi Gaya Estetika: Leburkan gaya visual..." **tanpa menyebutkan gaya apa yang harus digunakan**. AI tahu harus mengintegrasikan gaya, tapi tidak tahu gaya apa.
+
+**Feature Request — Custom Visual Style di Generator Studio:**
+User tidak bisa mengetik custom visual style secara langsung di Generator Studio tanpa mengubah Channel Profile. Perlu opsi "Custom (Ketik Sendiri)" di dropdown Visual Style Preset untuk session-specific override.
+
+### Fix Detail
+
+#### Fix A — Fallback Chain Visual Style (Opsi A) — `promptGenerator.ts`
+
+Sebelum:
+```typescript
+if (videoConfig.visualStyle) {
+  const resolved = resolveVisualStyle(videoConfig.visualStyle);
+  if (resolved) { povSection += `- Estetika Visual: "${resolved}"`; }
+}
+```
+
+Sesudah — fallback ke `channel.visualAesthetic` ketika tidak ada explicit preset:
+```typescript
+const rawVisualStyle = videoConfig.visualStyle || channel.visualAesthetic || null;
+const resolvedVisualStyle: string | null = rawVisualStyle
+  ? (resolveVisualStyle(rawVisualStyle) || rawVisualStyle)
+  : null;
+
+if (resolvedVisualStyle) {
+  povSection += `- Gaya Visual Wajib: WAJIB menerapkan gaya estetika: "${resolvedVisualStyle}".`;
+}
+```
+
+Prioritas:
+1. Generator Studio Preset/Custom (explicit selection) — tertinggi
+2. Channel Profile `visualAesthetic` (fallback via Opsi A)
+3. Null — tidak ada directive visual style
+
+#### Fix B — Injeksi Eksplisit di PANDUAN PEMERKAYAAN VISUAL PROMPT — `promptGenerator.ts`
+
+Point 5 sekarang dinamis:
+- **Jika ada `resolvedVisualStyle`**: Menampilkan gaya secara eksplisit sebagai directive wajib per-scene dengan text: `"5. GAYA ESTETIKA VISUAL WAJIB PER SCENE: "${resolvedVisualStyle}" — Terapkan gaya ini secara konsisten di SETIAP scene..."`
+- **Jika tidak ada**: Fallback ke instruksi generik "Integrasi Gaya Estetika..."
+
+Ditambah Point 6 baru — **KEBEBASAN ERA & KONTEKS**:
+```
+Kecuali topik secara eksplisit membutuhkan era historis tertentu, HINDARI setting historis spesifik
+(Romawi kuno, Yunani kuno, era abad pertengahan, dll.). Visualisasikan konsep secara kontemporer,
+metaforis, atau universal — karakter, pakaian, lingkungan HARUS bisa ditempatkan di era, budaya,
+dan lokasi manapun.
+```
+
+Point lama "DILARANG --cref [url]" digeser jadi point 7.
+
+#### Fix C — Custom Visual Style Input — `GeneratorForm.tsx`
+
+Fitur baru:
+- Tambah state `visualStyleCustom: string` (default `""`)
+- Tambah opsi "✏️ Custom (Ketik Sendiri)" di dropdown Visual Style Preset (value: `__custom__`)
+- Ketika `visualStyleKey === "__custom__"`: muncul `<textarea>` 4 baris untuk mengetik custom style description
+- Textarea dilengkapi placeholder contoh dan hint text
+- Custom text di-persist ke localStorage (stateObj + deps array)
+- Custom text di-restore dari localStorage dan server-saved state
+- Payload: `visualStyle = visualStyleKey === "__custom__" ? visualStyleCustom.trim() : visualStyleKey`
+
+Ini memungkinkan:
+- Session-specific visual style override tanpa mengubah Channel Profile permanen
+- Custom style panjang dan presisi langsung dari Generator Studio
+- Teks custom dikirim ke `videoConfig.visualStyle` → diproses oleh `resolveVisualStyle()` (jika cocok preset) atau digunakan as-is (custom free-text)
+
+### Hierarki Prioritas Visual Style (Setelah Fix)
+
+| Priority | Sumber | Kondisi |
+|----------|--------|---------|
+| 🥇 Tertinggi | Generator Studio → Custom (`__custom__`) | User ketik manual di textarea |
+| 🥈 | Generator Studio → Preset (15 opsi) | User pilih preset spesifik |
+| 🥉 | Channel Profile → `visualAesthetic` | Generator Studio = "Auto" (Opsi A) |
+| — | Tidak ada directive | Semua kosong |
+
+### Verifikasi
+- `tsc --noEmit`: **exit code 0, 0 Error** ✅
+
+### Files Modified
+| File | Perubahan |
+|------|-----------|
+| `src/lib/promptGenerator.ts` | Fallback ke `channel.visualAesthetic`, injeksi eksplisit di PANDUAN VISUAL PROMPT, directive era-freedom |
+| `src/components/generator/GeneratorForm.tsx` | State `visualStyleCustom`, opsi Custom di dropdown, textarea UI, payload, persistence |
+
+---
+
 ## [#59] — 2026-09-21 | Upgrade: Image Prompt Studio — Midjourney v6.1 Quality + Keywords Fix
+
 
 ### Problem Statement (dari Audit #58)
 

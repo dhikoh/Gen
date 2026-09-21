@@ -111,6 +111,7 @@ export default function GeneratorForm({
  const [rolePOV, setRolePOV] = useState<string>("default");
  const [toneOfVoice, setToneOfVoice] = useState<string>("");
  const [visualStyleKey, setVisualStyleKey] = useState<string>("");
+ const [visualStyleCustom, setVisualStyleCustom] = useState<string>(""); // Fix #60: custom style input
  const [hookStyleType, setHookStyleType] = useState<string>("auto");
  const [customHookText, setCustomHookText] = useState<string>("");
  const [musicPreference, setMusicPreference] = useState<boolean>(true);
@@ -143,7 +144,8 @@ export default function GeneratorForm({
  // Visual style options (from visualStyleMap)
  const visualStyleOptions: PresetOption[] = [
  { value: "", label: "Auto (Ikuti Estetika Channel)" },
- ...getVisualStyleOptions().map(o => ({ value: o.value, label: o.label }))
+ ...getVisualStyleOptions().map(o => ({ value: o.value, label: o.label })),
+ { value: "__custom__", label: "✏️ Custom (Ketik Sendiri)" }, // Fix #60
  ];
 
  const toneOptions = [
@@ -285,6 +287,7 @@ export default function GeneratorForm({
            if (p.rolePOV) setRolePOV(p.rolePOV);
            if (p.toneOfVoice !== undefined) setToneOfVoice(p.toneOfVoice);
            if (p.visualStyleKey !== undefined) setVisualStyleKey(p.visualStyleKey);
+          if (p.visualStyleCustom !== undefined) setVisualStyleCustom(p.visualStyleCustom); // Fix #60
            if (p.hookStyleType) setHookStyleType(p.hookStyleType);
            if (p.customHookText !== undefined) setCustomHookText(p.customHookText);
            if (p.musicPreference !== undefined) setMusicPreference(p.musicPreference);
@@ -319,6 +322,7 @@ export default function GeneratorForm({
          if (p.rolePOV) setRolePOV(p.rolePOV);
          if (p.toneOfVoice !== undefined) setToneOfVoice(p.toneOfVoice);
          if (p.visualStyleKey !== undefined) setVisualStyleKey(p.visualStyleKey);
+         if (p.visualStyleCustom !== undefined) setVisualStyleCustom(p.visualStyleCustom); // Fix #60
          if (p.hookStyleType) setHookStyleType(p.hookStyleType);
          if (p.customHookText !== undefined) setCustomHookText(p.customHookText);
          if (p.musicPreference !== undefined) setMusicPreference(p.musicPreference);
@@ -360,7 +364,7 @@ export default function GeneratorForm({
  }, []);
 
  useEffect(() => {
-  const stateObj = { type, channelId, outputLanguage, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, narrationModeOverride, trendingAudio, cameraMovementEnabled, cameraMovementPresets, cameraMovementCustom, cameraMovementProMode, affiliateAngle, affiliateAngleMode, affiliateMarketplaces, affiliateCustomUrl, videoConfig, imageConfig, step, generatedPrompt, aiResultJson, manualTitle };
+  const stateObj = { type, channelId, outputLanguage, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, visualStyleCustom, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, narrationModeOverride, trendingAudio, cameraMovementEnabled, cameraMovementPresets, cameraMovementCustom, cameraMovementProMode, affiliateAngle, affiliateAngleMode, affiliateMarketplaces, affiliateCustomUrl, videoConfig, imageConfig, step, generatedPrompt, aiResultJson, manualTitle };
   localStorage.setItem("generatorFormState", JSON.stringify(stateObj));
 
   const timeoutId = setTimeout(() => {
@@ -372,7 +376,7 @@ export default function GeneratorForm({
   }, 3000); // 3 seconds debounce
 
   return () => clearTimeout(timeoutId);
-  }, [type, channelId, outputLanguage, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, narrationModeOverride, trendingAudio, cameraMovementEnabled, cameraMovementPresets, cameraMovementCustom, cameraMovementProMode, affiliateAngle, affiliateAngleMode, affiliateMarketplaces, affiliateCustomUrl, videoConfig, imageConfig, step, generatedPrompt, aiResultJson, manualTitle]);
+  }, [type, channelId, outputLanguage, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, visualStyleCustom, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, narrationModeOverride, trendingAudio, cameraMovementEnabled, cameraMovementPresets, cameraMovementCustom, cameraMovementProMode, affiliateAngle, affiliateAngleMode, affiliateMarketplaces, affiliateCustomUrl, videoConfig, imageConfig, step, generatedPrompt, aiResultJson, manualTitle]);
 
  // Fetch presets on mount
  useEffect(() => {
@@ -566,7 +570,10 @@ export default function GeneratorForm({
  // Push enrichment params
  rolePOV,
  toneOfVoice: toneOfVoice || undefined,
- visualStyle: visualStyleKey || undefined,
+ // Fix #60: if __custom__ is selected, use the custom text; else use the preset key
+ visualStyle: visualStyleKey === "__custom__"
+   ? (visualStyleCustom.trim() || undefined)
+   : (visualStyleKey || undefined),
  hookStyleType,
  customHookText: hookStyleType === "custom" ? customHookText : undefined,
  isLoopable: videoConfig.narrativeLoopStyle === "Seamless Loop",
@@ -1205,7 +1212,26 @@ export default function GeneratorForm({
  <option key={String(opt.value)} value={String(opt.value)}>{opt.label}</option>
  ))}
  </select>
+ {/* Fix #60: Show custom textarea when Custom is selected */}
+ {visualStyleKey === "__custom__" && (
+ <div className="mt-2">
+ <label className="block text-xs font-medium pg-text-sub mb-1">
+ ✏️ Deskripsikan Gaya Visual Custom
+ </label>
+ <textarea
+ value={visualStyleCustom}
+ onChange={(e) => setVisualStyleCustom(e.target.value)}
+ rows={4}
+ placeholder="Contoh: semi-realistic digital illustration, gouache-like painterly texture, bold soft ink outlines, warm muted color palette, gentle directional lighting..."
+ className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white resize-none"
+ />
+ <p className="text-xs pg-text-muted mt-1">
+ Deskripsi ini akan diinjeksi langsung ke panduan Visual Prompt setiap scene. Tulis sedetail mungkin — semakin presisi, semakin konsisten gaya visual yang dihasilkan AI.
+ </p>
  </div>
+ )}
+ </div>
+
 
  {/* ── Push Enrichment: Tone of Voice ── */}
  <div className="space-y-2">
