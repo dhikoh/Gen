@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import toast from "react-hot-toast";
 import CompositionSliderGroup from "./CompositionSliderGroup";
 import { PresetSelect, PresetOption } from "@/components/ui/PresetSelect";
-import { getVisualStyleOptions } from "@/lib/visualStyleMap";
+import { getVisualStyleOptions, mapVisualAestheticToKey } from "@/lib/visualStyleMap";
 
 interface ProductItem {
  id: string;
@@ -421,6 +421,9 @@ export default function GeneratorForm({
         setVideoConfig((prev) => ({
           ...prev,
           targetPlatform: selectedChannel.targetPlatform || prev.targetPlatform || "TikTok",
+          // Fix #58 — sync channel visual aesthetic as a VIDEO visual style hint
+          // setVisualStyleKey only if user hasn't manually picked one yet
+          // (handled below via setVisualStyleKey guard)
           pov: selectedChannel.personaPov || prev.pov || "Expert Storyteller (Edukasi & Inspirasi)",
           speechRate: selectedChannel.speechRate ?? prev.speechRate ?? 0.35,
           includeHook: defSections?.hook !== undefined ? defSections.hook : prev.includeHook,
@@ -430,8 +433,17 @@ export default function GeneratorForm({
         }));
         setImageConfig((prev) => ({
           ...prev,
-          visualStyle: selectedChannel.visualAesthetic || prev.visualStyle || "Cinematic Dark Mode (Sleek & Professional)",
+          // Fix #58: map free-text visualAesthetic to a VISUAL_STYLE_MAP slug key.
+          // Prevents fuzzy-match mis-mapping (e.g. "Cinematic Dark Mode" → photorealistic).
+          // If no key matches, fall back to prev value (user's manual selection).
+          visualStyle: mapVisualAestheticToKey(selectedChannel.visualAesthetic) || prev.visualStyle || "",
         }));
+        // Fix #58: also sync visualStyleKey (VIDEO preset dropdown) from channel aesthetic.
+        // Guard: only auto-set when visualStyleKey is currently empty (user hasn't picked manually).
+        setVisualStyleKey((prev) => {
+          if (prev) return prev; // preserve manual selection
+          return mapVisualAestheticToKey(selectedChannel.visualAesthetic) || "";
+        });
       });
     }
   }, [channelId, channels]);

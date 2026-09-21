@@ -110,6 +110,45 @@ export function resolveVisualStyle(style: string | null | undefined): string | n
   return style;
 }
 
+/**
+ * Map a free-text `channel.visualAesthetic` string (stored in ProfileChannel)
+ * to the nearest VISUAL_STYLE_MAP slug key for use in dropdowns and imageConfig.
+ *
+ * Returns null if no reasonable match — caller should leave the field at its
+ * current value (e.g. keep user's manual selection intact).
+ *
+ * Fix #58: Previously, GeneratorForm set imageConfig.visualStyle to the raw
+ * `channel.visualAesthetic` text (e.g. "Cinematic Dark Mode (Sleek & Professional)"),
+ * which then fuzzy-matched to "photorealistic" — an incorrect mapping.
+ */
+export function mapVisualAestheticToKey(aesthetic: string | null | undefined): string | null {
+  if (!aesthetic) return null;
+  const lower = aesthetic.toLowerCase();
+
+  // Exact slug match first
+  if (VISUAL_STYLE_MAP[aesthetic]) return aesthetic;
+
+  // Ordered priority: most specific terms first
+  if (lower.includes('ghibli')) return 'ghibli';
+  if (lower.includes('anime') || lower.includes('manga')) return 'ghibli';
+  if (lower.includes('pixar')) return 'pixar';
+  if (lower.includes('cyberpunk') || lower.includes('neon glow')) return 'cyberpunk';
+  if (lower.includes('kodak') || lower.includes('film grain') || lower.includes('analog')) return 'vintage-kodak';
+  if (lower.includes('synthwave') || lower.includes('retro 80') || lower.includes('80s')) return 'synthwave';
+  if (lower.includes('dark fantasy') || lower.includes('gotik') || lower.includes('gothic') || lower.includes('dark mode')) return 'dark-fantasy';
+  if (lower.includes('claymation') || lower.includes('tanah liat')) return 'claymation';
+  if (lower.includes('isometric')) return 'isometric';
+  if (lower.includes('pop art') || lower.includes('comic book')) return 'pop-art';
+  if (lower.includes('line art') || lower.includes('doodle') || lower.includes('minimalist line')) return 'line-art';
+  if (lower.includes('oil paint') || lower.includes('lukisan klasik')) return 'oil-painting';
+  if (lower.includes('fairy') || lower.includes('dongeng')) return 'fairytale';
+  if (lower.includes('watercolor') || lower.includes('cat air') || lower.includes('ink wash')) return 'watercolor';
+  if (lower.includes('flat') || lower.includes('vector') || lower.includes('vektor')) return 'flat-vector';
+  if (lower.includes('sinematik') || lower.includes('cinematic') || lower.includes('photorealistic') || lower.includes('photography') || lower.includes('realistis')) return 'photorealistic';
+
+  return null; // no mapping — keep existing value
+}
+
 /** Get all visual style entries as an array for UI dropdowns. */
 export function getVisualStyleOptions(): Array<{ value: string; label: string }> {
   return Object.entries(VISUAL_STYLE_MAP).map(([key, entry]) => ({

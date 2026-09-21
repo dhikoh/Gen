@@ -938,6 +938,7 @@ Seluruh fitur di bawah ini ditambahkan untuk kematangan bisnis, keamanan, dan ef
   - Schema: `model UsedTitle { id, userId, channelId, type, title, createdAt; @@unique([channelId, type, title]) }`
   - Migration: `prisma/migrations/20260826_add_used_title_table/migration.sql`
   - Data migration script: `prisma/migrations/20260826_add_used_title_table/migrate_data.js`
+- **[UPDATE 2026-09-21] UsedTitle CRUD Lengkap (#58):** Ditambahkan API `DELETE /api/used-titles/[id]` dan `PATCH /api/used-titles/[id]` untuk hapus dan edit judul. UI `UsedTitlesDirectory.tsx` kini mendukung CRUD penuh: Edit inline per-baris (Enter=simpan, Escape=batal), Delete per-baris dengan konfirmasi. Kolom "Lihat/View" dihapus karena `UsedTitle.id ≠ Draft.id` — link tidak valid secara arsitektur. Lihat juga fix `mapVisualAestheticToKey()` di `visualStyleMap.ts` dan perbaikan sinkronisasi `visualStyleKey` di `GeneratorForm.tsx`.
 
 12.7 Customer Support Ticket System & Time-based CS Escalation
 - Modul tiket support terpadu (`SupportTicket`, `SupportMessage`) untuk komunikasi dua arah antara User dan Admin.

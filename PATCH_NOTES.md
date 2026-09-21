@@ -2,7 +2,67 @@
 
 ---
 
+## [#58] — 2026-09-21 | Fix: UsedTitlesDirectory CRUD Lengkap + Visual Style Sync Bug
+
+### Problem Statement
+
+Dua bug terpisah ditemukan melalui audit kode:
+
+1. **UsedTitlesDirectory hanya punya Create & Read** — tidak ada Delete atau Update. User tidak bisa membersihkan exclude list AI ketika ada judul yang salah diimport.
+2. **Kolom "View" link rusak** — link mengarah ke `/dashboard/drafts/${tData.id}` menggunakan `UsedTitle.id` (bukan `Draft.id`), menghasilkan 404 setiap saat. Selain itu tidak ada locale prefix.
+3. **Visual Style Preset tidak sinkron dengan `channel.visualAesthetic`** — ketika channel dipilih, `imageConfig.visualStyle` di-set ke raw free-text channel (misal: `"Cinematic Dark Mode (Sleek & Professional)"`), yang kemudian di-fuzzy-map ke `"photorealistic"` — mapping yang salah. Untuk VIDEO type, `visualStyleKey` (dropdown Visual Style Preset) sama sekali tidak pernah di-seed dari channel.
+
+### Fix 1 — UsedTitlesDirectory: Complete CRUD
+
+**Ditambahkan:**
+- `DELETE /api/used-titles/[id]` — hapus satu judul dengan ownership check
+- `PATCH /api/used-titles/[id]` — edit judul dengan uniqueness constraint check (409 jika duplikat)
+- Tombol **Edit** per-baris + inline editing dengan keyboard shortcut (Enter = save, Escape = cancel)
+- Tombol **Delete** per-baris dengan `confirm()` dialog
+- Loading state per-operasi (`deletingId`, `savingEdit`)
+
+**Dihapus:**
+- Kolom **"Lihat/View"** — dihapus karena `UsedTitle.id ≠ Draft.id`. UsedTitle adalah catatan permanen terpisah dari Draft, tidak ada relasi langsung.
+
+**i18n keys baru** (id.json & en.json — namespace `UsedTitles`):
+`colActions`, `edit`, `delete`, `confirmDelete`, `editTitle`, `saveEdit`, `cancelEdit`, `deleteSuccess`, `editSuccess`, `duplicateTitle`, `deleteFailed`, `editFailed`
+
+### Fix 2 — Visual Style Sync: `mapVisualAestheticToKey()` helper baru
+
+**Ditambahkan di `src/lib/visualStyleMap.ts`:**
+
+```ts
+export function mapVisualAestheticToKey(aesthetic: string | null | undefined): string | null
+```
+
+Memetakan free-text `channel.visualAesthetic` ke slug key `VISUAL_STYLE_MAP` yang tepat.
+Priority ordering diurutkan dari paling spesifik → paling umum untuk mencegah false match.
+
+**Diperbaiki di `GeneratorForm.tsx`:**
+- `imageConfig.visualStyle` sekarang menggunakan `mapVisualAestheticToKey()` bukan raw text
+- `visualStyleKey` (VIDEO preset dropdown) kini di-seed dari channel aesthetic saat channel dipilih, dengan guard `if (prev) return prev` untuk tidak menimpa pilihan manual user
+
+### Arsitektur: Mengapa tidak ada `draftId` di UsedTitle?
+
+Keputusan desain dipertahankan: `UsedTitle` adalah catatan permanen yang **tidak terhapus bersama Draft**. Menambahkan `draftId` nullable akan menciptakan state inconsistency ketika draft dihapus. Link ke draft tidak memiliki nilai fungsional nyata.
+
+### Verifikasi
+- `tsc --noEmit`: **exit code 0, 0 Error** ✅
+
+### Files Modified
+| File | Perubahan |
+|------|-----------|
+| `src/app/api/used-titles/[id]/route.ts` | **[NEW]** DELETE + PATCH endpoint dengan ownership check & uniqueness validation |
+| `src/components/dashboard/UsedTitlesDirectory.tsx` | Full rewrite — tambah Edit inline, Delete per-row, hapus View link |
+| `src/lib/visualStyleMap.ts` | Tambah `mapVisualAestheticToKey()` helper |
+| `src/components/generator/GeneratorForm.tsx` | Fix imageConfig.visualStyle sync + tambah visualStyleKey seed dari channel |
+| `messages/id.json` | Tambah 11 key baru, hapus `colLink` & `view` di namespace UsedTitles |
+| `messages/en.json` | Tambah 11 key baru, hapus `colLink` & `view` di namespace UsedTitles |
+
+---
+
 ## [#57] — 2026-09-21 | Bugfix: CTA Bocor ke Narasi Meski Toggle "Include CTA" Dimatikan
+
 
 ### Problem Statement
 Meskipun user **tidak mencentang "Include CTA"** di Generator Studio, output AI tetap menghasilkan:
