@@ -529,9 +529,11 @@ ${roleGrammarPro}
 
 7. VARIASI YANG DISENGAJA, BUKAN ACAK: Variasikan jenis dan intensitas gerakan antar-scene secara SENGAJA berdasarkan kebutuhan naratif tiap scene (lihat poin 2) — DILARANG dua scene berurutan memiliki jenis dan intensitas gerakan yang identik, kecuali sebagai motif visual berulang yang disengaja untuk efek dramatis tertentu.
 
-8. FORMAT WAJIB DI SETIAP VISUAL PROMPT: Tuliskan gerakan kamera dalam format [Jenis Gerakan] + [Kualitas/Kecepatan] + [Konteks/Tujuan Naratif tersirat lewat deskripsi visual]. Contoh yang BENAR: "slow dolly-in from medium shot to close-up as the product is revealed, camera subtly rising to eye-level for a moment of intimacy". Contoh yang SALAH (terlalu generik, hindari): "push-in" tanpa konteks apa pun.
+8. FORMAT WAJIB DI SETIAP VISUAL PROMPT: Tuliskan gerakan kamera dalam format [Jenis Gerakan] + [TIMING: kapan gerakan dimulai & kapan settling/berhenti + apakah ada easing] + [Kualitas/Kecepatan] + [Konteks/Tujuan Naratif tersirat lewat deskripsi visual]. Contoh yang BENAR: "slow dolly-in beginning at scene open, easing gradually to a natural rest as product is fully revealed at mid-scene, camera then settling static for the final 2 seconds to let the CTA breathe — a subtle rise to eye-level during the settle creates an intimate moment of connection". Contoh yang SALAH (terlalu generik, hindari): "push-in" atau "slow push-in" tanpa timing, tanpa kapan berhenti, dan tanpa konteks naratif apa pun.
 
-WAJIB: Terapkan seluruh 8 prinsip di atas secara konsisten pada SETIAP Visual Prompt sepanjang naskah, seolah dirancang oleh satu sinematografer profesional yang memahami keseluruhan alur cerita secara utuh — bukan merancang scene demi scene secara terisolasi.`;
+9. INTRA-SCENE CHANGE (WAJIB untuk scene berdurasi ≥5 detik): Dalam satu scene, kamera tidak boleh bergerak dalam kecepatan konstan dari detik 0 sampai akhir — itu terasa mekanik dan robotik. Rancang minimal 1 perubahan dalam scene: bisa berupa perubahan kecepatan gerakan (accelerate then decelerate), momen settling singkat di tengah scene sebelum bergerak lagi, atau perpindahan fokus (rack focus) yang terkoordinasi dengan aksi subjek.
+
+WAJIB: Terapkan seluruh 9 prinsip di atas secara konsisten pada SETIAP Visual Prompt sepanjang naskah, seolah dirancang oleh satu sinematografer profesional yang memahami keseluruhan alur cerita secara utuh — bukan merancang scene demi scene secara terisolasi.`;
       } else {
         // Default ON but no preset selected — give AI creative freedom with guidance (STANDAR)
         cameraMovementGuide = `[PANDUAN CAMERA MOVEMENT — AUTO]\nAI bebas memilih dan memvariasikan gerakan kamera yang paling sinematik dan sesuai dengan mood setiap scene. Referensi pilihan yang disarankan (tidak terbatas):\n${roleGrammarStandard}\nWAJIB: Variasikan gerakan kamera antar scene. Hindari static shot berturut-turut kecuali untuk efek dramatis yang disengaja.`;
@@ -659,16 +661,22 @@ PENTING: Tulis URL pencarian yang VALID dan LENGKAP dengan nama produk sudah di-
 
   if (hasScene) {
     const visualPromptInstruction = isVideoPlat
-      ? `Tulis prompt video/visual sinematik siap-pakai dalam bahasa Inggris. WAJIB formula 5-bagian: [Shot Type & Camera Angle], [Subject & Action], [Environment & Lighting], [Camera Movement Path], [Style/Aesthetic]. Sangat ilustratif, dinamis, metaforis (HINDARI penerjemahan literal). Contoh: "Extreme macro shot, glowing double-helix DNA strands morphing, surrounded by holographic data streams, cinematic volumetric lighting, slow push-in${visualAudioSuffix}".`
+      ? `Tulis prompt video/visual sinematik siap-pakai dalam bahasa Inggris. DILARANG menulis deskripsi statis seperti foto — deskripsikan scene secara TEMPORAL sebagai klip video yang berjalan. Gunakan struktur 5-layer berikut secara terpadu dalam satu paragraf deskriptif:
+[1. SHOT TYPE & OPENING FRAME — jenis shot dan framing awal]
+[2. SUBJECT MICRO-ACTION — apa yang subjek lakukan secara spesifik & berubah selama durasi scene (bukan hanya posisi statis)]
+[3. ENVIRONMENT DYNAMICS — min. 1 elemen lingkungan yang BERGERAK atau BERUBAH: cahaya ambient bergeser, partikel, cuaca, refleksi, asap, bayangan bergerak, dll.]
+[4. CAMERA MOVEMENT + TIMING — jenis gerakan PLUS kapan dimulai, kapan settling/berhenti, apakah ada easing (misal: "starts at frame 0, eases to rest at mid-scene")]
+[5. STYLE/AESTHETIC]
+Sangat ilustratif, dinamis, metaforis (HINDARI penerjemahan literal). Contoh yang BENAR: "Medium shot dollying in slowly — beginning at scene open, easing to rest as character leans forward mid-sentence — subject's fingers trace the edge of a glowing map with deliberate hesitation, breath misting faintly in cold studio air, background neon-sign reflections pulse rhythmically on rain-streaked glass, ambient key light gradually warming from cool-blue to amber as scene progresses, cinematic volumetric side lighting, neo-noir aesthetic${visualAudioSuffix}". Contoh yang SALAH (terlalu statis, hindari): "slow push-in, person talking, warm light".`
       : `Tulis prompt gambar/visual sinematik siap-pakai dalam bahasa Inggris untuk Midjourney V6. WAJIB formula 5-bagian: [Shot Type & Camera Angle], [Subject & Action], [Environment & Lighting], [Cinematic Composition], [Style/Aesthetic]. Sangat ilustratif, dinamis, metaforis. Contoh: "Extreme macro shot, glowing double-helix DNA strands morphing, holographic biological data streams, cinematic volumetric lighting, shallow depth of field${visualAudioSuffix}".`;
 
     const audioTrendNote = videoConfig.trendingAudio?.trim() ? ` | Audio: ${videoConfig.trendingAudio.trim()}` : "";
     const panduanSuaraExample = (effectiveNarrationMode === "DIEGETIC_ONLY" || effectiveNarrationMode === "SILENT_TEXT_ONLY")
-      ? `Context: <konteks/suasana suara lingkungan adegan> | Note: <petunjuk audio diegetic/SFX/foley> | Traits: <elemen audio in-scene dominan>${audioTrendNote}`
-      : `Context: <konteks/suasana adegan> | Note: <petunjuk intonasi/kecepatan/jeda> | Traits: <karakteristik vokal, misal: deep voice, energetic>${audioTrendNote}`;
+      ? `Context: <konteks/suasana suara lingkungan adegan> | Note: <petunjuk audio diegetic/SFX/foley — sebutkan di detik ke berapa dalam scene SFX terjadi, misal: "SFX muncul tepat saat kamera settle di mid-scene"> | Traits: <elemen audio in-scene dominan>${audioTrendNote}`
+      : `Context: <konteks/suasana adegan> | Note: <petunjuk intonasi/kecepatan/jeda — misal: "mulai lambat, akselerasi di kalimat ke-3, jeda 0.5 detik sebelum reveal kata kunci"> | Traits: <karakteristik vokal, misal: deep voice, energetic> | Sync: <audio event yang SYNC dengan visual — misal: "[SFX: impact] tepat saat kamera snap-zoom, [BGM] fade in di detik ke-2 bersamaan dengan ambient light warm masuk">${audioTrendNote}`;
 
     formatOutputWajib += `\n## SCENE 1\nNARASI: [${narasiExample}]\nTEKS OVERLAY: [Teks singkat yang muncul di layar (maks 3-7 kata), atau strip "—" jika tanpa overlay]\nPANDUAN SUARA: [${panduanSuaraExample}]\nVISUAL PROMPT: [${visualPromptInstruction}]${arSuffix}\nDURASI: [Estimasi durasi adegan dalam detik, contoh: 5 detik]\n`;
-    formatOutputWajib += `\n## SCENE 2\nNARASI: [Narasi / dialog adegan kedua]\nTEKS OVERLAY: [Teks overlay layar adegan kedua]\nPANDUAN SUARA: [${panduanSuaraExample}]\nVISUAL PROMPT: [Tulis prompt visual adegan kedua, formula 5-bagian, bahasa Inggris.]${arSuffix}\nDURASI: [Estimasi durasi]\n`;
+    formatOutputWajib += `\n## SCENE 2\nNARASI: [Narasi / dialog adegan kedua]\nTEKS OVERLAY: [Teks overlay layar adegan kedua]\nPANDUAN SUARA: [${panduanSuaraExample}]\nVISUAL PROMPT: [Tulis prompt visual adegan kedua secara TEMPORAL (klip berjalan, bukan snapshot): deskripsikan Subject Micro-Action, Environment Dynamics, dan Camera Movement + Timing, bahasa Inggris.]${arSuffix}\nDURASI: [Estimasi durasi]\n`;
 
     const sceneCount = videoConfig.targetSceneCount;
     if (sceneCount && sceneCount > 2) {
@@ -753,10 +761,13 @@ Terapkan langkah tambahan berikut untuk SETIAP scene:
   const allGuidelines = `
 ${structural.viralGuidelineSection}
 
-[PANDUAN PEMERKAYAAN VISUAL PROMPT]
+[PANDUAN PEMERKAYAAN VISUAL PROMPT — TEMPORAL CLIP, BUKAN SNAPSHOT STATIS]
 1. Baca NARASI per scene terlebih dahulu, lalu buat Visual Prompt secara dinamis, metaforis, dan sangat ilustratif (HINDARI penerjemahan harfiah/literal).
-2. FORMULA WAJIB: [Shot Type & Camera Angle], [Subject & Action], [Environment & Lighting], [Camera Movement/Composition], [Style/Aesthetic].
-3. Pergerakan kamera aktif (khusus video): "slow push-in", "sweeping orbital", "crane down and tilt up", "zoom out to reveal".
+2. WAJIB DESKRIPSIKAN SCENE SECARA TEMPORAL — bukan foto diam. Setiap Visual Prompt harus menggambarkan apa yang TERJADI selama durasi scene berlangsung, bukan hanya kondisi awal:
+   - Beat Pembuka (0–2 detik): kondisi awal / establishing visual
+   - Beat Inti (tengah): aksi utama subjek / perubahan dinamis yang terjadi
+   - Beat Akhir / Transisi: resolusi visual atau momen yang mempersiapkan perpindahan ke scene berikutnya
+3. Pergerakan kamera aktif (khusus video): deskripsikan KAPAN gerakan dimulai, kapan settling/berhenti, dan apakah ada easing (misal: "starts immediately, eases to rest at mid-scene before settling static for final 2 seconds").
 4. DILARANG menampilkan visual secara harfiah. Gunakan metafora visual (misal: DNA → glowing double-helix hologram, bukan gambar manusia berdiri).
 ${resolvedVisualStyle
   ? `5. GAYA ESTETIKA VISUAL WAJIB PER SCENE: "${resolvedVisualStyle}" — Terapkan gaya ini secara konsisten di SETIAP scene dalam bagian [Style/Aesthetic] Visual Prompt. Wajib dilebur ke dalam kalimat deskriptif secara natural, bukan ditempel sebagai tag terpisah di akhir kalimat.`
@@ -764,6 +775,15 @@ ${resolvedVisualStyle
 }
 6. KEBEBASAN ERA & KONTEKS: Kecuali topik secara eksplisit membutuhkan era historis tertentu, HINDARI setting historis spesifik (Romawi kuno, Yunani kuno, era abad pertengahan, dll.). Visualisasikan konsep secara kontemporer, metaforis, atau universal — karakter, pakaian, lingkungan, dan environment HARUS bisa ditempatkan di era, budaya, dan lokasi manapun. Gunakan abstraksi visual yang melampaui waktu.
 7. DILARANG mencantumkan parameter referensi kosong seperti "--cref [url]" atau "--sref [url]" jika data URL tidak disediakan.
+
+[PANDUAN DINAMISME LINGKUNGAN — ENVIRONMENTAL ACTIVITY LAYER]
+Setiap scene WAJIB memiliki minimal 1 elemen lingkungan yang BERGERAK atau BERUBAH secara dinamis selama durasi scene — ini yang membedakan video hidup dari slideshow. Elemen dinamis HARUS disebutkan secara eksplisit di dalam Visual Prompt:
+- Indoor / Studio: uap kopi mengepul perlahan, kipas angin blur di latar, bayangan venetian blind berpindah seiring matahari, cahaya monitor berkedip-kedip soft, dry ice smoke melayang di permukaan meja
+- Outdoor / Kota: kendaraan bokeh blur melintas latar, neon sign berkedip ritmis, asap tipis dari manhole/saluran, hujan rintik di permukaan aspal, bayangan pohon bergerak karena angin
+- Produk / Commercial: glare highlight berpindah di permukaan produk seiring kamera bergerak, rim light yang bergeser secara halus, uap atau partikel glossy di area produk
+- Alam: dedaunan bergerak halus karena angin, dappled light berpindah di permukaan air, bayangan awan bergerak cepat di lanskap, refleksi langit di permukaan basah
+- Abstrak / Sinematik: partikel cahaya melayang perlahan, volumetric light beam bergerak, color grading yang secara bertahap bergeser dari dingin ke hangat atau sebaliknya dalam satu scene
+PRINSIP: Elemen dinamis ini boleh minor dan subtle — tidak harus dominan. Tujuannya membuat dunia di dalam frame terasa HIDUP, bukan dibekukan.
 ${thumbnailGuidelineSection}
 ${factualGroundingBlock}
 
@@ -782,6 +802,20 @@ ${videoLoopGuidelinesText}
 [KONSISTENSI VISUAL KARAKTER]
 1. Jika ada karakter utama berulang di beberapa scene, deskripsikan ciri fisiknya 100% konsisten di setiap scene tempat dia muncul.
 2. Jika scene tidak membutuhkan karakter (b-roll produk, pemandangan, transisi), tulis visual bebas tanpa memaksakan kehadiran karakter.
+
+[KONSISTENSI COLOR GRADE & LUT ANTAR-SCENE]
+Tentukan dan pertahankan satu palet warna dominan yang konsisten di seluruh naskah, seolah seluruh video dirender dengan LUT yang sama. Pilih satu dari kategori berikut berdasarkan mood narasi, lalu terapkan secara konsisten:
+- Warm & Golden (Nostalgic / Inspiratif): amber, golden hour orange, honey tones — cocok untuk storytelling personal, edukasi hangat, produk lifestyle
+- Cool & Teal (Sinematik / Profesional): teal shadows, cool highlights, steel blue midtones — cocok untuk konten teknologi, bisnis, atau atmosfer urban
+- Desaturated & Gritty (Dokumenter / Raw): muted colors, slight grain, lifted shadows — cocok untuk konten faktual, geopolitik, berita
+- High Contrast & Vivid (Energetik / Viral): punchy saturation, deep blacks, vibrant highlights — cocok untuk hook kuat, konten aksi, dan motivasi
+- Monochromatic Accent (Artistik / Branded): dominasi satu warna dengan satu accent warna komplementer — cocok untuk branding channel yang kuat
+
+ATURAN WAJIB:
+1. Sebutkan palet warna/LUT yang dipilih SEKALI di Scene 1 sebagai anchor (misal: "warm amber color grade, golden-teal split tone").
+2. Referensikan palet yang sama di setiap Visual Prompt berikutnya dengan frasa singkat (misal: "matching warm amber grade", "consistent teal LUT", "same desaturated gritty tone").
+3. DILARANG mengubah color grade antar-scene tanpa alasan naratif eksplisit. Perubahan hanya diperbolehkan jika narasi sendiri mengindikasikan pergeseran emosi atau waktu (misal: flashback → lebih desaturated, reveal klimaks → saturasi naik secara dramatis).
+4. Jika ada elemen dynamis dalam-scene (misal: ambient light bergeser dari cool ke warm), ini BERBEDA dari perubahan LUT — pergerakan cahaya dalam scene diizinkan selama LUT dasar tetap konsisten.
 
 ${structural.pacingGuidelineSection}
 

@@ -2,6 +2,112 @@
 
 ---
 
+## [#62] — 2026-09-21 | Enhancement: Anti-Static Scene System — Temporal Visual Prompt, Environmental Dynamism & Color Grade Consistency
+
+### Problem Statement
+
+Dari audit output generator, scene yang dihasilkan terasa **statis dan kurang dinamis** dibanding referensi video profesional. Root cause ditemukan bukan di narasi (yang sudah mature), melainkan di instruksi **Visual Prompt** yang masih menggunakan paradigma "describe a frame" (snapshot statis) bukan "describe a clip" (temporal kejadian selama durasi).
+
+**5 akar masalah yang diidentifikasi:**
+1. Visual Prompt formula 5-bagian hanya mendeskripsikan kondisi awal scene — tidak ada instruksi tentang apa yang terjadi *selama* durasi berlangsung
+2. Tidak ada "Intra-Scene Event Arc" — AI tidak diinstruksikan bahwa durasi 5-10 detik harus berisi sub-kejadian berurutan
+3. Camera Movement PRO tidak menyertakan timing/easing — gerakan mekanik konstan dari detik 0 sampai akhir
+4. Tidak ada instruksi Environmental Dynamism — latar belakang selalu diam
+5. PANDUAN SUARA hanya menginstruksikan intonasi VO, tidak ada audio-visual sync timing
+
+### Implementasi
+
+**File:** `src/lib/promptGenerator.ts`
+
+#### Fix 1 — Visual Prompt: Snapshot → Temporal Clip Description
+
+`visualPromptInstruction` (baris ~662) diubah dari formula 5-bagian statis menjadi **5-layer temporal** yang mendeskripsikan klip berjalan:
+
+| Layer | Sebelum | Sesudah |
+|---|---|---|
+| Shot Type | ✅ Ada | ✅ Tetap |
+| Subject & Action | Posisi statis | **Subject Micro-Action** — apa yang subjek lakukan & berubah *selama* scene |
+| Environment | Kondisi awal | **Environment Dynamics** — min. 1 elemen lingkungan yang bergerak/berubah |
+| Camera | Jenis gerakan saja | **Camera Movement + Timing** — jenis + kapan mulai + kapan settling + easing |
+| Style | ✅ Ada | ✅ Tetap |
+
+Contoh output sebelum: `"slow push-in, person talking, warm light, cinematic style"`
+Contoh output sesudah: `"Medium shot dollying in slowly — beginning at scene open, easing to rest as character leans forward mid-sentence — subject's fingers trace the edge of a glowing map with deliberate hesitation, breath misting faintly in cold studio air, background neon-sign reflections pulse rhythmically on rain-streaked glass, ambient key light gradually warming from cool-blue to amber as scene progresses, cinematic volumetric side lighting, neo-noir aesthetic"`
+
+#### Fix 2 — PANDUAN SUARA: Tambah Audio-Visual Sync Timing
+
+Field `PANDUAN SUARA` kini memiliki field `Sync` tambahan:
+```
+Sync: <audio event yang SYNC dengan visual — misal: "[SFX: impact] tepat saat kamera snap-zoom, [BGM] fade in di detik ke-2 bersamaan dengan ambient light warm masuk">
+```
+
+#### Fix 3 — Camera Movement PRO: Prinsip 8 + Prinsip 9 Baru
+
+**Prinsip 8 diperbarui** — format wajib kini menyertakan TIMING:
+```
+[Jenis Gerakan] + [TIMING: kapan dimulai & kapan settling/berhenti + easing] + [Kualitas/Kecepatan] + [Konteks Naratif]
+```
+
+**Prinsip 9 baru — INTRA-SCENE CHANGE (WAJIB ≥5 detik):**
+Kamera tidak boleh bergerak kecepatan konstan dari detik 0 sampai akhir. Wajib minimal 1 perubahan: perubahan kecepatan (accelerate then decelerate), momen settling singkat, atau rack focus yang terkoordinasi dengan aksi subjek.
+
+Closing note diperbarui dari "8 prinsip" → "9 prinsip".
+
+#### Fix 4 — Environmental Dynamism Layer (Blok Baru di `allGuidelines`)
+
+Blok baru `[PANDUAN DINAMISME LINGKUNGAN — ENVIRONMENTAL ACTIVITY LAYER]` dengan 5 kategori:
+
+| Kategori | Contoh Elemen Dinamis |
+|---|---|
+| Indoor / Studio | uap kopi mengepul, kipas angin blur, bayangan venetian blind berpindah |
+| Outdoor / Kota | kendaraan bokeh blur, neon sign berkedip, hujan rintik di aspal |
+| Produk / Commercial | glare highlight berpindah, rim light bergeser, uap/partikel glossy |
+| Alam | dedaunan bergerak, dappled light di permukaan air, refleksi langit |
+| Abstrak / Sinematik | partikel melayang, volumetric beam bergerak, color grade shift dalam-scene |
+
+**Prinsip:** Elemen dinamis boleh minor dan subtle — tujuannya membuat dunia terasa HIDUP, bukan dibekukan.
+
+#### Fix 5 — `allGuidelines` Header & Temporal Beat Structure
+
+Header diperbarui: `[PANDUAN PEMERKAYAAN VISUAL PROMPT — TEMPORAL CLIP, BUKAN SNAPSHOT STATIS]`
+
+Point 2 kini mendefinisikan 3-beat temporal per scene:
+- **Beat Pembuka (0–2 detik)**: kondisi awal / establishing visual
+- **Beat Inti (tengah)**: aksi utama subjek / perubahan dinamis
+- **Beat Akhir / Transisi**: resolusi visual / mempersiapkan perpindahan ke scene berikutnya
+
+#### Fix 6 — Scene 2 Template Konsisten
+
+Template placeholder Scene 2 diperbarui dari `"formula 5-bagian"` (paradigma lama) menjadi:
+```
+"Tulis prompt visual adegan kedua secara TEMPORAL (klip berjalan, bukan snapshot): deskripsikan Subject Micro-Action, Environment Dynamics, dan Camera Movement + Timing, bahasa Inggris."
+```
+
+#### Fix 7 — Color Grade & LUT Consistency (Feature Baru)
+
+Blok baru `[KONSISTENSI COLOR GRADE & LUT ANTAR-SCENE]` yang menginstruksikan AI menetapkan satu palet warna dominan di Scene 1 sebagai "anchor" dan mempertahankannya di seluruh naskah:
+
+| Palet | Mood | Use Case |
+|---|---|---|
+| Warm & Golden | Nostalgic / Inspiratif | Storytelling personal, lifestyle |
+| Cool & Teal | Sinematik / Profesional | Teknologi, bisnis, urban |
+| Desaturated & Gritty | Dokumenter / Raw | Faktual, geopolitik, berita |
+| High Contrast & Vivid | Energetik / Viral | Hook kuat, aksi, motivasi |
+| Monochromatic Accent | Artistik / Branded | Branding channel kuat |
+
+**Aturan Wajib:**
+1. Sebutkan palet SEKALI di Scene 1 sebagai anchor
+2. Referensikan dengan frasa singkat di setiap scene berikutnya ("matching warm amber grade", "consistent teal LUT")
+3. DILARANG mengubah color grade antar-scene tanpa alasan naratif eksplisit
+4. Pergerakan cahaya dalam-scene ≠ perubahan LUT (diizinkan selama LUT dasar konsisten)
+
+### Files Modified
+| File | Perubahan |
+|------|-----------|
+| `src/lib/promptGenerator.ts` | Fix 1–7: Visual Prompt temporal, PANDUAN SUARA Sync, Camera PRO Prinsip 8–9, Environmental Dynamism, allGuidelines header, Scene 2 template, Color Grade Consistency |
+
+---
+
 ## [#61] — 2026-09-21 | Feature: Factual Visual Grounding Layer — Kondisional, Zero-Impact Niche Lain
 
 ### Problem Statement
