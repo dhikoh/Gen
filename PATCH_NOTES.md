@@ -2,6 +2,76 @@
 
 ---
 
+## [#61] — 2026-09-21 | Feature: Factual Visual Grounding Layer — Kondisional, Zero-Impact Niche Lain
+
+### Problem Statement
+
+Dari audit output script *Democracy vs. Monarchy: Which One Handles a Crisis Faster?*, visual prompt yang dihasilkan terlalu abstrak/metaforis meski narasi mengandung fakta dunia nyata:
+
+- **Scene 1–2** (Saudi Arabia tutup akses Masjidil Haram, Feb 27 2020) → visual: *gerbang emas generik + bayangan bermahkota* — tidak ada elemen yang recognizable sebagai Arab/Islam.
+- **Scene 3–4** (Parlemen Swedia, pandemi modern 2020) → visual: *labirin batu + gulungan kertas* — terlihat seperti setting abad pertengahan, bukan demokrasi modern.
+- **Scene 6** (studi 64 negara, twist terbesar) → visual: *bar chart di perpustakaan antik* — undersell momen data paling krusial.
+
+Root cause: `[PANDUAN PEMERKAYAAN VISUAL PROMPT]` mengajarkan cara *format* visual, tapi tidak mengajarkan cara **mengekstrak dan mengunci fakta spesifik dari narasi** ke dalam elemen visual yang recognizable — khususnya untuk konten faktual/dokumenter.
+
+### Desain: Conditional — Zero-Impact untuk Niche Lain
+
+Layer ini dirancang tidak mengganggu user niche lifestyle, cooking, fiksi, motivasi, fashion, atau beauty. Blok instruksi hanya disuntikkan ke master prompt jika **minimal 2 sinyal faktual berbeda** terdeteksi dari topik + konteks tambahan.
+
+### Implementasi
+
+**File:** `src/lib/promptGenerator.ts`
+
+**Fungsi classifier baru — `detectFactualContent(topic, additionalContext)`:**
+
+```typescript
+function detectFactualContent(topic: string, additionalContext: string): boolean {
+  const combined = `${topic} ${additionalContext}`;
+
+  // Sinyal 1: Angka statistik dengan satuan faktual
+  const hasStatisticalData = /\b\d+\s*(negara|countries|persen|percent|%|juta|million|...)\b/i.test(combined);
+
+  // Sinyal 2: Tahun spesifik (1800–2030)
+  const hasSpecificYear = /\b(1[89]\d{2}|20[012]\d)\b/.test(combined);
+
+  // Sinyal 3: Kata kunci dokumenter
+  const hasDocumentaryKeywords = /\b(studi|penelitian|laporan|study|research|found|...)\b/i.test(combined);
+
+  // Sinyal 4: Entitas geopolitik / institusi nyata
+  const hasGeoEntity = /\b(parlemen|parliament|pemerintah|government|pandemi|pandemic|...)\b/i.test(combined);
+
+  return [hasStatisticalData, hasSpecificYear, hasDocumentaryKeywords, hasGeoEntity]
+    .filter(Boolean).length >= 2;
+}
+```
+
+**Blok instruksi kondisional disuntik setelah `[PANDUAN PEMERKAYAAN VISUAL PROMPT]`:**
+
+```
+[PANDUAN VISUAL CONTEXT GROUNDING — KONTEN FAKTUAL TERDETEKSI]
+1. EKSTRAKSI FAKTA PER-SCENE: siapa? di mana? kapan? apa?
+2. ELEMEN VISUAL KONTEKSTUAL WAJIB: elemen recognizable per konteks faktual
+   (Arab → kubah/kaligrafi, parlemen modern → bangku sidang/layar voting, dst.)
+3. ANTI-AMBIGUITAS: visual DILARANG disalahartikan sebagai era berbeda dari narasi
+4. KESEIMBANGAN ESTETIKA-KONTEKS: elemen faktual dilebur ke dalam estetika terpilih
+```
+
+### Dampak Per Niche
+
+| Niche | Sinyal Faktual | Layer Aktif |
+|---|---|---|
+| Geopolitik / Edukasi | ≥2 sinyal | ✅ Aktif |
+| Sejarah / Documentary | ≥2 sinyal | ✅ Aktif |
+| Lifestyle / Wellness | 0–1 sinyal | ❌ Tidak aktif |
+| Cooking / Food | 0–1 sinyal | ❌ Tidak aktif |
+| Motivasi / Quotes | 0–1 sinyal | ❌ Tidak aktif |
+| Fiksi / Storytelling | 0–1 sinyal | ❌ Tidak aktif |
+| Fashion / Beauty | 0–1 sinyal | ❌ Tidak aktif |
+
+**Threshold 2 sinyal** memastikan: topik "pandemi" sendiri (1 sinyal) → tidak aktif. Topik "pandemi 2020 + studi 64 negara" (3 sinyal) → aktif.
+
+---
+
 ## [#60] — 2026-09-21 | Fix + Feature: Visual Style — Fallback Otomatis + Custom Input di Generator Studio
 
 ### Problem Statement (dari Audit Visual Prompt)

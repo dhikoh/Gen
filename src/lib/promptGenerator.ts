@@ -250,6 +250,41 @@ export function buildStructuralInstructions(
   };
 }
 
+/**
+ * Detects whether topic/context contains real-world factual signals
+ * that require Visual Context Grounding enrichment.
+ *
+ * Returns true ONLY when ≥2 distinct factual signal types are detected.
+ * This threshold prevents false positives on borderline topics (e.g. topik
+ * "pandemi" sendiri = 1 sinyal → tidak aktif; "pandemi 2020 + studi 64 negara"
+ * = 3 sinyal → aktif).
+ *
+ * Niche yang tidak terpengaruh: lifestyle, cooking, fiksi, motivasi, fashion,
+ * beauty — mereka biasanya menghasilkan 0–1 sinyal sehingga tidak pernah aktif.
+ *
+ * Feature #61 — Factual Visual Grounding Layer
+ */
+function detectFactualContent(topic: string, additionalContext: string): boolean {
+  const combined = `${topic} ${additionalContext}`;
+
+  // Sinyal 1: Angka statistik dengan satuan faktual
+  const hasStatisticalData = /\b\d+\s*(negara|countries|persen|percent|%|juta|million|miliar|billion|responden|sampel|studi|penelitian|kasus|cases)\b/i.test(combined);
+
+  // Sinyal 2: Tahun spesifik dalam rentang historis modern (1800–2030)
+  const hasSpecificYear = /\b(1[89]\d{2}|20[012]\d)\b/.test(combined);
+
+  // Sinyal 3: Kata kunci dokumenter / faktual
+  const hasDocumentaryKeywords = /\b(studi|penelitian|data\s+menunjukkan|laporan|survei|temuan|study|research|found|report|according\s+to|berdasarkan|faktanya|evidence|statistics|statistik|menurut\s+data)\b/i.test(combined);
+
+  // Sinyal 4: Entitas geopolitik / institusi nyata
+  const hasGeoEntity = /\b(parlemen|parliament|congress|senate|pemerintah|government|kebijakan|policy|undang-undang|legislation|regulasi|regulation|krisis|crisis|pandemi|pandemic|WHO|PBB|UN\b|NATO|ASEAN|monarki|monarchy|demokrasi|democracy|kediktatoran|dictatorship|rezim|regime|militer|military)\b/i.test(combined);
+
+  const signalCount = [hasStatisticalData, hasSpecificYear, hasDocumentaryKeywords, hasGeoEntity]
+    .filter(Boolean).length;
+
+  return signalCount >= 2;
+}
+
 export function generateMasterPrompt(
   channel: ProfileChannelData,
   topic: string,
@@ -666,6 +701,55 @@ PENTING: Tulis URL pencarian yang VALID dan LENGKAP dengan nama produk sudah di-
 5. FORMULA WAJIB PROMPT THUMBNAIL: [Shot Type (Close-up / Medium Close-up)], [Main Subject with Intense Facial Emotion & Action], [Atmospheric Environment with Clean Negative Space on One Side], [Cinematic Lighting & Striking Color Grading], [Aesthetic Style, Ultra-sharp 8k details].`
     : "";
 
+  // ── Feature #61: Factual Visual Grounding Layer ──────────────────────────
+  // Hanya aktif jika topik/konteks mengandung ≥2 sinyal faktual nyata.
+  // Niche lifestyle/cooking/fiksi/motivasi tidak pernah memenuhi threshold ini.
+  const isFactualContent = detectFactualContent(topic, additionalContext);
+  const factualGroundingBlock = isFactualContent
+    ? `
+[PANDUAN VISUAL CONTEXT GROUNDING — KONTEN FAKTUAL TERDETEKSI]
+Topik ini mengandung fakta dunia nyata (entitas, lokasi, data, atau peristiwa spesifik).
+Terapkan langkah tambahan berikut untuk SETIAP scene:
+
+1. EKSTRAKSI FAKTA PER-SCENE: Sebelum menulis Visual Prompt, identifikasi dari NARASI scene:
+   - Siapa? (negara, institusi, tokoh, organisasi spesifik)
+   - Di mana? (lokasi spesifik, landmark, kota, bangunan ikonik)
+   - Kapan? (era, tahun, tanggal konkret)
+   - Apa? (peristiwa, keputusan, atau fenomena konkret yang terjadi)
+
+2. ELEMEN VISUAL KONTEKSTUAL WAJIB: Sisipkan minimal 1-2 elemen visual yang SPESIFIK
+   dan RECOGNIZABLE untuk konteks faktual tersebut, bahkan dalam estetika stylized:
+   - Entitas Arab/Timur Tengah → kubah masjid bergaya estetika terpilih, kaligrafi
+     Arab stilasi, siluet menara adzan, lanskap gurun ikonik
+   - Eropa Utara / Skandinavia → arsitektur modern minimalis, interior parlemen bersih
+     dengan bangku kayu modern dan layar digital, warna netral nordik
+   - Parlemen / Demokrasi modern (abad ke-21) → bangku sidang modern, layar voting
+     digital, aula formal terang, jas profesional kontemporer
+   - Data / Studi ilmiah → bar chart atau grafik kontemporer dengan angka yang terbaca,
+     setting kantor riset modern, laptop/monitor dengan spreadsheet
+   - Era Pandemi (2020–2022) → suasana kota lengang kontemporer, elemen masker
+     medis stilasi, visual infrastruktur kesehatan modern
+   - Konflik / Krisis geopolitik → peta dunia bergaya estetika terpilih, siluet
+     delegasi di meja perundingan, elemen bendera atau simbol negara yang relevan
+
+3. ANTI-AMBIGUITAS (WAJIB): Visual DILARANG disalahartikan sebagai era atau konteks
+   yang berbeda dari fakta narasi:
+   - Narasi menyebut "parlemen modern 2020" → WAJIB setting kontemporer, BUKAN
+     kastil, labirin batu, atau gulungan kertas abad pertengahan
+   - Narasi menyebut "studi ilmiah" → WAJIB visual riset modern, BUKAN perpustakaan
+     antik dengan lilin dan perkamen
+   - Narasi menyebut lokasi Arab → WAJIB ada 1+ elemen ikonik Islam/Arab yang
+     recognizable, meski dirender dalam estetika Ghibli/watercolor sekalipun
+
+4. KESEIMBANGAN ESTETIKA-KONTEKS: Elemen faktual dilebur KE DALAM estetika yang
+   dipilih — bukan mengganti estetika. Tujuannya: penonton mengenali konteks
+   SEKALIGUS menikmati gaya visual. Contoh:
+   - "kubah masjid bergaya Ghibli watercolor dengan detail kaligrafi stilasi"
+   - "bar chart modern yang bersinar dengan Pixar 3D render style"
+   - "aula parlemen Skandinavia dengan flat-vector illustration aesthetic"
+`
+    : "";
+
   const allGuidelines = `
 ${structural.viralGuidelineSection}
 
@@ -681,6 +765,7 @@ ${resolvedVisualStyle
 6. KEBEBASAN ERA & KONTEKS: Kecuali topik secara eksplisit membutuhkan era historis tertentu, HINDARI setting historis spesifik (Romawi kuno, Yunani kuno, era abad pertengahan, dll.). Visualisasikan konsep secara kontemporer, metaforis, atau universal — karakter, pakaian, lingkungan, dan environment HARUS bisa ditempatkan di era, budaya, dan lokasi manapun. Gunakan abstraksi visual yang melampaui waktu.
 7. DILARANG mencantumkan parameter referensi kosong seperti "--cref [url]" atau "--sref [url]" jika data URL tidak disediakan.
 ${thumbnailGuidelineSection}
+${factualGroundingBlock}
 
 [PANDUAN ANTI-DETEKSI AI & NATURALISASI BAHASA]
 1. Burstiness: Kombinasikan kalimat pendek, sedang, dan panjang secara dinamis. Gunakan kalimat 1-2 kata untuk penekanan dramatis.

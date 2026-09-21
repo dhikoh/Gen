@@ -31,8 +31,10 @@ Setiap klaim fitur di bawah ini diverifikasi dengan referensi file dan endpoint 
 - **Form UI Generator Presisi**: [`src/components/generator/GeneratorForm.tsx`](file:///c:/Users/Dhiko%20Herlambang/.gemini/antigravity/playground/pulsing-pinwheel/Project/Prompt%20Gen/src/components/generator/GeneratorForm.tsx)
 - **Slider Komposisi Edukasi/Hiburan/Marketing (Locking)**: [`src/components/generator/CompositionSliderGroup.tsx`](file:///c:/Users/Dhiko%20Herlambang/.gemini/antigravity/playground/pulsing-pinwheel/Project/Prompt%20Gen/src/components/generator/CompositionSliderGroup.tsx)
 - **Engine Generator Video Presisi**: [`src/lib/promptGenerator.ts`](file:///c:/Users/Dhiko%20Herlambang/.gemini/antigravity/playground/pulsing-pinwheel/Project/Prompt%20Gen/src/lib/promptGenerator.ts)
+  - **(#61) Factual Visual Grounding Layer**: Fungsi `detectFactualContent()` mendeteksi sinyal faktual (angka statistik, tahun spesifik, kata kunci dokumenter, entitas geopolitik) dan menyuntikkan `[PANDUAN VISUAL CONTEXT GROUNDING]` secara kondisional — hanya aktif ketika ≥2 sinyal terdeteksi. Niche lifestyle/cooking/fiksi/motivasi tidak terpengaruh.
 - **Engine Generator Gambar Presisi**: [`src/lib/imagePromptGenerator.ts`](file:///c:/Users/Dhiko%20Herlambang/.gemini/antigravity/playground/pulsing-pinwheel/Project/Prompt%20Gen/src/lib/imagePromptGenerator.ts)
 - **API Route Generator & Logic Fallback Niche**: [`src/app/api/generate/route.ts`](file:///c:/Users/Dhiko%20Herlambang/.gemini/antigravity/playground/pulsing-pinwheel/Project/Prompt%20Gen/src/app/api/generate/route.ts)
+
 
 ### 2.4 Manajemen Draft & Template
 - **CRUD Drafts & Estimasi Durasi Naskah**: [`src/app/api/drafts/route.ts`](file:///c:/Users/Dhiko%20Herlambang/.gemini/antigravity/playground/pulsing-pinwheel/Project/Prompt%20Gen/src/app/api/drafts/route.ts)
