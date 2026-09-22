@@ -5,6 +5,8 @@ import toast from "react-hot-toast";
 import sanitizeHtml from "sanitize-html";
 import { extractAudioCues, cleanParsedValue, parseVoiceGuidelines, extractTitles, extractChosenTitle, extractThumbnailData, extractCaption, extractHashtags, extractHtmlBlog, extractAffiliateRecommendations } from "@/lib/parsers";
 import type { ThumbnailData, AffiliateRecommendation } from "@/lib/parsers";
+import { GEMINI_TTS_VOICES, GEMINI_TTS_MODELS, DEFAULT_TTS_VOICE, DEFAULT_TTS_MODEL } from "@/lib/ttsVoices";
+import { buildOverlayVisualCopyText, buildBatchExportText, type SceneForExport } from "@/lib/sceneExportFormat";
 
 interface Scene {
   id: number;
@@ -23,7 +25,18 @@ interface Scene {
   };
 }
 interface Channel { id: string; channelName: string; niche?: string | null; }
-interface Props { channels: Channel[]; locale: string; }
+interface Props {
+  channels: Channel[];
+  locale: string;
+  planFeatures: { textToSpeechStudio: boolean };
+}
+
+interface TtsResult {
+  status: "idle" | "generating" | "done" | "error";
+  audioBase64?: string;
+  mimeType?: string;
+  errorMessage?: string;
+}
 
 function parseScenes(text: string): Scene[] {
   if (!text.trim()) return [];
@@ -82,7 +95,7 @@ function parseScenes(text: string): Scene[] {
   return scenes;
 }
 
-export default function ScenePromptStudioClient({ channels }: Props) {
+export default function ScenePromptStudioClient({ channels, planFeatures }: Props) {
  const t = useTranslations("ScenePromptStudio");
  const [rawText, setRawText] = useState("");
  const [scenes, setScenes] = useState<Scene[]>([]);
@@ -103,6 +116,127 @@ export default function ScenePromptStudioClient({ channels }: Props) {
  const [markedTitles, setMarkedTitles] = useState<string[]>([]);
  const [htmlBlog, setHtmlBlog] = useState("");
  const [affiliateRecs, setAffiliateRecs] = useState<AffiliateRecommendation[]>([]);
+
+ // ── TTS State (Fitur 1) ──
+ const [ttsVoice, setTtsVoice] = useState(DEFAULT_TTS_VOICE);
+ const [ttsModel, setTtsModel] = useState<string>(DEFAULT_TTS_MODEL);
+ const [ttsStyleInstruction, setTtsStyleInstruction] = useState("");
+ const [ttsResults, setTtsResults] = useState<Record<number, TtsResult>>({});
+ const [ttsGeneratingAll, setTtsGeneratingAll] = useState(false);
+
+ // ── Batch Selection State (Fitur 3) ──
+ const [selectedSceneIds, setSelectedSceneIds] = useState<Set<number>>(new Set());
+
+ // ── TTS Functions (Fitur 1) ──
+ const buildTtsInputText = useCallback((scene: Scene) => {
+   let text = scene.narasi || "";
+   if (scene.voiceGuidelines) {
+     const vg = scene.voiceGuidelines;
+     const hints: string[] = [];
+     if (vg.traits) hints.push(vg.traits);
+     if (vg.directorsNote) hints.push(vg.directorsNote);
+     if (hints.length) text = `[${hints.join("; ")}] ${text}`;
+   }
+   return text;
+ }, []);
+
+ const generateSceneTts = useCallback(async (scene: Scene) => {
+   setTtsResults(prev => ({ ...prev, [scene.id]: { status: "generating" } }));
+   try {
+     const text = buildTtsInputText(scene);
+     const res = await fetch("/api/tts/generate", {
+       method: "POST",
+       headers: { "Content-Type": "application/json" },
+       body: JSON.stringify({ text, voice: ttsVoice, model: ttsModel, styleInstruction: ttsStyleInstruction || undefined }),
+     });
+     const data = await res.json();
+     if (data.success) {
+       setTtsResults(prev => ({ ...prev, [scene.id]: { status: "done", audioBase64: data.audioBase64, mimeType: data.mimeType } }));
+       if (data.fallbackOccurred) toast(t("ttsFallbackUsed"), { icon: "⚠️" });
+     } else {
+       setTtsResults(prev => ({ ...prev, [scene.id]: { status: "error", errorMessage: data.error || t("generalError") } }));
+       toast.error(data.error || t("generalError"));
+     }
+   } catch {
+     setTtsResults(prev => ({ ...prev, [scene.id]: { status: "error", errorMessage: t("generalError") } }));
+   }
+ }, [buildTtsInputText, ttsVoice, ttsModel, ttsStyleInstruction, t]);
+
+ const generateAllScenesTts = useCallback(async () => {
+   const eligible = scenes.filter(s => s.narasi !== "—" && !s.isDiegetic);
+   if (!eligible.length) { toast.error(t("noNarrationToCopy")); return; }
+   setTtsGeneratingAll(true);
+   // Controlled concurrency=2
+   const queue = [...eligible];
+   const runNext = async (): Promise<void> => {
+     const scene = queue.shift();
+     if (!scene) return;
+     await generateSceneTts(scene);
+     return runNext();
+   };
+   await Promise.all([runNext(), runNext()]);
+   setTtsGeneratingAll(false);
+   toast.success(t("ttsAllDone"));
+ }, [scenes, generateSceneTts, t]);
+
+ const downloadAllAsZip = useCallback(async () => {
+   const doneScenes = scenes.filter(s => ttsResults[s.id]?.status === "done" && ttsResults[s.id]?.audioBase64);
+   if (!doneScenes.length) return;
+   const JSZip = (await import("jszip")).default;
+   const zip = new JSZip();
+   doneScenes.forEach(s => {
+     const result = ttsResults[s.id];
+     if (result?.audioBase64) {
+       const buf = Uint8Array.from(atob(result.audioBase64), c => c.charCodeAt(0));
+       zip.file(`${s.sceneNumber.replace(/\s+/g, "_")}.wav`, buf);
+     }
+   });
+   const blob = await zip.generateAsync({ type: "blob" });
+   const url = URL.createObjectURL(blob);
+   const a = document.createElement("a");
+   a.href = url; a.download = `voice_studio_${draftTitle || "scenes"}.zip`;
+   a.click();
+   URL.revokeObjectURL(url);
+   toast.success(t("ttsZipDownloaded"));
+ }, [scenes, ttsResults, draftTitle, t]);
+
+ // ── Batch Export Functions (Fitur 2 & 3) ──
+ const handleCopyOverlayVisual = useCallback((scene: Scene) => {
+   const text = buildOverlayVisualCopyText(scene as SceneForExport);
+   if (!text) { toast.error(t("generalError")); return; }
+   navigator.clipboard.writeText(text).then(() => {
+     setCopiedId(`ov-vis-${scene.id}`);
+     setTimeout(() => setCopiedId(null), 2000);
+     toast.success(t("copyOverlayVisualSuccess"));
+   });
+ }, [t]);
+
+ const handleCopyBatchExport = useCallback(() => {
+   const selected = scenes.filter(s => selectedSceneIds.has(s.id));
+   if (!selected.length) { toast.error(t("selectAtLeastOneScene")); return; }
+   const text = buildBatchExportText(selected as SceneForExport[]);
+   navigator.clipboard.writeText(text).then(() => {
+     setCopiedId("batch-export");
+     setTimeout(() => setCopiedId(null), 2000);
+     toast.success(t("batchExportCopied"));
+   });
+ }, [scenes, selectedSceneIds, t]);
+
+ const toggleAllScenes = useCallback(() => {
+   if (selectedSceneIds.size === scenes.length) {
+     setSelectedSceneIds(new Set());
+   } else {
+     setSelectedSceneIds(new Set(scenes.map(s => s.id)));
+   }
+ }, [scenes, selectedSceneIds]);
+
+ const toggleScene = useCallback((id: number) => {
+   setSelectedSceneIds(prev => {
+     const next = new Set(prev);
+     if (next.has(id)) next.delete(id); else next.add(id);
+     return next;
+   });
+ }, []);
 
  const handleMarkAsUsed = async (title: string) => {
   if (!selectedChannelId) { toast.error(t("selectChannelFirst")); return; }
@@ -204,6 +338,8 @@ export default function ScenePromptStudioClient({ channels }: Props) {
  if (!rawText.trim()) return;
  const parsed = parseScenes(rawText);
  setScenes(parsed);
+ setSelectedSceneIds(new Set(parsed.map(s => s.id))); // auto-select semua scene
+ setTtsResults({}); // reset TTS results
  setCaption(extractCaption(rawText));
  setHashtags(extractHashtags(rawText));
  setThumbnailData(extractThumbnailData(rawText));
@@ -473,28 +609,54 @@ export default function ScenePromptStudioClient({ channels }: Props) {
     {/* Scene Viewer Actions Toolbar */}
     <div className="flex flex-wrap items-center justify-between gap-3 glass-panel rounded-xl px-4 py-3 border border-slate-200/60 dark:border-slate-800/60 shadow-sm">
       <div className="flex items-center gap-2">
+        {/* Select All Checkbox */}
+        <input
+          type="checkbox"
+          checked={selectedSceneIds.size === scenes.length && scenes.length > 0}
+          onChange={toggleAllScenes}
+          className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 accent-blue-600"
+          title={t("selectAllScenes")}
+        />
         <span className="text-sm font-bold pg-text-heading flex items-center gap-1.5">
           <span>🎬</span> {t("sceneViewerTab")}
         </span>
         <span className="text-xs pg-surface-dim px-2.5 py-0.5 rounded-full pg-text-muted font-medium">
-          {scenes.length} {t("scenesFound")}
+          {selectedSceneIds.size}/{scenes.length} {t("scenesFound")}
         </span>
       </div>
-      <button
-        type="button"
-        onClick={copyAllNarration}
-        className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-sm active:scale-95"
-        title={t("copyAllNarasi")}
-      >
-        <span>🎤</span>
-        {copiedId === "all-narration" ? `✓ ${t("allNarasiCopied")}` : t("copyAllNarasi")}
-      </button>
+      <div className="flex items-center gap-2 flex-wrap">
+        <button
+          type="button"
+          onClick={handleCopyBatchExport}
+          disabled={selectedSceneIds.size === 0}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white transition-all shadow-sm active:scale-95 disabled:opacity-40"
+          title={t("copyBatchExport")}
+        >
+          <span>📦</span>
+          {copiedId === "batch-export" ? `✓ ${t("batchExportCopied")}` : t("copyBatchExport")}
+        </button>
+        <button
+          type="button"
+          onClick={copyAllNarration}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-sm active:scale-95"
+          title={t("copyAllNarasi")}
+        >
+          <span>🎤</span>
+          {copiedId === "all-narration" ? `✓ ${t("allNarasiCopied")}` : t("copyAllNarasi")}
+        </button>
+      </div>
     </div>
 
   {scenes.map(scene => (
   <div key={scene.id} className="glass-panel rounded-xl p-5 space-y-3">
   <div className="flex items-center justify-between">
     <div className="flex items-center gap-2">
+      <input
+        type="checkbox"
+        checked={selectedSceneIds.has(scene.id)}
+        onChange={() => toggleScene(scene.id)}
+        className="w-3.5 h-3.5 rounded border-slate-300 dark:border-slate-600 accent-blue-600"
+      />
       <h3 className="font-bold pg-text-heading">{scene.sceneNumber}</h3>
       {scene.isDiegetic && (
         <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 flex items-center gap-1">
@@ -563,6 +725,18 @@ export default function ScenePromptStudioClient({ channels }: Props) {
       </div>
       <p className="text-xs font-mono pg-text-sub pg-surface-dim rounded p-2 leading-relaxed">{buildVisualPrompt(scene.visual)}</p>
     </div>
+  )}
+
+  {/* Copy Overlay + Visual (Fitur 2) */}
+  {(scene.teksOverlay || (scene.visual && scene.visual !== "—")) && (
+    <button
+      type="button"
+      onClick={() => handleCopyOverlayVisual(scene)}
+      className="inline-flex items-center gap-1.5 text-[10px] font-semibold px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 pg-text-sub hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors w-fit"
+    >
+      <span>📋</span>
+      {copiedId === `ov-vis-${scene.id}` ? `✓ ${t("copyOverlayVisualSuccess")}` : t("copyOverlayVisual")}
+    </button>
   )}
   </div>
   ))}
@@ -893,6 +1067,7 @@ export default function ScenePromptStudioClient({ channels }: Props) {
 
  {/* Platform Content */}
  {activeTab === "platform" && (
+ <div className="space-y-6">
  <div className="glass-panel rounded-xl p-6 space-y-4">
  <h2 className="font-bold pg-text-heading">📱 {t("platformContent")}</h2>
  {caption && (
@@ -913,9 +1088,108 @@ export default function ScenePromptStudioClient({ channels }: Props) {
  <p className="text-sm pg-text-sub pg-surface-dim rounded p-3">{hashtags}</p>
  </div>
  )}
+ </div>
 
-  </div>
-  )}
+ {/* ── Voice Studio (Fitur 1) ── */}
+ {!planFeatures.textToSpeechStudio ? (
+   <div className="glass-panel rounded-xl p-6 border border-amber-200/60 dark:border-amber-800/60 text-center space-y-3">
+     <div className="text-3xl">🔒</div>
+     <h3 className="text-base font-bold pg-text-heading">{t("voiceStudioTitle")}</h3>
+     <p className="text-sm pg-text-muted">{t("voiceStudioLocked")}</p>
+     <a href="/dashboard/billing" className="inline-block px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold rounded-lg transition-colors">
+       {t("voiceStudioUpgrade")}
+     </a>
+   </div>
+ ) : (
+   <div className="glass-panel rounded-xl p-6 border border-indigo-200/60 dark:border-indigo-800/60 space-y-5">
+     <div className="flex items-center justify-between flex-wrap gap-2">
+       <h3 className="text-base font-bold pg-text-heading flex items-center gap-2">
+         <span>🎙️</span> {t("voiceStudioTitle")}
+       </h3>
+       <div className="flex items-center gap-2 flex-wrap">
+         {Object.values(ttsResults).some(r => r.status === "done") && (
+           <button type="button" onClick={downloadAllAsZip}
+             className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-all shadow-sm active:scale-95">
+             <span>📦</span> {t("ttsDownloadAllZip")}
+           </button>
+         )}
+         <button type="button" onClick={generateAllScenesTts} disabled={ttsGeneratingAll}
+           className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-all shadow-sm active:scale-95 disabled:opacity-50">
+           <span>⚡</span> {ttsGeneratingAll ? t("ttsGeneratingAll") : t("ttsGenerateAll")}
+         </button>
+       </div>
+     </div>
+
+     {/* Voice/Model Controls */}
+     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+       <div>
+         <label className="block text-xs font-medium pg-text-sub mb-1">{t("voiceSelectLabel")}</label>
+         <select value={ttsVoice} onChange={e => setTtsVoice(e.target.value)}
+           className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white">
+           {GEMINI_TTS_VOICES.map(v => (
+             <option key={v.id} value={v.id}>{v.id} — {v.styleHint}</option>
+           ))}
+         </select>
+       </div>
+       <div>
+         <label className="block text-xs font-medium pg-text-sub mb-1">{t("ttsModelLabel")}</label>
+         <select value={ttsModel} onChange={e => setTtsModel(e.target.value)}
+           className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white">
+           {GEMINI_TTS_MODELS.map(m => (
+             <option key={m.id} value={m.id}>{m.label}</option>
+           ))}
+         </select>
+       </div>
+       <div>
+         <label className="block text-xs font-medium pg-text-sub mb-1">{t("ttsStyleLabel")}</label>
+         <input value={ttsStyleInstruction} onChange={e => setTtsStyleInstruction(e.target.value)}
+           placeholder={t("ttsStylePlaceholder")}
+           className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white" />
+       </div>
+     </div>
+
+     {/* Per-Scene TTS List */}
+     <div className="space-y-3">
+       {scenes.filter(s => s.narasi !== "—" && !s.isDiegetic).map(scene => {
+         const result = ttsResults[scene.id];
+         const audioSrc = result?.audioBase64 ? `data:${result.mimeType || "audio/wav"};base64,${result.audioBase64}` : null;
+         return (
+           <div key={scene.id} className="rounded-lg p-3 pg-surface-dim border pg-border space-y-2">
+             <div className="flex items-center justify-between gap-2">
+               <div className="flex items-center gap-2 flex-1 min-w-0">
+                 <span className="text-xs font-bold pg-text-heading shrink-0">{scene.sceneNumber}</span>
+                 <span className="text-xs pg-text-muted truncate">{scene.narasi.slice(0, 60)}...</span>
+               </div>
+               <div className="flex items-center gap-1.5 shrink-0">
+                 {result?.status === "done" && (
+                   <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">✅</span>
+                 )}
+                 {result?.status === "error" && (
+                   <span className="text-[10px] font-semibold text-red-500" title={result.errorMessage}>❌</span>
+                 )}
+                 <button type="button" onClick={() => generateSceneTts(scene)}
+                   disabled={result?.status === "generating"}
+                   className="text-[10px] font-medium px-2.5 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 disabled:opacity-40 transition-colors">
+                   {result?.status === "generating" ? t("ttsGenerating") : t("ttsGenerateScene")}
+                 </button>
+               </div>
+             </div>
+             {audioSrc && (
+               <audio controls className="w-full h-8" src={audioSrc} />
+             )}
+           </div>
+         );
+       })}
+     </div>
+
+     {scenes.filter(s => s.narasi !== "—" && !s.isDiegetic).length === 0 && (
+       <p className="text-sm pg-text-muted text-center py-4">{t("noNarrationToCopy")}</p>
+     )}
+   </div>
+ )}
+
+ </div>
+ )}
 
  {activeTab === "htmlBlog" && htmlBlog && (
  <div className="glass-panel rounded-xl p-6 space-y-4">

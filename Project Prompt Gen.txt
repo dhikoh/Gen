@@ -1711,3 +1711,65 @@ Toggle "Include CTA" yang sudah ada adalah satu-satunya controller untuk semua p
 - [ ] Manual test: generate dengan CTA OFF → tidak ada scene retain/subscribe di output AI
 - [ ] Manual test: generate dengan CTA ON → perilaku asli dipertahankan
 
+## 30. Fitur #63 — Voice Studio TTS, Batch Export, Overlay+Visual Copy, Anti-Halusinasi & Plan Feature Sync (2026-09-22)
+
+### 30.1 Voice Studio — Text-to-Speech via Gemini API
+
+**Arsitektur:**
+- API key user dienkripsi AES-256-GCM (IV acak per enkripsi) oleh `src/lib/crypto.ts` sebelum disimpan ke DB.
+- Model `UserApiKey` di Prisma menyimpan: `encryptedKey`, `keyFingerprint` (4 char terakhir), `priority`, `isActive`, error stats.
+- Endpoint `/api/tts/generate` melakukan failover sekuensial: coba key dengan `priority` terendah → jika gagal lanjut ke key berikutnya. `INVALID_KEY` → auto-disable.
+- Audio dikembalikan sebagai WAV base64 ke browser. **Tidak ada upload ke server** — audio hidup di memori browser saja (keputusan VPS tanpa S3).
+- Feature gate: `textToSpeechStudio` di `KNOWN_PLAN_FEATURES` (fail-closed, `defaultValue: false`).
+
+**Schema tambahan:**
+```
+model UserApiKey {
+  id                 String         @id @default(cuid())
+  userId             String
+  provider           ApiKeyProvider
+  encryptedKey       String
+  keyFingerprint     String
+  label              String?
+  isActive           Boolean        @default(true)
+  priority           Int            @default(0)
+  lastUsedAt         DateTime?
+  lastErrorAt        DateTime?
+  lastErrorCode      String?
+  lastErrorMessage   String?
+  totalSuccessCount  Int            @default(0)
+  totalFailureCount  Int            @default(0)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  user               User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+enum ApiKeyProvider { GEMINI }
+```
+
+**Routes baru:** `GET/POST /api/user/tts-keys`, `PATCH/DELETE /api/user/tts-keys/[id]`, `POST /api/tts/generate`
+
+**Rate limit:** 40 req/mnt per user di `/api/tts/generate`; 10 req/5mnt per user di POST `/api/user/tts-keys`.
+
+### 30.2 Batch Export
+
+Format parser-friendly `###PROMPTGEN_BATCH_EXPORT###` dengan delimiter `---SCENE---` per scene. Creator bisa pilih scene via checkbox, export semua ke clipboard satu klik. Fungsi: `buildBatchExportText(scenes[])` di `src/lib/sceneExportFormat.ts`.
+
+### 30.3 Combo Copy: Overlay + Visual Prompt
+
+Fungsi `buildOverlayVisualCopyText(scene)` di `src/lib/sceneExportFormat.ts` menggabung `[Teks Overlay Layar]` dan `[Visual Prompt]` ke satu blok teks untuk brief desainer.
+
+### 30.4 Directive Anti-Halusinasi
+
+Blok `[ATURAN INTEGRITAS KONTEN — ANTI-HALUSINASI]` diinjeksi ke setiap `masterPrompt` di `src/lib/promptGenerator.ts`. Berisi 4 larangan: fabrikasi statistik, kutipan palsu, klaim absolut medis/hukum/finansial, dan instruksi tagging `[VERIFIKASI: ...]`.
+
+### 30.5 Plan Feature: `textToSpeechStudio`
+
+Entry baru di `KNOWN_PLAN_FEATURES` (`src/lib/planFeatures.ts`):
+- `key: "textToSpeechStudio"`, `defaultValue: false` (fail-closed)
+- Label i18n: `featureTextToSpeechStudio` — otomatis muncul di AdminPlans modal.
+
+### 30.6 Catatan Deployment
+
+1. Jalankan migrasi SQL untuk model `UserApiKey` di VPS.
+2. Set env var `API_KEY_ENCRYPTION_SECRET` (min 32 karakter) di Coolify.
+3. Di AdminPlans: aktifkan toggle `textToSpeechStudio` untuk plan yang diinginkan.

@@ -29,6 +29,11 @@ export const KNOWN_PLAN_FEATURES: PlanFeatureDefinition[] = [
     key: "cameraMovementPro",
     labelKey: "featureCameraMovementPro",
     defaultValue: false   // fail-closed: new feature, no backward-compat burden
+  },
+  {
+    key: "textToSpeechStudio",
+    labelKey: "featureTextToSpeechStudio",
+    defaultValue: false   // fail-closed: premium feature, requires explicit plan grant
   }
 ];
 

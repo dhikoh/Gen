@@ -49,6 +49,10 @@ enum DraftType {
   IMAGE
 }
 
+enum ApiKeyProvider {
+  GEMINI
+}
+
 enum NotificationType {
   PAYMENT_APPROVED
   PAYMENT_REJECTED
@@ -127,6 +131,7 @@ model User {
   drafts                Draft[]
   usedTitles            UsedTitle[]
   parsedOutputs         ParsedOutput[]
+  apiKeys               UserApiKey[]
   resetTokens           PasswordResetToken[]
   notifications         Notification[]
   supportTickets        SupportTicket[]
@@ -457,5 +462,32 @@ model EmailLog {
 
   @@index([recipient])
   @@index([status])
+}
+
+// ── User API Keys (Gemini TTS dll) ─────────────────────────────────────────────
+// Key user dienkripsi AES-256-GCM sebelum disimpan.
+// encryptedKey format: "<iv_b64>:<authTag_b64>:<ciphertext_b64>"
+// JANGAN pernah mengirim encryptedKey mentah ke client — selalu mask via keyFingerprint.
+model UserApiKey {
+  id                String         @id @default(cuid())
+  userId            String
+  user              User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider          ApiKeyProvider @default(GEMINI)
+  label             String?
+  encryptedKey      String         @db.Text
+  keyFingerprint    String         // 4 karakter terakhir dari key asli, HANYA untuk ditampilkan ke user
+  isActive          Boolean        @default(true)
+  priority          Int            @default(0) // makin kecil = dicoba lebih dulu saat failover
+  lastUsedAt        DateTime?
+  lastErrorAt       DateTime?
+  lastErrorCode     String?        // "INVALID_KEY" | "RATE_LIMITED" | "MODEL_OVERLOADED" | "TIMEOUT" | "UNKNOWN"
+  lastErrorMessage  String?        @db.Text
+  totalSuccessCount Int            @default(0)
+  totalFailureCount Int            @default(0)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@index([userId, provider, priority])
+  @@index([userId, provider, isActive])
 }
 

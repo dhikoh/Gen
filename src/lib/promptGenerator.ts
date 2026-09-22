@@ -931,8 +931,15 @@ ${structural.narrationModeDirective}
       `3. Sertakan kata kunci relevan ke dalam hashtag dan caption platform.\n`;
   }
 
+  // ── Fitur 4: Directive Anti-Halusinasi ──────────────────────────────────
+  const antiHallucinationDirective = `\n[ATURAN INTEGRITAS KONTEN — ANTI-HALUSINASI]
+1. DILARANG KERAS memfabrikasi statistik, angka persentase, data survei, atau hasil riset yang tidak disediakan di prompt ini. Jika data diperlukan, gunakan frasa placeholder seperti "menurut data terbaru" atau "berdasarkan penelitian" TANPA menciptakan angka spesifik.
+2. DILARANG mengarang kutipan atau atribusi ke tokoh/ahli/institusi nyata kecuali secara eksplisit disediakan di [KONTEKS TAMBAHAN].
+3. DILARANG mengklaim khasiat medis, hukum, atau finansial yang bersifat absolut. Gunakan frasa mitigasi ("dapat membantu", "berpotensi", "menurut beberapa sumber").
+4. Jika topik memerlukan data faktual yang tidak tersedia, tandai dengan [VERIFIKASI: klaim yang perlu dicek] agar creator dapat memvalidasi sebelum produksi.\n`;
+
   // ── Assemble Master Prompt ─────────────────────────────────────────────
-  const masterPrompt = `${povSection}[TOPIK UTAMA]\n${topic}${seoSection}${closedLoopSection}${contextText}${productContext}${affiliateAngleGuide}${compositionText}${platformGuideText}${excludeSection}${durationText}${formatOutputWajib}${cameraMovementGuide}\n\n${allGuidelines}`;
+  const masterPrompt = `${povSection}[TOPIK UTAMA]\n${topic}${seoSection}${closedLoopSection}${contextText}${productContext}${affiliateAngleGuide}${compositionText}${platformGuideText}${excludeSection}${durationText}${formatOutputWajib}${cameraMovementGuide}${antiHallucinationDirective}\n\n${allGuidelines}`;
 
   return { masterPrompt, systemInstruction };
 }

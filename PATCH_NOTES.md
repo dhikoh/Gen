@@ -2,6 +2,182 @@
 
 ---
 
+## [#63] — 2026-09-22 | Feature: Voice Studio TTS, Batch Export, Overlay+Visual Copy, Anti-Halusinasi Directive & Plan Feature Sync
+
+### Overview
+
+Rilis ini menambahkan **5 fitur baru besar** yang memperluas kemampuan Scene Prompt Studio dan memperkuat integritas konten yang dihasilkan AI. Semua fitur mengikuti pola repo (Zod, Rate Limit, i18n parity, fail-closed plan gate).
+
+---
+
+### Fitur 1 — Voice Studio: Text-to-Speech via Gemini API (Multi-Key Failover)
+
+**Problem Statement:**
+Creator sering perlu narasi audio per scene untuk preview atau storyboard. Sebelumnya tidak ada fitur TTS terintegrasi, sehingga creator harus keluar ke layanan eksternal dan copy-paste manual.
+
+**Implementasi:**
+
+#### Database Schema (`prisma/schema.prisma`)
+- Model baru `UserApiKey` dengan field: `userId`, `provider` (enum `ApiKeyProvider`), `encryptedKey`, `keyFingerprint`, `label`, `isActive`, `priority`, `lastUsedAt`, `lastErrorAt`, `lastErrorCode`, `lastErrorMessage`, `totalSuccessCount`, `totalFailureCount`.
+- Enum baru `ApiKeyProvider` dengan nilai `GEMINI`.
+- Relasi `User.userApiKeys` → `UserApiKey[]`.
+
+> **ACTION REQUIRED:** Jalankan migrasi manual di VPS sebelum deploy.
+
+#### Library (`src/lib/`)
+| File | Fungsi |
+|------|--------|
+| `crypto.ts` (baru) | AES-256-GCM encrypt/decrypt, random IV per enkripsi, `maskApiKey()`, `getKeyFingerprint()` |
+| `ttsVoices.ts` (baru) | 30 Gemini voice presets + 2 model definitions (`GEMINI_TTS_VOICES`, `GEMINI_TTS_MODELS`, `MAX_TTS_API_KEYS`) |
+| `geminiTts.ts` (baru) | `callGeminiTts()` (API call, PCM→WAV encoding, retry 1x transient), `validateGeminiApiKey()`, error classification (`INVALID_KEY`, `RATE_LIMITED`, `QUOTA_EXCEEDED`, `UNKNOWN`) |
+
+#### API Routes
+| Route | Method | Fungsi |
+|-------|--------|--------|
+| `/api/user/tts-keys` | GET | List API keys (masked, tanpa expose encryptedKey) |
+| `/api/user/tts-keys` | POST | Add + validate + encrypt + simpan key baru (max `MAX_TTS_API_KEYS`) |
+| `/api/user/tts-keys/[id]` | PATCH | Update label/isActive/priority |
+| `/api/user/tts-keys/[id]` | DELETE | Hapus key (ownership check) |
+| `/api/tts/generate` | POST | Auth → Rate limit (40/mnt) → Feature gate → Failover loop → WAV base64 |
+
+**Failover Logic:**
+Loop sekuensial berdasarkan `priority ASC`. Jika key gagal:
+- `INVALID_KEY` → auto-set `isActive: false`
+- `RATE_LIMITED` / `QUOTA_EXCEEDED` / `UNKNOWN` → skip, coba key berikutnya
+- Semua gagal → 502 dengan `attemptsLog`
+
+#### UI
+- **Settings** (`SettingsClient.tsx`): Section "Voice Studio — API Key Gemini" dengan add/list/toggle/test/delete/priority management.
+- **Scene Prompt Studio** (`ScenePromptStudioClient.tsx`): Voice Studio panel di tab "Platform" dengan:
+  - Voice selector (30 preset), Model selector, Style Instruction input
+  - Generate per scene + Generate All + audio player inline
+  - Download ZIP semua audio (via JSZip)
+  - Feature gate: locked banner jika plan tidak punya `textToSpeechStudio`
+
+**Penyimpanan Audio:** Browser memory (base64) — tidak ada upload ke server/S3. Keputusan ini sesuai constraint VPS Hostinger MVK 2 + Coolify tanpa S3.
+
+---
+
+### Fitur 2 — Combo Copy: Overlay + Visual Prompt
+
+**Problem Statement:** Creator perlu copy teks overlay layar DAN visual prompt sekaligus untuk brief desainer thumbnail atau editor. Sebelumnya harus copy 2x secara terpisah.
+
+**Implementasi:**
+- `src/lib/sceneExportFormat.ts` (baru): `buildOverlayVisualCopyText(scene)` — gabung `[Teks Overlay Layar]` + `[Visual Prompt]` dalam satu blok terformat.
+- UI: Tombol "📋 Copy Overlay + Visual" per scene card di Scene Prompt Studio.
+
+---
+
+### Fitur 3 — Batch Export (Multi-Scene Parser-Friendly Format)
+
+**Problem Statement:** Creator yang ingin memproses narasi/visual semua scene sekaligus (untuk otomasi atau briefing tim) harus copy scene satu per satu.
+
+**Implementasi:**
+- `src/lib/sceneExportFormat.ts`: `buildBatchExportText(scenes[])` — format dengan delimiter `###PROMPTGEN_BATCH_EXPORT###` dan per-scene `---SCENE---`.
+- UI: Checkbox per scene + "Select All" + tombol "📦 Ekspor Batch" di toolbar Scene Prompt Studio.
+
+**Format Output:**
+```
+###PROMPTGEN_BATCH_EXPORT###
+TOTAL_SCENES:N
+---SCENE---
+SCENE_INDEX:1
+SCENE_NUMBER:Scene 1
+NARASI:...
+VISUAL:...
+OVERLAY:... (opsional)
+DURASI:... (opsional)
+---SCENE---
+...
+###PROMPTGEN_BATCH_EXPORT_END###
+```
+
+---
+
+### Fitur 4 — Directive Anti-Halusinasi di Master Prompt
+
+**Problem Statement:** AI kadang memfabrikasi statistik, kutipan, atau klaim medis/hukum/finansial absolut yang tidak ada sumbernya — risiko reputasi creator.
+
+**Implementasi (`src/lib/promptGenerator.ts`):**
+
+Variabel `antiHallucinationDirective` baru diinjeksi ke setiap `masterPrompt` sebelum `allGuidelines`:
+
+```
+[ATURAN INTEGRITAS KONTEN — ANTI-HALUSINASI]
+1. DILARANG KERAS memfabrikasi statistik, angka persentase, data survei, atau hasil riset...
+2. DILARANG mengarang kutipan atau atribusi ke tokoh/ahli/institusi nyata...
+3. DILARANG mengklaim khasiat medis, hukum, atau finansial yang bersifat absolut...
+4. Jika topik memerlukan data faktual yang tidak tersedia, tandai dengan [VERIFIKASI: ...]
+```
+
+---
+
+### Fitur 5 — Sinkronisasi Plan Feature: `textToSpeechStudio`
+
+**Implementasi (`src/lib/planFeatures.ts`):**
+- Tambah entry `textToSpeechStudio` ke `KNOWN_PLAN_FEATURES` dengan `defaultValue: false` (fail-closed).
+- Label i18n: `featureTextToSpeechStudio` ("Voice Studio — Text-to-Speech (TTS)").
+- AdminPlans UI otomatis menampilkan toggle ini saat create/edit plan.
+
+---
+
+### i18n
+
+**Key baru ditambahkan (parity 100% — 1277/1277):**
+- `Settings`: 31 key TTS API Key Manager (id + en)
+- `ScenePromptStudio`: 21 key Voice Studio, Batch Export, Overlay Copy (id + en)
+- `AdminPlans`: 1 key `featureTextToSpeechStudio` (id + en)
+
+---
+
+### Testing
+
+| Suite | Tests | Status |
+|-------|-------|--------|
+| `tests/crypto.test.ts` | 6 | ✅ |
+| `tests/geminiTts.test.ts` | 8 | ✅ |
+| `tests/sceneExportFormat.test.ts` | 12 | ✅ |
+| **Total** | **26** | **✅** |
+
+`npm run audit:i18n` → 100% parity (1277/1277 keys)
+
+---
+
+### Komponen Terdampak
+
+- `prisma/schema.prisma` — +model `UserApiKey`, +enum `ApiKeyProvider`
+- `.env.example` — +`API_KEY_ENCRYPTION_SECRET`
+- `src/lib/crypto.ts` (NEW)
+- `src/lib/ttsVoices.ts` (NEW)
+- `src/lib/geminiTts.ts` (NEW)
+- `src/lib/sceneExportFormat.ts` (NEW)
+- `src/lib/planFeatures.ts` — +`textToSpeechStudio`
+- `src/lib/promptGenerator.ts` — +`antiHallucinationDirective`
+- `src/app/api/user/tts-keys/route.ts` (NEW)
+- `src/app/api/user/tts-keys/[id]/route.ts` (NEW)
+- `src/app/api/tts/generate/route.ts` (NEW)
+- `src/app/[locale]/dashboard/settings/SettingsClient.tsx` — +TTS Key Manager
+- `src/app/[locale]/dashboard/scene-prompt/page.tsx` — +planFeatures prop
+- `src/app/[locale]/dashboard/scene-prompt/ScenePromptStudioClient.tsx` — +Voice Studio, Batch Export, Overlay Copy
+- `messages/id.json` — +53 keys
+- `messages/en.json` — +53 keys
+- `tests/crypto.test.ts` (NEW)
+- `tests/geminiTts.test.ts` (NEW)
+- `tests/sceneExportFormat.test.ts` (NEW)
+- `package.json` — +jszip
+
+### Checklist Verifikasi
+
+- [x] `npm run audit:i18n` — 100% parity
+- [x] `npx vitest run` — 26/26 tests passing
+- [x] `npx prisma generate` — client generated dengan `UserApiKey`
+- [x] `npm run build` — 0 TypeScript errors
+- [ ] Migrasi DB manual di VPS (`UserApiKey` table)
+- [ ] Set `API_KEY_ENCRYPTION_SECRET` di Coolify env
+- [ ] Admin: aktifkan `textToSpeechStudio` di plan yang diinginkan
+
+---
+
 ## [#62] — 2026-09-21 | Enhancement: Anti-Static Scene System — Temporal Visual Prompt, Environmental Dynamism & Color Grade Consistency
 
 ### Problem Statement
