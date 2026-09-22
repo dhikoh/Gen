@@ -2,7 +2,72 @@
 
 ---
 
+## [#64] — 2026-09-22 | Feature: Voice Studio — Tab Terpisah, Speed/Pitch, Durasi, Sorted Voices & Full VO Merge
+
+### Overview
+
+Rilis ini adalah iterasi **Voice Studio** yang meningkatkan UX secara menyeluruh. Semua perubahan mempertahankan parity i18n (1286/1286 keys), tidak ada gap atau duplikasi.
+
+---
+
+### 1 — Voice Studio Menjadi Tab Terpisah
+
+- Tab `🎙️ Voice Studio` ditambahkan ke tab bar *Scene Prompt Studio*, sejajar dengan `🎬 Scene Viewer`, `🖼️ Thumbnail Studio`, `📱 Platform Content`.
+- Seluruh blok Voice Studio dipindah dari dalam tab `Platform Content` ke tab `voiceStudio` yang berdiri sendiri.
+- **File:** `ScenePromptStudioClient.tsx` — `activeTab` type diperluas ke `"scenes" | "thumbnail" | "platform" | "voiceStudio" | "htmlBlog"`.
+
+---
+
+### 2 — Voice List: Urut Abjad + Deskripsi Lengkap
+
+- 30 voice Gemini TTS diurutkan A-Z.
+- Interface `TtsVoiceOption` diperluas: `gender` (Male/Female/Neutral), `tone` (deskripsi karakter), `bestFor` (rekomendasi use-case).
+- Dropdown menampilkan: `Achernar — Female · Lembut & Tenang` dsb.
+- Info `bestFor` ditampilkan di bawah dropdown sebagai hint kontekstual.
+- **File:** `src/lib/ttsVoices.ts` (full rewrite).
+
+---
+
+### 3 — Kontrol Speed & Pitch Gaya ElevenLabs
+
+- **Speed slider** (0.25× – 2.0×, step 0.05) → dikirim ke Gemini API sebagai `speakingRate` numerik (parameter resmi yang didukung API).
+- **Pitch dropdown preset**: Normal / Lebih Tinggi (+1) / Lebih Tinggi (+2) / Lebih Rendah (-1) / Lebih Rendah (-2) → dikonversi ke style instruction teks karena Gemini API tidak punya parameter pitch numerik.
+- **File:** `src/lib/ttsVoices.ts` (`TTS_PITCH_PRESETS`), `src/lib/geminiTts.ts` (parameter `speakingRate`), `src/app/api/tts/generate/route.ts` (schema Zod diperluas).
+
+---
+
+### 4 — Durasi Audio per Scene
+
+- Field `durationSec` ditambahkan ke interface `TtsResult`.
+- Dibaca via `onLoadedMetadata` dari `<audio>` element setelah audio berhasil di-load.
+- Tampil sebagai badge `M:SS` di sebelah kanan nama scene (contoh: `Scene 1 · [0:12]`).
+
+---
+
+### 5 — Generate & Gabung Semua (Full VO)
+
+- Tombol baru **🔗 Generate & Gabung Semua** di Voice Studio header.
+- Flow: Generate semua scene yang belum punya audio → kirim `POST /api/tts/merge` dengan array `audioBase64[]` → terima 1 WAV gabungan → tampilkan Full VO player + tombol download `.wav` tunggal.
+- Merge dilakukan **server-side** via fungsi `mergeWavBuffers()` (strip WAV header, concat PCM, bungkus ulang) — lebih reliable dari merge client-side.
+- **File baru:** `src/app/api/tts/merge/route.ts` (auth, rate limit 10/mnt, Zod validation).
+- **Fungsi baru:** `mergeWavBuffers()` di `src/lib/geminiTts.ts`.
+
+---
+
+### Ringkasan Teknis
+
+| Aspek | Status |
+|-------|--------|
+| i18n parity (id ↔ en) | ✅ 1286/1286 keys |
+| TypeScript build | ✅ 0 error |
+| Endpoint baru | `POST /api/tts/merge` |
+| Rate limit merge | 10 req/menit per user |
+| Breaking changes | ❌ Tidak ada |
+
+---
+
 ## [#63] — 2026-09-22 | Feature: Voice Studio TTS, Batch Export, Overlay+Visual Copy, Anti-Halusinasi Directive & Plan Feature Sync
+
 
 ### Overview
 

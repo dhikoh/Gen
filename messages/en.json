@@ -1022,12 +1022,15 @@
     "copyOverlayVisual": "Copy Overlay + Visual",
     "copyOverlayVisualSuccess": "Overlay + Visual copied!",
     "voiceStudioTitle": "Voice Studio",
+    "voiceStudioTab": "Voice Studio",
     "voiceStudioLocked": "Voice Studio is available on premium plans. Upgrade to access automatic text-to-speech per scene.",
     "voiceStudioUpgrade": "Upgrade Plan",
     "voiceSelectLabel": "Voice",
     "ttsModelLabel": "TTS Model",
     "ttsStyleLabel": "Style Instruction (optional)",
     "ttsStylePlaceholder": "e.g.: Speak fast, energetic...",
+    "ttsSpeedLabel": "Speaking Speed",
+    "ttsPitchLabel": "Pitch",
     "ttsGenerateAll": "Generate All Scenes",
     "ttsGeneratingAll": "Generating...",
     "ttsGenerateScene": "Generate",
@@ -1035,8 +1038,15 @@
     "ttsAllDone": "All scenes generated successfully!",
     "ttsDownloadAllZip": "Download ZIP",
     "ttsZipDownloaded": "Audio ZIP file downloaded.",
-    "ttsFallbackUsed": "Primary key failed, using backup key."
+    "ttsFallbackUsed": "Primary key failed, using backup key.",
+    "ttsGenerateMergeAll": "Generate & Merge All",
+    "ttsMergingAll": "Merging...",
+    "ttsFullVoiceOver": "Full Voice Over (All Scenes)",
+    "ttsDownloadFullVo": "Download Full VO",
+    "ttsMergeSuccess": "Full VO created! All scenes have been merged.",
+    "ttsMergeError": "Failed to merge audio. Make sure all scenes have been generated first."
   },
+
   "ForgotPassword": {
     "title": "Forgot Password?",
     "subtitle": "Enter your email or username. We will send you a link to reset your password.",

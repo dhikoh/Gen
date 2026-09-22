@@ -1022,12 +1022,15 @@
     "copyOverlayVisual": "Copy Overlay + Visual",
     "copyOverlayVisualSuccess": "Overlay + Visual disalin!",
     "voiceStudioTitle": "Voice Studio",
+    "voiceStudioTab": "Voice Studio",
     "voiceStudioLocked": "Fitur Voice Studio tersedia di plan premium. Upgrade untuk mengakses text-to-speech otomatis per scene.",
     "voiceStudioUpgrade": "Upgrade Plan",
     "voiceSelectLabel": "Suara",
     "ttsModelLabel": "Model TTS",
     "ttsStyleLabel": "Instruksi Gaya (opsional)",
     "ttsStylePlaceholder": "Misal: Bicara cepat, energik...",
+    "ttsSpeedLabel": "Kecepatan Bicara",
+    "ttsPitchLabel": "Nada Suara",
     "ttsGenerateAll": "Generate Semua Scene",
     "ttsGeneratingAll": "Sedang generate...",
     "ttsGenerateScene": "Generate",
@@ -1035,8 +1038,15 @@
     "ttsAllDone": "Semua scene berhasil di-generate!",
     "ttsDownloadAllZip": "Download ZIP",
     "ttsZipDownloaded": "File ZIP audio berhasil diunduh.",
-    "ttsFallbackUsed": "Key utama gagal, menggunakan key cadangan."
+    "ttsFallbackUsed": "Key utama gagal, menggunakan key cadangan.",
+    "ttsGenerateMergeAll": "Generate & Gabung Semua",
+    "ttsMergingAll": "Menggabungkan...",
+    "ttsFullVoiceOver": "Full Voice Over (Semua Scene)",
+    "ttsDownloadFullVo": "Unduh Full VO",
+    "ttsMergeSuccess": "Full VO berhasil dibuat! Semua scene telah digabungkan.",
+    "ttsMergeError": "Gagal menggabungkan audio. Pastikan semua scene sudah di-generate terlebih dahulu."
   },
+
   "ForgotPassword": {
     "title": "Lupa Password?",
     "subtitle": "Masukkan email atau username Anda. Kami akan mengirimkan tautan untuk mengatur ulang password Anda.",

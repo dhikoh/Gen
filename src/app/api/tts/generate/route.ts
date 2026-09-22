@@ -17,6 +17,8 @@ const generateSchema = z.object({
   voice: z.string().min(1).max(50),
   model: z.string().min(1).max(80),
   styleInstruction: z.string().max(500).optional(),
+  speakingRate: z.number().min(0.25).max(4.0).optional(),
+  pitchInstruction: z.string().max(200).optional(), // teks pitch (preset → string)
 });
 
 interface AttemptLog {
@@ -76,11 +78,14 @@ export async function POST(req: Request) {
     );
   }
 
-  const { text, voice, model, styleInstruction } = parsed.data;
+  const { text, voice, model, styleInstruction, speakingRate = 1.0, pitchInstruction } = parsed.data;
 
-  // Gabungkan style instruction ke teks jika ada
-  const finalText = styleInstruction
-    ? `[Style: ${styleInstruction}]\n\n${text}`
+  // Gabungkan pitch instruction + style instruction ke teks
+  const prefixes: string[] = [];
+  if (pitchInstruction) prefixes.push(pitchInstruction);
+  if (styleInstruction) prefixes.push(`Style: ${styleInstruction}`);
+  const finalText = prefixes.length > 0
+    ? `[${prefixes.join(". ")}]\n\n${text}`
     : text;
 
   // ── Ambil API keys user, urut prioritas ──
@@ -127,7 +132,7 @@ export async function POST(req: Request) {
       continue;
     }
 
-    const result = await callGeminiTts(rawKey, finalText, voice, model);
+    const result = await callGeminiTts(rawKey, finalText, voice, model, speakingRate);
 
     if (result.success && result.audioBuffer) {
       usedKeyId = keyRecord.id;

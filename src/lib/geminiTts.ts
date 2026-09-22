@@ -73,7 +73,7 @@ function parseSampleRate(mimeType: string | undefined): number {
  * Bungkus PCM mentah (dari Gemini) menjadi file WAV valid.
  * Murni JavaScript Buffer — tanpa dependency eksternal.
  */
-function pcmToWav(
+export function pcmToWav(
   pcmData: Buffer,
   sampleRate = 24000,
   channels = 1,
@@ -104,9 +104,49 @@ function pcmToWav(
 }
 
 /**
+ * Gabungkan array WAV buffer menjadi satu WAV.
+ *
+ * Algoritma:
+ * 1. Parse header WAV pertama untuk mendapatkan sampleRate, channels, bitsPerSample.
+ * 2. Strip 44-byte header dari semua buffer, ambil PCM data saja.
+ * 3. Gabungkan semua PCM, bungkus dengan satu WAV header baru.
+ *
+ * Asumsi: semua buffer punya format WAV yang sama (mono, 16-bit, 24000 Hz dari Gemini).
+ * Jika ada buffer yang formatnya berbeda, skip buffer tersebut.
+ */
+export function mergeWavBuffers(wavBuffers: Buffer[]): Buffer {
+  if (wavBuffers.length === 0) throw new Error("No WAV buffers to merge");
+  if (wavBuffers.length === 1) return wavBuffers[0];
+
+  // Baca parameter dari header WAV pertama
+  const first = wavBuffers[0];
+  const sampleRate = first.readUInt32LE(24);
+  const channels   = first.readUInt16LE(22);
+  const bitsPerSample = first.readUInt16LE(34);
+
+  // Kumpulkan semua PCM data (skip 44-byte header dari masing-masing buffer)
+  const pcmChunks: Buffer[] = [];
+  for (const wav of wavBuffers) {
+    if (wav.length < 44) continue;
+    const dataSize = wav.readUInt32LE(40);
+    const pcm = wav.slice(44, 44 + dataSize);
+    pcmChunks.push(pcm);
+  }
+
+  const mergedPcm = Buffer.concat(pcmChunks);
+  return pcmToWav(mergedPcm, sampleRate, channels, bitsPerSample);
+}
+
+/**
  * Panggil Gemini generateContent untuk satu teks -> satu file WAV.
  *
- * - attemptTimeoutMs: timeout per percobaan (default 25 detik)
+ * @param apiKey           - Gemini API key (raw, sudah didekripsi)
+ * @param text             - Teks narasi (sudah termasuk style prefix jika ada)
+ * @param voice            - Voice name (dari GEMINI_TTS_VOICES)
+ * @param model            - Model ID (dari GEMINI_TTS_MODELS)
+ * @param speakingRate     - Kecepatan bicara (0.25–4.0, default 1.0). Didukung Gemini API.
+ * @param attemptTimeoutMs - Timeout per percobaan (default 25 detik)
+ *
  * - Retry SEKALI otomatis untuk error transient (UNKNOWN / MODEL_OVERLOADED)
  *   sesuai catatan resmi Google soal 500 sesekali terjadi acak
  */
@@ -115,15 +155,21 @@ export async function callGeminiTts(
   text: string,
   voice: string,
   model: string,
+  speakingRate = 1.0,
   attemptTimeoutMs = 25_000
 ): Promise<TtsCallResult> {
   const url = `${GEMINI_BASE_URL}/models/${model}:generateContent`;
+
+  // Clamp speakingRate ke range yang didukung Gemini (0.25–4.0)
+  const clampedRate = Math.min(4.0, Math.max(0.25, speakingRate));
+
   const requestBody = {
     contents: [{ parts: [{ text }] }],
     generationConfig: {
       responseModalities: ["AUDIO"],
       speechConfig: {
         voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } },
+        speakingRate: clampedRate,
       },
     },
   };

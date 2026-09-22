@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 import sanitizeHtml from "sanitize-html";
 import { extractAudioCues, cleanParsedValue, parseVoiceGuidelines, extractTitles, extractChosenTitle, extractThumbnailData, extractCaption, extractHashtags, extractHtmlBlog, extractAffiliateRecommendations } from "@/lib/parsers";
 import type { ThumbnailData, AffiliateRecommendation } from "@/lib/parsers";
-import { GEMINI_TTS_VOICES, GEMINI_TTS_MODELS, DEFAULT_TTS_VOICE, DEFAULT_TTS_MODEL } from "@/lib/ttsVoices";
+import { GEMINI_TTS_VOICES, GEMINI_TTS_MODELS, DEFAULT_TTS_VOICE, DEFAULT_TTS_MODEL, TTS_PITCH_PRESETS, DEFAULT_TTS_PITCH, type TtsPitchPresetId } from "@/lib/ttsVoices";
 import { buildOverlayVisualCopyText, buildBatchExportText, type SceneForExport } from "@/lib/sceneExportFormat";
 
 interface Scene {
@@ -36,6 +36,7 @@ interface TtsResult {
   audioBase64?: string;
   mimeType?: string;
   errorMessage?: string;
+  durationSec?: number; // durasi audio, dibaca dari onLoadedMetadata
 }
 
 function parseScenes(text: string): Scene[] {
@@ -112,17 +113,21 @@ export default function ScenePromptStudioClient({ channels, planFeatures }: Prop
  const [copiedId, setCopiedId] = useState<string | null>(null);
  const [saving, setSaving] = useState(false);
  const [saveMsg, setSaveMsg] = useState<string | null>(null);
- const [activeTab, setActiveTab] = useState<"scenes"|"thumbnail"|"platform"|"htmlBlog">("scenes");
+ const [activeTab, setActiveTab] = useState<"scenes"|"thumbnail"|"platform"|"voiceStudio"|"htmlBlog">("scenes");
  const [markedTitles, setMarkedTitles] = useState<string[]>([]);
  const [htmlBlog, setHtmlBlog] = useState("");
  const [affiliateRecs, setAffiliateRecs] = useState<AffiliateRecommendation[]>([]);
 
- // ── TTS State (Fitur 1) ──
+ // ── TTS State ──
  const [ttsVoice, setTtsVoice] = useState(DEFAULT_TTS_VOICE);
  const [ttsModel, setTtsModel] = useState<string>(DEFAULT_TTS_MODEL);
  const [ttsStyleInstruction, setTtsStyleInstruction] = useState("");
+ const [ttsSpeed, setTtsSpeed] = useState(1.0);
+ const [ttsPitch, setTtsPitch] = useState<TtsPitchPresetId>(DEFAULT_TTS_PITCH);
  const [ttsResults, setTtsResults] = useState<Record<number, TtsResult>>({});
  const [ttsGeneratingAll, setTtsGeneratingAll] = useState(false);
+ const [ttsMergedAudio, setTtsMergedAudio] = useState<string | null>(null);
+ const [ttsMerging, setTtsMerging] = useState(false);
 
  // ── Batch Selection State (Fitur 3) ──
  const [selectedSceneIds, setSelectedSceneIds] = useState<Set<number>>(new Set());
@@ -144,10 +149,20 @@ export default function ScenePromptStudioClient({ channels, planFeatures }: Prop
    setTtsResults(prev => ({ ...prev, [scene.id]: { status: "generating" } }));
    try {
      const text = buildTtsInputText(scene);
+     // Cari pitch instruction dari preset yang dipilih
+     const pitchPreset = TTS_PITCH_PRESETS.find(p => p.id === ttsPitch);
+     const pitchInstruction = pitchPreset?.instruction || undefined;
      const res = await fetch("/api/tts/generate", {
        method: "POST",
        headers: { "Content-Type": "application/json" },
-       body: JSON.stringify({ text, voice: ttsVoice, model: ttsModel, styleInstruction: ttsStyleInstruction || undefined }),
+       body: JSON.stringify({
+         text,
+         voice: ttsVoice,
+         model: ttsModel,
+         styleInstruction: ttsStyleInstruction || undefined,
+         speakingRate: ttsSpeed !== 1.0 ? ttsSpeed : undefined,
+         pitchInstruction,
+       }),
      });
      const data = await res.json();
      if (data.success) {
@@ -160,7 +175,7 @@ export default function ScenePromptStudioClient({ channels, planFeatures }: Prop
    } catch {
      setTtsResults(prev => ({ ...prev, [scene.id]: { status: "error", errorMessage: t("generalError") } }));
    }
- }, [buildTtsInputText, ttsVoice, ttsModel, ttsStyleInstruction, t]);
+ }, [buildTtsInputText, ttsVoice, ttsModel, ttsStyleInstruction, ttsSpeed, ttsPitch, t]);
 
  const generateAllScenesTts = useCallback(async () => {
    const eligible = scenes.filter(s => s.narasi !== "—" && !s.isDiegetic);
@@ -199,6 +214,66 @@ export default function ScenePromptStudioClient({ channels, planFeatures }: Prop
    URL.revokeObjectURL(url);
    toast.success(t("ttsZipDownloaded"));
  }, [scenes, ttsResults, draftTitle, t]);
+
+ // Generate All lalu gabungkan semua audio menjadi satu WAV
+ const generateAndMergeAll = useCallback(async () => {
+   const eligible = scenes.filter(s => s.narasi !== "—" && !s.isDiegetic);
+   if (!eligible.length) { toast.error(t("noNarrationToCopy")); return; }
+
+   // 1. Generate semua scene yang belum punya audio
+   setTtsGeneratingAll(true);
+   setTtsMergedAudio(null);
+   const queue = [...eligible.filter(s => ttsResults[s.id]?.status !== "done")];
+   if (queue.length > 0) {
+     const runNext = async (): Promise<void> => {
+       const scene = queue.shift();
+       if (!scene) return;
+       await generateSceneTts(scene);
+       return runNext();
+     };
+     await Promise.all([runNext(), runNext()]);
+   }
+   setTtsGeneratingAll(false);
+
+   // 2. Kumpulkan semua audioBase64 yang berhasil (urut sesuai scene)
+   const doneBase64 = eligible
+     .map(s => ttsResults[s.id]?.audioBase64)
+     .filter((b): b is string => !!b);
+
+   if (doneBase64.length === 0) {
+     toast.error(t("ttsMergeError"));
+     return;
+   }
+
+   // 3. Kirim ke /api/tts/merge untuk digabung server-side
+   setTtsMerging(true);
+   try {
+     const res = await fetch("/api/tts/merge", {
+       method: "POST",
+       headers: { "Content-Type": "application/json" },
+       body: JSON.stringify({ audioBase64: doneBase64 }),
+     });
+     const data = await res.json();
+     if (data.success) {
+       setTtsMergedAudio(data.audioBase64);
+       toast.success(t("ttsMergeSuccess"));
+     } else {
+       toast.error(data.error || t("ttsMergeError"));
+     }
+   } catch {
+     toast.error(t("ttsMergeError"));
+   } finally {
+     setTtsMerging(false);
+   }
+ }, [scenes, ttsResults, generateSceneTts, t]);
+
+ const downloadMergedAudio = useCallback(() => {
+   if (!ttsMergedAudio) return;
+   const a = document.createElement("a");
+   a.href = `data:audio/wav;base64,${ttsMergedAudio}`;
+   a.download = `full_vo_${draftTitle || "scenes"}.wav`;
+   a.click();
+ }, [ttsMergedAudio, draftTitle]);
 
  // ── Batch Export Functions (Fitur 2 & 3) ──
  const handleCopyOverlayVisual = useCallback((scene: Scene) => {
@@ -495,11 +570,11 @@ export default function ScenePromptStudioClient({ channels, planFeatures }: Prop
  {scenes.length > 0 && (
  <>
  <div className="flex gap-2 overflow-x-auto whitespace-nowrap pb-1 custom-scrollbar">
- {(["scenes","thumbnail","platform","htmlBlog"] as const).map(tab => {
+ {(["scenes","thumbnail","platform","voiceStudio","htmlBlog"] as const).map(tab => {
  if (tab === "htmlBlog" && !htmlBlog) return null;
  return (
  <button key={tab} onClick={() => setActiveTab(tab)} className={btn(activeTab === tab)}>
- {tab === "scenes" ? `🎬 ${t("sceneViewerTab")}` : tab === "thumbnail" ? `🖼️ ${t("thumbnailTab")}` : tab === "htmlBlog" ? `📝 HTML Blog` : `📱 ${t("platformTab")}`}
+ {tab === "scenes" ? `🎬 ${t("sceneViewerTab")}` : tab === "thumbnail" ? `🖼️ ${t("thumbnailTab")}` : tab === "htmlBlog" ? `📝 HTML Blog` : tab === "voiceStudio" ? `🎙️ ${t("voiceStudioTab")}` : `📱 ${t("platformTab")}`}
  </button>
  );
  })}
@@ -1191,7 +1266,185 @@ export default function ScenePromptStudioClient({ channels, planFeatures }: Prop
  </div>
  )}
 
+ {/* ── Voice Studio Tab ── */}
+ {activeTab === "voiceStudio" && (
+ <div className="space-y-5">
+   {!planFeatures.textToSpeechStudio ? (
+     <div className="glass-panel rounded-xl p-8 border border-amber-200/60 dark:border-amber-800/60 text-center space-y-4">
+       <div className="text-4xl">🔒</div>
+       <h3 className="text-lg font-bold pg-text-heading">{t("voiceStudioTitle")}</h3>
+       <p className="text-sm pg-text-muted max-w-sm mx-auto">{t("voiceStudioLocked")}</p>
+       <a href="/dashboard/billing" className="inline-block px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold rounded-lg transition-colors">
+         {t("voiceStudioUpgrade")}
+       </a>
+     </div>
+   ) : (
+     <div className="glass-panel rounded-xl p-6 border border-indigo-200/60 dark:border-indigo-800/60 space-y-5">
+
+       {/* Header + Action Buttons */}
+       <div className="flex items-center justify-between flex-wrap gap-2">
+         <h3 className="text-base font-bold pg-text-heading flex items-center gap-2">
+           <span>🎙️</span> {t("voiceStudioTitle")}
+         </h3>
+         <div className="flex items-center gap-2 flex-wrap">
+           {Object.values(ttsResults).some(r => r.status === "done") && (
+             <button type="button" onClick={downloadAllAsZip}
+               className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-all shadow-sm active:scale-95">
+               <span>📦</span> {t("ttsDownloadAllZip")}
+             </button>
+           )}
+           <button type="button" onClick={generateAllScenesTts} disabled={ttsGeneratingAll || ttsMerging}
+             className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-all shadow-sm active:scale-95 disabled:opacity-50">
+             <span>⚡</span> {ttsGeneratingAll ? t("ttsGeneratingAll") : t("ttsGenerateAll")}
+           </button>
+           <button type="button" onClick={generateAndMergeAll} disabled={ttsGeneratingAll || ttsMerging}
+             className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-white transition-all shadow-sm active:scale-95 disabled:opacity-50">
+             <span>🔗</span> {ttsMerging ? t("ttsMergingAll") : t("ttsGenerateMergeAll")}
+           </button>
+         </div>
+       </div>
+
+       {/* Full VO Player (muncul setelah merge berhasil) */}
+       {ttsMergedAudio && (
+         <div className="rounded-xl p-4 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-700 space-y-2">
+           <div className="flex items-center justify-between gap-2 flex-wrap">
+             <span className="text-xs font-bold text-violet-700 dark:text-violet-300">🎵 {t("ttsFullVoiceOver")}</span>
+             <button type="button" onClick={downloadMergedAudio}
+               className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-white transition-all active:scale-95">
+               ⬇️ {t("ttsDownloadFullVo")}
+             </button>
+           </div>
+           <audio controls className="w-full" src={`data:audio/wav;base64,${ttsMergedAudio}`} />
+         </div>
+       )}
+
+       {/* Voice Settings Grid */}
+       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+         {/* Voice Selector — sorted A-Z, lengkap */}
+         <div className="sm:col-span-2">
+           <label className="block text-xs font-medium pg-text-sub mb-1">{t("voiceSelectLabel")}</label>
+           <select value={ttsVoice} onChange={e => setTtsVoice(e.target.value)}
+             className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white">
+             {[...GEMINI_TTS_VOICES].sort((a, b) => a.id.localeCompare(b.id)).map(v => (
+               <option key={v.id} value={v.id}>
+                 {v.id} — {v.gender} · {v.tone}
+               </option>
+             ))}
+           </select>
+           {/* Info kartu voice yang dipilih */}
+           {(() => {
+             const selected = GEMINI_TTS_VOICES.find(v => v.id === ttsVoice);
+             return selected ? (
+               <p className="text-[10px] pg-text-muted mt-1">🎯 {selected.bestFor}</p>
+             ) : null;
+           })()}
+         </div>
+
+         {/* Model Selector */}
+         <div>
+           <label className="block text-xs font-medium pg-text-sub mb-1">{t("ttsModelLabel")}</label>
+           <select value={ttsModel} onChange={e => setTtsModel(e.target.value)}
+             className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white">
+             {GEMINI_TTS_MODELS.map(m => (
+               <option key={m.id} value={m.id}>{m.label}</option>
+             ))}
+           </select>
+         </div>
+
+         {/* Pitch Preset Dropdown */}
+         <div>
+           <label className="block text-xs font-medium pg-text-sub mb-1">{t("ttsPitchLabel")}</label>
+           <select value={ttsPitch} onChange={e => setTtsPitch(e.target.value as typeof ttsPitch)}
+             className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white">
+             {TTS_PITCH_PRESETS.map(p => (
+               <option key={p.id} value={p.id}>{p.label}</option>
+             ))}
+           </select>
+         </div>
+       </div>
+
+       {/* Speed Slider + Style Instruction */}
+       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+         <div>
+           <div className="flex items-center justify-between mb-1">
+             <label className="text-xs font-medium pg-text-sub">{t("ttsSpeedLabel")}</label>
+             <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 tabular-nums">{ttsSpeed.toFixed(2)}×</span>
+           </div>
+           <input type="range" min={0.25} max={2.0} step={0.05} value={ttsSpeed}
+             onChange={e => setTtsSpeed(parseFloat(e.target.value))}
+             className="w-full accent-indigo-500" />
+           <div className="flex justify-between text-[10px] pg-text-muted mt-0.5">
+             <span>0.25×</span><span>1.0×</span><span>2.0×</span>
+           </div>
+         </div>
+         <div>
+           <label className="block text-xs font-medium pg-text-sub mb-1">{t("ttsStyleLabel")}</label>
+           <input value={ttsStyleInstruction} onChange={e => setTtsStyleInstruction(e.target.value)}
+             placeholder={t("ttsStylePlaceholder")}
+             className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white" />
+         </div>
+       </div>
+
+       {/* Per-Scene TTS List */}
+       <div className="space-y-2.5">
+         {scenes.filter(s => s.narasi !== "—" && !s.isDiegetic).map(scene => {
+           const result = ttsResults[scene.id];
+           const audioSrc = result?.audioBase64 ? `data:${result.mimeType || "audio/wav"};base64,${result.audioBase64}` : null;
+           return (
+             <div key={scene.id} className="rounded-lg p-3 pg-surface-dim border pg-border space-y-2">
+               <div className="flex items-center justify-between gap-2">
+                 <div className="flex items-center gap-2 flex-1 min-w-0">
+                   <span className="text-xs font-bold pg-text-heading shrink-0">{scene.sceneNumber}</span>
+                   <span className="text-xs pg-text-muted truncate">{scene.narasi.slice(0, 55)}…</span>
+                 </div>
+                 <div className="flex items-center gap-1.5 shrink-0">
+                   {/* Durasi audio di kanan nama scene */}
+                   {result?.durationSec !== undefined && (
+                     <span className="text-[10px] font-mono text-indigo-500 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-1.5 py-0.5 rounded">
+                       {Math.floor(result.durationSec / 60)}:{String(Math.round(result.durationSec % 60)).padStart(2, "0")}
+                     </span>
+                   )}
+                   {result?.status === "done" && (
+                     <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">✅</span>
+                   )}
+                   {result?.status === "error" && (
+                     <span className="text-[10px] font-semibold text-red-500" title={result.errorMessage}>❌</span>
+                   )}
+                   <button type="button" onClick={() => generateSceneTts(scene)}
+                     disabled={result?.status === "generating"}
+                     className="text-[10px] font-medium px-2.5 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 disabled:opacity-40 transition-colors">
+                     {result?.status === "generating" ? t("ttsGenerating") : t("ttsGenerateScene")}
+                   </button>
+                 </div>
+               </div>
+               {audioSrc && (
+                 <audio controls className="w-full h-8" src={audioSrc}
+                   onLoadedMetadata={(e) => {
+                     const dur = (e.currentTarget as HTMLAudioElement).duration;
+                     if (isFinite(dur)) {
+                       setTtsResults(prev => ({
+                         ...prev,
+                         [scene.id]: { ...prev[scene.id]!, durationSec: dur }
+                       }));
+                     }
+                   }}
+                 />
+               )}
+             </div>
+           );
+         })}
+       </div>
+
+       {scenes.filter(s => s.narasi !== "—" && !s.isDiegetic).length === 0 && (
+         <p className="text-sm pg-text-muted text-center py-4">{t("noNarrationToCopy")}</p>
+       )}
+     </div>
+   )}
+ </div>
+ )}
+
  {activeTab === "htmlBlog" && htmlBlog && (
+
  <div className="glass-panel rounded-xl p-6 space-y-4">
  <div className="flex items-center justify-between mb-4">
  <h2 className="font-bold pg-text-heading">📝 HTML Blog Article</h2>
