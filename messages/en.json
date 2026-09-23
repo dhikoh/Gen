@@ -1044,7 +1044,14 @@
     "ttsFullVoiceOver": "Full Voice Over (All Scenes)",
     "ttsDownloadFullVo": "Download Full VO",
     "ttsMergeSuccess": "Full VO created! All scenes have been merged.",
-    "ttsMergeError": "Failed to merge audio. Make sure all scenes have been generated first."
+    "ttsMergeError": "Failed to merge audio. Make sure all scenes have been generated first.",
+    "ttsPreviewTitle": "🎧 Voice Preview",
+    "ttsPreviewDesc": "Try the current voice settings with a short sample text before generating all scenes.",
+    "ttsPreviewPlaceholder": "Type sample text to preview...",
+    "ttsPreviewButton": "Preview Voice",
+    "ttsPreviewGenerating": "Generating preview...",
+    "ttsPreviewPlay": "Sample audio",
+    "ttsPreviewError": "Preview failed. Check your settings."
   },
 
   "ForgotPassword": {

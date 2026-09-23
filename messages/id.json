@@ -1044,7 +1044,14 @@
     "ttsFullVoiceOver": "Full Voice Over (Semua Scene)",
     "ttsDownloadFullVo": "Unduh Full VO",
     "ttsMergeSuccess": "Full VO berhasil dibuat! Semua scene telah digabungkan.",
-    "ttsMergeError": "Gagal menggabungkan audio. Pastikan semua scene sudah di-generate terlebih dahulu."
+    "ttsMergeError": "Gagal menggabungkan audio. Pastikan semua scene sudah di-generate terlebih dahulu.",
+    "ttsPreviewTitle": "🎧 Preview Suara",
+    "ttsPreviewDesc": "Coba pengaturan suara saat ini dengan teks contoh singkat sebelum generate semua scene.",
+    "ttsPreviewPlaceholder": "Ketik teks contoh untuk preview...",
+    "ttsPreviewButton": "Preview Suara",
+    "ttsPreviewGenerating": "Generating preview...",
+    "ttsPreviewPlay": "Audio sampel",
+    "ttsPreviewError": "Preview gagal. Periksa pengaturan Anda."
   },
 
   "ForgotPassword": {

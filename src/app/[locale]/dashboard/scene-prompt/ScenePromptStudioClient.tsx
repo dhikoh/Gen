@@ -128,6 +128,8 @@ export default function ScenePromptStudioClient({ channels, planFeatures }: Prop
  const [ttsGeneratingAll, setTtsGeneratingAll] = useState(false);
  const [ttsMergedAudio, setTtsMergedAudio] = useState<string | null>(null);
  const [ttsMerging, setTtsMerging] = useState(false);
+ const [ttsPreviewText, setTtsPreviewText] = useState("");
+ const [ttsPreviewResult, setTtsPreviewResult] = useState<TtsResult | null>(null);
 
  // ── Batch Selection State (Fitur 3) ──
  const [selectedSceneIds, setSelectedSceneIds] = useState<Set<number>>(new Set());
@@ -214,6 +216,38 @@ export default function ScenePromptStudioClient({ channels, planFeatures }: Prop
    URL.revokeObjectURL(url);
    toast.success(t("ttsZipDownloaded"));
  }, [scenes, ttsResults, draftTitle, t]);
+
+  // ── Preview satu teks pendek dengan settings saat ini ──
+  const generatePreview = useCallback(async () => {
+    const text = ttsPreviewText.trim();
+    if (!text) return;
+    setTtsPreviewResult({ status: "generating" });
+    try {
+      const pitchPreset = TTS_PITCH_PRESETS.find(p => p.id === ttsPitch);
+      const pitchInstruction = pitchPreset?.instruction || undefined;
+      const res = await fetch("/api/tts/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text,
+          voice: ttsVoice,
+          model: ttsModel,
+          styleInstruction: ttsStyleInstruction || undefined,
+          speakingRate: ttsSpeed !== 1.0 ? ttsSpeed : undefined,
+          pitchInstruction,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTtsPreviewResult({ status: "done", audioBase64: data.audioBase64, mimeType: data.mimeType });
+      } else {
+        setTtsPreviewResult({ status: "error", errorMessage: data.error || t("ttsPreviewError") });
+        toast.error(data.error || t("ttsPreviewError"));
+      }
+    } catch {
+      setTtsPreviewResult({ status: "error", errorMessage: t("ttsPreviewError") });
+    }
+  }, [ttsPreviewText, ttsVoice, ttsModel, ttsStyleInstruction, ttsSpeed, ttsPitch, t]);
 
  // Generate All lalu gabungkan semua audio menjadi satu WAV
  const generateAndMergeAll = useCallback(async () => {
@@ -1165,104 +1199,6 @@ export default function ScenePromptStudioClient({ channels, planFeatures }: Prop
  )}
  </div>
 
- {/* ── Voice Studio (Fitur 1) ── */}
- {!planFeatures.textToSpeechStudio ? (
-   <div className="glass-panel rounded-xl p-6 border border-amber-200/60 dark:border-amber-800/60 text-center space-y-3">
-     <div className="text-3xl">🔒</div>
-     <h3 className="text-base font-bold pg-text-heading">{t("voiceStudioTitle")}</h3>
-     <p className="text-sm pg-text-muted">{t("voiceStudioLocked")}</p>
-     <a href="/dashboard/billing" className="inline-block px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold rounded-lg transition-colors">
-       {t("voiceStudioUpgrade")}
-     </a>
-   </div>
- ) : (
-   <div className="glass-panel rounded-xl p-6 border border-indigo-200/60 dark:border-indigo-800/60 space-y-5">
-     <div className="flex items-center justify-between flex-wrap gap-2">
-       <h3 className="text-base font-bold pg-text-heading flex items-center gap-2">
-         <span>🎙️</span> {t("voiceStudioTitle")}
-       </h3>
-       <div className="flex items-center gap-2 flex-wrap">
-         {Object.values(ttsResults).some(r => r.status === "done") && (
-           <button type="button" onClick={downloadAllAsZip}
-             className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-all shadow-sm active:scale-95">
-             <span>📦</span> {t("ttsDownloadAllZip")}
-           </button>
-         )}
-         <button type="button" onClick={generateAllScenesTts} disabled={ttsGeneratingAll}
-           className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-all shadow-sm active:scale-95 disabled:opacity-50">
-           <span>⚡</span> {ttsGeneratingAll ? t("ttsGeneratingAll") : t("ttsGenerateAll")}
-         </button>
-       </div>
-     </div>
-
-     {/* Voice/Model Controls */}
-     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-       <div>
-         <label className="block text-xs font-medium pg-text-sub mb-1">{t("voiceSelectLabel")}</label>
-         <select value={ttsVoice} onChange={e => setTtsVoice(e.target.value)}
-           className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white">
-           {GEMINI_TTS_VOICES.map(v => (
-             <option key={v.id} value={v.id}>{v.id} — {v.styleHint}</option>
-           ))}
-         </select>
-       </div>
-       <div>
-         <label className="block text-xs font-medium pg-text-sub mb-1">{t("ttsModelLabel")}</label>
-         <select value={ttsModel} onChange={e => setTtsModel(e.target.value)}
-           className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white">
-           {GEMINI_TTS_MODELS.map(m => (
-             <option key={m.id} value={m.id}>{m.label}</option>
-           ))}
-         </select>
-       </div>
-       <div>
-         <label className="block text-xs font-medium pg-text-sub mb-1">{t("ttsStyleLabel")}</label>
-         <input value={ttsStyleInstruction} onChange={e => setTtsStyleInstruction(e.target.value)}
-           placeholder={t("ttsStylePlaceholder")}
-           className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white" />
-       </div>
-     </div>
-
-     {/* Per-Scene TTS List */}
-     <div className="space-y-3">
-       {scenes.filter(s => s.narasi !== "—" && !s.isDiegetic).map(scene => {
-         const result = ttsResults[scene.id];
-         const audioSrc = result?.audioBase64 ? `data:${result.mimeType || "audio/wav"};base64,${result.audioBase64}` : null;
-         return (
-           <div key={scene.id} className="rounded-lg p-3 pg-surface-dim border pg-border space-y-2">
-             <div className="flex items-center justify-between gap-2">
-               <div className="flex items-center gap-2 flex-1 min-w-0">
-                 <span className="text-xs font-bold pg-text-heading shrink-0">{scene.sceneNumber}</span>
-                 <span className="text-xs pg-text-muted truncate">{scene.narasi.slice(0, 60)}...</span>
-               </div>
-               <div className="flex items-center gap-1.5 shrink-0">
-                 {result?.status === "done" && (
-                   <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">✅</span>
-                 )}
-                 {result?.status === "error" && (
-                   <span className="text-[10px] font-semibold text-red-500" title={result.errorMessage}>❌</span>
-                 )}
-                 <button type="button" onClick={() => generateSceneTts(scene)}
-                   disabled={result?.status === "generating"}
-                   className="text-[10px] font-medium px-2.5 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 disabled:opacity-40 transition-colors">
-                   {result?.status === "generating" ? t("ttsGenerating") : t("ttsGenerateScene")}
-                 </button>
-               </div>
-             </div>
-             {audioSrc && (
-               <audio controls className="w-full h-8" src={audioSrc} />
-             )}
-           </div>
-         );
-       })}
-     </div>
-
-     {scenes.filter(s => s.narasi !== "—" && !s.isDiegetic).length === 0 && (
-       <p className="text-sm pg-text-muted text-center py-4">{t("noNarrationToCopy")}</p>
-     )}
-   </div>
- )}
-
  </div>
  )}
 
@@ -1384,6 +1320,47 @@ export default function ScenePromptStudioClient({ channels, planFeatures }: Prop
              className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white" />
          </div>
        </div>
+
+        {/* ── Voice Preview Panel ── */}
+        <div className="rounded-xl p-4 bg-indigo-50/70 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700 space-y-3">
+          <div>
+            <h4 className="text-xs font-bold text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5 mb-0.5">
+              {t("ttsPreviewTitle")}
+            </h4>
+            <p className="text-[11px] text-indigo-600/70 dark:text-indigo-400/70">{t("ttsPreviewDesc")}</p>
+          </div>
+          <div className="flex gap-2 items-start">
+            <textarea
+              value={ttsPreviewText}
+              onChange={e => setTtsPreviewText(e.target.value)}
+              placeholder={t("ttsPreviewPlaceholder")}
+              rows={2}
+              className="flex-1 px-3 py-2 text-sm bg-white dark:bg-slate-700 border border-indigo-200 dark:border-indigo-600 rounded-lg outline-none dark:text-white resize-none focus:ring-2 focus:ring-indigo-400 transition-shadow"
+            />
+            <button
+              type="button"
+              onClick={generatePreview}
+              disabled={!ttsPreviewText.trim() || ttsPreviewResult?.status === "generating"}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-all shadow-sm active:scale-95 disabled:opacity-50 whitespace-nowrap"
+            >
+              <span>🎧</span>
+              {ttsPreviewResult?.status === "generating" ? t("ttsPreviewGenerating") : t("ttsPreviewButton")}
+            </button>
+          </div>
+          {ttsPreviewResult?.status === "done" && ttsPreviewResult.audioBase64 && (
+            <div className="space-y-1">
+              <p className="text-[10px] font-medium text-indigo-600 dark:text-indigo-400">🔊 {t("ttsPreviewPlay")}</p>
+              <audio
+                controls
+                className="w-full h-8"
+                src={`data:${ttsPreviewResult.mimeType || "audio/wav"};base64,${ttsPreviewResult.audioBase64}`}
+              />
+            </div>
+          )}
+          {ttsPreviewResult?.status === "error" && (
+            <p className="text-[11px] text-red-500 dark:text-red-400">⚠️ {ttsPreviewResult.errorMessage}</p>
+          )}
+        </div>
 
        {/* Per-Scene TTS List */}
        <div className="space-y-2.5">

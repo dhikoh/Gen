@@ -2,6 +2,45 @@
 
 ---
 
+## [#65] — 2026-09-23 | Fix: Audit Duplikasi Voice Studio & Feat: Voice Preview Studio
+
+### Overview
+
+Rilis ini menuntaskan audit duplikasi antarmuka **Voice Studio** dan menambahkan fitur **Voice Preview** (Uji Dengar Suara) agar creator dapat mendengarkan sampel suara sebelum melakukan generate audio per-scene atau Full VO.
+
+---
+
+### 1 — Pembersihan Duplikasi Voice Studio di Platform Content
+
+- **Audit & Problem**: Voice Studio sebelumnya muncul ganda: sebagai implementasi parsial/lama di dalam tab `📱 Platform Content`, dan sebagai implementasi kanonikal penuh di tab terpisah `🎙️ Voice Studio`. Keduanya berbagi state yang sama (`ttsResults`, `ttsVoice`, dll) sehingga membingungkan pengguna dan membuat halaman terlalu padat.
+- **Solusi**: Blok Voice Studio di dalam tab `Platform Content` dihapus seluruhnya. Tab `🎙️ Voice Studio` kini menjadi satu-satunya tempat untuk mengonfigurasi dan men-generate Text-to-Speech narasi.
+- **File:** `src/app/[locale]/dashboard/scene-prompt/ScenePromptStudioClient.tsx`.
+
+---
+
+### 2 — Fitur Voice Preview (Uji Dengar Suara)
+
+- **Fitur Baru**: Panel "Preview Suara" ditambahkan di dalam tab `🎙️ Voice Studio` (antara grid kontrol suara dan daftar scene).
+- **Fungsi**: Memungkinkan creator menguji karakter suara, speed, dan pitch pilihan sebelum men-generate seluruh scene (menghemat kuota/request API dan waktu).
+- **Interaksi**:
+  - Textarea input kustom untuk teks uji coba (default placeholder kontekstual).
+  - Tombol `🎧 Uji Dengar` / `Test Voice`.
+  - Audio player inline langsung muncul saat preview selesai di-generate.
+- **File:** `src/app/[locale]/dashboard/scene-prompt/ScenePromptStudioClient.tsx`, `messages/id.json`, `messages/en.json`.
+
+---
+
+### Ringkasan Teknis
+
+| Aspek | Status |
+|-------|--------|
+| i18n parity (id ↔ en) | ✅ Parity terjaga (7 key baru) |
+| Duplikasi komponen | ❌ Dieliminasi (0 duplicate UI) |
+| Endpoint yang digunakan | `POST /api/tts/generate` |
+| Breaking changes | ❌ Tidak ada |
+
+---
+
 ## [#64] — 2026-09-22 | Feature: Voice Studio — Tab Terpisah, Speed/Pitch, Durasi, Sorted Voices & Full VO Merge
 
 ### Overview

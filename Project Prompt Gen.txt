@@ -1773,3 +1773,25 @@ Entry baru di `KNOWN_PLAN_FEATURES` (`src/lib/planFeatures.ts`):
 1. Jalankan migrasi SQL untuk model `UserApiKey` di VPS.
 2. Set env var `API_KEY_ENCRYPTION_SECRET` (min 32 karakter) di Coolify.
 3. Di AdminPlans: aktifkan toggle `textToSpeechStudio` untuk plan yang diinginkan.
+
+## 31. Fitur #64 & #65 — Voice Studio Tab Mandiri, Kontrol Lanjutan & Voice Preview (2026-09-22 / 2026-09-23)
+
+### 31.1 Voice Studio Menjadi Tab Terpisah & Pembersihan Duplikasi (#64, #65)
+- Voice Studio diposisikan sebagai tab mandiri `🎙️ Voice Studio` di `ScenePromptStudioClient.tsx`.
+- Duplikasi UI Voice Studio lama di dalam tab `📱 Platform Content` dihapus total pada patch #65 untuk mencegah kebingungan dan konflik state bersamaan.
+- Tab `🎙️ Voice Studio` kini menjadi satu-satunya tempat kanonikal untuk mengonfigurasi dan men-generate Text-to-Speech narasi.
+
+### 31.2 Voice Selection & Kontrol Suara Lanjutan (#64)
+- 30 voice Gemini TTS diurutkan secara alfabetis (A-Z) dengan metadata lengkap (gender, tone deskripsi, rekomendasi use-case / bestFor).
+- Slider kecepatan bicara (`speakingRate`: 0.25× – 2.0×) dikirim langsung ke Gemini API.
+- Preset variasi nada / pitch (Normal, +1, +2, -1, -2) dikonversi menjadi style instruction adaptif.
+
+### 31.3 Voice Preview Panel (#65)
+- Panel preview suara interaktif di dalam tab Voice Studio untuk mendengarkan sampel audio sebelum creator melakukan batch generate seluruh scene.
+- Menggunakan endpoint `POST /api/tts/generate` secara instan dengan teks uji coba kustom (textarea + tombol `🎧 Uji Dengar` + inline audio player).
+- Parity lokalisasi i18n (`messages/id.json` & `messages/en.json`): `ttsPreviewTitle`, `ttsPreviewDesc`, `ttsPreviewPlaceholder`, `ttsPreviewButton`, `ttsPreviewGenerating`, `ttsPreviewPlay`, `ttsPreviewError`.
+
+### 31.4 Server-side Audio Concatenation (Full VO Merge) (#64)
+- Endpoint baru: `POST /api/tts/merge` untuk menggabungkan potongan audio WAV per-scene menjadi satu file audio voiceover utuh (Full VO) via `mergeWavBuffers()` di `src/lib/geminiTts.ts`.
+- Rate limiting: 10 req/menit per user.
+
