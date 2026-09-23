@@ -45,7 +45,10 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     where: { id },
     data: {
       ...(label !== undefined && { label }),
-      ...(isActive !== undefined && { isActive }),
+      ...(isActive !== undefined && {
+        isActive,
+        ...(isActive === true ? { lastErrorCode: null, lastErrorMessage: null, lastErrorAt: null } : {}),
+      }),
       ...(priority !== undefined && { priority }),
     },
     select: {

@@ -117,7 +117,12 @@ export default function SettingsClient() {
       const res = await fetch("/api/tts/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: "Halo, ini pengujian suara.", voice: "Kore", model: "gemini-2.5-flash-preview-tts" }),
+        body: JSON.stringify({
+          text: "Halo, ini pengujian suara.",
+          voice: "Kore",
+          model: "gemini-2.5-flash-preview-tts",
+          keyId: key.id,
+        }),
       });
       const data = await res.json();
       if (data.success) {
@@ -125,7 +130,12 @@ export default function SettingsClient() {
       } else {
         toast.error(data.error || t("ttsKeyTestFail"));
       }
-    } catch { toast.error(t("generalError")); } finally { setTestingKeyId(null); }
+    } catch {
+      toast.error(t("generalError"));
+    } finally {
+      setTestingKeyId(null);
+      fetchKeys();
+    }
   };
 
   const formatRelativeTime = (dateStr: string | null) => {
@@ -328,7 +338,7 @@ export default function SettingsClient() {
                       }`}>
                       {key.isActive ? t("ttsDeactivate") : t("ttsActivate")}
                     </button>
-                    <button type="button" onClick={() => handleTestKey(key)} disabled={testingKeyId === key.id || !key.isActive}
+                    <button type="button" onClick={() => handleTestKey(key)} disabled={testingKeyId === key.id}
                       className="text-[10px] font-medium px-2.5 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 disabled:opacity-40 transition-colors">
                       {testingKeyId === key.id ? t("ttsTesting") : t("ttsTestKey")}
                     </button>

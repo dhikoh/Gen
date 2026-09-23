@@ -30,13 +30,29 @@ Rilis ini menuntaskan audit duplikasi antarmuka **Voice Studio** dan menambahkan
 
 ---
 
+### 3 — Fix: Skema Payload Gemini TTS & Pencegahan Auto-Deactivation False-Positive
+
+- **Root Cause Problem**: Pada patch #64, parameter `speakingRate` dikirim langsung di dalam objek `speechConfig` Gemini REST API. Google Gemini menolak parameter tersebut dengan HTTP 400 (`Invalid JSON payload received. Unknown name "speakingRate" at 'generation_config.speech_config'`).
+- **Dampak Error**: Fungsi `classifyError` sebelumnya salah mengklasifikasikan semua HTTP 400 sebagai `INVALID_KEY`, memicu logika fail-safe yang otomatis menonaktifkan API key user di database (`isActive: false`). Akibatnya muncul toast *"Belum ada API key Gemini aktif"*.
+- **Solusi**:
+  - Hapus field `speakingRate` dari payload `speechConfig` di `src/lib/geminiTts.ts`.
+  - Kontrol tempo/kecepatan suara dialihkan melalui prompt guidance directive pada teks narasi (didukung penuh model Gemini).
+  - Perbaiki `classifyError`: HTTP 400 / payload issues tidak lagi dianggap `INVALID_KEY`. `INVALID_KEY` hanya berlaku jika respons Google secara eksplisit menyatakan kunci otentikasi tidak valid atau HTTP 403.
+  - Perbaiki `handleTestKey` di `SettingsClient.tsx`: Mengirim `keyId` spesifik, mengizinkan pengujian key non-aktif, otomatis memulihkan status `isActive: true` jika test berhasil, dan langsung menyinkronkan state UI via `fetchKeys()`.
+  - Endpoint `PATCH /api/user/tts-keys/[id]` otomatis mereset pesan error saat key diaktifkan kembali.
+- **File:** `src/lib/geminiTts.ts`, `src/app/api/tts/generate/route.ts`, `src/app/api/user/tts-keys/[id]/route.ts`, `src/app/[locale]/dashboard/settings/SettingsClient.tsx`.
+
+---
+
 ### Ringkasan Teknis
 
 | Aspek | Status |
 |-------|--------|
 | i18n parity (id ↔ en) | ✅ Parity terjaga (7 key baru) |
 | Duplikasi komponen | ❌ Dieliminasi (0 duplicate UI) |
-| Endpoint yang digunakan | `POST /api/tts/generate` |
+| Skema Gemini TTS payload | ✅ Standar Google REST v1beta (tanpa invalid field) |
+| Error classifier | ✅ Presisi (400 ≠ INVALID_KEY) |
+| Endpoint yang digunakan | `POST /api/tts/generate` (dengan opsi `keyId`) |
 | Breaking changes | ❌ Tidak ada |
 
 ---

@@ -55,12 +55,26 @@ export async function validateGeminiApiKey(
 }
 
 function classifyError(status: number, body: unknown): TtsErrorCode {
-  const errStatus = (body as { error?: { status?: string } })?.error?.status;
-  if (status === 400 || status === 403 || errStatus === "PERMISSION_DENIED")
+  const err = (body as { error?: { status?: string; message?: string } })?.error;
+  const errStatus = err?.status || "";
+  const errMsg = (err?.message || "").toLowerCase();
+
+  // Hanya jika benar-benar error auth / API key tidak valid
+  if (
+    status === 403 ||
+    errStatus === "PERMISSION_DENIED" ||
+    errMsg.includes("api key not valid") ||
+    errMsg.includes("api_key_invalid") ||
+    errMsg.includes("invalid api key")
+  ) {
     return "INVALID_KEY";
-  if (status === 429) return "RATE_LIMITED";
-  if (status === 503) return "MODEL_OVERLOADED";
-  // 500 bisa transient (bug text-token Google) — dikembalikan sebagai UNKNOWN agar di-retry
+  }
+
+  if (status === 429 || errStatus === "RESOURCE_EXHAUSTED") return "RATE_LIMITED";
+  if (status === 503 || errStatus === "UNAVAILABLE") return "MODEL_OVERLOADED";
+  if (errMsg.includes("blocked") || errMsg.includes("safety")) return "CONTENT_BLOCKED";
+
+  // HTTP 400 (Bad Request / payload / schema issue) BUKAN invalid key
   return "UNKNOWN";
 }
 
@@ -160,16 +174,12 @@ export async function callGeminiTts(
 ): Promise<TtsCallResult> {
   const url = `${GEMINI_BASE_URL}/models/${model}:generateContent`;
 
-  // Clamp speakingRate ke range yang didukung Gemini (0.25–4.0)
-  const clampedRate = Math.min(4.0, Math.max(0.25, speakingRate));
-
   const requestBody = {
     contents: [{ parts: [{ text }] }],
     generationConfig: {
       responseModalities: ["AUDIO"],
       speechConfig: {
         voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } },
-        speakingRate: clampedRate,
       },
     },
   };

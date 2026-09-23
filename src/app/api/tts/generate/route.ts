@@ -19,6 +19,7 @@ const generateSchema = z.object({
   styleInstruction: z.string().max(500).optional(),
   speakingRate: z.number().min(0.25).max(4.0).optional(),
   pitchInstruction: z.string().max(200).optional(), // teks pitch (preset → string)
+  keyId: z.string().optional(),                      // ID key spesifik untuk pengujian dari Settings
 });
 
 interface AttemptLog {
@@ -78,25 +79,52 @@ export async function POST(req: Request) {
     );
   }
 
-  const { text, voice, model, styleInstruction, speakingRate = 1.0, pitchInstruction } = parsed.data;
+  const { text, voice, model, styleInstruction, speakingRate = 1.0, pitchInstruction, keyId } = parsed.data;
 
-  // Gabungkan pitch instruction + style instruction ke teks
+  // Gabungkan pitch instruction + style instruction + tempo instruction ke teks (Gemini prompt steering)
   const prefixes: string[] = [];
   if (pitchInstruction) prefixes.push(pitchInstruction);
   if (styleInstruction) prefixes.push(`Style: ${styleInstruction}`);
+
+  if (speakingRate && speakingRate !== 1.0) {
+    if (speakingRate <= 0.6) {
+      prefixes.push("Tempo bicara: sangat lambat dan tenang");
+    } else if (speakingRate <= 0.85) {
+      prefixes.push("Tempo bicara: agak lambat dan santai");
+    } else if (speakingRate >= 1.4) {
+      prefixes.push("Tempo bicara: sangat cepat dan antusias");
+    } else if (speakingRate >= 1.15) {
+      prefixes.push("Tempo bicara: agak cepat dan dinamis");
+    }
+  }
+
   const finalText = prefixes.length > 0
     ? `[${prefixes.join(". ")}]\n\n${text}`
     : text;
 
-  // ── Ambil API keys user, urut prioritas ──
-  const apiKeys = await prisma.userApiKey.findMany({
-    where: {
-      userId: session.user.id,
-      provider: "GEMINI",
-      isActive: true,
-    },
-    orderBy: [{ priority: "asc" }, { createdAt: "asc" }],
-  });
+  // ── Ambil API keys user ──
+  let apiKeys;
+  if (keyId) {
+    // Pengujian key tertentu (misal Test Key di Settings)
+    const specificKey = await prisma.userApiKey.findFirst({
+      where: {
+        id: keyId,
+        userId: session.user.id,
+        provider: "GEMINI",
+      },
+    });
+    apiKeys = specificKey ? [specificKey] : [];
+  } else {
+    // Alur reguler: cari key yang aktif, urutkan prioritas
+    apiKeys = await prisma.userApiKey.findMany({
+      where: {
+        userId: session.user.id,
+        provider: "GEMINI",
+        isActive: true,
+      },
+      orderBy: [{ priority: "asc" }, { createdAt: "asc" }],
+    });
+  }
 
   if (apiKeys.length === 0) {
     return NextResponse.json(
@@ -132,7 +160,7 @@ export async function POST(req: Request) {
       continue;
     }
 
-    const result = await callGeminiTts(rawKey, finalText, voice, model, speakingRate);
+    const result = await callGeminiTts(rawKey, finalText, voice, model);
 
     if (result.success && result.audioBuffer) {
       usedKeyId = keyRecord.id;
@@ -144,13 +172,13 @@ export async function POST(req: Request) {
         success: true,
       });
 
-      // Update stats: success
+      // Update stats: success & pulihkan isActive jika sebelumnya mati karena false positive
       await prisma.userApiKey.update({
         where: { id: keyRecord.id },
         data: {
+          isActive: true,
           lastUsedAt: new Date(),
           totalSuccessCount: { increment: 1 },
-          // Clear last error on success
           lastErrorAt: null,
           lastErrorCode: null,
           lastErrorMessage: null,

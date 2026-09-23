@@ -1781,10 +1781,9 @@ Entry baru di `KNOWN_PLAN_FEATURES` (`src/lib/planFeatures.ts`):
 - Duplikasi UI Voice Studio lama di dalam tab `📱 Platform Content` dihapus total pada patch #65 untuk mencegah kebingungan dan konflik state bersamaan.
 - Tab `🎙️ Voice Studio` kini menjadi satu-satunya tempat kanonikal untuk mengonfigurasi dan men-generate Text-to-Speech narasi.
 
-### 31.2 Voice Selection & Kontrol Suara Lanjutan (#64)
+### 31.2 Voice Selection & Kontrol Suara Lanjutan (#64, #65)
 - 30 voice Gemini TTS diurutkan secara alfabetis (A-Z) dengan metadata lengkap (gender, tone deskripsi, rekomendasi use-case / bestFor).
-- Slider kecepatan bicara (`speakingRate`: 0.25× – 2.0×) dikirim langsung ke Gemini API.
-- Preset variasi nada / pitch (Normal, +1, +2, -1, -2) dikonversi menjadi style instruction adaptif.
+- Pengaturan tempo bicara (`speakingRate`: 0.25× – 2.0×) dan preset variasi nada / pitch (Normal, +1, +2, -1, -2) dikonversi menjadi prompt guidance directive adaptif ke teks narasi sesuai spesifikasi resmi Google Gemini TTS (bukan field numerik di JSON payload).
 
 ### 31.3 Voice Preview Panel (#65)
 - Panel preview suara interaktif di dalam tab Voice Studio untuk mendengarkan sampel audio sebelum creator melakukan batch generate seluruh scene.
@@ -1794,4 +1793,9 @@ Entry baru di `KNOWN_PLAN_FEATURES` (`src/lib/planFeatures.ts`):
 ### 31.4 Server-side Audio Concatenation (Full VO Merge) (#64)
 - Endpoint baru: `POST /api/tts/merge` untuk menggabungkan potongan audio WAV per-scene menjadi satu file audio voiceover utuh (Full VO) via `mergeWavBuffers()` di `src/lib/geminiTts.ts`.
 - Rate limiting: 10 req/menit per user.
+
+### 31.5 Remediasi Skema Payload & Error Classifier (#65)
+- Dihapusnya parameter `speakingRate` dari dalam `speechConfig` JSON payload karena ditolak oleh Google API dengan error HTTP 400 (`Invalid JSON payload received`).
+- Perbaikan fungsi `classifyError` di `src/lib/geminiTts.ts`: error 400 tidak lagi diperlakukan sebagai `INVALID_KEY`. `INVALID_KEY` hanya di-trigger jika respons otentikasi Google secara eksplisit menyatakan key tidak valid (mencegah auto-deaktivasi massal API key).
+- Fitur pengujian key spesifik (`keyId`) dan auto-recovery: tombol "Test Key" di Settings dapat menguji key individual dan otomatis memulihkan status `isActive: true` jika pengujian berhasil.
 
