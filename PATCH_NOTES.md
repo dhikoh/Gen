@@ -2,6 +2,69 @@
 
 ---
 
+## [#66] — 2026-09-23 | Feature: Voice Studio Filter (Gender & Favorit), Pencarian Niche, Star Toggle & Full State Persistence
+
+### Overview
+
+Rilis ini menghadirkan fitur **Voice Discovery & Personalization** pada Voice Studio: penyaringan suara berdasarkan Gender (Pria/Wanita), daftar Favorit dengan tombol bintang (⭐), pencarian cepat berdasarkan niche/karakter suara, rekomendasi cerdas untuk niche channel, serta **persistensi otomatis penuh** agar konfigurasi terakhir tidak hilang saat berpindah tab atau berpindah halaman.
+
+---
+
+### 1 — Filter Kategori & Gender (Filter Pills)
+
+- Ditambahkan baris tombol filter di atas pemilihan suara:
+  - `Semua (30)`: Menampilkan seluruh katalog 30 varian suara Gemini TTS A-Z.
+  - `⭐ Favorit (N)`: Menampilkan hanya suara yang telah ditandai bintang oleh creator.
+  - `👨 Pria (15)`: Menyaring khusus suara maskulin.
+  - `👩 Wanita (15)`: Menyaring khusus suara feminin.
+- **File:** `ScenePromptStudioClient.tsx`, `messages/id.json`, `messages/en.json`.
+
+---
+
+### 2 — Pencarian Cepat Berdasarkan Mood, Karakter & Niche
+
+- Kolom pencarian interaktif di atas dropdown suara.
+- Mendukung pencarian teks terhadap nama suara (misal: *Kore*), nada karakter (misal: *Tegas, Lembut*), maupun *use-case* / *bestFor* (misal: *Dokumenter, Storytelling, ASMR, Horror, Finansial*).
+- **File:** `ScenePromptStudioClient.tsx`.
+
+---
+
+### 3 — Toggle Bintang Favorit (⭐) & Smart Channel Recommendation
+
+- **Tombol Bintang Favorit**: Terletak tepat di sebelah dropdown suara untuk suara yang sedang aktif. Sekali klik untuk menambahkan/menghapus dari favorit.
+- **Smart Recommendation**: Menampilkan badge `✨ Cocok untuk niche channel Anda` jika karakter suara cocok dengan niche channel yang sedang aktif.
+- **Penyimpanan Permanen**: Disimpan di `localStorage` (`promptgen_favorite_voices`), sehingga tidak hilang saat mengganti draft atau berganti sesi.
+- **File:** `ScenePromptStudioClient.tsx`.
+
+---
+
+### 4 — Persistensi State Total (Anti-Reset saat Pindah Tab)
+
+- Mengintegrasikan seluruh setelan Voice Studio ke dalam penyimpanan otomatis:
+  - Pilihan suara (`ttsVoice`)
+  - Model TTS (`ttsModel`)
+  - Preset pitch / nada (`ttsPitch`)
+  - Kecepatan bicara (`ttsSpeed`)
+  - Teks instruksi gaya (`ttsStyleInstruction`)
+  - Filter gender aktif (`ttsVoiceFilter`)
+  - Daftar suara favorit (`favoriteVoices`)
+- Tersimpan instan di `localStorage` dan tersinkronisasi dengan debounce ke server (`/api/user/preferences`).
+- **Hasil**: Berpindah-pindah tab (*Scene Viewer*, *Thumbnail*, *Platform Content*, *Voice Studio*), berpindah menu dashboard, atau reload browser tidak akan mereset setelan terakhir creator.
+- **File:** `ScenePromptStudioClient.tsx`.
+
+---
+
+### Ringkasan Teknis
+
+| Aspek | Status |
+|-------|--------|
+| i18n parity (id ↔ en) | ✅ Parity terjaga (11 key baru) |
+| State persistence | ✅ LocalStorage + Server sync |
+| Kompatibilitas model | ✅ Gemini TTS REST v1beta |
+| Breaking changes | ❌ Tidak ada |
+
+---
+
 ## [#65] — 2026-09-23 | Fix: Audit Duplikasi Voice Studio & Feat: Voice Preview Studio
 
 ### Overview

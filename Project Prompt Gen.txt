@@ -1799,3 +1799,11 @@ Entry baru di `KNOWN_PLAN_FEATURES` (`src/lib/planFeatures.ts`):
 - Perbaikan fungsi `classifyError` di `src/lib/geminiTts.ts`: error 400 tidak lagi diperlakukan sebagai `INVALID_KEY`. `INVALID_KEY` hanya di-trigger jika respons otentikasi Google secara eksplisit menyatakan key tidak valid (mencegah auto-deaktivasi massal API key).
 - Fitur pengujian key spesifik (`keyId`) dan auto-recovery: tombol "Test Key" di Settings dapat menguji key individual dan otomatis memulihkan status `isActive: true` jika pengujian berhasil.
 
+### 31.6 Voice Discovery (Filter, Favorit ⭐, Pencarian Niche) & Persistensi Penuh (#66)
+- Filter kategori suara via pill buttons: `Semua (30)`, `⭐ Favorit`, `👨 Pria (15)`, `👩 Wanita (15)`.
+- Input pencarian cerdas untuk memfilter suara berdasarkan nama, nada suara (e.g. `Tegas`, `Lembut`), atau niche / *bestFor* (e.g. `Dokumenter`, `Storytelling`, `Horor`, `ASMR`).
+- Tombol bintang favorit (⭐ / ☆) interaktif tepat di samping dropdown suara aktif, disimpan persisten di browser (`localStorage.setItem("promptgen_favorite_voices")`).
+- Badge rekomendasi cerdas otomatis mendeteksi kecocokan antara persona suara dan `channel.niche` yang sedang aktif.
+- Persistensi state lengkap (`scenePromptState`): seluruh konfigurasi Voice Studio (`ttsVoice`, `ttsModel`, `ttsPitch`, `ttsSpeed`, `ttsStyleInstruction`, `ttsVoiceFilter`, `favoriteVoices`) otomatis tersimpan dan dimuat ulang, mencegah reset saat berganti tab maupun berpindah halaman dashboard.
+
+

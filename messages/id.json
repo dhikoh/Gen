@@ -1051,7 +1051,18 @@
     "ttsPreviewButton": "Preview Suara",
     "ttsPreviewGenerating": "Generating preview...",
     "ttsPreviewPlay": "Audio sampel",
-    "ttsPreviewError": "Preview gagal. Periksa pengaturan Anda."
+    "ttsPreviewError": "Preview gagal. Periksa pengaturan Anda.",
+    "ttsFilterAll": "Semua",
+    "ttsFilterFavorites": "Favorit",
+    "ttsFilterMale": "Pria",
+    "ttsFilterFemale": "Wanita",
+    "ttsSearchVoicePlaceholder": "Cari nama, karakter, atau niche (mis. dokumenter)...",
+    "ttsFavoriteToggleAdd": "Jadikan suara favorit",
+    "ttsFavoriteToggleRemove": "Hapus dari favorit",
+    "ttsNoMatchingVoices": "Tidak ada suara yang cocok dengan filter.",
+    "ttsGroupFavorites": "⭐ Suara Favorit",
+    "ttsGroupAll": "🎙️ Semua Suara",
+    "ttsRecommendedForChannel": "Cocok untuk niche channel Anda"
   },
 
   "ForgotPassword": {

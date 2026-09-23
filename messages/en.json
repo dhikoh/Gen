@@ -1051,7 +1051,18 @@
     "ttsPreviewButton": "Preview Voice",
     "ttsPreviewGenerating": "Generating preview...",
     "ttsPreviewPlay": "Sample audio",
-    "ttsPreviewError": "Preview failed. Check your settings."
+    "ttsPreviewError": "Preview failed. Check your settings.",
+    "ttsFilterAll": "All",
+    "ttsFilterFavorites": "Favorites",
+    "ttsFilterMale": "Male",
+    "ttsFilterFemale": "Female",
+    "ttsSearchVoicePlaceholder": "Search name, mood, or niche (e.g. documentary)...",
+    "ttsFavoriteToggleAdd": "Add to favorite voices",
+    "ttsFavoriteToggleRemove": "Remove from favorites",
+    "ttsNoMatchingVoices": "No voices match your filter.",
+    "ttsGroupFavorites": "⭐ Favorite Voices",
+    "ttsGroupAll": "🎙️ All Voices",
+    "ttsRecommendedForChannel": "Matches your channel niche"
   },
 
   "ForgotPassword": {

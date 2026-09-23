@@ -128,11 +128,88 @@ export default function ScenePromptStudioClient({ channels, planFeatures }: Prop
  const [ttsGeneratingAll, setTtsGeneratingAll] = useState(false);
  const [ttsMergedAudio, setTtsMergedAudio] = useState<string | null>(null);
  const [ttsMerging, setTtsMerging] = useState(false);
- const [ttsPreviewText, setTtsPreviewText] = useState("");
- const [ttsPreviewResult, setTtsPreviewResult] = useState<TtsResult | null>(null);
+  const [ttsPreviewText, setTtsPreviewText] = useState("");
+  const [ttsPreviewResult, setTtsPreviewResult] = useState<TtsResult | null>(null);
 
- // ── Batch Selection State (Fitur 3) ──
- const [selectedSceneIds, setSelectedSceneIds] = useState<Set<number>>(new Set());
+  // ── Voice Filter, Search & Favorite State ──
+  const [favoriteVoices, setFavoriteVoices] = useState<string[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("promptgen_favorite_voices");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) return parsed;
+        }
+      } catch {}
+    }
+    return [];
+  });
+  const [ttsVoiceFilter, setTtsVoiceFilter] = useState<"all" | "favorites" | "male" | "female">("all");
+  const [ttsVoiceSearch, setTtsVoiceSearch] = useState("");
+
+  const toggleFavoriteVoice = useCallback((voiceId: string) => {
+    setFavoriteVoices(prev => {
+      const next = prev.includes(voiceId) ? prev.filter(id => id !== voiceId) : [...prev, voiceId];
+      try {
+        localStorage.setItem("promptgen_favorite_voices", JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }, []);
+
+  const filteredVoices = React.useMemo(() => {
+    let list = [...GEMINI_TTS_VOICES];
+
+    // Filter gender / favorites
+    if (ttsVoiceFilter === "favorites") {
+      list = list.filter(v => favoriteVoices.includes(v.id));
+    } else if (ttsVoiceFilter === "male") {
+      list = list.filter(v => v.gender === "Male");
+    } else if (ttsVoiceFilter === "female") {
+      list = list.filter(v => v.gender === "Female");
+    }
+
+    // Filter search
+    if (ttsVoiceSearch.trim()) {
+      const q = ttsVoiceSearch.toLowerCase().trim();
+      list = list.filter(v =>
+        v.id.toLowerCase().includes(q) ||
+        v.tone.toLowerCase().includes(q) ||
+        v.bestFor.toLowerCase().includes(q) ||
+        v.styleHint.toLowerCase().includes(q)
+      );
+    }
+
+    // Sort: favorites first, then A-Z
+    return list.sort((a, b) => {
+      const aFav = favoriteVoices.includes(a.id);
+      const bFav = favoriteVoices.includes(b.id);
+      if (aFav && !bFav) return -1;
+      if (!aFav && bFav) return 1;
+      return a.id.localeCompare(b.id);
+    });
+  }, [ttsVoiceFilter, ttsVoiceSearch, favoriteVoices]);
+
+  // Ensure currently selected voice is never orphaned in select dropdown
+  const displayVoices = React.useMemo(() => {
+    if (filteredVoices.some(v => v.id === ttsVoice)) return filteredVoices;
+    const curr = GEMINI_TTS_VOICES.find(v => v.id === ttsVoice);
+    return curr ? [curr, ...filteredVoices] : filteredVoices;
+  }, [filteredVoices, ttsVoice]);
+
+  // Channel Smart Recommendation
+  const activeChannel = React.useMemo(() => channels.find(c => c.id === selectedChannelId), [channels, selectedChannelId]);
+  const isRecommendedForChannel = React.useMemo(() => {
+    if (!activeChannel?.niche) return false;
+    const currentVoice = GEMINI_TTS_VOICES.find(v => v.id === ttsVoice);
+    if (!currentVoice) return false;
+    const nicheWords = activeChannel.niche.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+    const bestForText = (currentVoice.bestFor + " " + currentVoice.tone).toLowerCase();
+    return nicheWords.some(word => bestForText.includes(word));
+  }, [activeChannel, ttsVoice]);
+
+  // ── Batch Selection State (Fitur 3) ──
+  const [selectedSceneIds, setSelectedSceneIds] = useState<Set<number>>(new Set());
 
  // ── TTS Functions (Fitur 1) ──
  const buildTtsInputText = useCallback((scene: Scene) => {
@@ -373,16 +450,22 @@ export default function ScenePromptStudioClient({ channels, planFeatures }: Prop
   // "Pilih" hanya mengatur draftTitle.
   // "Simpan ke Direktori" adalah aksi terpisah via tombol eksplisit (handleMarkAsUsed).
   const handleSelectTitle = (title: string) => {
-  setDraftTitle(title);
+    setDraftTitle(title);
   };
 
-
- // Server-Side Sync & LocalStorage Persistence
+  // Server-Side Sync & LocalStorage Persistence
   useEffect(() => {
     let ignore = false;
 
     // 1. Local Storage load (deferred to avoid cascading render during effect mount)
     const saved = localStorage.getItem("scenePromptState");
+    const savedFavorites = localStorage.getItem("promptgen_favorite_voices");
+    if (savedFavorites) {
+      try {
+        const favs = JSON.parse(savedFavorites);
+        if (Array.isArray(favs) && favs.length > 0) setFavoriteVoices(favs);
+      } catch {}
+    }
     if (saved) {
       try {
         const p = JSON.parse(saved);
@@ -394,6 +477,15 @@ export default function ScenePromptStudioClient({ channels, planFeatures }: Prop
             if (p.sref) setSref(p.sref);
             if (p.cref) setCref(p.cref);
             if (p.draftTitle) setDraftTitle(p.draftTitle);
+            if (p.ttsVoice) setTtsVoice(p.ttsVoice);
+            if (p.ttsModel) setTtsModel(p.ttsModel);
+            if (p.ttsPitch) setTtsPitch(p.ttsPitch);
+            if (typeof p.ttsSpeed === "number") setTtsSpeed(p.ttsSpeed);
+            if (typeof p.ttsStyleInstruction === "string") setTtsStyleInstruction(p.ttsStyleInstruction);
+            if (p.ttsVoiceFilter) setTtsVoiceFilter(p.ttsVoiceFilter);
+            if (Array.isArray(p.favoriteVoices) && p.favoriteVoices.length > 0) {
+              setFavoriteVoices(p.favoriteVoices);
+            }
           }
         });
       } catch {}
@@ -411,6 +503,15 @@ export default function ScenePromptStudioClient({ channels, planFeatures }: Prop
           if (p.sref) setSref(p.sref);
           if (p.cref) setCref(p.cref);
           if (p.draftTitle) setDraftTitle(p.draftTitle);
+          if (p.ttsVoice) setTtsVoice(p.ttsVoice);
+          if (p.ttsModel) setTtsModel(p.ttsModel);
+          if (p.ttsPitch) setTtsPitch(p.ttsPitch);
+          if (typeof p.ttsSpeed === "number") setTtsSpeed(p.ttsSpeed);
+          if (typeof p.ttsStyleInstruction === "string") setTtsStyleInstruction(p.ttsStyleInstruction);
+          if (p.ttsVoiceFilter) setTtsVoiceFilter(p.ttsVoiceFilter);
+          if (Array.isArray(p.favoriteVoices) && p.favoriteVoices.length > 0) {
+            setFavoriteVoices(p.favoriteVoices);
+          }
         }
       })
       .catch(() => {});
@@ -420,22 +521,50 @@ export default function ScenePromptStudioClient({ channels, planFeatures }: Prop
     };
   }, []);
 
- useEffect(() => {
- const stateObj = { rawText, selectedChannelId, ar, sref, cref, draftTitle };
- localStorage.setItem("scenePromptState", JSON.stringify(stateObj));
+  useEffect(() => {
+    const stateObj = {
+      rawText,
+      selectedChannelId,
+      ar,
+      sref,
+      cref,
+      draftTitle,
+      ttsVoice,
+      ttsModel,
+      ttsPitch,
+      ttsSpeed,
+      ttsStyleInstruction,
+      ttsVoiceFilter,
+      favoriteVoices,
+    };
+    localStorage.setItem("scenePromptState", JSON.stringify(stateObj));
 
- const timeoutId = setTimeout(() => {
- if (rawText || draftTitle || sref || cref) {
- fetch("/api/user/preferences", {
- method: "PUT",
- headers: { "Content-Type": "application/json" },
- body: JSON.stringify({ scenePromptState: stateObj }),
- }).catch(() => {});
- }
- }, 3000); // 3 seconds debounce
+    const timeoutId = setTimeout(() => {
+      if (rawText || draftTitle || sref || cref || ttsVoice !== DEFAULT_TTS_VOICE) {
+        fetch("/api/user/preferences", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ scenePromptState: stateObj }),
+        }).catch(() => {});
+      }
+    }, 3000); // 3 seconds debounce
 
- return () => clearTimeout(timeoutId);
- }, [rawText, selectedChannelId, ar, sref, cref, draftTitle]);
+    return () => clearTimeout(timeoutId);
+  }, [
+    rawText,
+    selectedChannelId,
+    ar,
+    sref,
+    cref,
+    draftTitle,
+    ttsVoice,
+    ttsModel,
+    ttsPitch,
+    ttsSpeed,
+    ttsStyleInstruction,
+    ttsVoiceFilter,
+    favoriteVoices,
+  ]);
 
  // sref/cref are manual inputs — no channel default sync needed
 
@@ -1256,25 +1385,150 @@ export default function ScenePromptStudioClient({ channels, planFeatures }: Prop
 
        {/* Voice Settings Grid */}
        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-         {/* Voice Selector — sorted A-Z, lengkap */}
-         <div className="sm:col-span-2">
-           <label className="block text-xs font-medium pg-text-sub mb-1">{t("voiceSelectLabel")}</label>
-           <select value={ttsVoice} onChange={e => setTtsVoice(e.target.value)}
-             className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white">
-             {[...GEMINI_TTS_VOICES].sort((a, b) => a.id.localeCompare(b.id)).map(v => (
-               <option key={v.id} value={v.id}>
-                 {v.id} — {v.gender} · {v.tone}
-               </option>
-             ))}
-           </select>
-           {/* Info kartu voice yang dipilih */}
-           {(() => {
-             const selected = GEMINI_TTS_VOICES.find(v => v.id === ttsVoice);
-             return selected ? (
-               <p className="text-[10px] pg-text-muted mt-1">🎯 {selected.bestFor}</p>
-             ) : null;
-           })()}
-         </div>
+          {/* Voice Selector with Pills, Search & Star Toggle */}
+          <div className="sm:col-span-2 space-y-2">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <label className="text-xs font-semibold pg-text-heading flex items-center gap-1.5">
+                <span>🎙️</span> {t("voiceSelectLabel")}
+              </label>
+
+              {/* Filter Pills */}
+              <div className="flex items-center gap-1 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setTtsVoiceFilter("all")}
+                  className={`text-[10px] px-2 py-0.5 rounded-full font-medium transition-all ${
+                    ttsVoiceFilter === "all"
+                      ? "bg-indigo-600 text-white shadow-xs"
+                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                  }`}
+                >
+                  {t("ttsFilterAll")} ({GEMINI_TTS_VOICES.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTtsVoiceFilter("favorites")}
+                  className={`inline-flex items-center gap-0.5 text-[10px] px-2 py-0.5 rounded-full font-medium transition-all ${
+                    ttsVoiceFilter === "favorites"
+                      ? "bg-amber-500 text-white shadow-xs"
+                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                  }`}
+                >
+                  <span>⭐</span> {t("ttsFilterFavorites")} ({favoriteVoices.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTtsVoiceFilter("male")}
+                  className={`inline-flex items-center gap-0.5 text-[10px] px-2 py-0.5 rounded-full font-medium transition-all ${
+                    ttsVoiceFilter === "male"
+                      ? "bg-blue-600 text-white shadow-xs"
+                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                  }`}
+                >
+                  <span>👨</span> {t("ttsFilterMale")} ({GEMINI_TTS_VOICES.filter(v => v.gender === "Male").length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTtsVoiceFilter("female")}
+                  className={`inline-flex items-center gap-0.5 text-[10px] px-2 py-0.5 rounded-full font-medium transition-all ${
+                    ttsVoiceFilter === "female"
+                      ? "bg-pink-600 text-white shadow-xs"
+                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                  }`}
+                >
+                  <span>👩</span> {t("ttsFilterFemale")} ({GEMINI_TTS_VOICES.filter(v => v.gender === "Female").length})
+                </button>
+              </div>
+            </div>
+
+            {/* Search Input for Quick Finding */}
+            <div className="relative">
+              <input
+                type="text"
+                value={ttsVoiceSearch}
+                onChange={e => setTtsVoiceSearch(e.target.value)}
+                placeholder={t("ttsSearchVoicePlaceholder")}
+                className="w-full pl-7 pr-7 py-1 text-xs bg-slate-50 dark:bg-slate-800/80 border pg-border rounded-md outline-none dark:text-white placeholder:text-slate-400 focus:ring-1 focus:ring-indigo-500"
+              />
+              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400">🔍</span>
+              {ttsVoiceSearch && (
+                <button
+                  type="button"
+                  onClick={() => setTtsVoiceSearch("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {/* Dropdown + Star Toggle Button */}
+            <div className="flex gap-1.5 items-center">
+              <select
+                value={ttsVoice}
+                onChange={e => setTtsVoice(e.target.value)}
+                className="flex-1 px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white"
+              >
+                {displayVoices.length === 0 ? (
+                  <option disabled value="">{t("ttsNoMatchingVoices")}</option>
+                ) : (
+                  displayVoices.map(v => {
+                    const isFav = favoriteVoices.includes(v.id);
+                    return (
+                      <option key={v.id} value={v.id}>
+                        {isFav ? "⭐ " : ""}{v.id} — {v.gender === "Male" ? "👨" : "👩"} {v.gender} · {v.tone}
+                      </option>
+                    );
+                  })
+                )}
+              </select>
+
+              {/* Star Button for Active Voice */}
+              <button
+                type="button"
+                onClick={() => toggleFavoriteVoice(ttsVoice)}
+                title={favoriteVoices.includes(ttsVoice) ? t("ttsFavoriteToggleRemove") : t("ttsFavoriteToggleAdd")}
+                className={`px-2.5 py-1.5 rounded-md border text-sm transition-all flex items-center justify-center shrink-0 ${
+                  favoriteVoices.includes(ttsVoice)
+                    ? "bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700 text-amber-500 shadow-xs"
+                    : "bg-white dark:bg-slate-700 pg-border text-slate-400 hover:text-amber-500 hover:border-amber-300"
+                }`}
+              >
+                {favoriteVoices.includes(ttsVoice) ? "⭐" : "☆"}
+              </button>
+            </div>
+
+            {/* Info kartu voice yang dipilih */}
+            {(() => {
+              const selected = GEMINI_TTS_VOICES.find(v => v.id === ttsVoice);
+              if (!selected) return null;
+              const isFav = favoriteVoices.includes(selected.id);
+              return (
+                <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 border pg-border space-y-1">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-xs font-bold pg-text-heading flex items-center gap-1">
+                        {isFav && <span className="text-amber-500">⭐</span>}
+                        {selected.id}
+                      </span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200/80 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                        {selected.gender === "Male" ? "👨 Pria" : "👩 Wanita"}
+                      </span>
+                      <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">
+                        · {selected.tone}
+                      </span>
+                    </div>
+                    {isRecommendedForChannel && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                        ✨ {t("ttsRecommendedForChannel")}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[10px] pg-text-muted">🎯 {selected.bestFor}</p>
+                </div>
+              );
+            })()}
+          </div>
 
          {/* Model Selector */}
          <div>
