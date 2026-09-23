@@ -20,16 +20,23 @@ export default async function DraftsPage({
  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
  const { locale } = await params;
- const { channelId, type } = await searchParams;
+ const { channelId, type, q, search } = await searchParams;
  const session = await getServerSession(authOptions);
  
  if (!session) return null;
 
  const t = await getTranslations({ locale, namespace: 'Drafts' });
+ const searchQuery = typeof q === 'string' ? q.trim() : (typeof search === 'string' ? search.trim() : "");
 
  const whereClause: Prisma.DraftWhereInput = { userId: session.user.id };
  if (channelId && typeof channelId === 'string') whereClause.channelId = channelId;
  if (type && typeof type === 'string') whereClause.type = type as DraftType;
+ if (searchQuery) {
+   whereClause.OR = [
+     { title: { contains: searchQuery, mode: 'insensitive' } },
+     { rawJson: { contains: searchQuery, mode: 'insensitive' } },
+   ];
+ }
 
  // Fetch drafts history for the current user
  const drafts = await prisma.draft.findMany({
@@ -37,6 +44,7 @@ export default async function DraftsPage({
  orderBy: { createdAt: "desc" },
  include: {
  channel: true,
+ performance: true,
  }
  });
 
@@ -68,6 +76,7 @@ export default async function DraftsPage({
  channels={channels} 
  defaultChannelId={typeof channelId === 'string' ? channelId : undefined} 
  defaultType={typeof type === 'string' ? type : undefined} 
+ defaultSearch={searchQuery}
  />
 
  {drafts.length === 0 ? (
@@ -113,9 +122,15 @@ export default async function DraftsPage({
  <div className="px-5 py-3 pg-bg-page flex justify-between items-center text-xs pg-text-muted">
  <Link 
  href={`/${locale}/dashboard/drafts/${draft.id}`}
- className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 w-full text-center"
+ className="font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
  >
- {t('useTemplate')} →
+ {t('open')}
+ </Link>
+ <Link 
+ href={`/${locale}/dashboard/generator?templateId=${draft.id}${draft.channelId ? `&channelId=${draft.channelId}` : ''}`}
+ className="font-semibold text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 flex items-center gap-1"
+ >
+ <span>✨</span> {t('useTemplate')} →
  </Link>
  </div>
  </div>
@@ -131,6 +146,7 @@ export default async function DraftsPage({
  <div key={draft.id} className="glass-panel shadow-lg rounded-xl flex flex-col overflow-hidden hover:shadow-md transition-shadow">
  <div className="p-5 border-b pg-border/50 flex-1">
  <div className="flex justify-between items-start mb-3">
+ <div className="flex items-center gap-2">
  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
  draft.type === DraftType.VIDEO
  ? "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400"
@@ -138,6 +154,12 @@ export default async function DraftsPage({
  }`}>
  {draft.type}
  </span>
+ {draft.performance?.views !== undefined && draft.performance.views !== null && (
+ <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
+ 👁️ {draft.performance.views.toLocaleString()}
+ </span>
+ )}
+ </div>
  <span className="text-xs pg-text-muted">
  {new Date(draft.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
  </span>
@@ -158,12 +180,23 @@ export default async function DraftsPage({
  <span>📝 {draft.wordCount} {t('words')}</span>
  )}
  </div>
+ <div className="flex items-center gap-3">
+ {draft.type === DraftType.VIDEO && (
+ <Link 
+ href={`/${locale}/dashboard/scene-prompt?draftId=${draft.id}`}
+ className="font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center gap-1"
+ title={t('openInSceneStudio')}
+ >
+ <span>🎙️</span> Studio
+ </Link>
+ )}
  <Link 
  href={`/${locale}/dashboard/drafts/${draft.id}`}
  className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
  >
  {t('open')} →
  </Link>
+ </div>
  </div>
  </div>
  ))}

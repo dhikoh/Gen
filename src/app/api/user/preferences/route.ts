@@ -93,10 +93,11 @@ const scenePromptStateSchema = z.object({
 
 const preferencesSchema = z.object({
   generatorFormState: generatorFormStateSchema.optional(),
+  channelFormStates: z.record(z.string(), generatorFormStateSchema).optional(),
   scenePromptState: scenePromptStateSchema.optional(),
 }).strict();
 
-const MAX_PAYLOAD_BYTES = 150_000; // 150 KB max
+const MAX_PAYLOAD_BYTES = 250_000; // 250 KB max for multi-channel support
 
 export async function GET() {
   try {
@@ -166,8 +167,26 @@ export async function PUT(req: Request) {
         ? (existingUser.generatorPreferences as Record<string, unknown>)
         : {};
 
-    // Merge — new keys overwrite old keys at the top level namespace (generatorFormState, scenePromptState)
-    const merged = { ...currentPrefs, ...parsed.data };
+    // Merge channelFormStates per channel ID so saving one channel doesn't erase others
+    const existingChannelFormStates =
+      currentPrefs.channelFormStates &&
+      typeof currentPrefs.channelFormStates === "object" &&
+      !Array.isArray(currentPrefs.channelFormStates)
+        ? (currentPrefs.channelFormStates as Record<string, unknown>)
+        : {};
+
+    const mergedChannelFormStates = parsed.data.channelFormStates
+      ? { ...existingChannelFormStates, ...parsed.data.channelFormStates }
+      : existingChannelFormStates;
+
+    // Merge — new keys overwrite old keys at the top level namespace
+    const merged = {
+      ...currentPrefs,
+      ...parsed.data,
+      ...(parsed.data.channelFormStates || currentPrefs.channelFormStates
+        ? { channelFormStates: mergedChannelFormStates }
+        : {}),
+    };
 
     const updatedUser = await prisma.user.update({
       where: { id: session.user.id },

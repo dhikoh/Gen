@@ -2,6 +2,106 @@
 
 ---
 
+## [#68] — 2026-09-23 | Feature: History & Studio Workflow Handover, Template Recycling & Search Discovery
+
+### Overview
+
+Rilis ini menyelesaikan integrasi alur kerja antara modul **Riwayat & Template (History / Drafts)** dengan **Voice & Scene Studio** dan **Generator Studio**. Creator kini dapat melakukan handover satu-klik naskah riwayat langsung ke Scene & Voice Studio untuk generate audio VO, mendaur ulang template tersimpan langsung ke Generator Studio dengan parameter siap pakai, menikmati preservasi filter channel otomatis pasca penyimpanan draft, serta menemukan naskah terdahulu dengan cepat melalui input pencarian kata kunci dan badge indikator performa tayang.
+
+---
+
+### 1 — Handover Naskah Riwayat ke Voice & Scene Studio (`?draftId=...`)
+
+- **Akses Cepat 1-Klik**: Pada halaman Riwayat (`/dashboard/drafts`) dan Detail Riwayat (`/dashboard/drafts/[id]`), draft bertipe `VIDEO` kini dilengkapi tombol aksi **"🎙️ Buka di Voice & Scene Studio"** / **"🎙️ Studio"**.
+- **Pemuatan Otomatis (Zero Re-Paste)**: Halaman Scene Prompt Studio membaca parameter query `draftId`, mengambil data draft dari database, dan otomatis menginisialisasi teks naskah mentah, mem-parse adegan (visual prompt, narasi, teks overlay, durasi, audio cues BGM/SFX, dan voice guidelines), memilih channel yang sesuai, serta menyiapkan tab Voice Studio untuk pembuatan audio TTS Gemini.
+- **File:** `src/app/[locale]/dashboard/scene-prompt/page.tsx`, `src/app/[locale]/dashboard/scene-prompt/ScenePromptStudioClient.tsx`, `src/app/[locale]/dashboard/drafts/[id]/DraftActions.tsx`, `src/app/[locale]/dashboard/drafts/page.tsx`.
+
+---
+
+### 2 — Daur Ulang Template ke Generator Studio (`?templateId=...`)
+
+- **Integrasi Tombol "Gunakan Template"**: Tombol "Gunakan Template" pada kartu template di halaman riwayat dan tombol aksi pada halaman detail kini mengarahkan langsung ke `/${locale}/dashboard/generator?templateId=${draftId}&channelId=${draft.channelId}`.
+- **Penerapan Parameter Instan**: Generator Studio secara reaktif mendeteksi `templateId`, memuat data template dari API `/api/drafts/[id]`, menerapkan topik, judul manual, tipe konten, target durasi, jumlah adegan, speech rate, serta gaya looping (narrative & visual loop) ke dalam form, disertai notifikasi toast keberhasilan.
+- **File:** `src/components/generator/GeneratorForm.tsx`, `src/app/[locale]/dashboard/drafts/page.tsx`, `src/app/[locale]/dashboard/drafts/[id]/DraftActions.tsx`.
+
+---
+
+### 3 — Preservasi Filter Channel Pasca Simpan Draft
+
+- **Alur Navigasi Terfokus**: Setelah creator menyimpan draft baru di Generator Studio via tombol "Simpan Draft", sistem kini mengarahkan creator ke `/${locale}/dashboard/drafts?channelId=${encodeURIComponent(channelId)}`.
+- **Hasil**: Creator tidak perlu lagi mencari atau memfilter manual channel mereka di halaman riwayat; draft yang baru saja dibuat langsung berada di posisi teratas daftar.
+- **File:** `src/components/generator/GeneratorForm.tsx`.
+
+---
+
+### 4 — Fitur Pencarian Kata Kunci & Badge Performa di Riwayat
+
+- **Pencarian Cepat di `DraftFilter.tsx`**: Menambahkan kolom pencarian teks yang sinkron dengan query parameter `?q=...` untuk memfilter riwayat berdasarkan judul atau kata kunci naskah secara instan.
+- **Badge Performa Tayangan (`DraftPerformance`)**: Kartu naskah riwayat kini menampilkan badge jumlah views (`👁️ X views`) jika creator telah mencatat metrik performa konten tersebut, mempermudah evaluasi konten berkinerja tinggi (high retention & high views).
+- **File:** `src/components/dashboard/DraftFilter.tsx`, `src/app/[locale]/dashboard/drafts/page.tsx`.
+
+---
+
+### 5 — Non-Regresi & Uji Otomatis
+
+- **Unit Test Baru**: `tests/historyStudioIntegration.test.ts` memverifikasi pencarian kata kunci naskah, pembentukan URL pengalihan channel aman, ekstraksi konfigurasi template numerik, dan kontrak payload handover ke Scene Studio.
+- **Test Suite Pass 100%**: 13 test files (95 tests) lulus tanpa kegagalan.
+- **TypeScript Strict Compliance**: `npx tsc --noEmit` lolos bersih tanpa kesalahan tipe.
+- **File:** `tests/historyStudioIntegration.test.ts`.
+
+---
+
+## [#67] — 2026-09-23 | Feature & Security: Per-Channel State Isolation & Dynamic Profile Sync in Generator Studio
+
+### Overview
+
+Rilis ini menghadirkan perombakan arsitektur **Per-Channel State Isolation & Dynamic Profile Synchronization** pada Generator Studio. Setiap channel/profil creator kini memiliki memori dan preferensi generate tersendiri yang terisolasi penuh. Pergantian channel dijamin bersih tanpa kebocoran state (zero leak), visual aesthetic profil baru langsung diterapkan secara otomatis (eliminasi bug guard `if (prev) return prev;`), produk yang dipilih tidak lagi bocor ke channel lain, serta perubahan profil yang baru saja diedit di menu Kelola Channel selalu menjadi *Single Source of Truth* yang tercermin secara langsung di Generator Studio.
+
+---
+
+### 1 — Isolasi State Per-Profil (`channelFormStates` & `generatorFormState_{channelId}`)
+
+- **Penyimpanan Terpartisi**: Form Generator Studio kini menyimpan preferensi dan progres naskah per profil secara mandiri (`localStorage.getItem("generatorFormState_" + channelId)` dan `user.generatorPreferences.channelFormStates[channelId]`).
+- **Penyimpanan Terakhir Aktif**: Menyimpan pointer `generatorLastActiveChannelId` agar saat creator kembali ke halaman Generator Studio, form otomatis memuat channel yang terakhir kali digunakan beserta seluruh sesi kerja channel tersebut.
+- **Deep Merge di Backend**: API `PUT /api/user/preferences` kini mendukung `channelFormStates: z.record(z.string(), generatorFormStateSchema)` dengan logika deep merge per-channel, sehingga pembaruan pada satu channel tidak akan menghapus data channel lainnya di database.
+- **File:** `src/components/generator/GeneratorForm.tsx`, `src/app/api/user/preferences/route.ts`.
+
+---
+
+### 2 — Clean Profile Switching & Zero State Leak (Pencegahan Kebocoran)
+
+- **Eliminasi Kontaminasi Fallback `prev`**: Pada saat creator beralih dari Channel A ke Channel B di dropdown, konfigurasi `targetPlatform`, `pov`, dan `speechRate` langsung diambil dari data Channel B (atau default sistem jika kosong), bukan lagi mewarisi nilai milik Channel A.
+- **Reset Produk Otomatis (`selectedProductId`)**: Mengeliminasi bug di mana ID produk milik Channel A tertinggal di Channel B saat berganti profil, mencegah mismatch dan hilangnya promosi produk di prompt backend.
+- **Reset Opsi Ad-Hoc**: Opsi enrichment (`rolePOV`, `toneOfVoice`, `hookStyleType`, `customHookText`, `trendingAudio`, `affiliateAngle`, `cameraMovementCustom`, `narrationModeOverride`) di-reset secara bersih jika channel tujuan belum memiliki sesi tersimpan, atau dimuat dari sesi khusus channel tersebut jika sebelumnya pernah dikerjakan.
+- **File:** `src/components/generator/GeneratorForm.tsx`.
+
+---
+
+### 3 — Eliminasi Bug Guard Visual Style (`visualStyleKey`)
+
+- **Perbaikan Masalah #58 Guard**: Menghapus blokade `if (prev) return prev;` pada `setVisualStyleKey`.
+- Saat creator berganti ke Channel B, estetika visual Channel B (`mapVisualAestheticToKey(ch.visualAesthetic)`) otomatis diterapkan ke dropdown preset visual style dan `imageConfig.visualStyle`, memastikan konsistensi visual prompt video/gambar dengan branding channel aktif.
+- **File:** `src/components/generator/GeneratorForm.tsx`.
+
+---
+
+### 4 — Prioritas Database vs Cache (Single Source of Truth)
+
+- **Sinkronisasi Hasil Edit Profil**: Jika creator mengedit data profil di menu `/dashboard/channels` (misal mengubah visual aesthetic, target platform, speech rate, atau audio BGM/SFX/VO), Generator Studio memprioritaskan data terbaru dari database (prop `channels`) di atas cache lokal lama.
+- Cache form lama tidak lagi dapat menimpa atau menutupi konfigurasi profil yang baru diperbarui.
+- **File:** `src/components/generator/GeneratorForm.tsx`.
+
+---
+
+### 5 — Non-Regresi & Uji Otomatis
+
+- **Unit Test Baru**: `tests/channelStateIsolation.test.ts` memvalidasi parsing skema multi-channel, merge payload per channel, proteksi override database atas cache basi, dan isolasi switch profil bersih.
+- **Test Suite Pass 100%**: Seluruh 12 test suite (87 tests) lulus tanpa regresi.
+- **Parity Tanpa Duplikasi**: Bekerja berdampingan secara harmonis dengan fitur Voice Studio ([#64]–[#66]) dan Camera Movement Pro tanpa benturan namespace.
+- **File:** `tests/channelStateIsolation.test.ts`.
+
+---
+
 ## [#66] — 2026-09-23 | Feature: Voice Studio Filter (Gender & Favorit), Pencarian Niche, Star Toggle & Full State Persistence
 
 ### Overview

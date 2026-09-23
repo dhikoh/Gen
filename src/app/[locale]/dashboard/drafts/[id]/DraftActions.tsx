@@ -4,8 +4,23 @@ import toast from "react-hot-toast";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import Link from "next/link";
 
-export default function DraftActions({ draftId, rawJson, locale }: { draftId: string; rawJson: string; locale: string }) {
+export default function DraftActions({
+  draftId,
+  rawJson,
+  locale,
+  draftType,
+  channelId,
+  isTemplate,
+}: {
+  draftId: string;
+  rawJson: string;
+  locale: string;
+  draftType?: string;
+  channelId?: string | null;
+  isTemplate?: boolean;
+}) {
   const t = useTranslations('Drafts');
   const router = useRouter();
   const [copied, setCopied] = useState(false);
@@ -62,7 +77,23 @@ export default function DraftActions({ draftId, rawJson, locale }: { draftId: st
   };
 
   return (
-    <>
+    <div className="flex flex-wrap items-center gap-2">
+      {draftType === "VIDEO" && (
+        <Link
+          href={`/${locale}/dashboard/scene-prompt?draftId=${draftId}`}
+          className="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-md shadow-sm transition-colors flex items-center gap-1.5"
+        >
+          <span>🎙️</span> {t('openInSceneStudio')}
+        </Link>
+      )}
+      {isTemplate && (
+        <Link
+          href={`/${locale}/dashboard/generator?templateId=${draftId}${channelId ? `&channelId=${channelId}` : ''}`}
+          className="px-4 py-2 text-sm font-semibold text-amber-900 bg-amber-400 hover:bg-amber-500 rounded-md shadow-sm transition-colors flex items-center gap-1.5"
+        >
+          <span>✨</span> {t('applyTemplate')}
+        </Link>
+      )}
       <button
         onClick={handleDownloadJson}
         className="px-4 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-md shadow-sm transition-colors flex items-center gap-1.5"
@@ -82,6 +113,6 @@ export default function DraftActions({ draftId, rawJson, locale }: { draftId: st
       >
         {deleting ? t('deleting') : t('delete')}
       </button>
-    </>
+    </div>
   );
 }

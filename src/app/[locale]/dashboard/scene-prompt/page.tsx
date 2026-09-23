@@ -7,22 +7,26 @@ import { getTranslations } from "next-intl/server";
 import { hasFeature } from "@/lib/planFeatures";
 
 interface PageProps {
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
-export async function generateMetadata({ params }: PageProps) {
-  const t = await getTranslations({ locale: params.locale, namespace: "ScenePromptStudio" });
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "ScenePromptStudio" });
   return {
     title: t("metaTitle"),
     description: t("metaDescription"),
   };
 }
 
-export default async function ScenePromptPage({ params }: PageProps) {
+export default async function ScenePromptPage({ params, searchParams }: PageProps) {
+  const { locale } = await params;
+  const { draftId } = await searchParams;
   const session = await getServerSession(authOptions);
-  if (!session) redirect(`/${params.locale}/login`);
+  if (!session) redirect(`/${locale}/login`);
 
-  const [channels, dbUser] = await Promise.all([
+  const [channels, dbUser, initialDraft] = await Promise.all([
     prisma.profileChannel.findMany({
       where: { userId: session.user.id, isLocked: false },
       orderBy: { lastUsedAt: "desc" },
@@ -35,6 +39,12 @@ export default async function ScenePromptPage({ params }: PageProps) {
         currentPlan: { select: { features: true } },
       },
     }),
+    draftId && typeof draftId === "string"
+      ? prisma.draft.findUnique({
+          where: { id: draftId, userId: session.user.id },
+          select: { id: true, title: true, channelId: true, rawJson: true, parsedData: true },
+        })
+      : Promise.resolve(null),
   ]);
 
   const isSuperadmin = dbUser?.role === "SUPERADMIN";
@@ -46,8 +56,9 @@ export default async function ScenePromptPage({ params }: PageProps) {
   return (
     <ScenePromptStudioClient
       channels={channels}
-      locale={params.locale}
+      locale={locale}
       planFeatures={planFeatures}
+      initialDraft={initialDraft || undefined}
     />
   );
 }

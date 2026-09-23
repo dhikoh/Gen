@@ -12,10 +12,12 @@ export default function DraftFilter({
   channels,
   defaultChannelId = "",
   defaultType = "",
+  defaultSearch = "",
 }: {
   channels: ChannelOption[];
   defaultChannelId?: string;
   defaultType?: string;
+  defaultSearch?: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -35,7 +37,7 @@ export default function DraftFilter({
   const selectCls = "w-full px-3 py-2 rounded-lg text-sm outline-none neu-input";
 
   return (
-    <div className="flex flex-col sm:flex-row gap-4 mb-6">
+    <div className="flex flex-col md:flex-row gap-4 mb-6">
       <div className="flex-1">
         <label className="block text-xs font-medium mb-1" style={{ color: 'var(--pg-text-sub)' }}>{t('filterType')}</label>
         <select
@@ -60,6 +62,28 @@ export default function DraftFilter({
             <option key={c.id} value={c.id}>{c.channelName}</option>
           ))}
         </select>
+      </div>
+      <div className="flex-1">
+        <label className="block text-xs font-medium mb-1" style={{ color: 'var(--pg-text-sub)' }}>🔍 {t('searchDraftPlaceholder') || "Cari Riwayat..."}</label>
+        <div className="relative">
+          <input
+            type="text"
+            className={selectCls}
+            placeholder={t('searchDraftPlaceholder') || "Cari judul / kata kunci..."}
+            defaultValue={defaultSearch || ""}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleFilterChange('q', (e.target as HTMLInputElement).value.trim());
+              }
+            }}
+            onBlur={(e) => {
+              const val = e.target.value.trim();
+              if (val !== (defaultSearch || "")) {
+                handleFilterChange('q', val);
+              }
+            }}
+          />
+        </div>
       </div>
     </div>
   );

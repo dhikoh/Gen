@@ -1806,4 +1806,58 @@ Entry baru di `KNOWN_PLAN_FEATURES` (`src/lib/planFeatures.ts`):
 - Badge rekomendasi cerdas otomatis mendeteksi kecocokan antara persona suara dan `channel.niche` yang sedang aktif.
 - Persistensi state lengkap (`scenePromptState`): seluruh konfigurasi Voice Studio (`ttsVoice`, `ttsModel`, `ttsPitch`, `ttsSpeed`, `ttsStyleInstruction`, `ttsVoiceFilter`, `favoriteVoices`) otomatis tersimpan dan dimuat ulang, mencegah reset saat berganti tab maupun berpindah halaman dashboard.
 
+## 32. SISTEM STATE MULTI-PROFIL & SINKRONISASI GENERATOR STUDIO (#67)
+
+### 32.1 Arsitektur Isolasi State Per-Channel (`channelFormStates`)
+- Setiap channel/profil creator (`ProfileChannel`) kini memiliki partisi memori form tersendiri di sisi client (`localStorage.getItem("generatorFormState_" + channelId)`) dan sisi database (`user.generatorPreferences.channelFormStates[channelId]`).
+- Pointer `generatorLastActiveChannelId` melacak channel terakhir yang aktif, sehingga Generator Studio otomatis membuka profil terakhir tanpa mengorbankan isolasi antar-profil.
+- Mengeliminasi problem state global tunggal di mana perpindahan channel sebelumnya saling menimpa atau membawa sisa input channel lain.
+
+### 32.2 Single Source of Truth & Hirarki Prioritas (Database vs Cache)
+- Pengaturan inti profil (`targetPlatform`, `personaPov`, `speechRate`, `visualAesthetic`, `audioBGM`, `audioSFX`, `audioVO`, `contentArchetype`) yang berasal dari database (prop `channels`) diposisikan sebagai **Single Source of Truth** yang tak terbantahkan.
+- Saat creator memperbarui profil di menu Kelola Channel (`/dashboard/channels`), Generator Studio langsung menyinkronkan data database terbaru tersebut ke form, mencegah penimpaan kembali oleh snapshot cache form lama.
+- Data sesi kerja kustom (seperti `topic`, `targetKeywords`, `additionalContext`, `rolePOV`, `toneOfVoice`, `customHookText`, `trendingAudio`, `affiliateAngle`, `cameraMovementCustom`) tetap tersimpan persisten secara aman di partisi channel terkait.
+
+### 32.3 Pembersihan Bersih (Zero-Leak Profile Switching)
+- Saat berpindah channel di dropdown `selectChannel`, Generator Studio mengeksekusi `handleChannelChange`:
+  1. Menyimpan snapshot form channel saat ini ke partisi lokalnya.
+  2. Mereset `selectedProductId` ke string kosong (`""`) untuk mencegah kebocoran ID produk antar-channel.
+  3. Mengeliminasi fallback `prev` pada konfigurasi video (`targetPlatform`, `pov`, `speechRate`), sehingga profil baru dengan opsi kosong tidak mengadopsi nilai milik channel sebelumnya.
+  4. Memuat state tersimpan channel baru (jika ada) atau melakukan inisialisasi default bersih dari entitas channel database.
+
+### 32.4 Eliminasi Bug Guard Visual Style (`visualStyleKey`)
+- Menghilangkan guard `if (prev) return prev;` pada `setVisualStyleKey` yang sebelumnya mengabaikan estetika channel baru jika form sudah memiliki gaya visual.
+- Gaya visual channel baru (`mapVisualAestheticToKey(ch.visualAesthetic)`) otomatis diterapkan secara dinamis saat channel beralih, menjaga branding visual tetap selaras.
+
+### 32.5 Skema Payload & Kontrak API Backend (`/api/user/preferences`)
+- Memperluas skema validasi Zod backend:
+  - `preferencesSchema`: mendukung `channelFormStates: z.record(z.string(), generatorFormStateSchema).optional()`.
+  - Logika merge di endpoint `PUT`: melakukan deep-merge per key channel ID (`{ ...existingChannelFormStates, ...parsed.data.channelFormStates }`), mencegah hilangnya data channel lain saat satu channel meng-autosave preferensinya.
+  - Batas payload dinaikkan menjadi `250 KB` untuk mengakomodasi kebutuhan data multi-channel akun Pro/Enterprise.
+
+## 33. INTEGRASI RIWAYAT (HISTORY) DENGAN VOICE STUDIO & GENERATOR STUDIO (#68)
+
+### 33.1 Handover Naskah Riwayat ke Voice & Scene Studio (`?draftId=...`)
+- Di halaman Riwayat (`/dashboard/drafts`) dan Detail Riwayat (`/dashboard/drafts/[id]`), draft bertipe `VIDEO` memiliki tombol aksi instan: "🎙️ Buka di Voice & Scene Studio" / "🎙️ Studio".
+- Mengarahkan creator ke `/${locale}/dashboard/scene-prompt?draftId=${draft.id}`.
+- Scene Prompt Studio menerima query `draftId`, mengambil naskah dan relasi channel dari database, lalu secara otomatis menginisialisasi teks mentah naskah, mem-parse adegan (visual prompt, narasi, teks overlay, durasi, audio cues BGM/SFX, voice guidelines), dan menyinkronkan channel yang sesuai.
+- Creator dapat langsung beralih ke tab Voice Studio untuk menghasilkan audio TTS Gemini tanpa perlu copy-paste naskah ulang.
+
+### 33.2 Daur Ulang Template ke Generator Studio (`?templateId=...`)
+- Tombol "Gunakan Template" pada kartu template di halaman riwayat dan tombol aksi pada halaman detail kini mengarahkan langsung ke `/${locale}/dashboard/generator?templateId=${draft.id}&channelId=${draft.channelId || ""}`.
+- Generator Studio mendeteksi parameter `templateId`, memuat data template dari API `/api/drafts/[id]`, menerapkan topik, judul manual, tipe konten (VIDEO/IMAGE), target durasi, jumlah adegan, speech rate, serta narrative & visual loop style secara numerik dan aman.
+- Memberikan toast konfirmasi sukses ("Template berhasil dimuat ke Generator Studio") untuk umpan balik instan kepada creator.
+
+### 33.3 Preservasi Filter Channel Pasca Simpan Draft
+- Pada aksi `handleSaveDraft` di Generator Studio, pengalihan URL pasca simpan kini menyertakan query channel aktif: `/${lang}/dashboard/drafts?channelId=${encodeURIComponent(channelId)}`.
+- Mengeliminasi friction di mana creator sebelumnya harus mencari manual channel mereka di halaman riwayat; naskah yang baru disimpan langsung berada di urutan teratas.
+
+### 33.4 Pencarian Riwayat & Badge Performa Konten
+- Komponen `DraftFilter.tsx` diperkaya dengan input pencarian kata kunci yang tersinkronisasi dengan query parameter `?q=...`.
+- Query database Prisma pada `drafts/page.tsx` memfilter `title` dan `rawJson` secara case-insensitive (`mode: 'insensitive'`).
+- Kartu riwayat naskah kini menyertakan badge performa tayang (`👁️ X views`) dari relasi `DraftPerformance` jika telah dicatat, mempermudah identifikasi konten-konten pemenang untuk didaur ulang polanya.
+
+### 33.5 Batasan Cakupan Audio Voice Studio
+- Sesuai arsitektur dan konfirmasi pengguna, hasil audio biner (Base64/Blob) di Voice Studio tetap tersimpan di sisi client/localStorage per sesi kerja creator, menjaga efisiensi database server dan mencegah beban penyimpanan biner yang tidak diperlukan.
+
 

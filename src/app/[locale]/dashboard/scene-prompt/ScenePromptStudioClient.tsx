@@ -29,6 +29,13 @@ interface Props {
   channels: Channel[];
   locale: string;
   planFeatures: { textToSpeechStudio: boolean };
+  initialDraft?: {
+    id?: string;
+    title?: string | null;
+    channelId?: string | null;
+    rawJson: string;
+    parsedData?: unknown;
+  };
 }
 
 interface TtsResult {
@@ -96,16 +103,27 @@ function parseScenes(text: string): Scene[] {
   return scenes;
 }
 
-export default function ScenePromptStudioClient({ channels, planFeatures }: Props) {
+export default function ScenePromptStudioClient({ channels, planFeatures, initialDraft }: Props) {
  const t = useTranslations("ScenePromptStudio");
- const [rawText, setRawText] = useState("");
- const [scenes, setScenes] = useState<Scene[]>([]);
- const [caption, setCaption] = useState("");
- const [hashtags, setHashtags] = useState("");
- const [thumbnailData, setThumbnailData] = useState<ThumbnailData | null>(null);
- const [parsedTitles, setParsedTitles] = useState<string[]>([]);
- const [draftTitle, setDraftTitle] = useState("");
- const [selectedChannelId, setSelectedChannelId] = useState(channels[0]?.id || "");
+ const [rawText, setRawText] = useState(initialDraft?.rawJson || "");
+ const [scenes, setScenes] = useState<Scene[]>(() => (initialDraft?.rawJson ? parseScenes(initialDraft.rawJson) : []));
+ const [caption, setCaption] = useState(() => (initialDraft?.rawJson ? extractCaption(initialDraft.rawJson) : ""));
+ const [hashtags, setHashtags] = useState(() => (initialDraft?.rawJson ? extractHashtags(initialDraft.rawJson) : ""));
+ const [thumbnailData, setThumbnailData] = useState<ThumbnailData | null>(() => (initialDraft?.rawJson ? extractThumbnailData(initialDraft.rawJson) : null));
+ const [parsedTitles, setParsedTitles] = useState<string[]>(() => (initialDraft?.rawJson ? extractTitles(initialDraft.rawJson) : []));
+ const [draftTitle, setDraftTitle] = useState(() => {
+   if (initialDraft?.title) return initialDraft.title;
+   if (initialDraft?.rawJson) {
+     return extractChosenTitle(initialDraft.rawJson) || extractTitles(initialDraft.rawJson)[0] || "";
+   }
+   return "";
+ });
+ const [selectedChannelId, setSelectedChannelId] = useState(() => {
+   if (initialDraft?.channelId && channels.some((c) => c.id === initialDraft.channelId)) {
+     return initialDraft.channelId;
+   }
+   return channels[0]?.id || "";
+ });
  const [ar, setAr] = useState("9:16");
  const [thumbAr, setThumbAr] = useState<"16:9" | "9:16">("16:9");
  const [sref, setSref] = useState("");
@@ -115,8 +133,8 @@ export default function ScenePromptStudioClient({ channels, planFeatures }: Prop
  const [saveMsg, setSaveMsg] = useState<string | null>(null);
  const [activeTab, setActiveTab] = useState<"scenes"|"thumbnail"|"platform"|"voiceStudio"|"htmlBlog">("scenes");
  const [markedTitles, setMarkedTitles] = useState<string[]>([]);
- const [htmlBlog, setHtmlBlog] = useState("");
- const [affiliateRecs, setAffiliateRecs] = useState<AffiliateRecommendation[]>([]);
+ const [htmlBlog, setHtmlBlog] = useState(() => (initialDraft?.rawJson ? extractHtmlBlog(initialDraft.rawJson) : ""));
+ const [affiliateRecs, setAffiliateRecs] = useState<AffiliateRecommendation[]>(() => (initialDraft?.rawJson ? extractAffiliateRecommendations(initialDraft.rawJson) : []));
 
  // ── TTS State ──
  const [ttsVoice, setTtsVoice] = useState(DEFAULT_TTS_VOICE);
@@ -209,7 +227,40 @@ export default function ScenePromptStudioClient({ channels, planFeatures }: Prop
   }, [activeChannel, ttsVoice]);
 
   // ── Batch Selection State (Fitur 3) ──
-  const [selectedSceneIds, setSelectedSceneIds] = useState<Set<number>>(new Set());
+  const [selectedSceneIds, setSelectedSceneIds] = useState<Set<number>>(() => {
+    if (initialDraft?.rawJson) {
+      const parsed = parseScenes(initialDraft.rawJson);
+      return new Set(parsed.map(s => s.id));
+    }
+    return new Set();
+  });
+
+  // Handover effect when navigating with initialDraft
+  useEffect(() => {
+    if (initialDraft?.rawJson) {
+      const raw = initialDraft.rawJson;
+      setRawText(raw);
+      if (initialDraft.title) setDraftTitle(initialDraft.title);
+      if (initialDraft.channelId && channels.some((c) => c.id === initialDraft.channelId)) {
+        setSelectedChannelId(initialDraft.channelId);
+      }
+      const parsed = parseScenes(raw);
+      setScenes(parsed);
+      setSelectedSceneIds(new Set(parsed.map((s) => s.id)));
+      setCaption(extractCaption(raw));
+      setHashtags(extractHashtags(raw));
+      setThumbnailData(extractThumbnailData(raw));
+      const titles = extractTitles(raw);
+      setParsedTitles(titles);
+      if (!initialDraft.title) {
+        const chosen = extractChosenTitle(raw) || titles[0] || "";
+        if (chosen) setDraftTitle(chosen);
+      }
+      setHtmlBlog(extractHtmlBlog(raw));
+      setAffiliateRecs(extractAffiliateRecommendations(raw));
+      toast.success(t("draftLoadedSuccess"));
+    }
+  }, [initialDraft, channels, t]);
 
  // ── TTS Functions (Fitur 1) ──
  const buildTtsInputText = useCallback((scene: Scene) => {

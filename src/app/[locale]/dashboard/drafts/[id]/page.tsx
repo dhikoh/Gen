@@ -156,7 +156,14 @@ export default async function DraftDetailPage({
           </div>
           <div className="flex space-x-3">
             <TemplateToggle draftId={draft.id} initialIsTemplate={draft.isTemplate} />
-            <DraftActions draftId={draft.id} rawJson={draft.rawJson} locale={locale} />
+            <DraftActions
+              draftId={draft.id}
+              rawJson={draft.rawJson}
+              locale={locale}
+              draftType={draft.type}
+              channelId={draft.channelId}
+              isTemplate={draft.isTemplate}
+            />
           </div>
         </div>
       </div>

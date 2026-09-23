@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import toast from "react-hot-toast";
@@ -74,26 +74,6 @@ export default function GeneratorForm({
  const [additionalContext, setAdditionalContext] = useState("");
  const [loading, setLoading] = useState(false);
  const [error, setError] = useState<string | null>(null);
-
- // Sync with URL search params from Research Studio (e.g. ?topic=...&keywords=...&channelId=...)
- useEffect(() => {
-   const topicParam = searchParams.get("topic");
-   const keywordsParam = searchParams.get("keywords");
-   const channelParam = searchParams.get("channelId");
-
-   if (!topicParam && !keywordsParam && !channelParam) return;
-
-   queueMicrotask(() => {
-     if (topicParam) setTopic(topicParam);
-     if (channelParam && channels.some((c) => c.id === channelParam)) {
-       setChannelId(channelParam);
-     }
-     if (keywordsParam) {
-       const parsed = keywordsParam.split(",").map((k) => k.trim()).filter(Boolean);
-       if (parsed.length > 0) setTargetKeywords(parsed);
-     }
-   });
- }, [searchParams, channels]);
 
  const [step, setStep] = useState<1 | 2>(1);
  const [generatedPrompt, setGeneratedPrompt] = useState<string>("");
@@ -268,115 +248,347 @@ export default function GeneratorForm({
  aspectRatio: "16:9"
  });
 
- // Server-Side Sync & LocalStorage Persistence
- useEffect(() => {
-   let ignore = false;
+  // ── Per-Channel State Isolation & Multi-Profile Synchronization (Section 32) ──
+  const serverChannelStatesRef = useRef<Record<string, any>>({});
+  const isInitializedRef = useRef<boolean>(false);
 
-   // 1. Local Storage load
-   const saved = localStorage.getItem("generatorFormState");
-   if (saved) {
-     try {
-       const p = JSON.parse(saved);
-       queueMicrotask(() => {
-         if (!ignore) {
-           if (p.type) setType(p.type);
-           if (p.channelId) setChannelId(p.channelId);
-           if (p.outputLanguage) setOutputLanguage(p.outputLanguage);
-           if (p.topic) setTopic(p.topic);
-           if (p.additionalContext) setAdditionalContext(p.additionalContext);
-           if (p.rolePOV) setRolePOV(p.rolePOV);
-           if (p.toneOfVoice !== undefined) setToneOfVoice(p.toneOfVoice);
-           if (p.visualStyleKey !== undefined) setVisualStyleKey(p.visualStyleKey);
-          if (p.visualStyleCustom !== undefined) setVisualStyleCustom(p.visualStyleCustom); // Fix #60
-           if (p.hookStyleType) setHookStyleType(p.hookStyleType);
-           if (p.customHookText !== undefined) setCustomHookText(p.customHookText);
-           if (p.musicPreference !== undefined) setMusicPreference(p.musicPreference);
-           if (p.sfxPreference !== undefined) setSfxPreference(p.sfxPreference);
-           if (p.voPreference !== undefined) setVoPreference(p.voPreference);
-           if (p.narrationModeOverride !== undefined) setNarrationModeOverride(p.narrationModeOverride);
-           if (p.trendingAudio !== undefined) setTrendingAudio(p.trendingAudio);
-           if (p.cameraMovementEnabled !== undefined) setCameraMovementEnabled(p.cameraMovementEnabled);
-           if (p.cameraMovementPresets !== undefined) setCameraMovementPresets(p.cameraMovementPresets);
-           if (p.cameraMovementCustom !== undefined) setCameraMovementCustom(p.cameraMovementCustom);
-           if (p.cameraMovementProMode !== undefined) setCameraMovementProMode(p.cameraMovementProMode);
-           if (p.affiliateAngle !== undefined) setAffiliateAngle(p.affiliateAngle);
-           if (p.affiliateAngleMode !== undefined) setAffiliateAngleMode(p.affiliateAngleMode);
-           if (p.videoConfig) setVideoConfig(prev => ({ ...prev, ...p.videoConfig }));
-           if (p.imageConfig) setImageConfig(prev => ({ ...prev, ...p.imageConfig }));
-         }
-       });
-     } catch {}
-   }
+  const getCurrentStateSnapshot = useCallback(() => {
+    return {
+      type,
+      channelId,
+      outputLanguage,
+      topic,
+      targetKeywords,
+      additionalContext,
+      rolePOV,
+      toneOfVoice,
+      visualStyleKey,
+      visualStyleCustom,
+      hookStyleType,
+      customHookText,
+      musicPreference,
+      sfxPreference,
+      voPreference,
+      narrationModeOverride,
+      trendingAudio,
+      cameraMovementEnabled,
+      cameraMovementPresets,
+      cameraMovementCustom,
+      cameraMovementProMode,
+      affiliateAngle,
+      affiliateAngleMode,
+      affiliateMarketplaces,
+      affiliateCustomUrl,
+      videoConfig,
+      imageConfig,
+      step,
+      generatedPrompt,
+      aiResultJson,
+      manualTitle,
+    };
+  }, [
+    type,
+    channelId,
+    outputLanguage,
+    topic,
+    targetKeywords,
+    additionalContext,
+    rolePOV,
+    toneOfVoice,
+    visualStyleKey,
+    visualStyleCustom,
+    hookStyleType,
+    customHookText,
+    musicPreference,
+    sfxPreference,
+    voPreference,
+    narrationModeOverride,
+    trendingAudio,
+    cameraMovementEnabled,
+    cameraMovementPresets,
+    cameraMovementCustom,
+    cameraMovementProMode,
+    affiliateAngle,
+    affiliateAngleMode,
+    affiliateMarketplaces,
+    affiliateCustomUrl,
+    videoConfig,
+    imageConfig,
+    step,
+    generatedPrompt,
+    aiResultJson,
+    manualTitle,
+  ]);
 
-   // 2. Server load (overrides local)
-   fetch("/api/user/preferences")
-     .then(res => res.json())
-     .then(data => {
-       if (!ignore && data.success && data.generatorPreferences?.generatorFormState) {
-         const p = data.generatorPreferences.generatorFormState;
-         if (p.type) setType(p.type);
-         if (p.channelId) setChannelId(p.channelId);
-         if (p.outputLanguage) setOutputLanguage(p.outputLanguage);
-         if (p.topic) setTopic(p.topic);
-         if (p.additionalContext) setAdditionalContext(p.additionalContext);
-         if (p.rolePOV) setRolePOV(p.rolePOV);
-         if (p.toneOfVoice !== undefined) setToneOfVoice(p.toneOfVoice);
-         if (p.visualStyleKey !== undefined) setVisualStyleKey(p.visualStyleKey);
-         if (p.visualStyleCustom !== undefined) setVisualStyleCustom(p.visualStyleCustom); // Fix #60
-         if (p.hookStyleType) setHookStyleType(p.hookStyleType);
-         if (p.customHookText !== undefined) setCustomHookText(p.customHookText);
-         if (p.musicPreference !== undefined) setMusicPreference(p.musicPreference);
-         if (p.sfxPreference !== undefined) setSfxPreference(p.sfxPreference);
-         if (p.voPreference !== undefined) setVoPreference(p.voPreference);
-         if (p.narrationModeOverride !== undefined) setNarrationModeOverride(p.narrationModeOverride);
-         if (p.trendingAudio !== undefined) setTrendingAudio(p.trendingAudio);
-         if (p.cameraMovementEnabled !== undefined) setCameraMovementEnabled(p.cameraMovementEnabled);
-         if (p.cameraMovementPresets !== undefined) setCameraMovementPresets(p.cameraMovementPresets);
-         if (p.cameraMovementCustom !== undefined) setCameraMovementCustom(p.cameraMovementCustom);
-         if (p.cameraMovementProMode !== undefined) setCameraMovementProMode(p.cameraMovementProMode);
-         if (p.affiliateAngle !== undefined) setAffiliateAngle(p.affiliateAngle);
-         if (p.affiliateAngleMode !== undefined) setAffiliateAngleMode(p.affiliateAngleMode);
-         if (p.videoConfig) setVideoConfig(prev => ({ ...prev, ...p.videoConfig }));
-         if (p.imageConfig) setImageConfig(prev => ({ ...prev, ...p.imageConfig }));
-       }
-     })
-     .catch(() => {});
+  const applyStateForChannel = useCallback((targetChannelId: string, savedState?: any) => {
+    const ch = channels.find((c: GeneratorFormChannel) => c.id === targetChannelId);
+    if (!ch) return;
 
-   // 3. Also restore result state from local cache
-   const savedResult = localStorage.getItem("generatorFormState");
-   if (savedResult) {
-     try {
-       const p = JSON.parse(savedResult);
-       queueMicrotask(() => {
-         if (!ignore) {
-           if (p.step) setStep(p.step as 1 | 2);
-           if (p.generatedPrompt) setGeneratedPrompt(p.generatedPrompt);
-           if (p.aiResultJson) setAiResultJson(p.aiResultJson);
-           if (p.manualTitle !== undefined) setManualTitle(p.manualTitle);
-         }
-       });
-     } catch {}
-   }
+    const arch = ch.contentArchetype;
+    const defSections = arch?.defaultIncludedSections as { hook?: boolean; cta?: boolean; caption?: boolean; thumbnail?: boolean } | undefined;
+    const isNoVoMode = arch?.narrationMode === "DIEGETIC_ONLY" || arch?.narrationMode === "SILENT_TEXT_ONLY";
+    const channelVisualStyle = mapVisualAestheticToKey(ch.visualAesthetic) || "";
 
-   return () => {
-     ignore = true;
-   };
- }, []);
+    if (savedState) {
+      if (savedState.type) setType(savedState.type);
+      if (savedState.outputLanguage) setOutputLanguage(savedState.outputLanguage);
+      setTopic(savedState.topic || "");
+      setAdditionalContext(savedState.additionalContext || "");
+      if (Array.isArray(savedState.targetKeywords)) setTargetKeywords(savedState.targetKeywords);
+      setRolePOV(savedState.rolePOV || "default");
+      setToneOfVoice(savedState.toneOfVoice || "");
+      setHookStyleType(savedState.hookStyleType || "auto");
+      setCustomHookText(savedState.customHookText || "");
+      setTrendingAudio(savedState.trendingAudio || "");
+      setCameraMovementEnabled(savedState.cameraMovementEnabled !== undefined ? savedState.cameraMovementEnabled : true);
+      setCameraMovementPresets(Array.isArray(savedState.cameraMovementPresets) ? savedState.cameraMovementPresets : []);
+      setCameraMovementCustom(savedState.cameraMovementCustom || "");
+      setCameraMovementProMode(savedState.cameraMovementProMode || false);
+      setAffiliateAngle(savedState.affiliateAngle || false);
+      setAffiliateAngleMode(savedState.affiliateAngleMode || "SOFT");
+      if (Array.isArray(savedState.affiliateMarketplaces)) setAffiliateMarketplaces(savedState.affiliateMarketplaces);
+      setAffiliateCustomUrl(savedState.affiliateCustomUrl || "");
+      setNarrationModeOverride(savedState.narrationModeOverride || "auto");
 
- useEffect(() => {
-  const stateObj = { type, channelId, outputLanguage, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, visualStyleCustom, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, narrationModeOverride, trendingAudio, cameraMovementEnabled, cameraMovementPresets, cameraMovementCustom, cameraMovementProMode, affiliateAngle, affiliateAngleMode, affiliateMarketplaces, affiliateCustomUrl, videoConfig, imageConfig, step, generatedPrompt, aiResultJson, manualTitle };
-  localStorage.setItem("generatorFormState", JSON.stringify(stateObj));
+      // Visual Style: If user picked a custom style or valid preset for this channel, keep it; else fallback to channel default
+      if (savedState.visualStyleKey) {
+        setVisualStyleKey(savedState.visualStyleKey);
+        setVisualStyleCustom(savedState.visualStyleCustom || "");
+      } else {
+        setVisualStyleKey(channelVisualStyle);
+        setVisualStyleCustom("");
+      }
 
-  const timeoutId = setTimeout(() => {
-  fetch("/api/user/preferences", {
-  method: "PUT",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ generatorFormState: stateObj }),
-  }).catch(() => {});
-  }, 3000); // 3 seconds debounce
+      // Audio: prioritize channel defaults unless user explicitly set preferences in this channel's state
+      setMusicPreference(savedState.musicPreference !== undefined ? savedState.musicPreference : (ch.audioBGM !== false));
+      setSfxPreference(savedState.sfxPreference !== undefined ? savedState.sfxPreference : (ch.audioSFX !== false));
+      setVoPreference(isNoVoMode ? false : (savedState.voPreference !== undefined ? savedState.voPreference : (ch.audioVO !== false)));
 
-  return () => clearTimeout(timeoutId);
-  }, [type, channelId, outputLanguage, topic, additionalContext, rolePOV, toneOfVoice, visualStyleKey, visualStyleCustom, hookStyleType, customHookText, musicPreference, sfxPreference, voPreference, narrationModeOverride, trendingAudio, cameraMovementEnabled, cameraMovementPresets, cameraMovementCustom, cameraMovementProMode, affiliateAngle, affiliateAngleMode, affiliateMarketplaces, affiliateCustomUrl, videoConfig, imageConfig, step, generatedPrompt, aiResultJson, manualTitle]);
+      // VideoConfig: Core channel settings from DB always take precedence (Single Source of Truth)
+      setVideoConfig((prev) => ({
+        ...prev,
+        ...(savedState.videoConfig || {}),
+        targetPlatform: ch.targetPlatform || "TikTok",
+        pov: ch.personaPov || "Expert Storyteller (Edukasi & Inspirasi)",
+        speechRate: ch.speechRate ?? 0.35,
+        selectedProductId: "", // Reset to avoid foreign product ID leakage
+        includeHook: savedState.videoConfig?.includeHook !== undefined ? savedState.videoConfig.includeHook : (defSections?.hook ?? true),
+        includeCTA: savedState.videoConfig?.includeCTA !== undefined ? savedState.videoConfig.includeCTA : (defSections?.cta ?? true),
+        includeCaption: savedState.videoConfig?.includeCaption !== undefined ? savedState.videoConfig.includeCaption : (defSections?.caption ?? true),
+        includeThumbnail: savedState.videoConfig?.includeThumbnail !== undefined ? savedState.videoConfig.includeThumbnail : (defSections?.thumbnail ?? false),
+      }));
+
+      setImageConfig((prev) => ({
+        ...prev,
+        ...(savedState.imageConfig || {}),
+        visualStyle: channelVisualStyle || prev.visualStyle || "Cinematic Dark Mode (Sleek & Professional)",
+      }));
+
+      if (savedState.step && savedState.generatedPrompt && savedState.aiResultJson) {
+        setStep(savedState.step as 1 | 2);
+        setGeneratedPrompt(savedState.generatedPrompt);
+        setAiResultJson(savedState.aiResultJson);
+        setManualTitle(savedState.manualTitle || "");
+      } else {
+        setStep(1);
+        setGeneratedPrompt("");
+        setAiResultJson("");
+        setManualTitle("");
+      }
+    } else {
+      // Clean default initialization for this channel (no leakage from previous channel)
+      setTopic("");
+      setAdditionalContext("");
+      setTargetKeywords([]);
+      setRolePOV("default");
+      setToneOfVoice("");
+      setVisualStyleKey(channelVisualStyle);
+      setVisualStyleCustom("");
+      setHookStyleType("auto");
+      setCustomHookText("");
+      setTrendingAudio("");
+      setCameraMovementEnabled(true);
+      setCameraMovementPresets([]);
+      setCameraMovementCustom("");
+      setCameraMovementProMode(false);
+      setAffiliateAngle(false);
+      setAffiliateAngleMode("SOFT");
+      setAffiliateMarketplaces(ALL_MARKETPLACE_KEYS.filter((k) => k !== "custom"));
+      setAffiliateCustomUrl("");
+      setNarrationModeOverride("auto");
+
+      setMusicPreference(ch.audioBGM !== false);
+      setSfxPreference(ch.audioSFX !== false);
+      setVoPreference(isNoVoMode ? false : (ch.audioVO !== false));
+
+      setVideoConfig((prev) => ({
+        ...prev,
+        targetPlatform: ch.targetPlatform || "TikTok",
+        pov: ch.personaPov || "Expert Storyteller (Edukasi & Inspirasi)",
+        speechRate: ch.speechRate ?? 0.35,
+        selectedProductId: "",
+        includeHook: defSections?.hook ?? true,
+        includeCTA: defSections?.cta ?? true,
+        includeCaption: defSections?.caption ?? true,
+        includeThumbnail: defSections?.thumbnail ?? false,
+        includeHtmlBlog: false,
+        composition: { education: 40, entertainment: 40, marketing: 20 },
+      }));
+
+      setImageConfig((prev) => ({
+        ...prev,
+        visualStyle: channelVisualStyle || "Cinematic Dark Mode (Sleek & Professional)",
+      }));
+
+      setStep(1);
+      setGeneratedPrompt("");
+      setAiResultJson("");
+      setManualTitle("");
+    }
+  }, [channels]);
+
+  const handleChannelChange = useCallback((newChannelId: string) => {
+    if (!newChannelId || newChannelId === channelId) return;
+
+    // 1. Save current channel's state into localStorage before switching
+    if (channelId) {
+      const currentState = getCurrentStateSnapshot();
+      try {
+        localStorage.setItem(`generatorFormState_${channelId}`, JSON.stringify(currentState));
+      } catch {}
+    }
+
+    // 2. Set new active channel ID
+    setChannelId(newChannelId);
+    try {
+      localStorage.setItem("generatorLastActiveChannelId", newChannelId);
+    } catch {}
+
+    // 3. Retrieve saved state for target channel
+    let targetSaved: any = null;
+    try {
+      const local = localStorage.getItem(`generatorFormState_${newChannelId}`);
+      if (local) targetSaved = JSON.parse(local);
+    } catch {}
+
+    if (!targetSaved && serverChannelStatesRef.current?.[newChannelId]) {
+      targetSaved = serverChannelStatesRef.current[newChannelId];
+    }
+
+    // 4. Apply clean/saved state for the new channel
+    applyStateForChannel(newChannelId, targetSaved);
+  }, [channelId, getCurrentStateSnapshot, applyStateForChannel]);
+
+  // Mount effect: Resolve active channel, load per-channel state, fetch server preferences
+  useEffect(() => {
+    let ignore = false;
+
+    const topicParam = searchParams.get("topic");
+    const keywordsParam = searchParams.get("keywords");
+    const channelParam = searchParams.get("channelId");
+
+    let initialChannelId = channels.length > 0 ? channels[0].id : "";
+    if (channelParam && channels.some((c) => c.id === channelParam)) {
+      initialChannelId = channelParam;
+    } else {
+      try {
+        const lastActive = localStorage.getItem("generatorLastActiveChannelId");
+        if (lastActive && channels.some((c) => c.id === lastActive)) {
+          initialChannelId = lastActive;
+        }
+      } catch {}
+    }
+
+    if (initialChannelId && initialChannelId !== channelId) {
+      setChannelId(initialChannelId);
+    }
+
+    // Load initial channel state
+    let initialSaved: any = null;
+    try {
+      const savedCh = localStorage.getItem(`generatorFormState_${initialChannelId}`);
+      if (savedCh) {
+        initialSaved = JSON.parse(savedCh);
+      } else {
+        const legacySaved = localStorage.getItem("generatorFormState");
+        if (legacySaved) {
+          const parsed = JSON.parse(legacySaved);
+          if (parsed.channelId === initialChannelId) {
+            initialSaved = parsed;
+          }
+        }
+      }
+    } catch {}
+
+    queueMicrotask(() => {
+      if (!ignore) {
+        applyStateForChannel(initialChannelId, initialSaved);
+        if (topicParam) setTopic(topicParam);
+        if (keywordsParam) {
+          const parsed = keywordsParam.split(",").map((k) => k.trim()).filter(Boolean);
+          if (parsed.length > 0) setTargetKeywords(parsed);
+        }
+        isInitializedRef.current = true;
+      }
+    });
+
+    // Fetch server preferences
+    fetch("/api/user/preferences")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!ignore && data.success && data.generatorPreferences) {
+          const prefs = data.generatorPreferences;
+          if (prefs.channelFormStates) {
+            serverChannelStatesRef.current = prefs.channelFormStates;
+          }
+          if (!initialSaved) {
+            const serverSaved =
+              prefs.channelFormStates?.[initialChannelId] ||
+              (prefs.generatorFormState?.channelId === initialChannelId ? prefs.generatorFormState : null);
+            if (serverSaved) {
+              applyStateForChannel(initialChannelId, serverSaved);
+              if (topicParam) setTopic(topicParam);
+              if (keywordsParam) {
+                const parsed = keywordsParam.split(",").map((k) => k.trim()).filter(Boolean);
+                if (parsed.length > 0) setTargetKeywords(parsed);
+              }
+            }
+          }
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      ignore = true;
+    };
+  }, []); // Run only once on mount
+
+  // Auto-Save: Persist to per-channel localStorage immediately & debounced server sync
+  useEffect(() => {
+    if (!channelId || !isInitializedRef.current) return;
+    const stateObj = getCurrentStateSnapshot();
+
+    try {
+      localStorage.setItem("generatorLastActiveChannelId", channelId);
+      localStorage.setItem(`generatorFormState_${channelId}`, JSON.stringify(stateObj));
+      localStorage.setItem("generatorFormState", JSON.stringify(stateObj)); // fallback
+    } catch {}
+
+    const timeoutId = setTimeout(() => {
+      fetch("/api/user/preferences", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          generatorFormState: stateObj,
+          channelFormStates: {
+            [channelId]: stateObj,
+          },
+        }),
+      }).catch(() => {});
+    }, 3000); // 3 seconds debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [channelId, getCurrentStateSnapshot]);
 
  // Fetch presets on mount
  useEffect(() => {
@@ -414,59 +626,68 @@ export default function GeneratorForm({
  .catch(() => {});
  }, []);
 
- // Synchronize channel settings into form configs when channel selection changes
+   // Reactive sync if URL search params change while on page (e.g. navigation from Research Studio)
   useEffect(() => {
-    if (!channelId) return;
-    const selectedChannel = channels.find((c: GeneratorFormChannel) => c.id === channelId);
-    if (selectedChannel) {
-      queueMicrotask(() => {
-        const arch = selectedChannel.contentArchetype;
-        const defSections = arch?.defaultIncludedSections as { hook?: boolean; cta?: boolean; caption?: boolean; thumbnail?: boolean } | undefined;
-        setVideoConfig((prev) => ({
-          ...prev,
-          targetPlatform: selectedChannel.targetPlatform || prev.targetPlatform || "TikTok",
-          // Fix #58 — sync channel visual aesthetic as a VIDEO visual style hint
-          // setVisualStyleKey only if user hasn't manually picked one yet
-          // (handled below via setVisualStyleKey guard)
-          pov: selectedChannel.personaPov || prev.pov || "Expert Storyteller (Edukasi & Inspirasi)",
-          speechRate: selectedChannel.speechRate ?? prev.speechRate ?? 0.35,
-          includeHook: defSections?.hook !== undefined ? defSections.hook : prev.includeHook,
-          includeCTA: defSections?.cta !== undefined ? defSections.cta : prev.includeCTA,
-          includeCaption: defSections?.caption !== undefined ? defSections.caption : prev.includeCaption,
-          includeThumbnail: defSections?.thumbnail !== undefined ? defSections.thumbnail : prev.includeThumbnail,
-        }));
-        setImageConfig((prev) => ({
-          ...prev,
-          // Fix #58: map free-text visualAesthetic to a VISUAL_STYLE_MAP slug key.
-          // Prevents fuzzy-match mis-mapping (e.g. "Cinematic Dark Mode" → photorealistic).
-          // If no key matches, fall back to prev value (user's manual selection).
-          visualStyle: mapVisualAestheticToKey(selectedChannel.visualAesthetic) || prev.visualStyle || "",
-        }));
-        // Fix #58: also sync visualStyleKey (VIDEO preset dropdown) from channel aesthetic.
-        // Guard: only auto-set when visualStyleKey is currently empty (user hasn't picked manually).
-        setVisualStyleKey((prev) => {
-          if (prev) return prev; // preserve manual selection
-          return mapVisualAestheticToKey(selectedChannel.visualAesthetic) || "";
-        });
-      });
-    }
-  }, [channelId, channels]);
+    const topicParam = searchParams.get("topic");
+    const keywordsParam = searchParams.get("keywords");
+    const channelParam = searchParams.get("channelId");
 
-  // Sync audio prefs from channel defaults when channel changes
+    if (!topicParam && !keywordsParam && !channelParam) return;
+
+    queueMicrotask(() => {
+      if (topicParam) setTopic(topicParam);
+      if (keywordsParam) {
+        const parsed = keywordsParam.split(",").map((k) => k.trim()).filter(Boolean);
+        if (parsed.length > 0) setTargetKeywords(parsed);
+      }
+      if (channelParam && channels.some((c) => c.id === channelParam) && channelParam !== channelId) {
+        handleChannelChange(channelParam);
+      }
+    });
+  }, [searchParams, channelId, channels, handleChannelChange]);
+
+  // Fetch & apply template from URL searchParams (templateId)
   useEffect(() => {
-    if (!channelId) return;
-    const ch = channels.find((c: GeneratorFormChannel) => c.id === channelId);
-    if (ch) {
-      queueMicrotask(() => {
-        setMusicPreference(ch.audioBGM !== false);
-        setSfxPreference(ch.audioSFX !== false);
-        const isNoVoMode =
-          ch.contentArchetype?.narrationMode === "DIEGETIC_ONLY" ||
-          ch.contentArchetype?.narrationMode === "SILENT_TEXT_ONLY";
-        setVoPreference(isNoVoMode ? false : ch.audioVO !== false);
-      });
-    }
-  }, [channelId, channels]);
+    const templateIdParam = searchParams.get("templateId");
+    if (!templateIdParam) return;
+
+    let ignore = false;
+    fetch(`/api/drafts/${templateIdParam}`)
+      .then((res) => res.json())
+      .then((resData) => {
+        if (ignore || !resData.success || !resData.data) return;
+        const draft = resData.data;
+
+        if (draft.type && (draft.type === "VIDEO" || draft.type === "IMAGE")) {
+          setType(draft.type);
+        }
+        if (draft.channelId && channels.some((c) => c.id === draft.channelId)) {
+          handleChannelChange(draft.channelId);
+        }
+        if (draft.topic) {
+          setTopic(draft.topic);
+        }
+        if (draft.title) {
+          setManualTitle(draft.title);
+        }
+        if (draft.targetDurationSec) {
+          setVideoConfig((prev) => ({
+            ...prev,
+            targetDurationSec: Number(draft.targetDurationSec),
+            targetSceneCount: draft.targetSceneCount ? Number(draft.targetSceneCount) : prev.targetSceneCount,
+            speechRate: draft.speechRate ? Number(draft.speechRate) : prev.speechRate,
+            narrativeLoopStyle: draft.narrativeLoopStyle || prev.narrativeLoopStyle,
+            visualLoopStyle: draft.visualLoopStyle || prev.visualLoopStyle,
+          }));
+        }
+        toast.success(t("templateLoadedSuccess"));
+      })
+      .catch(() => {});
+
+    return () => {
+      ignore = true;
+    };
+  }, [searchParams, channels, handleChannelChange, t]);
 
   // Fetch channel products when channelId changes
   useEffect(() => {
@@ -668,7 +889,11 @@ export default function GeneratorForm({
 
  if (res.ok) {
  toast.success(t("draftSavedSuccess"));
- router.push(`/${document.documentElement.lang || "id"}/dashboard/drafts`);
+ const lang = document.documentElement.lang || "id";
+ const targetUrl = channelId
+ ? `/${lang}/dashboard/drafts?channelId=${encodeURIComponent(channelId)}`
+ : `/${lang}/dashboard/drafts`;
+ router.push(targetUrl);
  } else {
  setError(data.error || t("saveDraftFail"));
  }
@@ -756,7 +981,7 @@ export default function GeneratorForm({
  </label>
  <select
  value={channelId}
- onChange={(e) => setChannelId(e.target.value)}
+ onChange={(e) => handleChannelChange(e.target.value)}
  className="w-full px-4 py-2 bg-white dark:bg-slate-700 border pg-border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none dark:text-white"
  required
  >

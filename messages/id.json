@@ -381,7 +381,8 @@
     "productLink": "Link Pembelian / Landing Page",
     "addProductBtn": "+ Tambah Produk",
     "cancelBtn": "Batal",
-    "loadingStudio": "Memuat Generator Studio..."
+    "loadingStudio": "Memuat Generator Studio...",
+    "templateLoadedSuccess": "Template berhasil dimuat ke Generator Studio"
   },
   "Drafts": {
     "pageTitleTab": "Riwayat Prompt",
@@ -455,7 +456,11 @@
     "savePerformance": "Simpan Performa",
     "deletePerformance": "Hapus Performa",
     "performanceBadge": "Performa Tayang",
-    "closedLoopNotice": "Data performa ini otomatis dipelajari AI saat membuat naskah baru untuk channel ini."
+    "closedLoopNotice": "Data performa ini otomatis dipelajari AI saat membuat naskah baru untuk channel ini.",
+    "openInSceneStudio": "Buka di Voice & Scene Studio",
+    "searchDraftPlaceholder": "Cari judul atau kata kunci naskah...",
+    "templateLoadedSuccess": "Template berhasil dimuat ke Generator Studio",
+    "applyTemplate": "Gunakan Template"
   },
   "Pricing": {
     "pageTitleTab": "Pilih Paket",
@@ -970,6 +975,7 @@
     "saveDraftButton": "Simpan Draf",
     "saving": "Menyimpan...",
     "draftSaved": "Draf berhasil disimpan!",
+    "draftLoadedSuccess": "Naskah dari riwayat berhasil dimuat ke Voice & Scene Studio!",
     "draftError": "Gagal menyimpan draf.",
     "defaultDraftTitle": "Draf Scene Prompt",
     "markTitleSuccess": "Judul ditandai terpakai.",
