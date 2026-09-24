@@ -34,6 +34,16 @@ export const KNOWN_PLAN_FEATURES: PlanFeatureDefinition[] = [
     key: "textToSpeechStudio",
     labelKey: "featureTextToSpeechStudio",
     defaultValue: false   // fail-closed: premium feature, requires explicit plan grant
+  },
+  {
+    key: "youtubeLongStudio",
+    labelKey: "featureYoutubeLongStudio",
+    defaultValue: false   // fail-closed: premium long-form studio
+  },
+  {
+    key: "retentionPacingPro",
+    labelKey: "featureRetentionPacingPro",
+    defaultValue: false   // fail-closed: PRO tier retention & editing rhythm
   }
 ];
 

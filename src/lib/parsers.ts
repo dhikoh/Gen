@@ -624,3 +624,229 @@ export function extractAffiliateRecommendations(text: string): AffiliateRecommen
   return results;
 }
 
+// ── Scene Extraction & Parsing ──────────────────────────────────────────────
+
+export interface Scene {
+  id: number;
+  sceneNumber: string;
+  narasi: string;
+  teksOverlay?: string;
+  overlayType?: "chapter_title" | "key_point";
+  chapter?: number;
+  chapterTitle?: string;
+  visual: string;
+  durasi: string;
+  bgmCues?: string[];
+  sfxCues?: string[];
+  isDiegetic?: boolean;
+  voiceGuidelines?: {
+    sampleContext?: string;
+    directorsNote?: string;
+    traits?: string;
+  };
+  targetEmosi?: string;
+  teknikPacing?: string;
+}
+
+export function parseOverlayType(raw: string): { text: string; type?: "chapter_title" | "key_point" } {
+  const chapterMatch = raw.match(/^\[CHAPTER\s*TITLE\]\s*/i);
+  if (chapterMatch) return { text: raw.slice(chapterMatch[0].length).trim(), type: "chapter_title" };
+  const keyPointMatch = raw.match(/^\[KEY\s*POINT\]\s*/i);
+  if (keyPointMatch) return { text: raw.slice(keyPointMatch[0].length).trim(), type: "key_point" };
+  return { text: raw };
+}
+
+/**
+ * Strip acting instructions, parenthetical stage directions, and emotion cues (e.g. "(tersenyum ramah)", "(intonasi berbisik)")
+ * before sending to TTS engine so the narrator does not read them out loud.
+ */
+export function cleanNarasiForTts(text: string): string {
+  if (!text) return "";
+  return text
+    .replace(/\([^)]*\)/g, "") // strip anything in parentheses (acting notes, stage cues)
+    .replace(/\[[^\]]*\]/g, "") // strip anything in brackets (SFX, BGM cues)
+    .replace(/\s+([,.:;?!])/g, "$1") // normalize spacing before punctuation
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Parse AI generated script text into structured Scene items with support for:
+ * - Chapter markers (BAB N: Title)
+ * - Narration, Audio cues (BGM, SFX, Diegetic)
+ * - Target Emosi (VET 3-Act Storytelling)
+ * - Teknik Editing & Pacing (Jump cut, beat-sync, b-roll cutaways)
+ * - Overlay types (Chapter Title / Key Point)
+ * - Visual prompts and durations
+ */
+export function parseScenes(text: string): Scene[] {
+  if (!text || !text.trim()) return [];
+
+  // Extract chapter markers: ## BAB N: Title
+  const chapterMarkers: { index: number; num: number; title: string }[] = [];
+  const chapterPattern = /(?:^|\r?\n)##\s*BAB\s+(\d+)\s*:\s*(.+?)(?=\r?\n|$)/gi;
+  let chMatch;
+  while ((chMatch = chapterPattern.exec(text)) !== null) {
+    chapterMarkers.push({ index: chMatch.index, num: parseInt(chMatch[1], 10), title: chMatch[2].trim() });
+  }
+
+  const splitter = /(?:^|\r?\n)(?:##\s*|###\s*|\*\*\s*|={1,4}\s*)?(?:Scene|Adegan|Bagian)\s*([a-zA-Z0-9_\-]+)(?:\s*(?:\*\*|={1,4}))?(?=\r?\n|$)/gi;
+  const parts = text.split(splitter);
+  const scenes: Scene[] = [];
+  const delimiters = "(?:Target\\s*Emosi(?:\\s*\\(VET\\))?|Emosi|Teknik\\s*(?:Editing(?:\\s*&\\s*Pacing)?|Pacing)|Pacing|Teks\\s*Overlay|Text\\s*Overlay|Overlay|Panduan\\s*Suara|Voice\\s*Guidelines|Visual\\s*Prompt|Visual|Deskripsi\\s*Visual|Prompt|Durasi|Time|Duration)";
+
+  // Helper: find which chapter a given text offset belongs to
+  function findChapterAt(offset: number): { num: number; title: string } | undefined {
+    let best: (typeof chapterMarkers)[0] | undefined;
+    for (const cm of chapterMarkers) {
+      if (cm.index <= offset) best = cm;
+    }
+    return best ? { num: best.num, title: best.title } : undefined;
+  }
+
+  if (parts.length > 1) {
+    let count = 1;
+    let charOffset = parts[0].length;
+    for (let i = 1; i < parts.length; i += 2) {
+      const sceneNum = parts[i], content = parts[i + 1] || "";
+      charOffset += sceneNum.length;
+      const sceneStartOffset = charOffset;
+      charOffset += content.length;
+
+      const stop = /(?:^|\r?\n)(?:##\s*)?(?:TOTAL\s*DURASI|TOTAL|RINGKASAN|THUMBNAIL|ARTIKEL|HASHTAG|CAPTION|JUDUL\s*TERPILIH|HTML\s*BLOG|REKOMENDASI|METADATA\s*SEO)/i;
+      const m = content.match(stop);
+      const c = m ? content.slice(0, m.index) : content;
+      const nar = c.match(new RegExp(`(?:Narasi|Dialog|Voice\\s*Over|VO|Audio)\\s*:\\s*([\\s\\S]*?)(?=(?:${delimiters})\\s*:|##|$)`, "i"));
+      const emosi = c.match(new RegExp(`(?:Target\\s*Emosi(?:\\s*\\(VET\\))?|Emosi)\\s*:\\s*([\\s\\S]*?)(?=(?:${delimiters})\\s*:|##|$)`, "i"));
+      const pacing = c.match(new RegExp(`(?:Teknik\\s*(?:Editing(?:\\s*&\\s*Pacing)?|Pacing)|Pacing)\\s*:\\s*([\\s\\S]*?)(?=(?:${delimiters})\\s*:|##|$)`, "i"));
+      const overlay = c.match(new RegExp(`(?:Teks\\s*Overlay|Text\\s*Overlay|Overlay)\\s*:\\s*([\\s\\S]*?)(?=(?:${delimiters})\\s*:|##|$)`, "i"));
+      const vis = c.match(new RegExp(`(?:Visual\\s*Prompt|Visual|Deskripsi\\s*Visual|Prompt)\\s*:\\s*([\\s\\S]*?)(?=(?:${delimiters})\\s*:|##|$)`, "i"));
+      const dur = c.match(new RegExp(`(?:Durasi|Time|Duration)\\s*:\\s*([\\s\\S]*?)(?=(?:${delimiters})\\s*:|##|$)`, "i"));
+      const voi = c.match(new RegExp(`(?:Panduan\\s*Suara|Voice\\s*Guidelines)\\s*:\\s*([\\s\\S]*?)(?=(?:${delimiters})\\s*:|##|$)`, "i"));
+
+      const narVal = nar ? cleanParsedValue(nar[1]) : "";
+      const emosiVal = emosi ? cleanParsedValue(emosi[1]) : "";
+      const pacingVal = pacing ? cleanParsedValue(pacing[1]) : "";
+      const rawOverlay = overlay ? cleanParsedValue(overlay[1]).replace(/^["']|["']$/g, "").trim() : "";
+      const visVal = vis ? cleanParsedValue(vis[1]) : "";
+      const durVal = dur ? cleanParsedValue(dur[1]) : "5s";
+
+      if (narVal || visVal || rawOverlay || emosiVal || pacingVal) {
+        const audio = extractAudioCues(narVal);
+        const overlayParsed = rawOverlay ? parseOverlayType(rawOverlay) : null;
+        const overlayText = overlayParsed?.text || undefined;
+        const overlayType = overlayParsed?.type || undefined;
+        const chapterInfo = findChapterAt(sceneStartOffset);
+
+        scenes.push({
+          id: count,
+          sceneNumber: isNaN(Number(sceneNum)) ? sceneNum : `Scene ${sceneNum}`,
+          narasi: audio.cleanNarasi || "—",
+          teksOverlay: overlayText && overlayText !== "—" ? overlayText : undefined,
+          overlayType,
+          chapter: chapterInfo?.num,
+          chapterTitle: chapterInfo?.title,
+          visual: visVal || "—",
+          durasi: durVal,
+          bgmCues: audio.bgmCues,
+          sfxCues: audio.sfxCues,
+          isDiegetic: audio.isDiegetic,
+          voiceGuidelines: voi ? parseVoiceGuidelines(cleanParsedValue(voi[1])) : undefined,
+          targetEmosi: emosiVal && emosiVal !== "—" ? emosiVal : undefined,
+          teknikPacing: pacingVal && pacingVal !== "—" ? pacingVal : undefined,
+        });
+        count++;
+      }
+    }
+  }
+
+  if (!scenes.length) {
+    const audio = extractAudioCues(text);
+    scenes.push({
+      id: 1,
+      sceneNumber: "Scene 1",
+      narasi: audio.cleanNarasi.slice(0, 120) || (audio.isDiegetic ? "—" : text.slice(0, 120)),
+      visual: text,
+      durasi: "15s",
+      bgmCues: audio.bgmCues,
+      sfxCues: audio.sfxCues,
+      isDiegetic: audio.isDiegetic,
+    });
+  }
+
+  return scenes;
+}
+
+// ── YouTube 2026: 3-Tier SEO & Pre-Flight Checklist ─────────────────────────
+
+export interface ThreeTierSeoData {
+  raw: string;
+  tagSpesifik: string;
+  tagUmum: string;
+  tagMajemuk: string;
+  deskripsi: string;
+  checklist: string[];
+}
+
+/**
+ * Extract YouTube 2026 3-Tier SEO metadata and pre-flight checklist from AI output.
+ */
+export function extractThreeTierSeo(text: string): ThreeTierSeoData | null {
+  if (!text) return null;
+
+  const match = text.match(
+    /(?:##|###|\*\*|\b)\s*(?:METADATA\s*SEO\s*(?:YOUTUBE)?(?:\s*2026)?|SEO\s*METADATA)/i
+  );
+  if (!match || match.index === undefined) return null;
+
+  const startIdx = match.index;
+  const afterSection = text.substring(startIdx);
+  const nextHeaderMatch = afterSection.search(/(?:\n##\s+(?!METADATA)|\n(?:\*\*\s*)?HTML\s*BLOG|\n(?:\*\*\s*)?REKOMENDASI|\n(?:\*\*\s*)?THUMBNAIL)/i);
+  const sectionRaw = nextHeaderMatch !== -1
+    ? afterSection.substring(0, nextHeaderMatch).trim()
+    : afterSection.trim();
+
+  const tagSpesifikMatch = sectionRaw.match(/(?:TAG\s+SPESIFIK|SPECIFIC\s+TAGS?)\s*(?:\*\*|\*)*\s*:\s*([^\n]+)/i);
+  const tagUmumMatch = sectionRaw.match(/(?:TAG\s+UMUM|GENERAL\s+TAGS?)\s*(?:\*\*|\*)*\s*:\s*([^\n]+)/i);
+  const tagMajemukMatch = sectionRaw.match(/(?:TAG\s+MAJEMUK(?:\s*\(LONG-TAIL\))?|LONG-?TAIL\s+TAGS?)\s*(?:\*\*|\*)*\s*:\s*([^\n]+)/i);
+  const deskripsiMatch = sectionRaw.match(/(?:DESKRIPSI\s+(?:YOUTUBE)?(?:\s*\(SEO\s*&\s*EMPATI\))?|DESKRIPSI)\s*(?:\*\*|\*)*\s*:\s*([\s\S]*?)(?=(?:CHECKLIST|##|$))/i);
+
+  // Extract checklist items
+  const checklist: string[] = [];
+  const checklistBlockMatch = sectionRaw.match(/CHECKLIST(?:\s+KESIAPAN\s+AKHIR)?\s*:?([\s\S]*?)(?=(?:##|$))/i);
+  if (checklistBlockMatch && checklistBlockMatch[1]) {
+    const lines = checklistBlockMatch[1].split("\n");
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (/^[-*]\s*(?:\[[ xX]\])?\s*.+/.test(trimmed)) {
+        const itemText = trimmed.replace(/^[-*]\s*(?:\[[ xX]\])?\s*/, "").trim();
+        if (itemText) checklist.push(itemText);
+      }
+    }
+  }
+
+  // Fallback defaults if checklist block was empty but section existed
+  if (checklist.length === 0) {
+    checklist.push(
+      "Audio bersih dari noise dengan Fade-in/Fade-out yang halus",
+      "Judul mengandung Long-tail Keyword yang dicari penonton",
+      "Teks thumbnail (maks 1-3 kata) & ekspresi wajah 60-80% terbaca jelas di layar HP kecil",
+      "Hook 3 detik pertama telah menyampaikan Janji Nilai (Value Promise) yang kuat"
+    );
+  }
+
+  const tagSpesifik = tagSpesifikMatch ? cleanParsedValue(tagSpesifikMatch[1]) : "";
+  const tagUmum = tagUmumMatch ? cleanParsedValue(tagUmumMatch[1]) : "";
+  const tagMajemuk = tagMajemukMatch ? cleanParsedValue(tagMajemukMatch[1]) : "";
+  const deskripsi = deskripsiMatch ? cleanParsedValue(deskripsiMatch[1]) : "";
+
+  return {
+    raw: sectionRaw,
+    tagSpesifik,
+    tagUmum,
+    tagMajemuk,
+    deskripsi,
+    checklist,
+  };
+}
+

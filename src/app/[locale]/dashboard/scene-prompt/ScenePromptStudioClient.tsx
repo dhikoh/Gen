@@ -3,8 +3,22 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslations } from "next-intl";
 import toast from "react-hot-toast";
 import sanitizeHtml from "sanitize-html";
-import { extractAudioCues, cleanParsedValue, parseVoiceGuidelines, extractTitles, extractChosenTitle, extractThumbnailData, extractCaption, extractHashtags, extractHtmlBlog, extractAffiliateRecommendations } from "@/lib/parsers";
-import type { ThumbnailData, AffiliateRecommendation } from "@/lib/parsers";
+import {
+  extractAudioCues,
+  cleanParsedValue,
+  parseVoiceGuidelines,
+  extractTitles,
+  extractChosenTitle,
+  extractThumbnailData,
+  extractCaption,
+  extractHashtags,
+  extractHtmlBlog,
+  extractAffiliateRecommendations,
+  parseScenes,
+  cleanNarasiForTts,
+  extractThreeTierSeo,
+} from "@/lib/parsers";
+import type { ThumbnailData, AffiliateRecommendation, Scene, ThreeTierSeoData } from "@/lib/parsers";
 import { GEMINI_TTS_VOICES, GEMINI_TTS_MODELS, DEFAULT_TTS_VOICE, DEFAULT_TTS_MODEL, TTS_PITCH_PRESETS, DEFAULT_TTS_PITCH, type TtsPitchPresetId } from "@/lib/ttsVoices";
 import { buildOverlayVisualCopyText, buildBatchExportText, type SceneForExport } from "@/lib/sceneExportFormat";
 
@@ -39,25 +53,6 @@ function formatHistoryDate(dateStr: string, locale?: string): string {
   }
 }
 
-interface Scene {
-  id: number;
-  sceneNumber: string;
-  narasi: string;
-  teksOverlay?: string;
-  overlayType?: "chapter_title" | "key_point";
-  chapter?: number;
-  chapterTitle?: string;
-  visual: string;
-  durasi: string;
-  bgmCues?: string[];
-  sfxCues?: string[];
-  isDiegetic?: boolean;
-  voiceGuidelines?: {
-    sampleContext?: string;
-    directorsNote?: string;
-    traits?: string;
-  };
-}
 interface Channel { id: string; channelName: string; niche?: string | null; }
 interface Props {
   channels: Channel[];
@@ -81,100 +76,6 @@ interface TtsResult {
   durationSec?: number; // durasi audio, dibaca dari onLoadedMetadata
 }
 
-function parseOverlayType(raw: string): { text: string; type?: "chapter_title" | "key_point" } {
-  const chapterMatch = raw.match(/^\[CHAPTER\s*TITLE\]\s*/i);
-  if (chapterMatch) return { text: raw.slice(chapterMatch[0].length).trim(), type: "chapter_title" };
-  const keyPointMatch = raw.match(/^\[KEY\s*POINT\]\s*/i);
-  if (keyPointMatch) return { text: raw.slice(keyPointMatch[0].length).trim(), type: "key_point" };
-  return { text: raw };
-}
-
-function parseScenes(text: string): Scene[] {
-  if (!text.trim()) return [];
-
-  // Extract chapter markers: ## BAB N: Title
-  const chapterMarkers: { index: number; num: number; title: string }[] = [];
-  const chapterPattern = /(?:^|\r?\n)##\s*BAB\s+(\d+)\s*:\s*(.+?)(?=\r?\n|$)/gi;
-  let chMatch;
-  while ((chMatch = chapterPattern.exec(text)) !== null) {
-    chapterMarkers.push({ index: chMatch.index, num: parseInt(chMatch[1], 10), title: chMatch[2].trim() });
-  }
-
-  const splitter = /(?:^|\r?\n)(?:##\s*|###\s*|\*\*\s*)?(?:Scene|Adegan|Bagian)\s*([a-zA-Z0-9_\-]+)(?:\s*\*\*)?(?=\r?\n|$)/gi;
-  const parts = text.split(splitter);
-  const scenes: Scene[] = [];
-  const delimiters = "(?:Teks\\s*Overlay|Text\\s*Overlay|Overlay|Panduan\\s*Suara|Voice\\s*Guidelines|Visual\\s*Prompt|Visual|Deskripsi\\s*Visual|Prompt|Durasi|Time|Duration)";
-
-  // Helper: find which chapter a given text offset belongs to
-  function findChapterAt(offset: number): { num: number; title: string } | undefined {
-    let best: (typeof chapterMarkers)[0] | undefined;
-    for (const cm of chapterMarkers) {
-      if (cm.index <= offset) best = cm;
-    }
-    return best ? { num: best.num, title: best.title } : undefined;
-  }
-
-  if (parts.length > 1) {
-    let count = 1;
-    let charOffset = parts[0].length;
-    for (let i = 1; i < parts.length; i += 2) {
-      const sceneNum = parts[i], content = parts[i + 1] || "";
-      charOffset += sceneNum.length;
-      const sceneStartOffset = charOffset;
-      charOffset += content.length;
-
-      const stop = /(?:^|\r?\n)(?:##\s*)?(?:TOTAL\s*DURASI|TOTAL|RINGKASAN|THUMBNAIL|ARTIKEL|HASHTAG|CAPTION|JUDUL\s*TERPILIH|HTML\s*BLOG|REKOMENDASI)/i;
-      const m = content.match(stop);
-      const c = m ? content.slice(0, m.index) : content;
-      const nar = c.match(new RegExp(`(?:Narasi|Dialog|Voice\\\\s*Over|VO|Audio)\\\\s*:\\\\s*([\\\\s\\\\S]*?)(?=(?:${delimiters})\\\\s*:|##|$)`, "i"));
-      const overlay = c.match(new RegExp(`(?:Teks\\\\s*Overlay|Text\\\\s*Overlay|Overlay)\\\\s*:\\\\s*([\\\\s\\\\S]*?)(?=(?:${delimiters})\\\\s*:|##|$)`, "i"));
-      const vis = c.match(new RegExp(`(?:Visual\\\\s*Prompt|Visual|Deskripsi\\\\s*Visual|Prompt)\\\\s*:\\\\s*([\\\\s\\\\S]*?)(?=(?:${delimiters})\\\\s*:|##|$)`, "i"));
-      const dur = c.match(new RegExp(`(?:Durasi|Time|Duration)\\\\s*:\\\\s*([\\\\s\\\\S]*?)(?=(?:${delimiters})\\\\s*:|##|$)`, "i"));
-      const voi = c.match(new RegExp(`(?:Panduan\\\\s*Suara|Voice\\\\s*Guidelines)\\\\s*:\\\\s*([\\\\s\\\\S]*?)(?=(?:${delimiters})\\\\s*:|##|$)`, "i"));
-      const narVal = nar ? cleanParsedValue(nar[1]) : "";
-      const rawOverlay = overlay ? cleanParsedValue(overlay[1]).replace(/^["']|["']$/g, "").trim() : "";
-      const visVal = vis ? cleanParsedValue(vis[1]) : "";
-      const durVal = dur ? cleanParsedValue(dur[1]) : "5s";
-      if (narVal || visVal || rawOverlay) {
-        const audio = extractAudioCues(narVal);
-        const overlayParsed = rawOverlay ? parseOverlayType(rawOverlay) : null;
-        const overlayText = overlayParsed?.text || undefined;
-        const overlayType = overlayParsed?.type || undefined;
-        const chapterInfo = findChapterAt(sceneStartOffset);
-        scenes.push({
-          id: count,
-          sceneNumber: isNaN(Number(sceneNum)) ? sceneNum : `Scene ${sceneNum}`,
-          narasi: audio.cleanNarasi || "—",
-          teksOverlay: overlayText && overlayText !== "—" ? overlayText : undefined,
-          overlayType,
-          chapter: chapterInfo?.num,
-          chapterTitle: chapterInfo?.title,
-          visual: visVal || "—",
-          durasi: durVal,
-          bgmCues: audio.bgmCues,
-          sfxCues: audio.sfxCues,
-          isDiegetic: audio.isDiegetic,
-          voiceGuidelines: voi ? parseVoiceGuidelines(cleanParsedValue(voi[1])) : undefined,
-        });
-        count++;
-      }
-    }
-  }
-  if (!scenes.length) {
-    const audio = extractAudioCues(text);
-    scenes.push({
-      id: 1,
-      sceneNumber: "Scene 1",
-      narasi: audio.cleanNarasi.slice(0, 120) || (audio.isDiegetic ? "—" : text.slice(0, 120)),
-      visual: text,
-      durasi: "15s",
-      bgmCues: audio.bgmCues,
-      sfxCues: audio.sfxCues,
-      isDiegetic: audio.isDiegetic,
-    });
-  }
-  return scenes;
-}
 
 export default function ScenePromptStudioClient({ channels, locale, planFeatures, initialDraft, initialParsedOutputs = [] }: Props) {
   const t = useTranslations("ScenePromptStudio");
@@ -205,6 +106,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
   const [caption, setCaption] = useState(() => (defaultSource?.raw ? extractCaption(defaultSource.raw) : ""));
   const [hashtags, setHashtags] = useState(() => (defaultSource?.raw ? extractHashtags(defaultSource.raw) : ""));
   const [thumbnailData, setThumbnailData] = useState<ThumbnailData | null>(() => (defaultSource?.raw ? extractThumbnailData(defaultSource.raw) : null));
+  const [threeTierSeo, setThreeTierSeo] = useState<ThreeTierSeoData | null>(() => (defaultSource?.raw ? extractThreeTierSeo(defaultSource.raw) : null));
   const [parsedTitles, setParsedTitles] = useState<string[]>(() => (defaultSource?.raw ? extractTitles(defaultSource.raw) : []));
   const [draftTitle, setDraftTitle] = useState(() => {
     if (initialDraft?.title) return initialDraft.title;
@@ -226,10 +128,11 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"scenes"|"thumbnail"|"platform"|"voiceStudio"|"htmlBlog">("scenes");
+  const [activeTab, setActiveTab] = useState<"scenes"|"thumbnail"|"platform"|"voiceStudio"|"htmlBlog"|"seo2026">("scenes");
   const [markedTitles, setMarkedTitles] = useState<string[]>([]);
   const [htmlBlog, setHtmlBlog] = useState(() => (defaultSource?.raw ? extractHtmlBlog(defaultSource.raw) : ""));
   const [affiliateRecs, setAffiliateRecs] = useState<AffiliateRecommendation[]>(() => (defaultSource?.raw ? extractAffiliateRecommendations(defaultSource.raw) : []));
+  const [completedChecklist, setCompletedChecklist] = useState<Record<number, boolean>>({});
 
   // Parse History state (10 latest)
   const [historyList, setHistoryList] = useState<SerializedParsedOutput[]>(initialParsedOutputs);
@@ -367,6 +270,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
       setCaption(extractCaption(raw));
       setHashtags(extractHashtags(raw));
       setThumbnailData(extractThumbnailData(raw));
+      setThreeTierSeo(extractThreeTierSeo(raw));
       const titles = extractTitles(raw);
       setParsedTitles(titles);
       if (!initialDraft.title) {
@@ -381,7 +285,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
 
  // ── TTS Functions (Fitur 1) ──
  const buildTtsInputText = useCallback((scene: Scene) => {
-   let text = scene.narasi || "";
+   let text = cleanNarasiForTts(scene.narasi || "");
    if (scene.voiceGuidelines) {
      const vg = scene.voiceGuidelines;
      const hints: string[] = [];
@@ -464,7 +368,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
 
   // ── Preview satu teks pendek dengan settings saat ini ──
   const generatePreview = useCallback(async () => {
-    const text = ttsPreviewText.trim();
+    const text = cleanNarasiForTts(ttsPreviewText.trim());
     if (!text) return;
     setTtsPreviewResult({ status: "generating" });
     try {
@@ -649,6 +553,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
               setCaption(extractCaption(p.rawText));
               setHashtags(extractHashtags(p.rawText));
               setThumbnailData(extractThumbnailData(p.rawText));
+              setThreeTierSeo(extractThreeTierSeo(p.rawText));
               const titles = extractTitles(p.rawText);
               setParsedTitles(titles);
               const chosen = extractChosenTitle(p.rawText) || titles[0] || "";
@@ -689,6 +594,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
             setCaption(extractCaption(p.rawText));
             setHashtags(extractHashtags(p.rawText));
             setThumbnailData(extractThumbnailData(p.rawText));
+            setThreeTierSeo(extractThreeTierSeo(p.rawText));
             const titles = extractTitles(p.rawText);
             setParsedTitles(titles);
             const chosen = extractChosenTitle(p.rawText) || titles[0] || "";
@@ -782,6 +688,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
     setCaption(extractCaption(raw));
     setHashtags(extractHashtags(raw));
     setThumbnailData(extractThumbnailData(raw));
+    setThreeTierSeo(extractThreeTierSeo(raw));
     const titles = extractTitles(raw);
     setParsedTitles(titles);
     const chosen = extractChosenTitle(raw) || titles[0] || "";
@@ -801,6 +708,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
     setCaption(extractCaption(rawText));
     setHashtags(extractHashtags(rawText));
     setThumbnailData(extractThumbnailData(rawText));
+    setThreeTierSeo(extractThreeTierSeo(rawText));
     const titles = extractTitles(rawText);
     setParsedTitles(titles);
     const chosen = extractChosenTitle(rawText) || titles[0] || "";
@@ -1045,11 +953,12 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
  {scenes.length > 0 && (
  <>
  <div className="flex gap-2 overflow-x-auto whitespace-nowrap pb-1 custom-scrollbar">
- {(["scenes","thumbnail","platform","voiceStudio","htmlBlog"] as const).map(tab => {
+ {(["scenes","thumbnail","seo2026","platform","voiceStudio","htmlBlog"] as const).map(tab => {
+ if (tab === "seo2026" && !threeTierSeo) return null;
  if (tab === "htmlBlog" && !htmlBlog) return null;
  return (
  <button key={tab} onClick={() => setActiveTab(tab)} className={btn(activeTab === tab)}>
- {tab === "scenes" ? `🎬 ${t("sceneViewerTab")}` : tab === "thumbnail" ? `🖼️ ${t("thumbnailTab")}` : tab === "htmlBlog" ? `📝 HTML Blog` : tab === "voiceStudio" ? `🎙️ ${t("voiceStudioTab")}` : `📱 ${t("platformTab")}`}
+ {tab === "scenes" ? `🎬 ${t("sceneViewerTab")}` : tab === "thumbnail" ? `🖼️ ${t("thumbnailTab")}` : tab === "seo2026" ? `🎯 SEO 2026` : tab === "htmlBlog" ? `📝 HTML Blog` : tab === "voiceStudio" ? `🎙️ ${t("voiceStudioTab")}` : `📱 ${t("platformTab")}`}
  </button>
  );
  })}
@@ -1227,6 +1136,16 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
           <span>🔇</span> Diegetic (Tanpa VO)
         </span>
       )}
+      {scene.targetEmosi && (
+        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 flex items-center gap-1" title="Target Emosi (VET 3-Act)">
+          <span>🎯</span> {scene.targetEmosi}
+        </span>
+      )}
+      {scene.teknikPacing && (
+        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 flex items-center gap-1" title="Teknik Editing & Pacing">
+          <span>⚡</span> {scene.teknikPacing}
+        </span>
+      )}
     </div>
     <span className="text-xs pg-surface-dim px-2 py-1 rounded pg-text-muted font-medium">{scene.durasi}</span>
   </div>
@@ -1380,6 +1299,65 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
             </button>
           </div>
         )}
+
+        {/* Mobile Screen Shrink Test Preview (YouTube 2026 Strategy) */}
+        {(() => {
+          const testText = thumbnailData.seoText || thumbnailData.opsi1Overlay || thumbnailData.opsi2Overlay || "";
+          const wordCount = testText.trim() ? testText.trim().split(/\s+/).length : 0;
+          return (
+            <div className="p-4 rounded-xl border border-purple-200 dark:border-purple-900/50 bg-gradient-to-r from-purple-500/5 via-indigo-500/5 to-purple-500/5 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-purple-700 dark:text-purple-300 flex items-center gap-1.5">
+                    <span>📱</span> Mobile Screen &quot;Shrink Test&quot; (Simulasi Feed HP YouTube 2026)
+                  </span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    wordCount <= 3
+                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                      : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                  }`}>
+                    {wordCount <= 3 ? "✓ Lolos (1-3 Kata)" : `⚠️ ${wordCount} Kata (Disarankan Maks 3 Kata)`}
+                  </span>
+                </div>
+                <p className="text-[10px] pg-text-muted">
+                  Uji keterbacaan dalam 0.5 detik pada layar smartphone kecil
+                </p>
+              </div>
+
+              {/* Smartphone Simulator Preview Card */}
+              <div className="flex flex-wrap items-center gap-4">
+                <div className={`relative rounded-lg overflow-hidden border-2 border-slate-700 shadow-lg bg-slate-900 flex items-center justify-center p-3 text-center ${
+                  thumbAr === "16:9" ? "w-52 h-28" : "w-32 h-52"
+                }`}>
+                  {/* Subtle simulated cinematic background */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/80 via-slate-950 to-black pointer-events-none" />
+                  <div className="absolute top-1.5 right-1.5 bg-black/80 text-[8px] font-bold text-white px-1 rounded z-10">
+                    HD
+                  </div>
+                  {/* High contrast bold thumbnail text */}
+                  <p className="relative z-10 text-white font-black text-xs uppercase tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] bg-black/50 px-2 py-1 rounded border border-white/20 max-w-full truncate">
+                    {testText || "JUDUL PUNCHY"}
+                  </p>
+                </div>
+
+                <div className="space-y-1.5 text-xs pg-text-sub flex-1 min-w-[200px]">
+                  <div className="flex items-center gap-1.5 text-[11px]">
+                    <span className="text-emerald-500 font-bold">✓</span>
+                    <span><strong>Panjang Teks:</strong> {wordCount} kata ({wordCount <= 3 ? "Sangat optimal & tidak menutupi visual" : "Potensi kepenuhan di layar HP"})</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[11px]">
+                    <span className="text-emerald-500 font-bold">✓</span>
+                    <span><strong>Framing Wajah:</strong> 60–80% frame emosional + 1/3 negative space bersih</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[11px]">
+                    <span className="text-emerald-500 font-bold">✓</span>
+                    <span><strong>A/B Testing Ready:</strong> Formula curiosity gap tinggi memicu Click-Through Rate (CTR)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Grid Opsi 1 & Opsi 2 */}
@@ -1629,6 +1607,243 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
     <div className="glass-panel rounded-xl p-8 text-center pg-text-muted text-sm space-y-2">
       <div className="text-3xl">🖼️</div>
       <p>{t("noThumbnailData")}</p>
+    </div>
+  )}
+
+  {/* YouTube 2026 SEO & Pre-Flight Studio */}
+  {activeTab === "seo2026" && threeTierSeo && (
+    <div className="space-y-6">
+      {/* Header Banner */}
+      <div className="glass-panel rounded-xl p-6 border border-red-500/20 bg-gradient-to-r from-red-500/5 via-orange-500/5 to-transparent space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">🎯</span>
+              <h2 className="text-lg font-bold pg-text-heading">YouTube 2026 SEO & Pre-Flight Studio</h2>
+              <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">
+                Algorithm Ready
+              </span>
+            </div>
+            <p className="text-xs pg-text-muted mt-1">
+              Arsitektur Tag 3-Tier, Deskripsi Berempati, & Checklist Anti-Gagal sesuai Panduan Algoritma YouTube 2026.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                const fullSeo = [
+                  `=== YOUTUBE 2026 SEO METADATA ===`,
+                  `[TAG SPESIFIK]\n${threeTierSeo.tagSpesifik}`,
+                  `\n[TAG UMUM]\n${threeTierSeo.tagUmum}`,
+                  `\n[TAG MAJEMUK / LONG-TAIL]\n${threeTierSeo.tagMajemuk}`,
+                  `\n[DESKRIPSI YOUTUBE (SEO & EMPATI)]\n${threeTierSeo.deskripsi}`,
+                  `\n[CHECKLIST PRA-UPLOAD]\n` + threeTierSeo.checklist.map((c, i) => `${i + 1}. ${c}`).join("\n"),
+                ].join("\n");
+                copy("all-seo", fullSeo);
+              }}
+              className="px-3.5 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium text-xs transition-colors shadow-sm flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>📋</span>
+              {copiedId === "all-seo" ? "✓ Berhasil Disalin" : "Salin Semua Metadata SEO"}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* 3-Tier Keyword Architecture Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Tier 1: Tag Spesifik */}
+        <div className="glass-panel rounded-xl p-5 border border-blue-500/20 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+              <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
+                Tier 1: Tag Spesifik
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => copy("tag-spec", threeTierSeo.tagSpesifik)}
+              className="text-xs text-blue-500 hover:underline cursor-pointer"
+            >
+              {copiedId === "tag-spec" ? "✓ Tersalin" : "Salin"}
+            </button>
+          </div>
+          <p className="text-[11px] pg-text-muted leading-relaxed">
+            Brand / Seri / Entitas Utama topik untuk membedakan video secara tepat di Knowledge Graph YouTube.
+          </p>
+          <div className="pg-surface-dim rounded-lg p-3 text-xs font-mono pg-text-sub border border-slate-200/40 dark:border-slate-800/40 min-h-[60px] flex flex-wrap gap-1.5 items-start">
+            {threeTierSeo.tagSpesifik ? (
+              threeTierSeo.tagSpesifik.split(/[,;\n]+/).map(t => t.trim()).filter(Boolean).map((t, idx) => (
+                <span key={idx} className="inline-block px-2 py-0.5 rounded-md bg-blue-100/70 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[11px]">
+                  #{t.replace(/^#/, "")}
+                </span>
+              ))
+            ) : (
+              <span className="text-slate-400 italic">Tidak ada tag spesifik</span>
+            )}
+          </div>
+        </div>
+
+        {/* Tier 2: Tag Umum */}
+        <div className="glass-panel rounded-xl p-5 border border-purple-500/20 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
+              <span className="text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">
+                Tier 2: Tag Umum
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => copy("tag-gen", threeTierSeo.tagUmum)}
+              className="text-xs text-purple-500 hover:underline cursor-pointer"
+            >
+              {copiedId === "tag-gen" ? "✓ Tersalin" : "Salin"}
+            </button>
+          </div>
+          <p className="text-[11px] pg-text-muted leading-relaxed">
+            Kategori, Niche & Industri luas untuk menempatkan video dalam klaster rekomendasi penonton relevan.
+          </p>
+          <div className="pg-surface-dim rounded-lg p-3 text-xs font-mono pg-text-sub border border-slate-200/40 dark:border-slate-800/40 min-h-[60px] flex flex-wrap gap-1.5 items-start">
+            {threeTierSeo.tagUmum ? (
+              threeTierSeo.tagUmum.split(/[,;\n]+/).map(t => t.trim()).filter(Boolean).map((t, idx) => (
+                <span key={idx} className="inline-block px-2 py-0.5 rounded-md bg-purple-100/70 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-[11px]">
+                  #{t.replace(/^#/, "")}
+                </span>
+              ))
+            ) : (
+              <span className="text-slate-400 italic">Tidak ada tag umum</span>
+            )}
+          </div>
+        </div>
+
+        {/* Tier 3: Tag Majemuk / Long-Tail */}
+        <div className="glass-panel rounded-xl p-5 border border-emerald-500/20 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                Tier 3: Tag Majemuk (Long-Tail)
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => copy("tag-long", threeTierSeo.tagMajemuk)}
+              className="text-xs text-emerald-500 hover:underline cursor-pointer"
+            >
+              {copiedId === "tag-long" ? "✓ Tersalin" : "Salin"}
+            </button>
+          </div>
+          <p className="text-[11px] pg-text-muted leading-relaxed">
+            Frasa pencarian alami (3-5 kata) target penonton dengan intensi tinggi untuk mendominasi YouTube Search.
+          </p>
+          <div className="pg-surface-dim rounded-lg p-3 text-xs font-mono pg-text-sub border border-slate-200/40 dark:border-slate-800/40 min-h-[60px] flex flex-wrap gap-1.5 items-start">
+            {threeTierSeo.tagMajemuk ? (
+              threeTierSeo.tagMajemuk.split(/[,;\n]+/).map(t => t.trim()).filter(Boolean).map((t, idx) => (
+                <span key={idx} className="inline-block px-2 py-0.5 rounded-md bg-emerald-100/70 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-[11px]">
+                  {t}
+                </span>
+              ))
+            ) : (
+              <span className="text-slate-400 italic">Tidak ada tag majemuk</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Deskripsi Naratif Berempati */}
+      <div className="glass-panel rounded-xl p-6 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">📝</span>
+            <div>
+              <h3 className="text-sm font-bold pg-text-heading">Deskripsi Video (SEO Naratif & Empati)</h3>
+              <p className="text-[11px] pg-text-muted">
+                Didesain dengan pendekatan narasi ramah semantic AI YouTube (Hook Masalah & Empati Penonton).
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => copy("seo-desc", threeTierSeo.deskripsi)}
+            className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-medium pg-text-sub transition-colors flex items-center gap-1.5 cursor-pointer"
+          >
+            <span>📋</span>
+            {copiedId === "seo-desc" ? "✓ Tersalin" : "Salin Deskripsi"}
+          </button>
+        </div>
+        <div className="pg-surface-dim rounded-lg p-4 text-xs pg-text-sub whitespace-pre-wrap leading-relaxed border border-slate-200/50 dark:border-slate-800/50 max-h-80 overflow-y-auto custom-scrollbar font-sans">
+          {threeTierSeo.deskripsi || <span className="text-slate-400 italic">Deskripsi belum tersedia</span>}
+        </div>
+      </div>
+
+      {/* Pre-Flight Checklist Pra-Upload */}
+      <div className="glass-panel rounded-xl p-6 space-y-4 border border-amber-500/20">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🛫</span>
+            <div>
+              <h3 className="text-sm font-bold pg-text-heading">Checklist Kesiapan Pra-Upload (Anti-Gagal 2026)</h3>
+              <p className="text-[11px] pg-text-muted">
+                Centang setiap poin sebelum menekan tombol Publish di YouTube Studio.
+              </p>
+            </div>
+          </div>
+          <div className="text-xs font-medium px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 shrink-0 self-start sm:self-auto">
+            {Object.values(completedChecklist).filter(Boolean).length} / {threeTierSeo.checklist.length} Selesai
+          </div>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
+          <div
+            className="bg-gradient-to-r from-amber-500 to-emerald-500 h-2 rounded-full transition-all duration-300"
+            style={{
+              width: `${(Object.values(completedChecklist).filter(Boolean).length / Math.max(threeTierSeo.checklist.length, 1)) * 100}%`
+            }}
+          />
+        </div>
+
+        <div className="space-y-2 pt-1">
+          {threeTierSeo.checklist.map((item, idx) => {
+            const isDone = Boolean(completedChecklist[idx]);
+            return (
+              <label
+                key={idx}
+                className={`flex items-start gap-3 p-3 rounded-lg border transition-all cursor-pointer select-none ${
+                  isDone
+                    ? "bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-300/60 dark:border-emerald-800/60"
+                    : "pg-surface-dim border-slate-200/40 dark:border-slate-800/40 hover:border-slate-300 dark:hover:border-slate-700"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={isDone}
+                  onChange={(e) => {
+                    setCompletedChecklist(prev => ({ ...prev, [idx]: e.target.checked }));
+                  }}
+                  className="mt-0.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer"
+                />
+                <span className={`text-xs leading-relaxed ${isDone ? "line-through text-slate-400 dark:text-slate-500" : "pg-text-sub font-medium"}`}>
+                  {item}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  )}
+
+  {activeTab === "seo2026" && !threeTierSeo && (
+    <div className="glass-panel rounded-xl p-8 text-center pg-text-muted text-sm space-y-2">
+      <div className="text-3xl">🎯</div>
+      <p className="font-semibold pg-text-heading">Metadata SEO 2026 Belum Dihasilkan</p>
+      <p className="text-xs max-w-md mx-auto">
+        Jalankan Generator Studio dengan platform YouTube Shorts atau YouTube Long-Form untuk menghasilkan arsitektur 3-tier tag dan checklist otomatis.
+      </p>
     </div>
   )}
 

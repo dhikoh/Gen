@@ -54,13 +54,15 @@ interface GeneratorFormProps {
  imagePromptStudio?: boolean;
  htmlBlogExport?: boolean;
  cameraMovementPro?: boolean; // PRO tier camera movement
+ youtubeLongStudio?: boolean;
+ retentionPacingPro?: boolean;
  };
 }
 
 export default function GeneratorForm({
  channels,
  promptSettings,
- planFeatures = { imagePromptStudio: true, htmlBlogExport: true, cameraMovementPro: false }
+ planFeatures = { imagePromptStudio: true, htmlBlogExport: true, cameraMovementPro: false, youtubeLongStudio: false, retentionPacingPro: false }
 }: GeneratorFormProps) {
  const router = useRouter();
  const searchParams = useSearchParams();
@@ -108,6 +110,19 @@ export default function GeneratorForm({
  const [overlayStyle, setOverlayStyle] = useState<string>("auto");
  const [affiliateAngle, setAffiliateAngle] = useState<boolean>(false);
  const [affiliateAngleMode, setAffiliateAngleMode] = useState<"CTA" | "SOFT">("SOFT");
+
+ // YouTube 2026 Strategy Features
+ const [retentionPacingProMode, setRetentionPacingProMode] = useState<boolean>(false);
+ const [retentionPacingMode, setRetentionPacingMode] = useState<string>("JUMP_CUT");
+ const [storytellingFramework, setStorytellingFramework] = useState<string>("VET_3ACT");
+ const [valuePromise3Sec, setValuePromise3Sec] = useState<string>("");
+ const [thumbnailStylePreset, setThumbnailStylePreset] = useState<string>("anti_gagal");
+ const [thumbnailFaceDominance, setThumbnailFaceDominance] = useState<boolean>(true);
+ const [targetKeywordsSpecific, setTargetKeywordsSpecific] = useState<string>("");
+ const [targetKeywordsGeneral, setTargetKeywordsGeneral] = useState<string>("");
+ const [targetKeywordsLongTail, setTargetKeywordsLongTail] = useState<string>("");
+ const [audioFadeInOut, setAudioFadeInOut] = useState<boolean>(true);
+ const [audioBeatSync, setAudioBeatSync] = useState<boolean>(true);
 
  // Marketplace settings (persisted)
  const MARKETPLACE_OPTIONS = [
@@ -281,6 +296,17 @@ export default function GeneratorForm({
       affiliateAngleMode,
       affiliateMarketplaces,
       affiliateCustomUrl,
+      retentionPacingProMode,
+      retentionPacingMode,
+      storytellingFramework,
+      valuePromise3Sec,
+      thumbnailStylePreset,
+      thumbnailFaceDominance,
+      targetKeywordsSpecific,
+      targetKeywordsGeneral,
+      targetKeywordsLongTail,
+      audioFadeInOut,
+      audioBeatSync,
       videoConfig,
       imageConfig,
       step,
@@ -315,6 +341,17 @@ export default function GeneratorForm({
     affiliateAngleMode,
     affiliateMarketplaces,
     affiliateCustomUrl,
+    retentionPacingProMode,
+    retentionPacingMode,
+    storytellingFramework,
+    valuePromise3Sec,
+    thumbnailStylePreset,
+    thumbnailFaceDominance,
+    targetKeywordsSpecific,
+    targetKeywordsGeneral,
+    targetKeywordsLongTail,
+    audioFadeInOut,
+    audioBeatSync,
     videoConfig,
     imageConfig,
     step,
@@ -353,6 +390,17 @@ export default function GeneratorForm({
       if (Array.isArray(savedState.affiliateMarketplaces)) setAffiliateMarketplaces(savedState.affiliateMarketplaces);
       setAffiliateCustomUrl(savedState.affiliateCustomUrl || "");
       setNarrationModeOverride(savedState.narrationModeOverride || "auto");
+      setRetentionPacingProMode(savedState.retentionPacingProMode || false);
+      setRetentionPacingMode(savedState.retentionPacingMode || "JUMP_CUT");
+      setStorytellingFramework(savedState.storytellingFramework || "VET_3ACT");
+      setValuePromise3Sec(savedState.valuePromise3Sec || "");
+      setThumbnailStylePreset(savedState.thumbnailStylePreset || "anti_gagal");
+      setThumbnailFaceDominance(savedState.thumbnailFaceDominance !== undefined ? savedState.thumbnailFaceDominance : true);
+      setTargetKeywordsSpecific(savedState.targetKeywordsSpecific || "");
+      setTargetKeywordsGeneral(savedState.targetKeywordsGeneral || "");
+      setTargetKeywordsLongTail(savedState.targetKeywordsLongTail || "");
+      setAudioFadeInOut(savedState.audioFadeInOut !== undefined ? savedState.audioFadeInOut : true);
+      setAudioBeatSync(savedState.audioBeatSync !== undefined ? savedState.audioBeatSync : true);
 
       // Visual Style: If user picked a custom style or valid preset for this channel, keep it; else fallback to channel default
       if (savedState.visualStyleKey) {
@@ -420,6 +468,17 @@ export default function GeneratorForm({
       setAffiliateMarketplaces(ALL_MARKETPLACE_KEYS.filter((k) => k !== "custom"));
       setAffiliateCustomUrl("");
       setNarrationModeOverride("auto");
+      setRetentionPacingProMode(false);
+      setRetentionPacingMode("JUMP_CUT");
+      setStorytellingFramework("VET_3ACT");
+      setValuePromise3Sec("");
+      setThumbnailStylePreset("anti_gagal");
+      setThumbnailFaceDominance(true);
+      setTargetKeywordsSpecific("");
+      setTargetKeywordsGeneral("");
+      setTargetKeywordsLongTail("");
+      setAudioFadeInOut(true);
+      setAudioBeatSync(true);
 
       setMusicPreference(ch.audioBGM !== false);
       setSfxPreference(ch.audioSFX !== false);
@@ -601,7 +660,15 @@ export default function GeneratorForm({
  .then((d) => {
  if (d.success && d.options) {
  setPlatformOptions(
- d.options.map((opt: { label: string }) => ({ value: opt.label, label: opt.label }))
+  d.options.map((opt: { label: string; value?: string }) => {
+    const val = opt.value || opt.label;
+    const isYtLong = /youtube\s*long/i.test(val);
+    const isLocked = isYtLong && !planFeatures.youtubeLongStudio;
+    return {
+      value: val,
+      label: isLocked ? `${opt.label} 🔒` : opt.label,
+    };
+  })
  );
  }
  })
@@ -714,7 +781,24 @@ export default function GeneratorForm({
   }, [channelId]);
 
  const handleVideoConfigChange = (key: string, value: unknown) => {
- setVideoConfig((prev) => ({ ...prev, [key]: value }));
+   setVideoConfig((prev) => {
+     const next = { ...prev, [key]: value };
+     if (key === "targetPlatform" && typeof value === "string") {
+       if (/youtube\s*long/i.test(value)) {
+         if (!planFeatures?.youtubeLongStudio) {
+           toast.error(t("youtubeLongStudioLocked"));
+         } else {
+           next.aspectRatio = "16:9";
+           if (next.targetSceneCount < 8) next.targetSceneCount = 8;
+           if (next.targetDurationSec < 300) next.targetDurationSec = 300;
+           setOverlayStyle("chapter_titles");
+         }
+       } else if (/youtube\s*shorts|tiktok|reels/i.test(value)) {
+         next.aspectRatio = "9:16";
+       }
+     }
+     return next;
+   });
  };
 
  const handleImageConfigChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -819,6 +903,17 @@ export default function GeneratorForm({
  narrationMode: narrationModeOverride !== "auto" ? narrationModeOverride : selectedChannel?.contentArchetype?.narrationMode,
  trendingAudio: trendingAudio.trim() || undefined,
  overlayStyle: overlayStyle !== "auto" ? overlayStyle : undefined,
+ retentionPacingProMode: planFeatures.retentionPacingPro ? retentionPacingProMode : false,
+ retentionPacingMode: !retentionPacingProMode ? retentionPacingMode : undefined,
+ storytellingFramework,
+ valuePromise3Sec: valuePromise3Sec.trim() || undefined,
+ thumbnailStylePreset: videoConfig.includeThumbnail ? thumbnailStylePreset : undefined,
+ thumbnailFaceDominance: videoConfig.includeThumbnail ? thumbnailFaceDominance : undefined,
+ targetKeywordsSpecific: targetKeywordsSpecific.trim() || undefined,
+ targetKeywordsGeneral: targetKeywordsGeneral.trim() || undefined,
+ targetKeywordsLongTail: targetKeywordsLongTail.trim() || undefined,
+ audioFadeInOut,
+ audioBeatSync,
  } : undefined,
  imageConfig: type === "IMAGE" ? {
   ...imageConfig,
@@ -1195,7 +1290,7 @@ export default function GeneratorForm({
  { value: "TikTok", label: "TikTok" },
  { value: "Instagram Reels", label: "Instagram Reels" },
  { value: "YouTube Shorts", label: "YouTube Shorts" },
- { value: "YouTube Long", label: "YouTube Long" },
+ { value: "YouTube Long", label: planFeatures.youtubeLongStudio ? "YouTube Long" : "YouTube Long 🔒" },
  ]}
  placeholder={t("customPlatformPlaceholder")}
  />
@@ -1704,6 +1799,41 @@ export default function GeneratorForm({
       : "Voice Over OFF (naskah narasi tetap ada untuk dubbing, visual prompt 'no voice over')."}
   </p>
 
+  {/* Audio Dynamics 2026: Fade-in/out & Beat Sync */}
+  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+    <button
+      type="button"
+      onClick={() => setAudioFadeInOut(!audioFadeInOut)}
+      className={`flex items-center gap-2 p-2 rounded-lg border text-left text-xs transition-colors ${
+        audioFadeInOut
+          ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 text-emerald-700 dark:text-emerald-300"
+          : "pg-surface-dim pg-border pg-text-muted"
+      }`}
+    >
+      <span className="font-bold">{audioFadeInOut ? "✓" : "✗"}</span>
+      <div className="min-w-0">
+        <p className="font-semibold text-[11px]">{t("audioFadeInOutLabel")}</p>
+        <p className="text-[9px] pg-text-muted leading-tight">{t("audioFadeInOutDesc")}</p>
+      </div>
+    </button>
+
+    <button
+      type="button"
+      onClick={() => setAudioBeatSync(!audioBeatSync)}
+      className={`flex items-center gap-2 p-2 rounded-lg border text-left text-xs transition-colors ${
+        audioBeatSync
+          ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 text-emerald-700 dark:text-emerald-300"
+          : "pg-surface-dim pg-border pg-text-muted"
+      }`}
+    >
+      <span className="font-bold">{audioBeatSync ? "✓" : "✗"}</span>
+      <div className="min-w-0">
+        <p className="font-semibold text-[11px]">{t("audioBeatSyncLabel")}</p>
+        <p className="text-[9px] pg-text-muted leading-tight">{t("audioBeatSyncDesc")}</p>
+      </div>
+    </button>
+  </div>
+
   {/* Sound / Trending Audio Input (Tugas 4) */}
   <div className="pt-2.5 border-t pg-border space-y-1">
     <div className="flex items-center justify-between">
@@ -1882,6 +2012,257 @@ export default function GeneratorForm({
  )}
  </div>
  )}
+ </div>
+
+ {/* ── Retention & Pacing Engine 2026 ── */}
+ <div className="space-y-3 pt-2 border-t pg-border">
+  <div className="flex items-center justify-between">
+   <div>
+    <label className="block text-xs font-semibold pg-text-sub flex items-center gap-1.5">
+     <span>⚡</span>
+     <span>{t("retentionPacingTitle")}</span>
+    </label>
+    <p className="text-[10px] pg-text-muted mt-0.5">{t("retentionPacingDesc")}</p>
+   </div>
+  </div>
+
+  {/* PRO Retention Mode Toggle (if plan has retentionPacingPro) */}
+  {planFeatures.retentionPacingPro ? (
+   <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/10 border border-amber-500/30">
+    <div className="flex items-center gap-2">
+     <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-300">
+      ✨ {t("retentionPacingProModeLabel")}
+     </span>
+     <span className="text-[10px] pg-text-muted hidden sm:inline">{t("retentionPacingProModeDesc")}</span>
+    </div>
+    <button
+     type="button"
+     onClick={() => setRetentionPacingProMode(!retentionPacingProMode)}
+     className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none ${
+      retentionPacingProMode ? "bg-amber-500" : "pg-surface-dim"
+     }`}
+     aria-label="Toggle PRO retention mode"
+    >
+     <span
+      className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
+       retentionPacingProMode ? "translate-x-5" : "translate-x-1"
+      }`}
+     />
+    </button>
+   </div>
+  ) : (
+   <div className="flex items-center justify-between py-1.5 px-3 rounded-lg pg-surface-dim border pg-border">
+    <span className="text-[11px] pg-text-muted">
+     ✨ {t("retentionPacingProModeLabel")} <span className="text-amber-500 font-semibold">🔒 PRO</span>
+    </span>
+    <span className="text-[9px] pg-text-muted italic">{t("retentionPacingProModeDesc")}</span>
+   </div>
+  )}
+
+  {/* Retention Pacing Style Presets (if not in PRO mode) */}
+  {!retentionPacingProMode ? (
+   <div className="space-y-1.5">
+    <label className="block text-[11px] font-medium pg-text-sub">{t("retentionPacingStyleLabel")}</label>
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+     {[
+      { value: "JUMP_CUT", label: "⚡ Jump Cut", desc: "0s dead-air, energetik" },
+      { value: "B_ROLL_HEAVY", label: "🎬 B-Roll Variety", desc: "Cutaways & aset visual" },
+      { value: "BEAT_SYNC", label: "🎵 Beat Sync", desc: "Selaras birama BGM" },
+      { value: "CONTEMPLATIVE", label: "🌊 Kontemplatif", desc: "Alur mendalam & emosional" },
+     ].map((preset) => {
+      const isSelected = retentionPacingMode === preset.value;
+      return (
+       <button
+        key={preset.value}
+        type="button"
+        onClick={() => setRetentionPacingMode(preset.value)}
+        className={`p-2 rounded-lg border text-left text-xs transition-colors flex flex-col justify-between ${
+         isSelected
+          ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/50"
+          : "pg-border hover:pg-surface-dim pg-text-sub"
+        }`}
+       >
+        <span className="font-semibold text-[11px] truncate">{preset.label}</span>
+        <span className="text-[9px] pg-text-muted mt-0.5 leading-tight">{preset.desc}</span>
+       </button>
+      );
+     })}
+    </div>
+   </div>
+  ) : (
+   <p className="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 p-2 rounded border border-amber-200 dark:border-amber-900">
+    ✨ <strong>Mode Retensi Eksekutif (PRO 2026) Aktif</strong>: AI secara otomatis menginjeksikan aturan anti-drop 0-3 detik, eliminasi dead air, visual beat sync, cutaways dinamis, dan mid-roll re-engagement di setiap adegan naskah.
+   </p>
+  )}
+ </div>
+
+ {/* ── Storytelling Framework & 3-Second Value Promise ── */}
+ <div className="space-y-3 pt-2 border-t pg-border">
+  <div>
+   <label className="block text-xs font-semibold pg-text-sub flex items-center gap-1.5">
+    <span>🎭</span>
+    <span>{t("storytellingFrameworkTitle")}</span>
+   </label>
+   <p className="text-[10px] pg-text-muted mt-0.5">{t("storytellingFrameworkDesc")}</p>
+  </div>
+
+  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+   {[
+    { value: "VET_3ACT", label: "🎯 VET 3-Act", desc: "Visual, Emotional, Technical" },
+    { value: "PAS", label: "🔥 PAS Formula", desc: "Problem → Agitate → Solve" },
+    { value: "AIDA", label: "📢 AIDA", desc: "Attention → Interest → Action" },
+    { value: "STORY_ARC", label: "⛰️ Story Arc", desc: "Eksposisi → Klimaks → Twist" },
+   ].map((fw) => {
+    const isSelected = storytellingFramework === fw.value;
+    return (
+     <button
+      key={fw.value}
+      type="button"
+      onClick={() => setStorytellingFramework(fw.value)}
+      className={`p-2 rounded-lg border text-left text-xs transition-colors flex flex-col justify-between ${
+       isSelected
+        ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 ring-1 ring-blue-500/50"
+        : "pg-border hover:pg-surface-dim pg-text-sub"
+      }`}
+     >
+      <span className="font-semibold text-[11px] truncate">{fw.label}</span>
+      <span className="text-[9px] pg-text-muted mt-0.5 leading-tight">{fw.desc}</span>
+     </button>
+    );
+   })}
+  </div>
+
+  {/* 3-Second Value Promise Input */}
+  <div className="space-y-1 pt-1">
+   <label className="block text-xs font-semibold pg-text-sub flex items-center gap-1.5">
+    <span>⏱️</span>
+    <span>{t("valuePromise3SecLabel")}</span>
+   </label>
+   <input
+    type="text"
+    value={valuePromise3Sec}
+    onChange={(e) => setValuePromise3Sec(e.target.value)}
+    placeholder={t("valuePromise3SecPlaceholder")}
+    maxLength={200}
+    className="w-full px-3 py-1.5 text-xs bg-white dark:bg-slate-700/50 border pg-border rounded-lg outline-none pg-text-heading focus:ring-1 focus:ring-blue-500"
+   />
+   <p className="text-[10px] pg-text-muted">
+    Nilai spesifik yang dijanjikan pada penonton di detik 0-3 untuk memutus scroll (Retention Hook 2026).
+   </p>
+  </div>
+ </div>
+
+ {/* ── Thumbnail 2026 Studio Presets ── */}
+ {videoConfig.includeThumbnail && (
+  <div className="space-y-3 pt-2 border-t pg-border">
+   <div className="flex items-center justify-between">
+    <div>
+     <label className="block text-xs font-semibold pg-text-sub flex items-center gap-1.5">
+      <span>🖼️</span>
+      <span>{t("thumbnailStylePresetTitle")}</span>
+     </label>
+     <p className="text-[10px] pg-text-muted mt-0.5">Template 1-3 kata huruf kapital punchy dengan contrast tinggi & curiosity gap.</p>
+    </div>
+   </div>
+
+   <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
+    {[
+     { value: "anti_gagal", label: "🛡️ ANTI GAGAL", desc: "Tutorial / Solusi Pasti" },
+     { value: "gila", label: "🔥 GILA!", desc: "Reaksi / Shocking Fact" },
+     { value: "3_langkah", label: "⚡ 3 LANGKAH SAJA", desc: "Kemudahan & Simpel" },
+     { value: "booyah", label: "🎯 BOOYAH!", desc: "Kemenangan & Hasil" },
+     { value: "kaget", label: "😲 KAGET!", desc: "Mind-Blowing Curiosity" },
+    ].map((tpl) => {
+     const isSelected = thumbnailStylePreset === tpl.value;
+     return (
+      <button
+       key={tpl.value}
+       type="button"
+       onClick={() => setThumbnailStylePreset(tpl.value)}
+       className={`p-2 rounded-lg border text-left text-xs transition-colors flex flex-col justify-between ${
+        isSelected
+         ? "border-rose-500 bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 ring-1 ring-rose-500/50"
+         : "pg-border hover:pg-surface-dim pg-text-sub"
+       }`}
+      >
+       <span className="font-semibold text-[11px] truncate">{tpl.label}</span>
+       <span className="text-[9px] pg-text-muted mt-0.5 leading-tight">{tpl.desc}</span>
+      </button>
+     );
+    })}
+   </div>
+
+   {/* Face Dominance 60-80% Frame Toggle */}
+   <div className="flex items-center justify-between py-1.5 px-3 rounded-lg pg-surface-dim border pg-border">
+    <div>
+     <span className="text-[11px] font-semibold pg-text-heading flex items-center gap-1.5">
+      <span>👤</span>
+      <span>{t("thumbnailFaceDominanceLabel")}</span>
+     </span>
+     <span className="text-[10px] pg-text-muted">{t("thumbnailFaceDominanceDesc")}</span>
+    </div>
+    <button
+     type="button"
+     onClick={() => setThumbnailFaceDominance(!thumbnailFaceDominance)}
+     className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none ${
+      thumbnailFaceDominance ? "bg-rose-600" : "pg-surface-dim"
+     }`}
+     aria-label="Toggle face dominance"
+    >
+     <span
+      className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
+       thumbnailFaceDominance ? "translate-x-5" : "translate-x-1"
+      }`}
+     />
+    </button>
+   </div>
+  </div>
+ )}
+
+ {/* ── Arsitektur Kata Kunci & SEO 3 Lapis (YouTube 2026) ── */}
+ <div className="space-y-3 pt-2 border-t pg-border">
+  <div>
+   <label className="block text-xs font-semibold pg-text-sub flex items-center gap-1.5">
+    <span>🎯</span>
+    <span>{t("seo3TierTitle")}</span>
+   </label>
+   <p className="text-[10px] pg-text-muted mt-0.5">{t("seo3TierDesc")}</p>
+  </div>
+
+  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+   <div className="space-y-1">
+    <label className="block text-[11px] font-medium pg-text-sub">{t("seoTagSpecificLabel")}</label>
+    <input
+     type="text"
+     value={targetKeywordsSpecific}
+     onChange={(e) => setTargetKeywordsSpecific(e.target.value)}
+     placeholder={t("seoTagSpecificPlaceholder")}
+     className="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-700/50 border pg-border rounded-lg outline-none pg-text-heading focus:ring-1 focus:ring-blue-500"
+    />
+   </div>
+
+   <div className="space-y-1">
+    <label className="block text-[11px] font-medium pg-text-sub">{t("seoTagGeneralLabel")}</label>
+    <input
+     type="text"
+     value={targetKeywordsGeneral}
+     onChange={(e) => setTargetKeywordsGeneral(e.target.value)}
+     placeholder={t("seoTagGeneralPlaceholder")}
+     className="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-700/50 border pg-border rounded-lg outline-none pg-text-heading focus:ring-1 focus:ring-blue-500"
+    />
+   </div>
+
+   <div className="space-y-1">
+    <label className="block text-[11px] font-medium pg-text-sub">{t("seoTagLongTailLabel")}</label>
+    <input
+     type="text"
+     value={targetKeywordsLongTail}
+     onChange={(e) => setTargetKeywordsLongTail(e.target.value)}
+     placeholder={t("seoTagLongTailPlaceholder")}
+     className="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-700/50 border pg-border rounded-lg outline-none pg-text-heading focus:ring-1 focus:ring-blue-500"
+    />
+   </div>
+  </div>
  </div>
 
  {/* Composition Sliders */}

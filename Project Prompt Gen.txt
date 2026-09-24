@@ -1999,3 +1999,62 @@ Pada audit arsitektur prompt generator:
 ### 37.3 Hasil Verifikasi
 - TypeScript (`tsc --noEmit`): Lolos 100% tanpa error.
 - Vitest (`npm test`): 13 file pengujian, 102/102 test lolos (100% passing).
+
+## 38. Feature #73 — YouTube 2026 Strategy Engine (Shorts & Long-Form Studio, 3-Tier SEO, Retention Pacing Pro & Deduplication) (2026-09-24)
+
+### 38.1 Latar Belakang & Spesifikasi Kebutuhan
+Berdasarkan dokumen panduan komprehensif *Strategi YouTube 2026: Shorts & Long-Form*:
+1. **Perubahan Paradigma Algoritma**: YouTube 2026 bergeser dari sekadar metrik CTR/Watch Time mentah menuju *Predictive Viewer Satisfaction*, *Audience Retention Curve Smoothing*, *Average Percentage Viewed (APV)* untuk Shorts, dan *Average View Duration (AVD)* untuk Long-Form.
+2. **Kebutuhan Widescreen Studio 16:9**: Format Long-Form membutuhkan rasio aspek horizontal, pembagian bab tematik (*Chapters*), dan hook retensi menit tengah (*mid-roll retention*).
+3. **Pacing & Retensi AI (Mode PRO)**: Dinamika video modern menuntut pergantian visual cepat, sinkronisasi ketukan audio (*beat sync*), serta eliminasi *dead-air* (<0.3 detik).
+4. **Storytelling Berempati (VET 3-Act)**: Struktur narasi *Validation* (0-15%) → *Exploration* (15-80%) → *Transformation* (80-100%).
+5. **Formula Thumbnail 5 Template & Uji Perkecil (Shrink Test)**: Penonton mayoritas mengakses melalui ponsel, menuntut teks thumbnail maks 1-3 kata dan dominasi wajah ekspresif 60-80%.
+6. **Metadata SEO 3-Tier & Checklist Pra-Upload**: Arsitektur tag 3 lapis (Spesifik, Umum, Long-Tail) dan deskripsi ramah semantic AI untuk mendominasi Google/YouTube Search.
+
+### 38.2 Arsitektur Solusi & Implementasi Teknis
+
+1. **Superadmin Plan Features & Fail-Closed Gating**:
+   - Menambahkan 2 flag fitur baru pada `KNOWN_PLAN_FEATURES` di `src/lib/planFeatures.ts`:
+     - `youtubeLongStudio`: defaultValue `false` (fail-closed).
+     - `retentionPacingPro`: defaultValue `false` (fail-closed).
+   - Validasi hak akses di `src/app/api/generate/route.ts` memblokir pembuatan naskah YouTube Long jika paket user tidak memiliki entitlement (`403 Forbidden`).
+   - Otomatis terintegrasi di modal Buat/Edit Paket Superadmin (`AdminPlansClient.tsx`) dengan dukungan i18n (`messages/id.json` & `messages/en.json`).
+
+2. **UI Generator Studio (`GeneratorForm.tsx`)**:
+   - Pemilihan target platform `YOUTUBE_LONG` secara otomatis menetapkan `aspectRatio: "16:9"`, target 8 scene, dan overlay `chapter_titles`.
+   - Menampilkan status badge terkunci `🔒` jika paket belum mendukung YouTube Long.
+   - Pacing & Retention Engine: Toggle Mode PRO, 4 preset ritme pacing (*Retention Curve Smoothing*, *Rapid Visual Reset*, *Documentary Deep Dive*, *Contrarian Staccato*).
+   - Audio Dynamics: Toggle *Fade-in/Fade-out Halus* dan *Visual Sync to Audio Beat*.
+   - Storytelling Framework VET 3-Act & Janji Nilai 3 Detik (*0-3s Value Promise*).
+   - 5 Preset Thumbnail 2026 Anti-Gagal & Toggle Dominasi Wajah 60-80%.
+   - Input 3-Tier SEO: Tag Spesifik, Tag Umum, dan Tag Majemuk (Long-Tail).
+   - Seluruh preferensi baru tersimpan dalam snapshot channel (`getCurrentStateSnapshot` & `applyStateForChannel`).
+
+3. **Injeksi Master Prompt Generator (`promptGenerator.ts`)**:
+   - Injeksi direktif spesifik platform:
+     - `[STRATEGI ALGORITMA PLATFORM: YOUTUBE SHORTS] — ALGORITMA EMPATI 2026`: Fokus pada APV, Janji Nilai 3 Detik, smoothing retensi, dan subtle climax CTA.
+     - `[STRATEGI ALGORITMA PLATFORM: YOUTUBE LONG-FORM] — SISTEM REKOMENDASI EMPATI 2026`: Fokus pada AVD, struktur bab tematik, pencegahan drop retensi menit tengah, dan format sinematik 16:9.
+   - Injeksi lapisan dinamisme lingkungan (*Environmental Dynamic Activity Layer*) wajib di setiap scene.
+   - Dukungan instruksi akting sutradara dalam kurung `(...)` pada dialog narasi.
+   - Pembuatan blok metadata `## METADATA SEO YOUTUBE 2026` dengan arsitektur 3-tier dan checklist pra-upload.
+
+4. **Deduplikasi Parser & Pipeline Bersih Suara TTS (`parsers.ts`)**:
+   - Eliminasi duplikasi kode: Menghapus 112 baris duplikasi inline `interface Scene`, `parseOverlayType`, dan `parseScenes` di `ScenePromptStudioClient.tsx`. Seluruh modul kini menggunakan `src/lib/parsers.ts` sebagai *single source of truth*.
+   - Fungsi `cleanNarasiForTts`: Menghapus instruksi akting `(...)` dan bracket efek suara `[...]` serta merapikan spasi tanda baca sebelum dikirim ke Gemini TTS.
+   - `extractThreeTierSeo`: Mengekstrak objek `ThreeTierSeoData` (tag spesifik, tag umum, tag majemuk, deskripsi empati, checklist pra-upload).
+   - Peningkatan regex `parseScenes` untuk mendukung delimiter `=== SCENE N ===`, `Target Emosi`, dan `Teknik Pacing`.
+
+5. **Scene Prompt Studio Client (`ScenePromptStudioClient.tsx`)**:
+   - Scene card menampilkan badge `Target Emosi (VET)` dan `Teknik Pacing`.
+   - Thumbnail Studio dilengkapi simulator **Mobile Shrink Test (120px)** untuk memverifikasi keterbacaan teks dan ekspresi wajah pada layar HP kecil.
+   - Tab baru **"🎯 SEO 2026"**:
+     - Grid 3 kartu Arsitektur Tag (Tier 1, Tier 2, Tier 3) dengan tombol salin per-tier dan salin seluruh metadata.
+     - Box Deskripsi Naratif ramah Semantic AI YouTube.
+     - Interactive Pre-Flight Checklist Pra-Upload dengan progress bar interaktif.
+
+### 38.3 Hasil Verifikasi & Jaminan Kualitas
+- **TypeScript Typecheck**: `npx tsc --noEmit` lolos 100% dengan 0 error.
+- **Vitest Unit Tests**: 106/106 test passed pada 13 file pengujian (`tests/parsers.test.ts`, `tests/planFeatures.test.ts`, `tests/promptGenerator.test.ts`).
+- **Audit Paritas i18n**: `node scripts/audit-i18n.mjs` mengonfirmasi 100% paritas (1.359 keys identik antara `id.json` dan `en.json`).
+- **Audit Design System**: `node scripts/audit-design.mjs` mengonfirmasi pemenuhan standar estetika glassmorphism dan token warna.
+- **Konsistensi Arsitektur**: Zero code duplication, fail-closed security gating, dan backward compatibility terjaga penuh.

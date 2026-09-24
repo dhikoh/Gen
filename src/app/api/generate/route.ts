@@ -56,7 +56,19 @@ const videoConfigSchema = z.object({
   // Camera Movement
   cameraMovementEnabled: z.boolean().optional().nullable(),
   cameraMovementPresets: z.array(z.string()).optional().nullable(),
-  cameraMovementCustom: z.string().max(500).optional().nullable(),
+  cameraMovementCustom: z.string().optional().nullable(),
+  // Retention & Pacing Engine 2026
+  retentionPacingProMode: z.boolean().optional().nullable(),
+  retentionPacingMode: z.string().optional().nullable(),
+  storytellingFramework: z.string().optional().nullable(),
+  valuePromise3Sec: z.string().optional().nullable(),
+  thumbnailStylePreset: z.string().optional().nullable(),
+  thumbnailFaceDominance: z.boolean().optional().nullable(),
+  targetKeywordsSpecific: z.union([z.array(z.string()), z.string()]).optional().nullable(),
+  targetKeywordsGeneral: z.union([z.array(z.string()), z.string()]).optional().nullable(),
+  targetKeywordsLongTail: z.union([z.array(z.string()), z.string()]).optional().nullable(),
+  audioFadeInOut: z.boolean().optional().nullable(),
+  audioBeatSync: z.boolean().optional().nullable(),
   // SEO & Keyword Targets (vidIQ / YouTube Live)
   targetKeywords: z.union([z.array(z.string()), z.string()]).optional().nullable(),
   trendingAudio: z.string().max(200).optional().nullable(),
@@ -158,6 +170,7 @@ export async function POST(req: Request) {
 
     // SUPERADMIN always gets PRO tier; otherwise resolve from plan.features
     let cameraMovementProEnabled = dbUser.role === "SUPERADMIN";
+    let retentionPacingProEnabled = dbUser.role === "SUPERADMIN";
 
     if (dbUser.role !== "SUPERADMIN") {
       const rawFeatures = (plan?.features || {}) as Record<string, boolean>;
@@ -179,12 +192,25 @@ export async function POST(req: Request) {
         }
       }
 
+      // Validasi fitur YouTube Long-Form Studio
+      const isTargetingYoutubeLong = videoConfig?.targetPlatform === "YouTube Long" || videoConfig?.targetPlatform === "YouTube Long-Form";
+      if (type === "VIDEO" && isTargetingYoutubeLong) {
+        if (!getFeatureValue("youtubeLongStudio")) {
+          return NextResponse.json({ error: t("youtubeLongStudioLocked") }, { status: 403 });
+        }
+      }
+
       // Resolusi entitlement Camera Movement Pro — BUKAN gate blokir, hanya menentukan versi instruksi.
       // Server WAJIB punya entitlement AND user harus opt-in via toggle PRO (cameraMovementProMode).
       // cameraMovementProMode dari client hanya sebagai INTENT — server tetap penentu akhir.
       const serverHasProEntitlement = getFeatureValue("cameraMovementPro");
       const clientOptedInProMode = videoConfig?.cameraMovementProMode === true;
       cameraMovementProEnabled = serverHasProEntitlement && clientOptedInProMode;
+
+      // Resolusi entitlement Retention Pacing Pro
+      const serverHasRetentionPro = getFeatureValue("retentionPacingPro");
+      const clientOptedInRetentionPro = videoConfig?.retentionPacingProMode === true;
+      retentionPacingProEnabled = serverHasRetentionPro && clientOptedInRetentionPro;
     }
 
     const channel = await prisma.profileChannel.findUnique({
@@ -365,6 +391,7 @@ export async function POST(req: Request) {
         narrationMode: videoConfig.narrationMode || effectiveArchetype?.narrationMode,
         selectedProduct,
         cameraMovementProEnabled, // server-resolved PRO entitlement — never read from client body
+        retentionPacingProEnabled, // server-resolved PRO entitlement — never read from client body
       };
 
       const mappedChannel: ProfileChannelData = {

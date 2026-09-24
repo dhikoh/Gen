@@ -71,6 +71,22 @@ export interface VideoConfigData {
   cameraMovementPresets?: string[] | null;
   cameraMovementCustom?: string | null;
   cameraMovementProEnabled?: boolean | null; // server-resolved PRO entitlement
+  // Retention & Pacing Engine 2026
+  retentionPacingProEnabled?: boolean | null; // server-resolved PRO entitlement
+  retentionPacingMode?: "AUTO" | "JUMP_CUT" | "B_ROLL_HEAVY" | "BEAT_SYNC" | "CONTEMPLATIVE" | string | null;
+  // Storytelling & Value Promise 2026
+  storytellingFramework?: "VET_3ACT" | "PAS" | "AIDA" | "STORY_ARC" | string | null;
+  valuePromise3Sec?: string | null;
+  // Thumbnail 2026
+  thumbnailStylePreset?: "GILA" | "ANTI_GAGAL" | "3_LANGKAH" | "BOOYAH" | "KAGET" | "CUSTOM" | "AUTO" | string | null;
+  thumbnailFaceDominance?: boolean | null; // 60-80% frame
+  // Three-Tier SEO Keywords 2026
+  targetKeywordsSpecific?: string[] | string | null;
+  targetKeywordsGeneral?: string[] | string | null;
+  targetKeywordsLongTail?: string[] | string | null;
+  // Audio Dynamics 2026
+  audioFadeInOut?: boolean | null;
+  audioBeatSync?: boolean | null;
   // Archetype & Narration Mode (Bagian 23)
   contentArchetypeId?: string | null;
   contentArchetype?: ContentArchetypeData | null;
@@ -114,11 +130,28 @@ Fokus Utama: Shareability (Kirim via DM) & Saveability (Simpan/Bookmark).
 2. Momen 'Worth Sharing' (Layak Kirim): Buat 1-2 baris narasi yang sangat relatable atau menyentuh emosi personal ('ini gue banget', 'kamu harus tahu ini') sehingga memicu audiens mengirimkannya ke teman via direct message (DM).
 3. Visual First: Pastikan teks overlay terbaca jelas dalam safe zone 9:16 feed Instagram.`,
 
-  "YouTube Shorts": `[STRATEGI ALGORITMA PLATFORM: YOUTUBE SHORTS]
-Fokus Utama: Session Time, Audience Retention Curve & Subscribe-After-View.
-1. Retention Curve Smoothing: Hindari 'cliff drop-off' di detik 3-5. Hubungkan hook langsung ke premis inti tanpa basa-basi pembuka channel.
-2. Subtle Climax CTA: Sisipkan ajakan subscribe yang halus dan kontekstual di TITIK EMOSIONAL PUNCAK (sebelum solusi akhir terungkap sepenuhnya), bukan sekadar tempelan formal di akhir video.
-3. Search & Browse Synergy: Integrasikan kata kunci utama di 5 detik pertama narasi agar terindeks kuat pada algoritma YouTube Search & Recommended Feed.`,
+  "YouTube Shorts": `[STRATEGI ALGORITMA PLATFORM: YOUTUBE SHORTS] — ALGORITMA EMPATI 2026
+Fokus Utama: Session Time, Audience Retention Curve, Rewatch Loop & Subscribe-After-View.
+1. Value Promise 3 Detik Pertama: Hindari cliff drop-off di detik 0-3. Hubungkan hook langsung ke premis inti tanpa basa-basi salam atau intro channel.
+2. Retention Curve Smoothing & Jump Cut: Eliminasi jeda diam (dead air < 0.3s) antar kalimat. Sisipkan visual sync yang selaras dengan ketukan beat audio.
+3. Subtle Climax CTA: Sisipkan ajakan subscribe yang halus dan kontekstual di TITIK EMOSIONAL PUNCAK (sebelum solusi akhir terungkap sepenuhnya).
+4. Search & Browse Synergy: Integrasikan kata kunci spesifik dan long-tail di 3 detik pertama narasi agar terindeks kuat pada YouTube Search & Shorts Feed.`,
+
+  "YouTube Long": `[STRATEGI ALGORITMA PLATFORM: YOUTUBE LONG-FORM] — SISTEM REKOMENDASI EMPATI 2026
+Fokus Utama: Kepuasan Prediktif Penonton, Average View Duration (AVD), Audience Retention Curve & Search/Browse Synergy.
+1. Value Promise 3 Detik: Awali video dengan janji nilai yang gamblang dan memikat tanpa basa-basi intro. Berikan preview solusi sebelum detik ke-5 agar penonton tidak pergi.
+2. Anti-Drop di Menit Tengah (Mid-Roll Retention): Sisipkan re-engagement hook, visual variety (B-roll & cutaways), dan perubahan pacing di menit ke-3 dan titik 50% durasi untuk mencegah grafik retensi menukik ke bawah.
+3. Struktur Bab Tematik (Chapters): Bagi alur bahasan ke dalam bab-bab yang jelas dengan judul overlay agar penonton merasakan perkembangan informasi yang terstruktur.
+4. Subtle Climax CTA: Letakkan ajakan subscribe dan diskusi komunitas pada titik emosional puncak naskah sebelum resolusi akhir.
+5. Format Widescreen Sinematik: Wajib rasio 16:9, tata visual horizontal, dan palet warna kontras sinematik.`,
+
+  "YouTube Long-Form": `[STRATEGI ALGORITMA PLATFORM: YOUTUBE LONG-FORM] — SISTEM REKOMENDASI EMPATI 2026
+Fokus Utama: Kepuasan Prediktif Penonton, Average View Duration (AVD), Audience Retention Curve & Search/Browse Synergy.
+1. Value Promise 3 Detik: Awali video dengan janji nilai yang gamblang dan memikat tanpa basa-basi intro. Berikan preview solusi sebelum detik ke-5 agar penonton tidak pergi.
+2. Anti-Drop di Menit Tengah (Mid-Roll Retention): Sisipkan re-engagement hook, visual variety (B-roll & cutaways), dan perubahan pacing di menit ke-3 dan titik 50% durasi untuk mencegah grafik retensi menukik ke bawah.
+3. Struktur Bab Tematik (Chapters): Bagi alur bahasan ke dalam bab-bab yang jelas dengan judul overlay agar penonton merasakan perkembangan informasi yang terstruktur.
+4. Subtle Climax CTA: Letakkan ajakan subscribe dan diskusi komunitas pada titik emosional puncak naskah sebelum resolusi akhir.
+5. Format Widescreen Sinematik: Wajib rasio 16:9, tata visual horizontal, dan palet warna kontras sinematik.`,
 
   Facebook: `[STRATEGI ALGORITMA PLATFORM: FACEBOOK]
 Fokus Utama: Social Sharing, Resonansi Komunitas & Silent Autoplay.
@@ -468,7 +501,7 @@ export function generateMasterPrompt(
   else visualAudioSuffix = ", silent audio, no sound effects, no background music";
   if (!finalVo) visualAudioSuffix += ", no voice over";
 
-  let narasiExample = "Narasi / dialog untuk adegan ini. Tulis teks yang diucapkan secara lengkap. Gunakan bahasa natural, conversational, relatable, hindari gaya kaku/robotik";
+  let narasiExample = "Tulis naskah dialog/narasi lengkap dan natural. WAJIB sertakan instruksi intonasi suara, emosi, dan bahasa tubuh di dalam tanda kurung '(...)' di awal atau sela-sela kalimat, misal: \"(tersenyum ramah, berbisik) Kamu pasti berpikir...\" atau \"(antusias, tempo cepat) Stop! Perhatikan baik-baik...\"";
   if (effectiveNarrationMode === "DIEGETIC_ONLY" || effectiveNarrationMode === "SILENT_TEXT_ONLY") {
     narasiExample = "[DIEGETIC - TANPA VOICE-OVER] Dilarang ada narasi/voice-over luar adegan. Hanya suara diegetic/in-scene.";
   } else {
@@ -748,8 +781,8 @@ Contoh struktur:
 Jumlah bab ditentukan secara natural berdasarkan alur konten (biasanya 3-6 bab untuk konten panjang).`;
     }
 
-    formatOutputWajib += `\n## SCENE 1\nNARASI: [${narasiExample}]\nTEKS OVERLAY: [${overlayInstruction}]\nPANDUAN SUARA: [${panduanSuaraExample}]\nVISUAL PROMPT: [${visualPromptInstruction}]${arSuffix}\nDURASI: [Estimasi durasi adegan dalam detik, contoh: 5 detik]\n`;
-    formatOutputWajib += `\n## SCENE 2\nNARASI: [Narasi / dialog adegan kedua]\nTEKS OVERLAY: [${overlayStyle === "minimal" ? 'Overlay hanya jika sangat diperlukan, strip "—" jika tidak' : 'Teks overlay sesuai jenis yang dipilih di atas'}]\nPANDUAN SUARA: [${panduanSuaraExample}]\nVISUAL PROMPT: [Tulis prompt visual adegan kedua secara TEMPORAL (klip berjalan, bukan snapshot): deskripsikan Subject Micro-Action, Environment Dynamics, dan Camera Movement + Timing, bahasa Inggris.]${arSuffix}\nDURASI: [Estimasi durasi]\n`;
+    formatOutputWajib += `\n## SCENE 1\nNARASI: [${narasiExample}]\nTARGET EMOSI (VET): [Target emosi spesifik penonton: misal Rasa Ingin Tahu / Shock / Empati / Kelegaan / Urgensi]\nTEKNIK EDITING & PACING: [Instruksi pacing: misal Jump Cut (0s dead-air) / B-Roll Cutaway Overlay / Visual Beat Sync / Stabilized Flow]\nTEKS OVERLAY: [${overlayInstruction}]\nPANDUAN SUARA: [${panduanSuaraExample}]\nVISUAL PROMPT: [${visualPromptInstruction}]${arSuffix}\nDURASI: [Estimasi durasi adegan dalam detik, contoh: 5 detik]\n`;
+    formatOutputWajib += `\n## SCENE 2\nNARASI: [Narasi / dialog adegan kedua dengan tanda kurung intonasi (...)]\nTARGET EMOSI (VET): [Target emosi adegan kedua]\nTEKNIK EDITING & PACING: [Instruksi pacing adegan kedua]\nTEKS OVERLAY: [${overlayStyle === "minimal" ? 'Overlay hanya jika sangat diperlukan, strip "—" jika tidak' : 'Teks overlay sesuai jenis yang dipilih di atas'}]\nPANDUAN SUARA: [${panduanSuaraExample}]\nVISUAL PROMPT: [Tulis prompt visual adegan kedua secara TEMPORAL (klip berjalan, bukan snapshot): deskripsikan Subject Micro-Action, Environment Dynamics, dan Camera Movement + Timing, bahasa Inggris.]${arSuffix}\nDURASI: [Estimasi durasi]\n`;
 
     if (sceneCount && sceneCount > 2) {
       formatOutputWajib += `\n...dan seterusnya hingga TEPAT SCENE ${sceneCount}. Kamu WAJIB menghasilkan TEPAT ${sceneCount} SCENE.\n`;
@@ -759,7 +792,16 @@ Jumlah bab ditentukan secara natural berdasarkan alur konten (biasanya 3-6 bab u
   }
 
   if (hasThumbnail) {
-    formatOutputWajib += `\n## THUMBNAIL STUDIO\nTEKS OVERLAY SEO: [3-4 kata memicu rasa ingin tahu, huruf kapital semua, SEO-friendly]\nOPSI 1 PROMPT: [Shot Type & Camera Angle (Close-up / Medium Shot), Subject & Emotional Expression (Focal point dramatis dengan emosi intens), Environment & Background Contrast, Lighting & Atmosphere (Rim light, dramatic shadows, vibrant highlights), Aesthetic Style. Sisakan negative space untuk teks di sisi kiri/kanan. Bahasa Inggris.]${arSuffix}\nOPSI 1 TEKS OVERLAY: [Teks singkat ditempel pada gambar Opsi 1 (maks 3-4 kata, punchy, font tebal)]\nOPSI 2 PROMPT: [Visual prompt alternatif yang kontras secara komposisi atau sudut pandang dengan Opsi 1 untuk keperluan A/B testing. Sisakan negative space. Bahasa Inggris.]${arSuffix}\nOPSI 2 TEKS OVERLAY: [Teks singkat ditempel pada gambar Opsi 2 (maks 3-4 kata)]\nREKOMENDASI WARNA & ELEMEN: [Palet warna kontras komplementer, penempatan teks overlay di negative space, elemen visual grafis pembantu]\n`;
+    const thumbStyleNote = videoConfig.thumbnailStylePreset && videoConfig.thumbnailStylePreset !== "CUSTOM" && videoConfig.thumbnailStylePreset !== "AUTO"
+      ? ` WAJIB gunakan atau adaptasi formula template teks "${videoConfig.thumbnailStylePreset.replace("_", " ")}" (pilihan anti-gagal 2026: "GILA!", "ANTI GAGAL", "3 LANGKAH SAJA", "BOOYAH!", "KAGET!").`
+      : "";
+    formatOutputWajib += `\n## THUMBNAIL STUDIO\nTEKS OVERLAY SEO: [Maksimal 1-3 kata huruf kapital tebal, memicu curiosity gap/reaksi ekstrem.${thumbStyleNote}]\nOPSI 1 PROMPT: [Shot Type & Camera Angle (Close-up / Medium Close-up), Subject with Extreme Emotional Facial Expression (wajah emosional mengisi 60-80% frame), Environment & High Contrast Background, Cinematic Lighting (Rim light, split lighting, warm foreground vs cool background). Sisakan 1/3 negative space bersih untuk teks di sisi kiri/kanan. Bahasa Inggris.]${arSuffix}\nOPSI 1 TEKS OVERLAY: [Teks singkat ditempel pada gambar Opsi 1 (maks 1-3 kata, punchy, font tebal)]\nOPSI 2 PROMPT: [Visual prompt alternatif kontras sudut pandang/komposisi untuk A/B testing (wajah emosional 60-80% frame, negative space bersih). Bahasa Inggris.]${arSuffix}\nOPSI 2 TEKS OVERLAY: [Teks singkat ditempel pada gambar Opsi 2 (maks 1-3 kata)]\nREKOMENDASI WARNA & ELEMEN: [Palet kontras tinggi (misal: teks kuning di latar hitam atau putih di latar biru), penempatan teks di area negative space, elemen grafis penegas]\n`;
+  }
+
+  // ── Three-Tier YouTube SEO & Pre-Flight Checklist (Strategi YouTube 2026) ──
+  const isYoutube = videoConfig.targetPlatform && /youtube/i.test(videoConfig.targetPlatform);
+  if (isYoutube) {
+    formatOutputWajib += `\n## METADATA SEO YOUTUBE 2026\nTAG SPESIFIK: [5-8 kata kunci utama yang sangat spesifik dan relevan dengan topik]\nTAG UMUM: [3-5 kategori niche besar]\nTAG MAJEMUK (LONG-TAIL): [5-8 frasa pencarian panjang spesifik berniat tinggi]\nDESKRIPSI YOUTUBE (SEO & EMPATI): [2-3 paragraf deskripsi video yang kaya kata kunci alami, ramah pembaca manusia, menyertakan ringkasan Value Promise video]\nCHECKLIST KESIAPAN AKHIR:\n- [ ] Audio bersih dari noise dengan Fade-in/Fade-out yang halus\n- [ ] Judul mengandung Long-tail Keyword yang dicari orang\n- [ ] Teks thumbnail (maks 1-3 kata) dan ekspresi wajah 60-80% terbaca jelas di layar HP kecil\n- [ ] Hook 3 detik pertama telah menyampaikan Janji Nilai (Value Promise) yang kuat\n`;
   }
 
   // Fix 2.1: htmlBlog section — paid feature gate; must appear in output when enabled
@@ -773,12 +815,12 @@ Jumlah bab ditentukan secara natural berdasarkan alur konten (biasanya 3-6 bab u
   // Extracted to avoid nested backtick syntax error
   const thumbnailGuidelineSection = hasThumbnail
     ? `
-[PANDUAN PEMBUATAN THUMBNAIL HIGH-CTR & VISUAL PROMPT]
-1. FOKAL POINT & EKSPRESI DRAMATIS: Subjek utama WAJIB memiliki ekspresi wajah yang sangat emosional dan intens (terkejut, heran, tegang, penasaran, atau mata terbelalak) dengan kontak visual kuat ke arah penonton, ATAU objek utama berskala kontras tinggi yang langsung menangkap perhatian dalam 0.5 detik pertama scroll feed.
-2. NEGATIVE SPACE (RUANG KOSONG UNTUK TEKS): Prompt visual WAJIB menyisakan area kosong bersih atau berlatar gelap/bokeh (biasanya di 1/3 sisi kiri atau kanan) khusus untuk penempatan teks overlay agar teks tidak menutupi wajah atau objek utama.
-3. KONTRAS TINGGI & PENCAHAYAAN SINEMATIK: Gunakan teknik pencahayaan dramatis (rim lighting, volumetric lighting, split lighting, warm foreground vs cool moody background) agar thumbnail tampak 3D dan menyala di layar mobile/desktop.
-4. TEKS OVERLAY THUMBNAIL: Maksimal 3-4 kata, huruf kapital, punchy, memicu curiosity gap yang tak tertahankan (BUKAN judul video, melainkan reaksi atau pertanyaan provokatif).
-5. FORMULA WAJIB PROMPT THUMBNAIL: [Shot Type (Close-up / Medium Close-up)], [Main Subject with Intense Facial Emotion & Action], [Atmospheric Environment with Clean Negative Space on One Side], [Cinematic Lighting & Striking Color Grading], [Aesthetic Style, Ultra-sharp 8k details].`
+[PANDUAN PEMBUATAN THUMBNAIL HIGH-CTR (STANDAR ADPLAY 2026)]
+1. FOKAL POINT & EKSPRESI WAJAH 60-80% FRAME: Subjek utama WAJIB memiliki ekspresi wajah yang sangat emosional dan intens (terkejut, heran, tegang, penasaran, atau bahagia) dengan kontak mata langsung ke arah penonton, mengisi 60-80% dari area frame gambar, ATAU objek utama berskala kontras tinggi yang langsung menangkap perhatian dalam 0.5 detik pertama scroll feed.
+2. NEGATIVE SPACE BERSIH: Prompt visual WAJIB menyisakan area kosong bersih atau berlatar gelap/bokeh (di 1/3 sisi kiri atau kanan) khusus untuk penempatan teks overlay agar teks tidak menutupi wajah atau objek utama.
+3. KONTRAS TINGGI & PALET WARNA KOMPLEMENTER: Gunakan pencahayaan dramatis (rim lighting tajam, volumetric light, warm foreground vs cool moody background) dan warna kontras (misal: teks kuning di latar gelap, atau putih di latar biru pekat).
+4. TEKS OVERLAY MAKSIMAL 1-3 KATA: Maksimal 1-3 kata, huruf kapital, punchy, memicu curiosity gap yang tak tertahankan (BUKAN judul video, melainkan reaksi atau pengait rasa penasaran). Referensi template anti-gagal: "GILA!", "ANTI GAGAL", "3 LANGKAH SAJA", "BOOYAH!", "KAGET!".
+5. FORMULA WAJIB PROMPT THUMBNAIL: [Shot Type (Close-up / Medium Close-up)], [Main Subject with Intense Facial Emotion filling 60-80% frame], [Atmospheric Environment with Clean Negative Space on One Side], [Cinematic Lighting & Striking Color Grading], [Aesthetic Style, Ultra-sharp 8k details].`
     : "";
 
   // ── Feature #61: Factual Visual Grounding Layer ──────────────────────────
@@ -983,7 +1025,8 @@ ${structural.narrationModeDirective}
       }
       platformGuideText = `\n${finalGuide}\n`;
     } else {
-      platformGuideText = `\n[PLATFORM TARGET: ${videoConfig.targetPlatform}]\nSesuaikan format bahasa, durasi, pacing scene, dan layout visual 9:16 agar optimal untuk algoritma ${videoConfig.targetPlatform}.\n`;
+      const defaultAr = (normPlat.includes("long") || ar === "16:9") ? "16:9" : "9:16";
+      platformGuideText = `\n[PLATFORM TARGET: ${videoConfig.targetPlatform}]\nSesuaikan format bahasa, durasi, pacing scene, dan layout visual ${defaultAr} agar optimal untuk algoritma ${videoConfig.targetPlatform}.\n`;
     }
   }
 
@@ -1009,9 +1052,28 @@ ${structural.narrationModeDirective}
       `2. Terapkan intensitas hook, struktur kalimat, dan gaya penyampaian yang setara atau lebih kuat ke dalam naskah baru ini, sehingga selaras dengan preferensi nyata audiens channel ini.\n`;
   }
 
-  // ── SEO & Keywords Section ─────────────────────────────────────────────
+  // ── SEO & Keywords Section (Strategi YouTube 2026: 3-Tier Keyword Architecture) ──
   let seoSection = "";
-  if (targetKeywordsList.length > 0) {
+  const specificKws = Array.isArray(videoConfig.targetKeywordsSpecific)
+    ? videoConfig.targetKeywordsSpecific
+    : (typeof videoConfig.targetKeywordsSpecific === "string" ? videoConfig.targetKeywordsSpecific.split(",").map(k => k.trim()).filter(Boolean) : []);
+  const generalKws = Array.isArray(videoConfig.targetKeywordsGeneral)
+    ? videoConfig.targetKeywordsGeneral
+    : (typeof videoConfig.targetKeywordsGeneral === "string" ? videoConfig.targetKeywordsGeneral.split(",").map(k => k.trim()).filter(Boolean) : []);
+  const longTailKws = Array.isArray(videoConfig.targetKeywordsLongTail)
+    ? videoConfig.targetKeywordsLongTail
+    : (typeof videoConfig.targetKeywordsLongTail === "string" ? videoConfig.targetKeywordsLongTail.split(",").map(k => k.trim()).filter(Boolean) : []);
+
+  if (specificKws.length > 0 || generalKws.length > 0 || longTailKws.length > 0) {
+    seoSection = `\n[ARSITEKTUR KATA KUNCI SEO 3 LAPIS (YOUTUBE 2026)]\n`;
+    if (specificKws.length > 0) seoSection += `1. Tag Spesifik (Kata Kunci Utama): ${specificKws.join(", ")}\n`;
+    if (generalKws.length > 0) seoSection += `2. Tag Umum (Kategori Niche): ${generalKws.join(", ")}\n`;
+    if (longTailKws.length > 0) seoSection += `3. Tag Majemuk (Long-Tail Search Queries): ${longTailKws.join(", ")}\n`;
+    seoSection += `Instruksi SEO 3 Lapis:\n` +
+      `- Sisipkan minimal 1 kata kunci spesifik dan 1 frasa long-tail pada minimal 5 opsi judul di Tahap 1.\n` +
+      `- Integrasikan kata kunci spesifik secara natural di 3 detik pertama narasi (Scene 1).\n` +
+      `- Susun Deskripsi YouTube dengan mengalirkan kata kunci ini ke dalam paragraf naratif yang ramah manusia.\n`;
+  } else if (targetKeywordsList.length > 0) {
     seoSection = `\n[TARGET SEO & KATA KUNCI TREN (VIDIQ/YOUTUBE)]\n` +
       `Fokuskan konten untuk menargetkan kata kunci bervolume tinggi berikut:\n` +
       targetKeywordsList.map((kw) => `- ${kw}`).join("\n") +
@@ -1019,6 +1081,55 @@ ${structural.narrationModeDirective}
       `1. Sisipkan kata kunci utama pada minimal 5 opsi judul di Tahap 1.\n` +
       `2. Integrasikan kata kunci secara natural pada kalimat pembuka/hook narasi.\n` +
       `3. Sertakan kata kunci relevan ke dalam hashtag dan caption platform.\n`;
+  }
+
+  // ── Retention & Pacing Engine (Strategi YouTube 2026) ───────────────────
+  let retentionPacingGuide = "";
+  if (videoConfig.retentionPacingProEnabled) {
+    retentionPacingGuide = `\n[PANDUAN RETENSI & PACING — MODE RETENSI EKSEKUTIF (PRO 2026)]
+Kamu bertindak sebagai Executive Video Editor & Audience Retention Specialist profesional 2026. Terapkan prinsip retensi tertinggi berikut pada SETIAP scene:
+1. ANTI-DROP 0-3 DETIK (WAJIB): Scene 1 harus memberikan Janji Nilai (Value Promise) yang jelas dan hook agresif untuk memutus kebiasaan scroll/skip penonton dalam 3 detik pertama.
+2. SILENCE ELIMINATION / JUMP CUT: Rancang naskah tanpa jeda hening (dead air < 0.3 detik). Tulis narasi padat, mengalir, dan dinamis antar kalimat.
+3. VISUAL BEAT SYNC: Cantumkan instruksi pergantian visual/angle yang selaras dengan ketukan birama musik (BGM beat drops) pada kolom TEKNIK EDITING & PACING.
+4. B-ROLL & STOCK ASSET CUTAWAYS: Setiap scene dengan durasi ≥4 detik WAJIB mencantumkan rekomendasi B-roll pelengkap atau cutaways dinamis untuk menyegarkan mata penonton.
+5. MID-ROLL RE-ENGAGEMENT: Di pertengahan durasi (50% video), sisipkan 'plot pivot', fakta mengejutkan baru, atau kontras visual tajam untuk mengangkat kembali grafik retensi agar tidak anjlok.\n`;
+  } else if (videoConfig.retentionPacingMode) {
+    const pacingMap: Record<string, string> = {
+      JUMP_CUT: "Fokus pada Jump Cut Pacing: kalimat cepat, minim jeda hening (<0.3s), tempo energetik tanpa dead-air.",
+      B_ROLL_HEAVY: "Fokus pada B-Roll Variety: variasikan footage pendukung, cutaways, dan overlay dinamis agar penonton tidak bosan.",
+      BEAT_SYNC: "Fokus pada Visual Beat Sync: selaraskan pergantian adegan dan efek suara dengan ketukan beat musik latar.",
+      CONTEMPLATIVE: "Fokus pada Alur Kontemplatif: pacing tenang, ruang bernapas emosional, dan transisi halus.",
+    };
+    const desc = pacingMap[videoConfig.retentionPacingMode] || "Sesuaikan ritme editing agar penonton betah menonton hingga tuntas.";
+    retentionPacingGuide = `\n[PANDUAN EDITING & PACING RETENSI — ${videoConfig.retentionPacingMode}]\n${desc}\n`;
+  }
+
+  // ── Storytelling Framework (VET 3-Act / PAS / AIDA) ────────────────────
+  let storytellingGuide = "";
+  if (videoConfig.storytellingFramework === "VET_3ACT") {
+    storytellingGuide = `\n[FRAMEWORK STORYTELLING: VET 3-ACT (VISUAL, EMOTIONAL, TECHNICAL - 2026)]
+1. Visual: Rancang penceritaan gambar yang metaforis, dinamis, dan bergerak (temporal clip).
+2. Emotional: Rancang busur emosi beresonansi (penasaran → keterikatan empati → resolusi memuaskan).
+3. Technical: Rancang petunjuk transisi, timing kamera, cutaways, dan sinkronisasi audio per scene.
+Terapkan struktur 3 babak ini secara konsisten di seluruh scene.\n`;
+  }
+
+  // ── Value Promise 3 Detik ──────────────────────────────────────────────
+  let valuePromiseDirective = "";
+  if (videoConfig.valuePromise3Sec && videoConfig.valuePromise3Sec.trim()) {
+    valuePromiseDirective = `\n[JANJI NILAI 3 DETIK PERTAMA (VALUE PROMISE WAJIB)]: "${videoConfig.valuePromise3Sec.trim()}" — Integrasikan janji nilai ini secara eksplisit pada detik ke-0 hingga ke-3 di Scene 1 untuk menghentikan scroll penonton.\n`;
+  }
+
+  // ── Audio Dynamics (Fade-in/out & Beat Sync) ───────────────────────────
+  let audioDynamicsGuide = "";
+  if (videoConfig.audioFadeInOut) {
+    audioDynamicsGuide += `- Audio Dynamics: Terapkan Fade-in halus pada pembuka Scene 1 dan Fade-out teratur pada penutup Scene Terakhir.\n`;
+  }
+  if (videoConfig.audioBeatSync) {
+    audioDynamicsGuide += `- Visual Beat Sync: Sinkronkan potongan adegan dan transisi scene dengan tempo ketukan musik latar (BGM).\n`;
+  }
+  if (audioDynamicsGuide) {
+    audioDynamicsGuide = `\n[DINAMIKA AUDIO & SINKRONISASI BEAT 2026]\n${audioDynamicsGuide}`;
   }
 
   // ── Fitur 4: Directive Anti-Halusinasi ──────────────────────────────────
@@ -1082,7 +1193,7 @@ Satu-satunya penutup yang diizinkan: resolusi cerita, pertanyaan diskusi, plot t
   }
 
   // ── Assemble Master Prompt ─────────────────────────────────────────────
-  const masterPrompt = `${povSection}[TOPIK UTAMA]\n${topic}${seoSection}${closedLoopSection}${contextText}${productContext}${affiliateAngleGuide}${compositionText}${platformGuideText}${excludeSection}${durationText}${formatOutputWajib}${hookStyleDirective}${endingStyleDirective}${cameraMovementGuide}${negativeCTADirective}${antiHallucinationDirective}\n\n${allGuidelines}`;
+  const masterPrompt = `${povSection}[TOPIK UTAMA]\n${topic}${seoSection}${closedLoopSection}${contextText}${productContext}${affiliateAngleGuide}${compositionText}${platformGuideText}${excludeSection}${durationText}${formatOutputWajib}${hookStyleDirective}${endingStyleDirective}${cameraMovementGuide}${retentionPacingGuide}${storytellingGuide}${valuePromiseDirective}${audioDynamicsGuide}${negativeCTADirective}${antiHallucinationDirective}\n\n${allGuidelines}`;
 
   return { masterPrompt, systemInstruction };
 }

@@ -6,6 +6,10 @@ describe("planFeatures", () => {
     expect(KNOWN_PLAN_FEATURES.length).toBeGreaterThan(0);
     const cameraPro = KNOWN_PLAN_FEATURES.find((f) => f.key === "cameraMovementPro");
     expect(cameraPro?.defaultValue).toBe(false);
+    const youtubeLong = KNOWN_PLAN_FEATURES.find((f) => f.key === "youtubeLongStudio");
+    expect(youtubeLong?.defaultValue).toBe(false);
+    const retentionPro = KNOWN_PLAN_FEATURES.find((f) => f.key === "retentionPacingPro");
+    expect(retentionPro?.defaultValue).toBe(false);
   });
 
   it("always grants full access to SUPERADMIN", () => {

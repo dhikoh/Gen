@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { cleanMarkdownLinks, cleanValue, cleanParsedValue, extractThumbnailData, extractTitles } from "@/lib/parsers";
+import { cleanMarkdownLinks, cleanValue, cleanParsedValue, extractThumbnailData, extractTitles, cleanNarasiForTts, parseScenes, extractThreeTierSeo } from "@/lib/parsers";
 
 describe("parsers", () => {
   describe("cleanMarkdownLinks", () => {
@@ -94,6 +94,80 @@ ALASAN POTENSI: Memberikan solusi langsung dan aplikatif
       expect(titles).toHaveLength(2);
       expect(titles[0]).toBe("Trik Video AI Otomatis");
       expect(titles[1]).toBe("Bongkar Algoritma Reels");
+    });
+  });
+
+  describe("cleanNarasiForTts", () => {
+    it("strips acting notes in parentheses and sound effect brackets", () => {
+      const rawNarration = "(berbisik antusias) Coba bayangkan [SFX: Whoosh], dalam 3 detik hidupmu berubah total! (tersenyum mantap)";
+      const cleaned = cleanNarasiForTts(rawNarration);
+      expect(cleaned).toBe("Coba bayangkan, dalam 3 detik hidupmu berubah total!");
+      expect(cleaned).not.toContain("berbisik");
+      expect(cleaned).not.toContain("SFX");
+      expect(cleaned).not.toContain("tersenyum");
+    });
+
+    it("handles plain text without modifications", () => {
+      expect(cleanNarasiForTts("Ini narasi biasa tanpa instruksi sutradara.")).toBe("Ini narasi biasa tanpa instruksi sutradara.");
+    });
+  });
+
+  describe("parseScenes with YouTube 2026 VET emotion and pacing", () => {
+    it("parses TARGET EMOSI and TEKNIK PACING from scene blocks", () => {
+      const script = `
+=== SCENE 1 ===
+DURASI: 00:00 - 00:05
+TARGET EMOSI: Penasaran Ekstrem (Curiosity Gap)
+TEKNIK PACING: Hook Cepat Staccato (0-3s Value Promise)
+TEKS OVERLAY: Jangan Lakukan Ini di 2026!
+VISUAL: Extreme close-up of a high-tech robotic iris focusing with neon cyan reflections
+NARASI: (berbisik tegang) Kamu masih pakai cara lama ini? [SFX: Tension riser]
+
+=== SCENE 2 ===
+DURASI: 00:05 - 00:15
+TARGET EMOSI: Validasi Masalah & Empati
+TEKNIK PACING: Ritme Sedang Penjelasan
+TEKS OVERLAY: Solusi Sebenarnya
+VISUAL: Wide shot showing split screen of old manual methods vs automated neural engine
+NARASI: Faktanya, 90% kreator pemula gagal karena melupakan langkah krusial ini.
+      `;
+
+      const scenes = parseScenes(script);
+      expect(scenes).toHaveLength(2);
+      expect(scenes[0].targetEmosi).toBe("Penasaran Ekstrem (Curiosity Gap)");
+      expect(scenes[0].teknikPacing).toBe("Hook Cepat Staccato (0-3s Value Promise)");
+      expect(scenes[0].teksOverlay).toBe("Jangan Lakukan Ini di 2026!");
+      expect(scenes[1].targetEmosi).toBe("Validasi Masalah & Empati");
+      expect(scenes[1].teknikPacing).toBe("Ritme Sedang Penjelasan");
+    });
+  });
+
+  describe("extractThreeTierSeo", () => {
+    it("extracts 3-tier tags, narrative description, and upload checklist", () => {
+      const output = `
+## METADATA SEO YOUTUBE 2026
+TAG SPESIFIK: #PromptGen, #GeminiTTS, #YouTubeStrategy2026
+TAG UMUM: #VideoEditing, #ContentCreator, #DigitalMarketing, #YouTubeGrowth
+TAG MAJEMUK (LONG-TAIL): Cara membuat naskah youtube otomatis, strategi algoritma youtube 2026, optimasi retensi video shorts
+DESKRIPSI YOUTUBE (SEO & EMPATI):
+Pernahkah kamu merasa video yang kamu buat dengan susah payah sepi penonton? Di video ini, kita membedah arsitektur retensi YouTube 2026 secara tuntas.
+
+Dapatkan rahasia hook 3 detik pertama dan formula thumbnail anti-gagal di sini!
+
+CHECKLIST KESIAPAN AKHIR:
+- [ ] Hook 3 detik pertama telah menyampaikan Janji Nilai yang kuat
+- [ ] Teks thumbnail 1-3 kata dengan ekspresi wajah dominan 60-80%
+- [ ] Audio telah diberi efek Fade-in dan Fade-out halus
+      `;
+
+      const seo = extractThreeTierSeo(output);
+      expect(seo).not.toBeNull();
+      expect(seo?.tagSpesifik).toContain("#PromptGen");
+      expect(seo?.tagUmum).toContain("#VideoEditing");
+      expect(seo?.tagMajemuk).toContain("Cara membuat naskah youtube otomatis");
+      expect(seo?.deskripsi).toContain("Pernahkah kamu merasa video");
+      expect(seo?.checklist.length).toBeGreaterThanOrEqual(3);
+      expect(seo?.checklist[0]).toContain("Janji Nilai");
     });
   });
 });

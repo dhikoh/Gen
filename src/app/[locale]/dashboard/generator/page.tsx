@@ -38,6 +38,8 @@ export default async function GeneratorPage({ params }: { params: Promise<{ loca
     imagePromptStudio: hasFeature(rawFeatures, "imagePromptStudio", isSuperadmin),
     htmlBlogExport: hasFeature(rawFeatures, "htmlBlogExport", isSuperadmin),
     cameraMovementPro: hasFeature(rawFeatures, "cameraMovementPro", isSuperadmin), // PRO tier camera movement
+    youtubeLongStudio: hasFeature(rawFeatures, "youtubeLongStudio", isSuperadmin), // PRO/ULTRA tier YouTube Long-Form
+    retentionPacingPro: hasFeature(rawFeatures, "retentionPacingPro", isSuperadmin), // PRO tier AI retention & pacing
   };
 
   const promptSettings = await prisma.promptSettings.findFirst();

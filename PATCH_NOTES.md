@@ -2,6 +2,84 @@
 
 ---
 
+## [#73] — 2026-09-24 | Feature: YouTube 2026 Strategy Engine (Shorts & Long-Form Studio, 3-Tier SEO, Retention Pacing Pro & Deduplication)
+
+### Overview
+
+Pembaruan yang mengadopsi secara utuh riset algoritma dan strategi YouTube 2026 (*Shorts & Long-Form Video*). Fitur ini menambahkan arsitektur end-to-end mulai dari hak akses paket Superadmin (fail-closed gating), studio rasio 16:9 Long-Form terdedikasi, mesin pacing & retensi berbasis kurva kepuasan penonton (VET 3-Act Storytelling & Janji Nilai 3 Detik), generator thumbnail dengan formula anti-gagal & *shrink test simulator*, metadata SEO 3-Tier (Spesifik, Umum, Long-Tail) dengan checklist pra-upload, pembersihan instruksi akting sutradara `(...)` pada Gemini TTS, serta deduplikasi script dan fungsi parser menjadi *single source of truth*.
+
+---
+
+### 1 — Superadmin Plan Features & Fail-Closed Gating
+
+- **Dua Hak Akses Paket Baru**:
+  1. `youtubeLongStudio` (Fail-closed: `false`): Mengontrol akses ke YouTube Long-Form Studio (16:9, chapter titles, widescreen pacing).
+  2. `retentionPacingPro` (Fail-closed: `false`): Mengontrol akses ke toggle Mode PRO untuk ritme editing dan pergeseran pola visual dinamis.
+- **Server-Side Enforcement**: API `/api/generate` mengecek hak akses pengguna terhadap paket aktif. Request YouTube Long tanpa entitlement langsung ditolak dengan `403 Forbidden`.
+- **Integrasi Otomatis Admin Panel**: Kedua fitur terdaftar di `KNOWN_PLAN_FEATURES` dan otomatis tampil pada modal pembuatan/pengeditan paket langganan Superadmin.
+- **File:** `src/lib/planFeatures.ts`, `src/app/api/generate/route.ts`, `messages/id.json`, `messages/en.json`.
+
+---
+
+### 2 — Generator Studio UI: YouTube 2026 Strategy & Audio Dynamics
+
+- **YouTube Long-Form Auto-Switch**: Memilih platform YouTube Long otomatis menyetel `aspectRatio: "16:9"`, target scene (8 scene), dan overlay `chapter_titles`. Menampilkan lencana gembok `🔒` jika paket belum memiliki hak akses.
+- **Retention & Pacing Engine 2026**:
+  - Toggle Mode PRO (Retention Enhancer).
+  - 4 Preset Ritme Pacing: *Retention Curve Smoothing & Jump Cut*, *Rapid Visual Reset (Shorts Pacing)*, *Documentary Deep Dive*, dan *Contrarian Staccato*.
+- **Audio Dynamics 2026**:
+  - *Fade-in/Fade-out Halus*: Mengeliminasi audio pop/clipping kasar pada awal dan akhir video.
+  - *Visual Sync to Audio Beat*: Mengunci pergantian visual dan transisi persis pada ketukan/tempo BGM.
+- **Storytelling Framework (VET 3-Act)**: *Validation* (0-15%) → *Exploration* (15-80%) → *Transformation* (80-100%).
+- **Janji Nilai 3 Detik (0-3s Value Promise)**: Input penegasan janji solusi konkret pembuka untuk mencegah kurva retensi menukik tajam (*cliff drop-off*).
+- **Preset Thumbnail 2026 Anti-Gagal**: 5 template (*Extreme Contrast Split*, *Single Word Shock*, *Red Circle Inset*, *Side-by-Side Reality Check*, *Subject Isolation Bokeh*) + toggle *Wajah Dominan 60–80%*.
+- **3-Tier SEO Target Inputs**: Input terstruktur untuk Tag Spesifik (Brand/Entitas), Tag Umum (Kategori), dan Tag Majemuk (Long-tail 3–5 kata).
+- **Multi-Profile & Channel Snapshot**: Seluruh preferensi baru tersimpan dalam snapshot channel sehingga tidak hilang saat berpindah profil.
+- **File:** `src/components/generator/GeneratorForm.tsx`, `src/app/[locale]/dashboard/generator/page.tsx`.
+
+---
+
+### 3 — Prompt Generator & Engine Injeksi 2026
+
+- **Algoritma Empati YouTube 2026**: Injeksi direktif platform spesifik YouTube Shorts (optimasi APV & subtle climax CTA) dan YouTube Long-Form (AVD, bab tematik, widescreen sinematik 16:9).
+- **Environmental Dynamic Activity Layer**: Setiap scene wajib memiliki minimal satu elemen lingkungan bergerak (uap mengepul, flare cahaya, bokeh lampu lalu lintas, dll.) untuk menghidupkan visual AI video.
+- **Parenthetical Acting Notes**: Dialog narasi dapat memuat instruksi emosi/akting sutradara dalam kurung `(...)` seperti `(berbisik tegang)`, `(tersenyum lega)`.
+- **Three-Tier Metadata Formatting**: AI menghasilkan blok khusus `## METADATA SEO YOUTUBE 2026` berisi Tag Spesifik, Tag Umum, Tag Majemuk, Deskripsi Naratif Empati, dan Checklist Pra-Upload.
+- **File:** `src/lib/promptGenerator.ts`.
+
+---
+
+### 4 — Parser Deduplication & Clean TTS Voice Pipeline
+
+- **Deduplikasi Skrip & Interface**: Menghapus duplikasi inline `interface Scene`, `parseOverlayType`, dan `parseScenes` di `ScenePromptStudioClient.tsx`. Semua modul kini mengimpor dari `src/lib/parsers.ts` sebagai *single source of truth*.
+- **Pembersihan Narasi Suara (`cleanNarasiForTts`)**: Membersihkan kurung akting `(...)` dan bracket cue audio `[...]` serta menormalkan spasi tanda baca sebelum dikirim ke Gemini TTS. Narrator AI kini membacakan dialog murni tanpa salah membaca instruksi sutradara.
+- **Parser 3-Tier SEO (`extractThreeTierSeo`)**: Mengekstrak tag 3-tier, deskripsi YouTube ramah semantic AI, dan butir-butir checklist pra-upload.
+- **File:** `src/lib/parsers.ts`.
+
+---
+
+### 5 — Scene Prompt Studio: SEO 2026 Studio & Mobile Shrink Test
+
+- **Tab Baru "🎯 SEO 2026"**:
+  - Kartu Arsitektur 3-Tier (Tier 1: Tag Spesifik, Tier 2: Tag Umum, Tier 3: Tag Majemuk) dengan chip badge dan tombol salin individual/seluruhnya.
+  - Box Deskripsi Naratif Berempati ramah semantic search YouTube.
+  - Interactive Pre-Flight Checklist Pra-Upload dengan progress bar dan strike-through otomatis.
+- **Scene Cards**: Menampilkan badge `Target Emosi (VET)` dan `Teknik Pacing`.
+- **Thumbnail Mobile Shrink Test Simulator**: Simulator ukuran layar ponsel kecil (120px) untuk memvalidasi apakah teks 1–3 kata dan ekspresi wajah tetap terbaca tajam sebelum dipublikasikan.
+- **File:** `src/app/[locale]/dashboard/scene-prompt/ScenePromptStudioClient.tsx`.
+
+---
+
+### 6 — Quality Assurance & Testing
+
+- **106/106 Unit Tests Lolos**: Pengujian mencakup `cleanNarasiForTts`, `parseScenes` (VET emotion & pacing), `extractThreeTierSeo`, `planFeatures` (fail-closed gating), dan `promptGenerator`.
+- **100% Paritas i18n**: Tepat 1.359 key identik antara `messages/id.json` dan `messages/en.json`.
+- **Design System Pass**: 2.084 token desain terverifikasi konsisten dengan estetika glassmorphism modern.
+- **TypeScript Zero Errors**: `npx tsc --noEmit` lolos tanpa kompromi.
+- **File:** `tests/parsers.test.ts`, `tests/planFeatures.test.ts`.
+
+---
+
 ## [#72] — 2026-09-24 | Fix: Creator Persona & POV Integration (End-to-End Persona Coupling)
 
 ### Overview
