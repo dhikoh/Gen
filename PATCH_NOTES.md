@@ -2,6 +2,52 @@
 
 ---
 
+## [#71] — 2026-09-24 | Fix: CTA Leakage Prevention, Negative CTA Directive & Hook/Ending Style Integration
+
+### Overview
+
+Audit forensik menemukan celah kritis di mana teks CTA channel tetap bocor ke prompt AI meskipun toggle CTA dinonaktifkan oleh user, serta fitur `hookStyle` dan `endingStyle` yang sebelumnya hanya ada di form UI namun tidak tersambung ke `promptGenerator.ts` (*disconnected features*). Pembaruan ini memastikan kepatuhan mutlak terhadap preferensi CTA user, penegakan *Negative CTA Directive*, sanitasi panduan platform, dan pengaktifan penuh dropdown Hook Style & Ending Style secara end-to-end.
+
+---
+
+### 1 — CTA Leakage Elimination & Channel Profile Isolation
+
+- **Channel CTA Gating**: Seluruh blok injeksi teks `channel.cta1` dan `channel.cta2` kini diisolasi ketat di balik validasi `if (hasCTA)`. Saat user mematikan opsi CTA, teks CTA channel sama sekali tidak pernah dikirimkan ke AI.
+- **Loop Closing Text Branching**: Teks panduan penutup naskah kini memiliki 3 jalur logis: (1) Seamless loop aktif, (2) Non-loop dengan CTA aktif (kesimpulan tuntas / CTA), dan (3) Non-loop dengan CTA mati (kesimpulan solid, pesan reflektif, atau momen emosional tanpa ajakan follow/subscribe/share/CTA dalam bentuk apa pun).
+- **File:** `src/lib/promptGenerator.ts`.
+
+---
+
+### 2 — Negative CTA Directive (Strict Anti-Retention Enforcement)
+
+- **Instruksi Larangan Mutlak**: Menambahkan blok khusus `[LARANGAN MUTLAK — CTA DINONAKTIFKAN OLEH USER]` ke dalam master prompt dengan 4 aturan tegas:
+  1. DILARANG KERAS menyisipkan ajakan follow, subscribe, like, share, atau komentar dalam bentuk apa pun (eksplisit maupun implisit).
+  2. DILARANG menambahkan kalimat penutup bernada retensi (*"worth sticking around"*, *"follow for more"*, *"see you next time"*, *"jangan lupa subscribe"*, dll.).
+  3. Menahan data CTA channel profil meskipun terisi di preferensi pengguna.
+  4. DILARANG membuat scene khusus CTA di bagian akhir video.
+- **Penutup yang Diizinkan**: Hanya resolusi cerita, pertanyaan diskusi terbuka, plot twist, pesan reflektif, momen emosional, atau fade-out natural.
+- **File:** `src/lib/promptGenerator.ts`.
+
+---
+
+### 3 — Reaktivasi Fitur Terputus (Hook Style & Ending Style Directives)
+
+- **Hook Style Directive**: Dropdown `hookStyle` di UI (`Pertanyaan Provokatif`, `Fakta Mengejutkan`, `Tantangan`, `Negative Hook`) kini terhubung 100% ke AI prompt melalui `hookStyleDirective`. Setiap opsi menyertakan pola kalimat pembuka yang kuat untuk Scene 1 (hanya aktif ketika `hasHook=true`).
+- **Ending Style Directive**: Dropdown `endingStyle` di UI (`Pertanyaan Terbuka`, `Hard Sell CTA`, `Ajakan Simpan/Share`) kini terhubung ke AI prompt melalui `endingStyleDirective`. Memiliki dua mode adaptif:
+  - *Saat CTA Aktif*: Mendukung gaya penutup penuh termasuk ajakan bertindak tegas (*Hard Sell CTA*) menggunakan CTA profil channel.
+  - *Saat CTA Mati*: Menolak gaya hard-sell dan menyesuaikan opsi pertanyaan terbuka atau ajakan simpan murni tanpa unsur retensi/follow.
+- **Key Mismatch Fix**: Penyelarasan key data antara nilai dropdown di `GeneratorForm.tsx` dan handler di `promptGenerator.ts` (`Hard Sell CTA`).
+- **File:** `src/lib/promptGenerator.ts`.
+
+---
+
+### 4 — Platform Algorithm Guide Sanitization
+
+- **Pembersihan Otomatis Panduan Algoritma**: Ketika CTA dinonaktifkan, template panduan platform target (misalnya YouTube Shorts) secara otomatis disanitasi: baris instruksi yang menyuruh AI membuat CTA atau ajakan subscribe dinetralkan menjadi instruksi resolusi konten yang kuat dan bermakna.
+- **File:** `src/lib/promptGenerator.ts`.
+
+---
+
 ## [#70] — 2026-09-24 | Feature: Overlay Style Selector, Auto-Chapter Grouping & Dynamic Textarea Expansion
 
 ### Overview

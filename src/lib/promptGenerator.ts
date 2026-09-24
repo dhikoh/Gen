@@ -56,8 +56,8 @@ export interface VideoConfigData {
   rolePOV?: string | null;
   toneOfVoice?: string | null;
   visualStyle?: string | null;
-  hookStyleType?: string | null;
-  customHookText?: string | null;
+  hookStyleType?: string | null; // Legacy Push field — no UI, always "auto". Kept for API backward compat.
+  customHookText?: string | null; // Legacy Push field — no UI. Kept for API backward compat.
   isLoopable?: boolean | null;
   isVideoLoop?: boolean | null;
   musicPreference?: boolean | null;
@@ -385,12 +385,21 @@ export function generateMasterPrompt(
   povSection += `- Sebagai "${channel.channelName}": yang memahami dan memiliki keahlian dalam "${channel.description || channel.niche || "konten digital"}"\n`;
 
   const isMarketingZero = videoConfig.composition?.marketing === 0;
-  if (!isMarketingZero) {
-    if (channel.cta1) povSection += `  - Kalimat CTA Utama: "${channel.cta1}"\n`;
-    if (channel.cta2) povSection += `  - Kalimat CTA Alternatif: "${channel.cta2}"\n`;
+  // Fix #71: Gate channel CTA text behind hasCTA — prevents AI from generating CTA
+  // when user explicitly disabled the CTA toggle, even though channel profile has CTA text.
+  if (hasCTA) {
+    if (!isMarketingZero) {
+      if (channel.cta1) povSection += `  - Kalimat CTA Utama: "${channel.cta1}"\n`;
+      if (channel.cta2) povSection += `  - Kalimat CTA Alternatif: "${channel.cta2}"\n`;
+    } else {
+      if (channel.cta1) povSection += `  - Kalimat CTA Utama: "${channel.cta1}"\n`;
+      povSection += `- Catatan Penting: Karena bobot Marketing 0%, tulislah naskah yang murni edukatif/hiburan tanpa promosi komersial.\n`;
+    }
   } else {
-    if (channel.cta1) povSection += `  - Kalimat CTA Utama: "${channel.cta1}"\n`;
-    povSection += `- Catatan Penting: Karena bobot Marketing 0%, tulislah naskah yang murni edukatif/hiburan tanpa promosi komersial.\n`;
+    // CTA disabled — DO NOT expose channel CTA text to AI (prevents unintended CTA generation)
+    if (isMarketingZero) {
+      povSection += `- Catatan Penting: Karena bobot Marketing 0%, tulislah naskah yang murni edukatif/hiburan tanpa promosi komersial.\n`;
+    }
   }
 
   // Role/POV Persona
@@ -463,9 +472,12 @@ export function generateMasterPrompt(
   }
 
   // ── Loop Guidelines ────────────────────────────────────────────────────
+  // Fix #71: Loop closing text — remove "CTA" mention when hasCTA is false
   const loopGuidelinesText = isLoopable
     ? `[PANDUAN LOOP VIDEO PENDEK (SEAMLESS LOOP - AKTIF)]\n1. WAJIB merancang naskah agar dapat diputar terus-menerus tanpa henti secara mulus.\n2. Kalimat paling akhir di SCENE TERAKHIR harus langsung menyambung ke kalimat pertama SCENE 1.\n3. Periksa kalimat pertama Scene 1, lalu sesuaikan kata demi kata di akhir Scene Terakhir agar membentuk tata bahasa yang 100% benar dan mengalir natural.`
-    : `[PANDUAN PENUTUP NASKAH (NORMAL/KLASIK)]\n1. DILARANG membuat kalimat penutup yang menggantung.\n2. Naskah harus diakhiri dengan kesimpulan solid atau CTA yang bermakna tuntas.`;
+    : hasCTA
+      ? `[PANDUAN PENUTUP NASKAH (NORMAL/KLASIK)]\n1. DILARANG membuat kalimat penutup yang menggantung.\n2. Naskah harus diakhiri dengan kesimpulan solid atau CTA yang bermakna tuntas.`
+      : `[PANDUAN PENUTUP NASKAH (NORMAL/KLASIK)]\n1. DILARANG membuat kalimat penutup yang menggantung.\n2. Naskah harus diakhiri dengan kesimpulan solid, pesan reflektif, atau momen emosional yang tuntas — TANPA ajakan follow/subscribe/share/CTA dalam bentuk apa pun.`;
 
   const videoLoopGuidelinesText = isVideoLoop
     ? `[PANDUAN LOOP VIDEO (SEAMLESS VISUAL LOOP - AKTIF)]\n1. WAJIB merancang Visual Prompt agar video awal dan akhir tampak menyambung secara visual.\n2. Di SCENE TERAKHIR, akhir Visual Prompt harus kembali ke kondisi visual awal SCENE 1.\n3. Sesuaikan camera movement, lighting, posisi subjek, dan environment agar transisinya mulus.`
@@ -944,7 +956,25 @@ ${structural.narrationModeDirective}
       : (matchedKey ? DEFAULT_PLATFORM_ALGORITHM_GUIDE[matchedKey] : null);
 
     if (guideContent) {
-      platformGuideText = `\n${guideContent}\n`;
+      // Fix #71: Strip CTA-related instructions from platform guide when CTA is disabled
+      let finalGuide = guideContent;
+      if (!hasCTA) {
+        // Remove lines containing explicit CTA/subscribe/follow directives
+        finalGuide = finalGuide
+          .split("\n")
+          .map((line) => {
+            // Neutralize lines that contain CTA/subscribe instructions
+            if (/\b(CTA|subscribe|ajakan subscribe|follow)\b/i.test(line) && !/\b(tanpa|dilarang|jangan|bukan)\b/i.test(line)) {
+              return line.replace(
+                /CTA|ajakan subscribe yang halus[^.]*\./gi,
+                "resolusi konten yang kuat dan bermakna."
+              );
+            }
+            return line;
+          })
+          .join("\n");
+      }
+      platformGuideText = `\n${finalGuide}\n`;
     } else {
       platformGuideText = `\n[PLATFORM TARGET: ${videoConfig.targetPlatform}]\nSesuaikan format bahasa, durasi, pacing scene, dan layout visual 9:16 agar optimal untuk algoritma ${videoConfig.targetPlatform}.\n`;
     }
@@ -991,8 +1021,61 @@ ${structural.narrationModeDirective}
 3. DILARANG mengklaim khasiat medis, hukum, atau finansial yang bersifat absolut. Gunakan frasa mitigasi ("dapat membantu", "berpotensi", "menurut beberapa sumber").
 4. Jika topik memerlukan data faktual yang tidak tersedia, tandai dengan [VERIFIKASI: klaim yang perlu dicek] agar creator dapat memvalidasi sebelum produksi.\n`;
 
+  // ── Fix #71: Hook Style Directive (was disconnected) ────────────────────
+  let hookStyleDirective = "";
+  if (hasHook && videoConfig.hookStyle) {
+    const hookDescriptions: Record<string, string> = {
+      "Pertanyaan Provokatif": "Buka Scene 1 dengan PERTANYAAN PROVOKATIF yang memancing rasa penasaran atau menantang asumsi audiens. Contoh pola: \"Pernah nggak sih kamu...\", \"Kenapa sih semua orang salah soal...\", \"Kalau gue bilang [klaim kontroversial], kamu percaya?\"",
+      "Fakta Mengejutkan": "Buka Scene 1 dengan FAKTA MENGEJUTKAN atau statistik kontraintuitif yang langsung menghentikan scroll. Contoh pola: \"Tahukah kamu bahwa...\", \"Ternyata [fakta tak terduga]...\", \"[Angka besar] orang nggak sadar bahwa...\"",
+      "Tantangan": "Buka Scene 1 dengan TANTANGAN LANGSUNG ke audiens yang memicu ego atau rasa penasaran. Contoh pola: \"Coba buktikan gue salah\", \"Tes apakah kamu...\", \"Berani nggak kamu...\"",
+      "Negative Hook": "Buka Scene 1 dengan NEGATIVE HOOK — pernyataan negatif atau peringatan yang memicu fear of missing out. Contoh pola: \"Jangan pernah lakukan ini...\", \"Kesalahan fatal yang...\", \"Stop sebelum kamu...\"",
+    };
+    const desc = hookDescriptions[videoConfig.hookStyle];
+    if (desc) {
+      hookStyleDirective = `\n[GAYA HOOK PEMBUKA — ${videoConfig.hookStyle.toUpperCase()}]\n${desc}\n`;
+    }
+  }
+
+  // ── Fix #71: Ending Style Directive (was disconnected) ──────────────────
+  let endingStyleDirective = "";
+  if (videoConfig.endingStyle) {
+    if (hasCTA) {
+      const endingDescriptions: Record<string, string> = {
+        "Pertanyaan Terbuka": "Akhiri naskah dengan PERTANYAAN TERBUKA yang memancing diskusi dan komentar audiens (misal: \"Kalian tim mana nih?\", \"Menurut kalian gimana?\"). Boleh diikuti CTA ringan.",
+        "Hard Sell CTA": "Akhiri naskah dengan HARD SELL CTA — ajakan bertindak yang tegas, berenergi tinggi, dan imperatif. Gunakan kalimat CTA channel jika tersedia. Contoh: \"Klik link di bio SEKARANG!\", \"Langsung checkout sebelum kehabisan!\"",
+        "Ajakan Simpan/Share": "Akhiri naskah dengan kalimat yang memicu penonton MENYIMPAN (bookmark) atau MEMBAGIKAN video ke teman mereka, secara natural dan tidak memaksa.",
+      };
+      const desc = endingDescriptions[videoConfig.endingStyle];
+      if (desc) {
+        endingStyleDirective = `\n[GAYA PENUTUP NASKAH — ${videoConfig.endingStyle.toUpperCase()}]\n${desc}\n`;
+      }
+    } else if (videoConfig.endingStyle !== "Hard Sell CTA") {
+      // CTA off — non-CTA ending styles are still valid but with prohibition
+      const nonCtaEndingDescriptions: Record<string, string> = {
+        "Pertanyaan Terbuka": "Akhiri naskah dengan PERTANYAAN TERBUKA yang memancing diskusi dan komentar audiens. DILARANG menyertakan ajakan follow/subscribe/share.",
+        "Ajakan Simpan/Share": "Akhiri naskah dengan kalimat yang memicu penonton MENYIMPAN (bookmark) video, TANPA ajakan follow/subscribe/retensi.",
+      };
+      const desc = nonCtaEndingDescriptions[videoConfig.endingStyle];
+      if (desc) {
+        endingStyleDirective = `\n[GAYA PENUTUP NASKAH — ${videoConfig.endingStyle.toUpperCase()}]\n${desc}\n`;
+      }
+    }
+  }
+
+  // ── Fix #71: Negative CTA Directive (when CTA is explicitly disabled) ──
+  let negativeCTADirective = "";
+  if (!hasCTA) {
+    negativeCTADirective = `\n[LARANGAN MUTLAK — CTA DINONAKTIFKAN OLEH USER]
+DILARANG KERAS dalam seluruh naskah:
+1. Menyisipkan ajakan follow, subscribe, like, share, atau komentar dalam bentuk apa pun — eksplisit MAUPUN implisit.
+2. Menambahkan kalimat penutup bernada "worth sticking around", "follow for more", "see you next time", "jangan lupa subscribe", atau frasa retensi serupa.
+3. Menggunakan CTA channel ("${channel.cta1 || ""}") meskipun tersedia di data profil — data ini SENGAJA DITAHAN karena user menonaktifkan CTA.
+4. Menyisipkan scene khusus CTA di akhir video.
+Satu-satunya penutup yang diizinkan: resolusi cerita, pertanyaan diskusi, plot twist, momen emosional, atau fade-out natural.\n`;
+  }
+
   // ── Assemble Master Prompt ─────────────────────────────────────────────
-  const masterPrompt = `${povSection}[TOPIK UTAMA]\n${topic}${seoSection}${closedLoopSection}${contextText}${productContext}${affiliateAngleGuide}${compositionText}${platformGuideText}${excludeSection}${durationText}${formatOutputWajib}${cameraMovementGuide}${antiHallucinationDirective}\n\n${allGuidelines}`;
+  const masterPrompt = `${povSection}[TOPIK UTAMA]\n${topic}${seoSection}${closedLoopSection}${contextText}${productContext}${affiliateAngleGuide}${compositionText}${platformGuideText}${excludeSection}${durationText}${formatOutputWajib}${hookStyleDirective}${endingStyleDirective}${cameraMovementGuide}${negativeCTADirective}${antiHallucinationDirective}\n\n${allGuidelines}`;
 
   return { masterPrompt, systemInstruction };
 }

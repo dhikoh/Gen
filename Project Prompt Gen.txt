@@ -1941,5 +1941,36 @@ Menambahkan kontrol `overlayStyle` pada interface `VideoConfigData` di `promptGe
 - Zero TypeScript errors (`npx tsc --noEmit`).
 - Tidak ada duplikasi fungsi, orphan code, atau gap dalam data flow.
 
+## 36. Fix #71 — CTA Leakage Prevention, Negative CTA Directive & Hook/Ending Style Integration (2026-09-24)
 
+### 36.1 Latar Belakang & Analisis Forensik Gap
+Berdasarkan audit forensik menyeluruh pada pipeline prompt generator:
+1. **CTA Channel Leakage**: Data CTA channel (`channel.cta1`, `channel.cta2`) diinjeksi berdasarkan bobot marketing tanpa memvalidasi status toggle `hasCTA`. Akibatnya, saat user mematikan CTA, AI tetap menerima dan memanfaatkan data profil CTA channel.
+2. **Ketiadaan Negative Directive**: Tidak ada penegasan larangan ke model saat CTA dinonaktifkan, membuka celah halusinasi retensi/ajakan subscribe implisit.
+3. **Disconnected Features (`hookStyle` & `endingStyle`)**: Form UI di `GeneratorForm.tsx` dan schema API di `route.ts` telah mengirimkan parameter `hookStyle` dan `endingStyle`, namun nilainya tidak pernah dikonsumsi di `promptGenerator.ts`.
+4. **Platform Guide & Loop Guideline Contamination**: Template panduan platform bawaan (YouTube Shorts) dan penutup loop masih menyebut frasa CTA secara hardcoded.
 
+### 36.2 Arsitektur Solusi & Implementasi Teknis
+Perbaikan diimplementasikan secara terpusat pada `src/lib/promptGenerator.ts`:
+
+1. **Gating Isolasi Profil CTA**:
+   - Seluruh blok teks marketing CTA channel diisolasi di balik `if (hasCTA)`. Saat `hasCTA=false`, string CTA tidak pernah dimasukkan ke dalam konteks AI.
+2. **Negative CTA Directive**:
+   - Menambahkan blok direktif `[LARANGAN MUTLAK — CTA DINONAKTIFKAN OLEH USER]` yang melarang ajakan follow, like, subscribe, share, komentar, atau frasa retensi dalam bentuk apa pun.
+   - Mengarahkan penutup video ke resolusi konten yang tuntas, pesan reflektif, atau momen emosional murni.
+3. **Hook Style Directive Integration**:
+   - Menghubungkan parameter `videoConfig.hookStyle` dengan kamus pola pembuka:
+     - `Pertanyaan Provokatif`: Pola pertanyaan penasaran/menantang asumsi.
+     - `Fakta Mengejutkan`: Pola data statistik mengejutkan/menghentikan scroll.
+     - `Tantangan`: Pola tantangan langsung ke ego penonton.
+     - `Negative Hook`: Pola peringatan kesalahan fatal/FOMO.
+   - Diinjeksi ke master prompt hanya ketika `hasHook=true`.
+4. **Ending Style Directive Integration & Form Key Alignment**:
+   - Menghubungkan parameter `videoConfig.endingStyle` dengan dukungan 2 kondisi (CTA aktif vs CTA mati).
+   - Penyelarasan key `"Hard Sell CTA"` agar sesuai 1:1 dengan nilai select option pada form.
+5. **Sanitasi Dinamis Panduan Platform**:
+   - Sanitasi teks regex terhadap panduan platform ketika `hasCTA=false`, menggantikan frasa instruksi subscribe/CTA dengan resolusi konten bermakna.
+
+### 36.3 Integritas & Verifikasi
+- TypeScript Typecheck: `tsc --noEmit` lolos 100% tanpa error.
+- Kompatibilitas Legacy: Properti warisan `hookStyleType` dan `customHookText` tetap dipertahankan pada interface untuk menjaga kompatibilitas preferensi tersimpan.
