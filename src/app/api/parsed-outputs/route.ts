@@ -71,7 +71,16 @@ export async function POST(req: Request) {
       await prisma.parsedOutput.deleteMany({ where: { id: { in: idsToDelete } } });
     }
 
-    return NextResponse.json({ success: true, id: record.id }, { status: 201 });
+    return NextResponse.json({
+      success: true,
+      id: record.id,
+      output: {
+        id: record.id,
+        rawInput: record.rawInput,
+        parsedResult: record.parsedResult,
+        createdAt: record.createdAt,
+      },
+    }, { status: 201 });
   } catch (err) {
     console.error("parsed-outputs POST error:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });

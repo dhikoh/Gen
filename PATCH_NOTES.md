@@ -2,6 +2,50 @@
 
 ---
 
+## [#69] — 2026-09-24 | Feature: Scene Prompt Studio Last Parse Memory (Option 2B), 10-Item History Selector & Dynamic Resizable Input Fields in Generator Studio
+
+### Overview
+
+Rilis ini menghadirkan fitur **Persistensi & Memori Naskah Terurai Otomatis** pada Scene Prompt Studio serta **Bidang Input Dinamis (Resizable Textareas)** pada Generator Studio. Kini naskah dan kartu adegan yang terakhir diparse tidak akan hilang saat halaman ditutup atau dimuat ulang (zero-click auto-restore). Selain itu, creator dapat berpindah antar 10 riwayat naskah terdahulu melalui dropdown pemilih riwayat interaktif. Pada Generator Studio, input Topik Utama dan Konteks Tambahan kini dapat diperlebar secara vertikal (resize-y) layaknya pengaturan profil channel untuk kenyamanan penulisan ide dan konteks panjang.
+
+---
+
+### 1 — Scene Prompt Studio: Memori Parse Terakhir Otomatis (Zero-Click Restore)
+
+- **Eliminasi Kehilangan State Parse**: Mengatasi masalah hilangnya kartu adegan dan data ekstraksi (Thumbnail, Caption, Hashtag, Title Options) saat halaman `/dashboard/scene-prompt` di-refresh atau dibuka kembali.
+- **Server Hydration & Zero Flicker**: Server component `page.tsx` mengambil hingga 10 riwayat `parsedOutput` user dari database Prisma secara langsung (`createdAt: "desc"`), menserialisasikannya, dan mengoper data ke client component.
+- **Auto-Initialization**: Jika tidak ada parameter `draftId`, studio langsung memuat naskah mentah, kartu adegan (`scenes`), judul draft, dan seluruh metadata pendukung dari entri terakhir tanpa menuntut creator menekan tombol Parse ulang.
+- **File:** `src/app/[locale]/dashboard/scene-prompt/page.tsx`, `src/app/[locale]/dashboard/scene-prompt/ScenePromptStudioClient.tsx`.
+
+---
+
+### 2 — Pemilih Riwayat Parse Interaktif (10 Naskah Terakhir — Opsi 2B)
+
+- **Dropdown Riwayat Naskah**: Di samping tombol *"⚡ Parse Adegan"*, kini tersedia kontrol `🕒 Riwayat Parse (N)` yang memuat riwayat hingga 10 naskah yang pernah diparse.
+- **Informasi Kartu Riwayat**: Setiap item menampilkan judul/cuplikan topik, waktu relatif (*"Baru saja"*, *"20 menit lalu"*, dsb.), jumlah adegan, dan badge `Sedang Dibuka` untuk naskah aktif.
+- **Peralihan 1-Klik**: Mengklik riwayat manapun mengeksekusi `applyParsedOutput()` yang langsung memperbarui seluruh tab studio (Scene Viewer, Thumbnail Studio, Platform Content, Voice Studio, HTML Blog, Affiliate) secara instan.
+- **Sinkronisasi Parse Baru**: Endpoint `POST /api/parsed-outputs` kini mengembalikan payload record baru, memungkinkan pembaruan instan daftar riwayat di urutan teratas tanpa perlu reload halaman.
+- **File:** `src/app/[locale]/dashboard/scene-prompt/ScenePromptStudioClient.tsx`, `src/app/api/parsed-outputs/route.ts`.
+
+---
+
+### 3 — Generator Studio: Dynamic Resizable Input Fields
+
+- **Main Topic (`topic`)**: Diubah dari `<input type="text">` menjadi `<textarea rows={2} className="... resize-y min-h-[46px] ...">`. Kini mendukung gagasan multi-baris dan dapat ditarik ke bawah secara leluasa.
+- **Additional Context (`additionalContext`)**: Batasan kaku `resize-none` digantikan dengan `resize-y min-h-[64px]`, memberikan fleksibilitas penuh bagi creator untuk menuliskan konteks panjang seperti pada Channel Settings.
+- **File:** `src/components/generator/GeneratorForm.tsx`.
+
+---
+
+### 4 — Paritas Lokalisasi i18n & Uji Kualitas
+
+- **100% Key Parity**: Menambahkan 6 key baru (`parseHistory`, `parseHistoryTooltip`, `savedItems`, `noParseHistory`, `activeParseBadge`, `historyLoadedSuccess`) di `messages/id.json` dan `messages/en.json` (total 1.316 keys id vs 1.316 keys en).
+- **Unit Test Baru**: Menambahkan suite pengujian di `tests/historyStudioIntegration.test.ts` untuk memvalidasi prioritas `initialDraft` atas `parsedOutputs`, pemuatan otomatis entri terbaru, dan retensi antrian riwayat 10 item FIFO.
+- **TypeScript & Test Suite Pass**: 13 file pengujian (98 tests) lulus tanpa kesalahan (`npx tsc --noEmit` bersih 0 error).
+- **File:** `messages/id.json`, `messages/en.json`, `tests/historyStudioIntegration.test.ts`.
+
+---
+
 ## [#68] — 2026-09-23 | Feature: History & Studio Workflow Handover, Template Recycling & Search Discovery
 
 ### Overview

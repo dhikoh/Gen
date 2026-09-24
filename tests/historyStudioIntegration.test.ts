@@ -167,4 +167,67 @@ Durasi: 6s`,
       expect(initialDraft.rawJson).toContain("Scene 2");
     });
   });
+
+  describe("Scene Prompt Studio ParsedOutput Memory & History (Option 2B)", () => {
+    const mockOutputs = [
+      {
+        id: "po-1",
+        rawInput: "## Scene 1\nNarasi: Naskah paling baru\nVisual Prompt: Drone shot 4k --ar 9:16",
+        parsedResult: [{ id: 1, sceneNumber: "Scene 1", narasi: "Naskah paling baru", visual: "Drone shot 4k" }],
+        createdAt: "2026-09-24T10:00:00.000Z",
+      },
+      {
+        id: "po-2",
+        rawInput: "## Scene 1\nNarasi: Naskah kedua\nVisual Prompt: Studio mic close up --ar 9:16",
+        parsedResult: [{ id: 1, sceneNumber: "Scene 1", narasi: "Naskah kedua", visual: "Studio mic close up" }],
+        createdAt: "2026-09-24T09:30:00.000Z",
+      },
+    ];
+
+    it("automatically prioritizes initialDraft when present over parsedOutputs", () => {
+      const initialDraft = { id: "d-1", rawJson: "Draft naskah", title: "Judul Draft", channelId: null };
+      const defaultSource = initialDraft?.rawJson
+        ? { raw: initialDraft.rawJson, isDraft: true }
+        : mockOutputs.length > 0
+        ? { raw: mockOutputs[0].rawInput, isDraft: false }
+        : null;
+
+      expect(defaultSource?.isDraft).toBe(true);
+      expect(defaultSource?.raw).toBe("Draft naskah");
+    });
+
+    it("automatically loads latest parsed output when no initialDraft is provided", () => {
+      const initialDraft = null as any;
+      const defaultSource = initialDraft?.rawJson
+        ? { raw: initialDraft.rawJson, isDraft: true }
+        : mockOutputs.length > 0
+        ? { raw: mockOutputs[0].rawInput, id: mockOutputs[0].id, isDraft: false }
+        : null;
+
+      expect(defaultSource?.isDraft).toBe(false);
+      expect(defaultSource?.id).toBe("po-1");
+      expect(defaultSource?.raw).toContain("Naskah paling baru");
+    });
+
+    it("retains up to 10 latest records in FIFO history queue", () => {
+      const existing = Array.from({ length: 10 }, (_, i) => ({
+        id: `po-${i + 1}`,
+        rawInput: `Script ${i + 1}`,
+        createdAt: new Date(Date.now() - i * 60000).toISOString(),
+      }));
+
+      const newRecord = {
+        id: "po-new",
+        rawInput: "Brand New Script",
+        createdAt: new Date().toISOString(),
+      };
+
+      const updatedHistory = [newRecord, ...existing.filter((item) => item.id !== newRecord.id)].slice(0, 10);
+
+      expect(updatedHistory).toHaveLength(10);
+      expect(updatedHistory[0].id).toBe("po-new");
+      expect(updatedHistory.some((item) => item.id === "po-10")).toBe(false); // Oldest dropped
+    });
+  });
 });
+

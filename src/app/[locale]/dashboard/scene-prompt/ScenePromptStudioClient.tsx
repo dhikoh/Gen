@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslations } from "next-intl";
 import toast from "react-hot-toast";
 import sanitizeHtml from "sanitize-html";
@@ -7,6 +7,37 @@ import { extractAudioCues, cleanParsedValue, parseVoiceGuidelines, extractTitles
 import type { ThumbnailData, AffiliateRecommendation } from "@/lib/parsers";
 import { GEMINI_TTS_VOICES, GEMINI_TTS_MODELS, DEFAULT_TTS_VOICE, DEFAULT_TTS_MODEL, TTS_PITCH_PRESETS, DEFAULT_TTS_PITCH, type TtsPitchPresetId } from "@/lib/ttsVoices";
 import { buildOverlayVisualCopyText, buildBatchExportText, type SceneForExport } from "@/lib/sceneExportFormat";
+
+export interface SerializedParsedOutput {
+  id: string;
+  rawInput: string;
+  parsedResult: unknown;
+  createdAt: string;
+}
+
+function formatHistoryDate(dateStr: string, locale?: string): string {
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return "";
+    const now = new Date();
+    const diffMs = now.getTime() - d.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+
+    if (diffMins < 1) return locale === "id" ? "Baru saja" : "Just now";
+    if (diffMins < 60) return `${diffMins} ${locale === "id" ? "menit lalu" : "min ago"}`;
+    if (diffHours < 24) return `${diffHours} ${locale === "id" ? "jam lalu" : "hours ago"}`;
+
+    return d.toLocaleDateString(locale === "id" ? "id-ID" : "en-US", {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return "";
+  }
+}
 
 interface Scene {
   id: number;
@@ -36,6 +67,7 @@ interface Props {
     rawJson: string;
     parsedData?: unknown;
   };
+  initialParsedOutputs?: SerializedParsedOutput[];
 }
 
 interface TtsResult {
@@ -103,38 +135,68 @@ function parseScenes(text: string): Scene[] {
   return scenes;
 }
 
-export default function ScenePromptStudioClient({ channels, planFeatures, initialDraft }: Props) {
- const t = useTranslations("ScenePromptStudio");
- const [rawText, setRawText] = useState(initialDraft?.rawJson || "");
- const [scenes, setScenes] = useState<Scene[]>(() => (initialDraft?.rawJson ? parseScenes(initialDraft.rawJson) : []));
- const [caption, setCaption] = useState(() => (initialDraft?.rawJson ? extractCaption(initialDraft.rawJson) : ""));
- const [hashtags, setHashtags] = useState(() => (initialDraft?.rawJson ? extractHashtags(initialDraft.rawJson) : ""));
- const [thumbnailData, setThumbnailData] = useState<ThumbnailData | null>(() => (initialDraft?.rawJson ? extractThumbnailData(initialDraft.rawJson) : null));
- const [parsedTitles, setParsedTitles] = useState<string[]>(() => (initialDraft?.rawJson ? extractTitles(initialDraft.rawJson) : []));
- const [draftTitle, setDraftTitle] = useState(() => {
-   if (initialDraft?.title) return initialDraft.title;
-   if (initialDraft?.rawJson) {
-     return extractChosenTitle(initialDraft.rawJson) || extractTitles(initialDraft.rawJson)[0] || "";
-   }
-   return "";
- });
- const [selectedChannelId, setSelectedChannelId] = useState(() => {
-   if (initialDraft?.channelId && channels.some((c) => c.id === initialDraft.channelId)) {
-     return initialDraft.channelId;
-   }
-   return channels[0]?.id || "";
- });
- const [ar, setAr] = useState("9:16");
- const [thumbAr, setThumbAr] = useState<"16:9" | "9:16">("16:9");
- const [sref, setSref] = useState("");
- const [cref, setCref] = useState("");
- const [copiedId, setCopiedId] = useState<string | null>(null);
- const [saving, setSaving] = useState(false);
- const [saveMsg, setSaveMsg] = useState<string | null>(null);
- const [activeTab, setActiveTab] = useState<"scenes"|"thumbnail"|"platform"|"voiceStudio"|"htmlBlog">("scenes");
- const [markedTitles, setMarkedTitles] = useState<string[]>([]);
- const [htmlBlog, setHtmlBlog] = useState(() => (initialDraft?.rawJson ? extractHtmlBlog(initialDraft.rawJson) : ""));
- const [affiliateRecs, setAffiliateRecs] = useState<AffiliateRecommendation[]>(() => (initialDraft?.rawJson ? extractAffiliateRecommendations(initialDraft.rawJson) : []));
+export default function ScenePromptStudioClient({ channels, locale, planFeatures, initialDraft, initialParsedOutputs = [] }: Props) {
+  const t = useTranslations("ScenePromptStudio");
+
+  // Determine initial default source
+  // 1. initialDraft (navigating with ?draftId=)
+  // 2. initialParsedOutputs[0] (latest parse from database memory)
+  const defaultSource = initialDraft?.rawJson
+    ? {
+        raw: initialDraft.rawJson,
+        parsed: parseScenes(initialDraft.rawJson),
+        id: initialDraft.id,
+        isDraft: true,
+      }
+    : initialParsedOutputs.length > 0
+    ? {
+        raw: initialParsedOutputs[0].rawInput,
+        parsed: Array.isArray(initialParsedOutputs[0].parsedResult) && (initialParsedOutputs[0].parsedResult as unknown[]).length > 0
+          ? (initialParsedOutputs[0].parsedResult as Scene[])
+          : parseScenes(initialParsedOutputs[0].rawInput),
+        id: initialParsedOutputs[0].id,
+        isDraft: false,
+      }
+    : null;
+
+  const [rawText, setRawText] = useState(defaultSource?.raw || "");
+  const [scenes, setScenes] = useState<Scene[]>(() => defaultSource?.parsed || []);
+  const [caption, setCaption] = useState(() => (defaultSource?.raw ? extractCaption(defaultSource.raw) : ""));
+  const [hashtags, setHashtags] = useState(() => (defaultSource?.raw ? extractHashtags(defaultSource.raw) : ""));
+  const [thumbnailData, setThumbnailData] = useState<ThumbnailData | null>(() => (defaultSource?.raw ? extractThumbnailData(defaultSource.raw) : null));
+  const [parsedTitles, setParsedTitles] = useState<string[]>(() => (defaultSource?.raw ? extractTitles(defaultSource.raw) : []));
+  const [draftTitle, setDraftTitle] = useState(() => {
+    if (initialDraft?.title) return initialDraft.title;
+    if (defaultSource?.raw) {
+      return extractChosenTitle(defaultSource.raw) || extractTitles(defaultSource.raw)[0] || "";
+    }
+    return "";
+  });
+  const [selectedChannelId, setSelectedChannelId] = useState(() => {
+    if (initialDraft?.channelId && channels.some((c) => c.id === initialDraft.channelId)) {
+      return initialDraft.channelId;
+    }
+    return channels[0]?.id || "";
+  });
+  const [ar, setAr] = useState("9:16");
+  const [thumbAr, setThumbAr] = useState<"16:9" | "9:16">("16:9");
+  const [sref, setSref] = useState("");
+  const [cref, setCref] = useState("");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"scenes"|"thumbnail"|"platform"|"voiceStudio"|"htmlBlog">("scenes");
+  const [markedTitles, setMarkedTitles] = useState<string[]>([]);
+  const [htmlBlog, setHtmlBlog] = useState(() => (defaultSource?.raw ? extractHtmlBlog(defaultSource.raw) : ""));
+  const [affiliateRecs, setAffiliateRecs] = useState<AffiliateRecommendation[]>(() => (defaultSource?.raw ? extractAffiliateRecommendations(defaultSource.raw) : []));
+
+  // Parse History state (10 latest)
+  const [historyList, setHistoryList] = useState<SerializedParsedOutput[]>(initialParsedOutputs);
+  const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(
+    !initialDraft && defaultSource?.id ? defaultSource.id : null
+  );
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const historyDropdownRef = useRef<HTMLDivElement>(null);
 
  // ── TTS State ──
  const [ttsVoice, setTtsVoice] = useState(DEFAULT_TTS_VOICE);
@@ -228,12 +290,26 @@ export default function ScenePromptStudioClient({ channels, planFeatures, initia
 
   // ── Batch Selection State (Fitur 3) ──
   const [selectedSceneIds, setSelectedSceneIds] = useState<Set<number>>(() => {
-    if (initialDraft?.rawJson) {
-      const parsed = parseScenes(initialDraft.rawJson);
-      return new Set(parsed.map(s => s.id));
+    if (defaultSource?.parsed && defaultSource.parsed.length > 0) {
+      return new Set(defaultSource.parsed.map(s => s.id));
     }
     return new Set();
   });
+
+  // Click outside to close history dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (historyDropdownRef.current && !historyDropdownRef.current.contains(event.target as Node)) {
+        setHistoryOpen(false);
+      }
+    };
+    if (historyOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [historyOpen]);
 
   // Handover effect when navigating with initialDraft
   useEffect(() => {
@@ -507,6 +583,7 @@ export default function ScenePromptStudioClient({ channels, planFeatures, initia
   // Server-Side Sync & LocalStorage Persistence
   useEffect(() => {
     let ignore = false;
+    const hasLoadedSource = Boolean(defaultSource);
 
     // 1. Local Storage load (deferred to avoid cascading render during effect mount)
     const saved = localStorage.getItem("scenePromptState");
@@ -522,12 +599,27 @@ export default function ScenePromptStudioClient({ channels, planFeatures, initia
         const p = JSON.parse(saved);
         queueMicrotask(() => {
           if (!ignore) {
-            if (p.rawText) setRawText(p.rawText);
+            // Only restore rawText from localStorage if neither initialDraft nor initialParsedOutputs was loaded
+            if (!hasLoadedSource && p.rawText) {
+              setRawText(p.rawText);
+              const parsed = parseScenes(p.rawText);
+              setScenes(parsed);
+              setSelectedSceneIds(new Set(parsed.map(s => s.id)));
+              setCaption(extractCaption(p.rawText));
+              setHashtags(extractHashtags(p.rawText));
+              setThumbnailData(extractThumbnailData(p.rawText));
+              const titles = extractTitles(p.rawText);
+              setParsedTitles(titles);
+              const chosen = extractChosenTitle(p.rawText) || titles[0] || "";
+              setDraftTitle(chosen || t("defaultDraftTitle"));
+              setHtmlBlog(extractHtmlBlog(p.rawText));
+              setAffiliateRecs(extractAffiliateRecommendations(p.rawText));
+            }
             if (p.selectedChannelId) setSelectedChannelId(p.selectedChannelId);
             if (p.ar) setAr(p.ar);
             if (p.sref) setSref(p.sref);
             if (p.cref) setCref(p.cref);
-            if (p.draftTitle) setDraftTitle(p.draftTitle);
+            if (!hasLoadedSource && p.draftTitle) setDraftTitle(p.draftTitle);
             if (p.ttsVoice) setTtsVoice(p.ttsVoice);
             if (p.ttsModel) setTtsModel(p.ttsModel);
             if (p.ttsPitch) setTtsPitch(p.ttsPitch);
@@ -548,12 +640,26 @@ export default function ScenePromptStudioClient({ channels, planFeatures, initia
       .then(data => {
         if (!ignore && data.success && data.generatorPreferences?.scenePromptState) {
           const p = data.generatorPreferences.scenePromptState;
-          if (p.rawText) setRawText(p.rawText);
+          if (!hasLoadedSource && p.rawText) {
+            setRawText(p.rawText);
+            const parsed = parseScenes(p.rawText);
+            setScenes(parsed);
+            setSelectedSceneIds(new Set(parsed.map(s => s.id)));
+            setCaption(extractCaption(p.rawText));
+            setHashtags(extractHashtags(p.rawText));
+            setThumbnailData(extractThumbnailData(p.rawText));
+            const titles = extractTitles(p.rawText);
+            setParsedTitles(titles);
+            const chosen = extractChosenTitle(p.rawText) || titles[0] || "";
+            setDraftTitle(chosen || t("defaultDraftTitle"));
+            setHtmlBlog(extractHtmlBlog(p.rawText));
+            setAffiliateRecs(extractAffiliateRecommendations(p.rawText));
+          }
           if (p.selectedChannelId) setSelectedChannelId(p.selectedChannelId);
           if (p.ar) setAr(p.ar);
           if (p.sref) setSref(p.sref);
           if (p.cref) setCref(p.cref);
-          if (p.draftTitle) setDraftTitle(p.draftTitle);
+          if (!hasLoadedSource && p.draftTitle) setDraftTitle(p.draftTitle);
           if (p.ttsVoice) setTtsVoice(p.ttsVoice);
           if (p.ttsModel) setTtsModel(p.ttsModel);
           if (p.ttsPitch) setTtsPitch(p.ttsPitch);
@@ -570,7 +676,7 @@ export default function ScenePromptStudioClient({ channels, planFeatures, initia
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [defaultSource, t]);
 
   useEffect(() => {
     const stateObj = {
@@ -623,24 +729,61 @@ export default function ScenePromptStudioClient({ channels, planFeatures, initia
  navigator.clipboard.writeText(text).then(() => { setCopiedId(id); setTimeout(() => setCopiedId(null), 2000); });
  }, []);
 
- const handleParse = async () => {
- if (!rawText.trim()) return;
- const parsed = parseScenes(rawText);
- setScenes(parsed);
- setSelectedSceneIds(new Set(parsed.map(s => s.id))); // auto-select semua scene
- setTtsResults({}); // reset TTS results
- setCaption(extractCaption(rawText));
- setHashtags(extractHashtags(rawText));
- setThumbnailData(extractThumbnailData(rawText));
- const titles = extractTitles(rawText);
- setParsedTitles(titles);
- const chosen = extractChosenTitle(rawText) || titles[0] || "";
- setDraftTitle(chosen || t("defaultDraftTitle"));
- setAffiliateRecs(extractAffiliateRecommendations(rawText));
- try {
- await fetch("/api/parsed-outputs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rawInput: rawText, parsedResult: parsed }) });
- } catch {}
- };
+  const applyParsedOutput = useCallback((item: SerializedParsedOutput) => {
+    const raw = item.rawInput;
+    setRawText(raw);
+    const parsed = Array.isArray(item.parsedResult) && (item.parsedResult as unknown[]).length > 0
+      ? (item.parsedResult as Scene[])
+      : parseScenes(raw);
+    setScenes(parsed);
+    setSelectedSceneIds(new Set(parsed.map((s) => s.id)));
+    setTtsResults({}); // reset TTS results for new script
+    setCaption(extractCaption(raw));
+    setHashtags(extractHashtags(raw));
+    setThumbnailData(extractThumbnailData(raw));
+    const titles = extractTitles(raw);
+    setParsedTitles(titles);
+    const chosen = extractChosenTitle(raw) || titles[0] || "";
+    setDraftTitle(chosen || t("defaultDraftTitle"));
+    setHtmlBlog(extractHtmlBlog(raw));
+    setAffiliateRecs(extractAffiliateRecommendations(raw));
+    setSelectedHistoryId(item.id);
+    toast.success(t("historyLoadedSuccess"));
+  }, [t]);
+
+  const handleParse = async () => {
+    if (!rawText.trim()) return;
+    const parsed = parseScenes(rawText);
+    setScenes(parsed);
+    setSelectedSceneIds(new Set(parsed.map(s => s.id))); // auto-select semua scene
+    setTtsResults({}); // reset TTS results
+    setCaption(extractCaption(rawText));
+    setHashtags(extractHashtags(rawText));
+    setThumbnailData(extractThumbnailData(rawText));
+    const titles = extractTitles(rawText);
+    setParsedTitles(titles);
+    const chosen = extractChosenTitle(rawText) || titles[0] || "";
+    setDraftTitle(chosen || t("defaultDraftTitle"));
+    setAffiliateRecs(extractAffiliateRecommendations(rawText));
+    try {
+      const res = await fetch("/api/parsed-outputs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rawInput: rawText, parsedResult: parsed }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const newRecord: SerializedParsedOutput = {
+          id: data.output?.id || data.id,
+          rawInput: rawText,
+          parsedResult: parsed,
+          createdAt: data.output?.createdAt ? new Date(data.output.createdAt).toISOString() : new Date().toISOString(),
+        };
+        setHistoryList((prev) => [newRecord, ...prev.filter((item) => item.id !== newRecord.id)].slice(0, 10));
+        setSelectedHistoryId(newRecord.id);
+      }
+    } catch {}
+  };
 
  const buildVisualPrompt = (visual: string) => {
  let p = visual.replace(/\s*--ar\s+\S+/gi, "").trim();
@@ -772,13 +915,90 @@ export default function ScenePromptStudioClient({ channels, planFeatures, initia
  <input value={sref} onChange={e => setSref(e.target.value)} placeholder="https://..." className={cls} />
  </div>
  </div>
- <textarea value={rawText} onChange={e => setRawText(e.target.value)} placeholder={t("pastePlaceholder")} rows={8} className={`${cls} resize-none font-mono text-xs`} />
- <div className="flex items-center gap-3">
- <button onClick={handleParse} disabled={!rawText.trim()} className="px-5 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors">
- ⚡ {t("parseButton")}
- </button>
- {scenes.length > 0 && <span className="text-xs pg-text-muted">{scenes.length} {t("scenesFound")}</span>}
- </div>
+        <textarea value={rawText} onChange={e => setRawText(e.target.value)} placeholder={t("pastePlaceholder")} rows={8} className={`${cls} resize-y min-h-[140px] font-mono text-xs`} />
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+          <div className="flex items-center gap-3">
+            <button onClick={handleParse} disabled={!rawText.trim()} className="px-5 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors">
+              ⚡ {t("parseButton")}
+            </button>
+            {scenes.length > 0 && <span className="text-xs pg-text-muted">{scenes.length} {t("scenesFound")}</span>}
+          </div>
+
+          {/* Riwayat Parse Dropdown */}
+          {historyList.length > 0 && (
+            <div className="relative" ref={historyDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setHistoryOpen(!historyOpen)}
+                className="inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg border pg-border pg-surface hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors pg-text-sub shadow-sm"
+                title={t("parseHistoryTooltip")}
+              >
+                <span>🕒</span>
+                <span>{t("parseHistory")}</span>
+                <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 rounded-full text-[10px] font-bold">
+                  {historyList.length}
+                </span>
+                <span className={`text-[10px] transition-transform ${historyOpen ? "rotate-180" : ""}`}>▼</span>
+              </button>
+
+              {historyOpen && (
+                <div className="absolute right-0 mt-2 w-80 sm:w-96 max-h-96 overflow-y-auto pg-surface border pg-border rounded-xl shadow-2xl z-50 p-2 space-y-1.5 custom-scrollbar">
+                  <div className="px-2.5 py-1.5 border-b pg-border flex items-center justify-between">
+                    <span className="text-xs font-bold pg-text-heading flex items-center gap-1.5">
+                      <span>🕒</span> {t("parseHistory")}
+                    </span>
+                    <span className="text-[11px] pg-text-muted">
+                      {historyList.length}/10 {t("savedItems")}
+                    </span>
+                  </div>
+                  {historyList.length === 0 ? (
+                    <div className="p-4 text-center text-xs pg-text-muted">
+                      {t("noParseHistory")}
+                    </div>
+                  ) : (
+                    historyList.map((item, idx) => {
+                      const itemTitle = extractChosenTitle(item.rawInput) || extractTitles(item.rawInput)[0] || (item.rawInput.slice(0, 45).replace(/[#*`\n]/g, " ").trim() + "...");
+                      const sceneCount = Array.isArray(item.parsedResult) ? item.parsedResult.length : 0;
+                      const isActive = selectedHistoryId === item.id;
+                      const timeFormatted = formatHistoryDate(item.createdAt, locale);
+
+                      return (
+                        <button
+                          key={item.id || idx}
+                          type="button"
+                          onClick={() => {
+                            applyParsedOutput(item);
+                            setHistoryOpen(false);
+                          }}
+                          className={`w-full text-left p-2.5 rounded-lg border transition-all flex flex-col gap-1 ${
+                            isActive
+                              ? "border-blue-500 bg-blue-50/80 dark:bg-blue-950/40"
+                              : "border-transparent hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:border-slate-200 dark:hover:border-slate-700"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-xs font-semibold pg-text-heading truncate flex-1" title={itemTitle}>
+                              {itemTitle}
+                            </span>
+                            {isActive && (
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-600 text-white shrink-0">
+                                {t("activeParseBadge")}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center justify-between text-[11px] pg-text-muted">
+                            <span>{timeFormatted}</span>
+                            {sceneCount > 0 && <span>{sceneCount} {t("scenesFound")}</span>}
+                          </div>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
  </div>
 
  {scenes.length > 0 && (

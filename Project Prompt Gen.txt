@@ -1860,4 +1860,39 @@ Entry baru di `KNOWN_PLAN_FEATURES` (`src/lib/planFeatures.ts`):
 ### 33.5 Batasan Cakupan Audio Voice Studio
 - Sesuai arsitektur dan konfirmasi pengguna, hasil audio biner (Base64/Blob) di Voice Studio tetap tersimpan di sisi client/localStorage per sesi kerja creator, menjaga efisiensi database server dan mencegah beban penyimpanan biner yang tidak diperlukan.
 
+## 34. SISTEM MEMORI PARSE TERAKHIR, RIWAYAT PARSE LOKAL/SERVER & DYNAMIC EXPANDABLE FIELDS (#69)
+
+### 34.1 Memori Parse Terakhir & Pemuatan Otomatis (Zero-Click Restore)
+- Pada Scene Prompt Studio (`/dashboard/scene-prompt`), saat creator membuka halaman tanpa parameter `draftId`, server secara langsung mengambil hingga 10 riwayat `parsedOutput` user dari database Prisma (`prisma.parsedOutput.findMany({ where: { userId: session.user.id }, orderBy: { createdAt: "desc" }, take: 10 })`).
+- Entri parse terakhir (`initialParsedOutputs[0]`) otomatis dimuat ke client saat inisialisasi:
+  - Teks naskah mentah (`rawText`)
+  - Kartu adegan terurai (`scenes`)
+  - Ekstraksi pendukung (`caption`, `hashtags`, `thumbnailData`, `parsedTitles`, `draftTitle`, `htmlBlog`, `affiliateRecs`)
+- Mengeliminasi friction di mana creator sebelumnya harus menekan kembali tombol "⚡ Parse Adegan" secara manual setiap kali reload atau kembali ke halaman studio.
+
+### 34.2 Pemilih Riwayat Parse (10 Naskah Terakhir — Opsi 2B)
+- Tombol dropdown interaktif `🕒 Riwayat Parse (N)` disematkan di toolbar naskah Scene Prompt Studio tepat di samping tombol Parse.
+- Menampilkan daftar hingga 10 naskah yang pernah diparse lengkap dengan:
+  - Cuplikan judul naskah terurai (atau 45 karakter awal naskah jika tanpa judul)
+  - Waktu relatif pemrosesan naskah (*"Baru saja"*, *"10 menit lalu"*, dsb.)
+  - Jumlah adegan yang berhasil diekstrak
+  - Badge penanda `Sedang Dibuka` (Active) untuk naskah yang sedang aktif
+  - Deteksi penutupan otomatis (*click-outside listener*) saat creator mengklik area di luar dropdown.
+- Memungkinkan creator berpindah antar naskah yang pernah diparse sebelumnya secara instan via fungsi `applyParsedOutput()` tanpa harus meng-copy-paste ulang naskah dari generator.
+
+### 34.3 Sinkronisasi Real-Time Endpoint `POST /api/parsed-outputs`
+- Respons endpoint `POST /api/parsed-outputs` kini mengembalikan payload `output` lengkap (`id`, `rawInput`, `parsedResult`, `createdAt`).
+- Saat creator menekan tombol "⚡ Parse Adegan" pada naskah baru, daftar riwayat di sisi client langsung ter-update di posisi teratas secara instan (FIFO dengan auto-cleanup batas 10 riwayat di database).
+
+### 34.4 Paritas Lokalisasi i18n
+- Menambahkan 6 kunci lokalisasi baru di `messages/id.json` dan `messages/en.json` di bawah namespace `ScenePromptStudio`:
+  - `parseHistory`, `parseHistoryTooltip`, `savedItems`, `noParseHistory`, `activeParseBadge`, `historyLoadedSuccess`.
+  - Terverifikasi 100% paritas kunci (1316 keys id vs 1316 keys en) melalui script audit.
+
+### 34.5 Input Field Dinamis & Resizable di Generator Studio
+- **Main Topic (`topic`)**: Ditransformasikan dari `<input type="text">` satu baris menjadi `<textarea rows={2} className="... resize-y min-h-[46px] ...">`. Kini mendukung input gagasan topik multi-baris serta leluasa diperlebar secara vertikal sesuai kebutuhan creator.
+- **Additional Context (`additionalContext`)**: Dihilangkan pembatas `resize-none` dan diganti dengan `resize-y min-h-[64px]`. Memungkinkan creator memperluas area ketik secara vertikal selaras dengan perilaku field deskripsi profil channel pada Channel Settings.
+- Kedua field mempertahankan integrasi penuh terhadap autosave preferensi channel, validasi form, dan eksekusi generate prompt AI.
+
+
 

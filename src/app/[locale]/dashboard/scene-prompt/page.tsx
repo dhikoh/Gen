@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import ScenePromptStudioClient from "./ScenePromptStudioClient";
+import ScenePromptStudioClient, { SerializedParsedOutput } from "./ScenePromptStudioClient";
 import { getTranslations } from "next-intl/server";
 import { hasFeature } from "@/lib/planFeatures";
 
@@ -26,7 +26,7 @@ export default async function ScenePromptPage({ params, searchParams }: PageProp
   const session = await getServerSession(authOptions);
   if (!session) redirect(`/${locale}/login`);
 
-  const [channels, dbUser, initialDraft] = await Promise.all([
+  const [channels, dbUser, initialDraft, rawParsedOutputs] = await Promise.all([
     prisma.profileChannel.findMany({
       where: { userId: session.user.id, isLocked: false },
       orderBy: { lastUsedAt: "desc" },
@@ -45,7 +45,20 @@ export default async function ScenePromptPage({ params, searchParams }: PageProp
           select: { id: true, title: true, channelId: true, rawJson: true, parsedData: true },
         })
       : Promise.resolve(null),
+    prisma.parsedOutput.findMany({
+      where: { userId: session.user.id },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+      select: { id: true, rawInput: true, parsedResult: true, createdAt: true },
+    }),
   ]);
+
+  const initialParsedOutputs: SerializedParsedOutput[] = rawParsedOutputs.map((item) => ({
+    id: item.id,
+    rawInput: item.rawInput,
+    parsedResult: item.parsedResult,
+    createdAt: item.createdAt.toISOString(),
+  }));
 
   const isSuperadmin = dbUser?.role === "SUPERADMIN";
   const rawFeatures = (dbUser?.currentPlan?.features as Record<string, boolean>) ?? {};
@@ -59,6 +72,7 @@ export default async function ScenePromptPage({ params, searchParams }: PageProp
       locale={locale}
       planFeatures={planFeatures}
       initialDraft={initialDraft || undefined}
+      initialParsedOutputs={initialParsedOutputs}
     />
   );
 }

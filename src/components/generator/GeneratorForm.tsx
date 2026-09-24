@@ -1087,12 +1087,12 @@ export default function GeneratorForm({
  <span>🔍</span> Riset Tren & Keyword
  </a>
  </div>
- <input
- type="text"
+ <textarea
  value={topic}
  onChange={(e) => setTopic(e.target.value)}
  placeholder={t("mainTopicPlaceholder")}
- className="w-full px-4 py-2 bg-white dark:bg-slate-700 border pg-border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none dark:text-white"
+ rows={2}
+ className="w-full px-4 py-2 bg-white dark:bg-slate-700 border pg-border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none dark:text-white resize-y min-h-[46px]"
  />
 
  {/* Target SEO Badges */}
@@ -1166,7 +1166,7 @@ export default function GeneratorForm({
  onChange={(e) => setAdditionalContext(e.target.value)}
  placeholder={t("additionalContextPlaceholder")}
  rows={2}
- className="w-full px-4 py-2 bg-white dark:bg-slate-700 border pg-border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none dark:text-white resize-none"
+ className="w-full px-4 py-2 bg-white dark:bg-slate-700 border pg-border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none dark:text-white resize-y min-h-[64px]"
  />
  </div>
  </div>
