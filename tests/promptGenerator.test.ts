@@ -316,5 +316,60 @@ describe("promptGenerator", () => {
       expect(masterPrompt).toContain("Sebelum menulis naskah, pelajari seluruh materi, topik, konteks tambahan");
     });
   });
+
+  describe("YouTube 2026 Strategy Master Reference Document Ingestion", () => {
+    it("injects YOUTUBE_2026_STRATEGY_MASTER_DOC and sets mastery mandate in systemInstruction for YouTube Shorts", () => {
+      const { masterPrompt, systemInstruction } = generateMasterPrompt(
+        dummyChannel,
+        "Strategi Shorts Viral 2026",
+        "",
+        {
+          targetPlatform: "YOUTUBE_SHORTS",
+          aspectRatio: "9:16",
+        }
+      );
+
+      expect(masterPrompt).toContain("[DOKUMEN RUJUKAN UTAMA: PANDUAN LENGKAP STRATEGI YOUTUBE 2026 (SHORTS & LONG-FORM)]");
+      expect(masterPrompt).toContain("PARADIGMA SISTEM REKOMENDASI 2026 (PREDICTIVE VIEWER SATISFACTION)");
+      expect(masterPrompt).toContain("STORYTELLING BEREMPATI: FRAMEWORK VET 3-ACT");
+      expect(masterPrompt).toContain("PACING & RETENSI TINGGI (ZERO DEAD-AIR & DINAMIKA AUDIO)");
+      expect(masterPrompt).toContain("FORMULA THUMBNAIL 2026 & MOBILE SHRINK TEST (120px)");
+      expect(masterPrompt).toContain("ARSITEKTUR METADATA SEO 3-TIER");
+      expect(masterPrompt).toContain("Sebelum membuat ide judul, pelajari dan serap secara mendalam [DOKUMEN RUJUKAN UTAMA: PANDUAN LENGKAP STRATEGI YOUTUBE 2026]");
+
+      expect(systemInstruction).toContain("Panduan Lengkap Strategi YouTube 2026 (Shorts & Long-Form)");
+    });
+
+    it("injects YOUTUBE_2026_STRATEGY_MASTER_DOC for YouTube Long-Form", () => {
+      const { masterPrompt, systemInstruction } = generateMasterPrompt(
+        dummyChannel,
+        "Deep Dive AI Long Form",
+        "",
+        {
+          targetPlatform: "YOUTUBE_LONG",
+          aspectRatio: "16:9",
+        }
+      );
+
+      expect(masterPrompt).toContain("[DOKUMEN RUJUKAN UTAMA: PANDUAN LENGKAP STRATEGI YOUTUBE 2026 (SHORTS & LONG-FORM)]");
+      expect(systemInstruction).toContain("Panduan Lengkap Strategi YouTube 2026 (Shorts & Long-Form)");
+    });
+
+    it("does NOT inject YouTube Master Reference Document for non-YouTube platforms like TikTok", () => {
+      const { masterPrompt, systemInstruction } = generateMasterPrompt(
+        dummyChannel,
+        "Video TikTok Biasa",
+        "",
+        {
+          targetPlatform: "TIKTOK",
+          aspectRatio: "9:16",
+        }
+      );
+
+      expect(masterPrompt).not.toContain("[DOKUMEN RUJUKAN UTAMA: PANDUAN LENGKAP STRATEGI YOUTUBE 2026 (SHORTS & LONG-FORM)]");
+      expect(systemInstruction).not.toContain("Panduan Lengkap Strategi YouTube 2026 (Shorts & Long-Form)");
+    });
+  });
 });
+
 

@@ -117,6 +117,49 @@ export interface TopPerformingDraftSummary {
   targetKeywords?: string[] | string | null;
 }
 
+const YOUTUBE_SHORTS_GUIDE = `[STRATEGI ALGORITMA PLATFORM: YOUTUBE SHORTS] — ALGORITMA EMPATI 2026
+Fokus Utama: Session Time, Audience Retention Curve, Rewatch Loop & Subscribe-After-View.
+1. Value Promise 3 Detik Pertama: Hindari cliff drop-off di detik 0-3. Hubungkan hook langsung ke premis inti tanpa basa-basi salam atau intro channel.
+2. Retention Curve Smoothing & Jump Cut: Eliminasi jeda diam (dead air < 0.3s) antar kalimat. Sisipkan visual sync yang selaras dengan ketukan beat audio.
+3. Subtle Climax CTA: Sisipkan ajakan subscribe yang halus dan kontekstual di TITIK EMOSIONAL PUNCAK (sebelum solusi akhir terungkap sepenuhnya).
+4. Search & Browse Synergy: Integrasikan kata kunci spesifik dan long-tail di 3 detik pertama narasi agar terindeks kuat pada YouTube Search & Shorts Feed.`;
+
+const YOUTUBE_LONG_GUIDE = `[STRATEGI ALGORITMA PLATFORM: YOUTUBE LONG-FORM] — SISTEM REKOMENDASI EMPATI 2026
+Fokus Utama: Kepuasan Prediktif Penonton, Average View Duration (AVD), Audience Retention Curve & Search/Browse Synergy.
+1. Value Promise 3 Detik: Awali video dengan janji nilai yang gamblang dan memikat tanpa basa-basi intro. Berikan preview solusi sebelum detik ke-5 agar penonton tidak pergi.
+2. Anti-Drop di Menit Tengah (Mid-Roll Retention): Sisipkan re-engagement hook, visual variety (B-roll & cutaways), dan perubahan pacing di menit ke-3 dan titik 50% durasi untuk mencegah grafik retensi menukik ke bawah.
+3. Struktur Bab Tematik (Chapters): Bagi alur bahasan ke dalam bab-bab yang jelas dengan judul overlay agar penonton merasakan perkembangan informasi yang terstruktur.
+4. Subtle Climax CTA: Letakkan ajakan subscribe dan diskusi komunitas pada titik emosional puncak naskah sebelum resolusi akhir.
+5. Format Widescreen Sinematik: Wajib rasio 16:9, tata visual horizontal, dan palet warna kontras sinematik.`;
+
+export const YOUTUBE_2026_STRATEGY_MASTER_DOC = `[DOKUMEN RUJUKAN UTAMA: PANDUAN LENGKAP STRATEGI YOUTUBE 2026 (SHORTS & LONG-FORM)]
+Kamu bertindak sebagai Master Content Strategist & Video Producer yang menguasai secara utuh riset algoritma YouTube 2026. WAJIB PELAJARI, INTERNALISASI, dan jadikan landasan teori berikut sebagai standar acuan mutlak dalam mengevaluasi materi dan mengeksekusi naskah:
+
+1. PARADIGMA SISTEM REKOMENDASI 2026 (PREDICTIVE VIEWER SATISFACTION):
+   - YouTube 2026 mengukur kepuasan prediktif penonton (Audience Retention Curve Smoothing), bukan sekadar CTR atau clickbait kosong.
+   - Format Shorts (9:16): Target utama adalah Average Percentage Viewed (APV) >85-100%, eliminasi drop retensi di detik 0-3 via Janji Nilai (Value Promise), dan seamless rewatch loop.
+   - Format Long-Form (16:9): Target utama adalah Average View Duration (AVD), struktur bab tematik (Chapters), dan pencegahan mid-roll drop-off di menit tengah via visual variety & re-engagement hook.
+
+2. STORYTELLING BEREMPATI: FRAMEWORK VET 3-ACT:
+   - Babak 1 - Validation (0-15%): Memvalidasi masalah, rasa penasaran, atau frustrasi audiens secara empati tanpa salam/intro bertele-tele.
+   - Babak 2 - Exploration (15-80%): Pembahasan mendalam materi dengan variasi stimulus visual (visual reset) setiap 2-3 detik dan transisi konsep yang dinamis.
+   - Babak 3 - Transformation (80-100%): Menghadirkan solusi nyata, resolusi bernilai tinggi, dan subtle climax CTA yang terikat konteks cerita.
+
+3. PACING & RETENSI TINGGI (ZERO DEAD-AIR & DINAMIKA AUDIO):
+   - Pemangkasan jeda hening antar-kalimat (<0.3 detik). Narasi mengalir rapat dan bertenaga.
+   - Environmental Activity Layer: Setiap scene visual AI wajib memiliki minimal 1 elemen dinamis bergerak (uap, pergeseran cahaya, bokeh partikel, refleksi).
+   - Audio Dynamics: Fade-in halus di pembuka, Fade-out halus di penutup, dan visual sync yang selaras dengan ketukan beat audio latar (BGM).
+
+4. FORMULA THUMBNAIL 2026 & MOBILE SHRINK TEST (120px):
+   - 5 Template Anti-Gagal: Extreme Contrast Split, Single Word Shock, Red Circle Inset, Side-by-Side Reality Check, Subject Isolation Bokeh.
+   - Subjek utama ekspresif dominan (60-80% frame) + teks maksimal 1-3 kata huruf kapital kontras tinggi yang lulus uji keterbacaan pada layar ponsel kecil.
+
+5. ARSITEKTUR METADATA SEO 3-TIER:
+   - Tier 1: Tag Spesifik (Brand / entitas / kata kunci utama).
+   - Tier 2: Tag Umum (Kategori industri / niche luas).
+   - Tier 3: Tag Majemuk / Long-Tail (Frasa pencarian 3-5 kata ramah conversational & semantic AI search).
+   - Deskripsi YouTube naratif yang mengalirkan kata kunci secara alami dan ramah manusia.`;
+
 export const DEFAULT_PLATFORM_ALGORITHM_GUIDE: Record<string, string> = {
   TikTok: `[STRATEGI ALGORITMA PLATFORM: TIKTOK]
 Fokus Utama: Completion Rate (Persentase Tonton Tuntas) & Rewatch Loop (Pemutaran Ulang).
@@ -130,28 +173,11 @@ Fokus Utama: Shareability (Kirim via DM) & Saveability (Simpan/Bookmark).
 2. Momen 'Worth Sharing' (Layak Kirim): Buat 1-2 baris narasi yang sangat relatable atau menyentuh emosi personal ('ini gue banget', 'kamu harus tahu ini') sehingga memicu audiens mengirimkannya ke teman via direct message (DM).
 3. Visual First: Pastikan teks overlay terbaca jelas dalam safe zone 9:16 feed Instagram.`,
 
-  "YouTube Shorts": `[STRATEGI ALGORITMA PLATFORM: YOUTUBE SHORTS] — ALGORITMA EMPATI 2026
-Fokus Utama: Session Time, Audience Retention Curve, Rewatch Loop & Subscribe-After-View.
-1. Value Promise 3 Detik Pertama: Hindari cliff drop-off di detik 0-3. Hubungkan hook langsung ke premis inti tanpa basa-basi salam atau intro channel.
-2. Retention Curve Smoothing & Jump Cut: Eliminasi jeda diam (dead air < 0.3s) antar kalimat. Sisipkan visual sync yang selaras dengan ketukan beat audio.
-3. Subtle Climax CTA: Sisipkan ajakan subscribe yang halus dan kontekstual di TITIK EMOSIONAL PUNCAK (sebelum solusi akhir terungkap sepenuhnya).
-4. Search & Browse Synergy: Integrasikan kata kunci spesifik dan long-tail di 3 detik pertama narasi agar terindeks kuat pada YouTube Search & Shorts Feed.`,
+  "YouTube Shorts": YOUTUBE_SHORTS_GUIDE,
 
-  "YouTube Long": `[STRATEGI ALGORITMA PLATFORM: YOUTUBE LONG-FORM] — SISTEM REKOMENDASI EMPATI 2026
-Fokus Utama: Kepuasan Prediktif Penonton, Average View Duration (AVD), Audience Retention Curve & Search/Browse Synergy.
-1. Value Promise 3 Detik: Awali video dengan janji nilai yang gamblang dan memikat tanpa basa-basi intro. Berikan preview solusi sebelum detik ke-5 agar penonton tidak pergi.
-2. Anti-Drop di Menit Tengah (Mid-Roll Retention): Sisipkan re-engagement hook, visual variety (B-roll & cutaways), dan perubahan pacing di menit ke-3 dan titik 50% durasi untuk mencegah grafik retensi menukik ke bawah.
-3. Struktur Bab Tematik (Chapters): Bagi alur bahasan ke dalam bab-bab yang jelas dengan judul overlay agar penonton merasakan perkembangan informasi yang terstruktur.
-4. Subtle Climax CTA: Letakkan ajakan subscribe dan diskusi komunitas pada titik emosional puncak naskah sebelum resolusi akhir.
-5. Format Widescreen Sinematik: Wajib rasio 16:9, tata visual horizontal, dan palet warna kontras sinematik.`,
+  "YouTube Long": YOUTUBE_LONG_GUIDE,
 
-  "YouTube Long-Form": `[STRATEGI ALGORITMA PLATFORM: YOUTUBE LONG-FORM] — SISTEM REKOMENDASI EMPATI 2026
-Fokus Utama: Kepuasan Prediktif Penonton, Average View Duration (AVD), Audience Retention Curve & Search/Browse Synergy.
-1. Value Promise 3 Detik: Awali video dengan janji nilai yang gamblang dan memikat tanpa basa-basi intro. Berikan preview solusi sebelum detik ke-5 agar penonton tidak pergi.
-2. Anti-Drop di Menit Tengah (Mid-Roll Retention): Sisipkan re-engagement hook, visual variety (B-roll & cutaways), dan perubahan pacing di menit ke-3 dan titik 50% durasi untuk mencegah grafik retensi menukik ke bawah.
-3. Struktur Bab Tematik (Chapters): Bagi alur bahasan ke dalam bab-bab yang jelas dengan judul overlay agar penonton merasakan perkembangan informasi yang terstruktur.
-4. Subtle Climax CTA: Letakkan ajakan subscribe dan diskusi komunitas pada titik emosional puncak naskah sebelum resolusi akhir.
-5. Format Widescreen Sinematik: Wajib rasio 16:9, tata visual horizontal, dan palet warna kontras sinematik.`,
+  "YouTube Long-Form": YOUTUBE_LONG_GUIDE,
 
   Facebook: `[STRATEGI ALGORITMA PLATFORM: FACEBOOK]
 Fokus Utama: Social Sharing, Resonansi Komunitas & Silent Autoplay.
@@ -383,10 +409,15 @@ export function generateMasterPrompt(
     targetKeywordsList
   );
 
+  const isYoutube = Boolean(videoConfig?.targetPlatform && /youtube/i.test(videoConfig.targetPlatform));
+
   // ── System Instruction ─────────────────────────────────────────────────
   let systemInstruction = `Kamu adalah AI Content Strategist dan Scriptwriter profesional yang berpengalaman dalam membuat naskah konten video pendek viral.`;
   if (promptSettings?.videoSystemInstruction?.trim()) {
     systemInstruction += `\n${promptSettings.videoSystemInstruction.trim()}`;
+  }
+  if (isYoutube) {
+    systemInstruction += `\nWAJIB: Kamu menguasai secara mutlak Dokumen Rujukan: Panduan Lengkap Strategi YouTube 2026 (Shorts & Long-Form). Seluruh judul dan naskah WAJIB mematuhi standar kepuasan prediktif, retensi 3 detik, VET 3-act storytelling, dan zero dead-air.`;
   }
   if (targetKeywordsList.length > 0) {
     systemInstruction += `\nTARGET KATA KUNCI SEO: Prioritaskan integrasi kata kunci berikut secara natural ke dalam judul, hook, narasi, dan caption: ${targetKeywordsList.join(", ")}.`;
@@ -693,10 +724,14 @@ PENTING: Tulis URL pencarian yang VALID dan LENGKAP dengan nama produk sudah di-
   }
 
   if (hasTitleSection) {
+    const studyDirectiveLine = isYoutube
+      ? `Sebelum membuat ide judul, pelajari dan serap secara mendalam [DOKUMEN RUJUKAN UTAMA: PANDUAN LENGKAP STRATEGI YOUTUBE 2026] di atas, beserta topik, konteks tambahan, persona channel, serta pedoman platform. Lakukan dekonstruksi materi terlebih dahulu dengan format wajib:`
+      : `Sebelum membuat ide judul, pelajari secara mendalam seluruh materi, topik, konteks tambahan, persona channel, serta pedoman platform di atas. Lakukan dekonstruksi materi terlebih dahulu dengan format wajib:`;
+
     formatOutputWajib += `Proses pembuatan konten ini WAJIB dilakukan dalam 2 TAHAP interaktif:
 
 TAHAP 1: Dekonstruksi Materi, Tampilkan Ide Konten & Tunggu Konfirmasi (BERHENTI SEBELUM MENULIS NASKAH)
-Sebelum membuat ide judul, pelajari secara mendalam seluruh materi, topik, konteks tambahan, persona channel, serta pedoman platform di atas. Lakukan dekonstruksi materi terlebih dahulu dengan format wajib:
+${studyDirectiveLine}
 
 [DEKONSTRUKSI MATERI & INTISARI STRATEGIS 2026]
 - Masalah Inti / Pain Point Audiens: [Satu-dua kalimat membedah masalah nyata, keresahan terdalam, atau rasa penasaran audiens seputar materi ini]
@@ -719,7 +754,11 @@ JUDUL TERPILIH: [Judul yang dipilih user]
 
 ${structural.hookStrategyDirective}`;
   } else {
-    formatOutputWajib += `Sebelum menulis naskah, pelajari seluruh materi, topik, konteks tambahan, persona channel, dan pedoman yang diberikan di atas, lalu tuliskan dekonstruksi materi singkat:
+    const directStudyDirectiveLine = isYoutube
+      ? `Sebelum menulis naskah, pelajari dan serap secara mendalam [DOKUMEN RUJUKAN UTAMA: PANDUAN LENGKAP STRATEGI YOUTUBE 2026] di atas, beserta topik, konteks tambahan, persona channel, dan pedoman yang diberikan, lalu tuliskan dekonstruksi materi singkat:`
+      : `Sebelum menulis naskah, pelajari seluruh materi, topik, konteks tambahan, persona channel, dan pedoman yang diberikan di atas, lalu tuliskan dekonstruksi materi singkat:`;
+
+    formatOutputWajib += `${directStudyDirectiveLine}
 
 [DEKONSTRUKSI MATERI & INTISARI STRATEGIS 2026]
 - Masalah Inti / Pain Point Audiens: [Satu-dua kalimat membedah masalah nyata atau keresahan audiens seputar materi ini]
@@ -832,7 +871,6 @@ Jumlah bab ditentukan secara natural berdasarkan alur konten (biasanya 3-6 bab u
   }
 
   // ── Three-Tier YouTube SEO & Pre-Flight Checklist (Strategi YouTube 2026) ──
-  const isYoutube = videoConfig.targetPlatform && /youtube/i.test(videoConfig.targetPlatform);
   if (isYoutube) {
     formatOutputWajib += `\n## METADATA SEO YOUTUBE 2026\nTAG SPESIFIK: [5-8 kata kunci utama yang sangat spesifik dan relevan dengan topik]\nTAG UMUM: [3-5 kategori niche besar]\nTAG MAJEMUK (LONG-TAIL): [5-8 frasa pencarian panjang spesifik berniat tinggi]\nDESKRIPSI YOUTUBE (SEO & EMPATI): [2-3 paragraf deskripsi video yang kaya kata kunci alami, ramah pembaca manusia, menyertakan ringkasan Value Promise video]\nCHECKLIST KESIAPAN AKHIR:\n- [ ] Audio bersih dari noise dengan Fade-in/Fade-out yang halus\n- [ ] Judul mengandung Long-tail Keyword yang dicari orang\n- [ ] Teks thumbnail (maks 1-3 kata) dan ekspresi wajah 60-80% terbaca jelas di layar HP kecil\n- [ ] Hook 3 detik pertama telah menyampaikan Janji Nilai (Value Promise) yang kuat\n`;
   }
@@ -1226,7 +1264,10 @@ Satu-satunya penutup yang diizinkan: resolusi cerita, pertanyaan diskusi, plot t
   }
 
   // ── Assemble Master Prompt ─────────────────────────────────────────────
-  const masterPrompt = `${povSection}[TOPIK UTAMA]\n${topic}${seoSection}${closedLoopSection}${contextText}${productContext}${affiliateAngleGuide}${compositionText}${platformGuideText}${excludeSection}${durationText}${formatOutputWajib}${hookStyleDirective}${endingStyleDirective}${cameraMovementGuide}${retentionPacingGuide}${storytellingGuide}${valuePromiseDirective}${audioDynamicsGuide}${negativeCTADirective}${antiHallucinationDirective}\n\n${allGuidelines}`;
+  const youtubeMasterDocSection = isYoutube
+    ? `\n${YOUTUBE_2026_STRATEGY_MASTER_DOC}\n\n`
+    : "";
+  const masterPrompt = `${povSection}${youtubeMasterDocSection}[TOPIK UTAMA]\n${topic}${seoSection}${closedLoopSection}${contextText}${productContext}${affiliateAngleGuide}${compositionText}${platformGuideText}${excludeSection}${durationText}${formatOutputWajib}${hookStyleDirective}${endingStyleDirective}${cameraMovementGuide}${retentionPacingGuide}${storytellingGuide}${valuePromiseDirective}${audioDynamicsGuide}${negativeCTADirective}${antiHallucinationDirective}\n\n${allGuidelines}`;
 
   return { masterPrompt, systemInstruction };
 }

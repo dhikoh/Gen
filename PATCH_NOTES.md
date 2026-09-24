@@ -2,6 +2,49 @@
 
 ---
 
+## [#76] — 2026-09-25 | Feature: YouTube 2026 Strategy Master Reference Document Ingestion & Deduplication
+
+### Overview
+
+Penyematan langsung modul landasan teoritis **"Dokumen Rujukan Utama: Panduan Lengkap Strategi YouTube 2026 (Shorts & Long-Form)"** ke dalam Master Prompt AI. Fitur ini mengikat model AI (ChatGPT / Claude / Gemini) dengan mandat studi imperatif untuk menyerap 5 pilar strategi 2026 (Predictive Viewer Satisfaction, VET 3-Act Storytelling, Zero Dead-Air Pacing, Formula Thumbnail 2026 & Mobile Shrink Test 120px, serta Arsitektur SEO 3-Tier) sebelum memproses materi pengguna. Selain itu, dilakukan deduplikasi string panduan algoritma Long-Form menjadi konstanta tunggal (*single source of truth*).
+
+---
+
+### 1 — Master Reference Document & Mandat Studi AI
+
+- **Penyematan Dokumen Rujukan Utama (`YOUTUBE_2026_STRATEGY_MASTER_DOC`)**:
+  - Menyematkan blok `[DOKUMEN RUJUKAN UTAMA: PANDUAN LENGKAP STRATEGI YOUTUBE 2026 (SHORTS & LONG-FORM)]` tepat di atas topik video pengguna pada seluruh skenario konten YouTube (Shorts maupun Long-Form).
+  - Merangkum 5 pilar mutlak:
+    1. *Paradigma Rekomendasi 2026*: Target APV >85-100% (Shorts), AVD & struktur bab tematik (Long-Form).
+    2. *Storytelling VET 3-Act*: Validation (0-15%) → Exploration (15-80%) → Transformation (80-100%).
+    3. *Zero Dead-Air & Dinamika Audio*: Pemangkasan jeda hening (<0.3s), activity layer lingkungan bergerak, dan visual sync beat.
+    4. *Formula Thumbnail 2026*: 5 template anti-gagal, dominasi wajah emosional 60-80%, dan kepatuhan mobile shrink test 120px.
+    5. *Arsitektur SEO 3-Tier*: Tag spesifik, tag umum, tag majemuk (long-tail), dan deskripsi naratif empati.
+- **Mandat Studi Imperatif**:
+  - Pada `systemInstruction`, ditambahkan direktif kepatuhan mutlak terhadap Dokumen Panduan 2026.
+  - Pada pembuka Tahap 1 (pembuatan judul) dan naskah langsung, AI secara eksplisit diperintahkan menyerap dokumen rujukan ini sebelum mendekonstruksi topik pengguna.
+- **File:** `src/lib/promptGenerator.ts`.
+
+---
+
+### 2 — Script Deduplication & Single Source of Truth
+
+- **Eliminasi Redundansi Panduan YouTube Long**:
+  - Menggabungkan duplikasi string antara entri `"YouTube Long"` dan `"YouTube Long-Form"` pada `DEFAULT_PLATFORM_ALGORITHM_GUIDE` ke dalam konstanta tunggal `YOUTUBE_LONG_GUIDE`.
+  - Mengeliminasi redundansi deklarasi `const isYoutube` ganda dalam perakitan prompt.
+- **File:** `src/lib/promptGenerator.ts`.
+
+---
+
+### 3 — Quality Assurance & Testing
+
+- **112/112 Unit Tests Lolos (100% Passing)**:
+  - Penambahan 3 test case baru: verifikasi injeksi dokumen master pada YouTube Shorts, verifikasi pada YouTube Long-Form, serta penegasan bahwa platform non-YouTube (seperti TikTok) tidak terinjeksi dokumen rujukan YouTube agar fokus platform tetap murni.
+- **TypeScript 0 Error**: `npx tsc --noEmit` lolos 100%.
+- **File:** `tests/promptGenerator.test.ts`.
+
+---
+
 ## [#75] — 2026-09-24 | Feature: Strategic Material Deconstruction & Cognitive Priming 2026 (Tahap 0 Ingestion)
 
 ### Overview
