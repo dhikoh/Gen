@@ -2,6 +2,43 @@
 
 ---
 
+## [#74] — 2026-09-24 | Fix: Scene Prompt Studio Channel Selection Synchronization & State Persistence
+
+### Overview
+
+Penyelesaian masalah inkonsistensi pilihan channel (*channel switching / jumping bug*) pada Scene Prompt Studio saat memuat preferensi pengguna serta sinkronisasi channel & aspect ratio saat transfer skrip dari Generator Studio. Masalah terjadi akibat kondisi *triple-write race condition* di mana nilai `selectedChannelId` di-overwrite oleh `localStorage` dan server preferences tanpa memvalidasi ketersediaan channel di daftar channel aktif (*unlocked*). Selain itu, skema preferensi server diperbarui untuk mengakomodasi state TTS Gemini Voice Studio secara utuh.
+
+---
+
+### 1 — Channel Validation Guard on State Restoration
+
+- **Validasi Eksistensi Channel (`channels.some`)**:
+  - Penambahan pengecekan ketat pada pemulihan state dari `localStorage`: `if (p.selectedChannelId && channels.some(c => c.id === p.selectedChannelId)) setSelectedChannelId(p.selectedChannelId);`.
+  - Penambahan pengecekan ketat pada pemulihan state dari respons server preferences: `if (p.selectedChannelId && channels.some(c => c.id === p.selectedChannelId)) setSelectedChannelId(p.selectedChannelId);`.
+  - Mencegah channel ID yang telah dikunci (`isLocked: true`), dihapus, atau tidak valid menimpa channel aktif di dropdown, sehingga dropdown tidak lagi berpindah secara liar atau menampilkan pilihan kosong.
+- **File:** `src/app/[locale]/dashboard/scene-prompt/ScenePromptStudioClient.tsx`.
+
+---
+
+### 2 — User Preferences API & Schema Passthrough
+
+- **Ekspansi Skema `scenePromptStateSchema`**:
+  - Menambahkan key baru untuk Voice Studio: `ttsVoice`, `ttsModel`, `ttsPitch`, `ttsSpeed`, `ttsStyleInstruction`, `ttsVoiceFilter`, dan `favoriteVoices`.
+  - Mengubah mode schema dari `.strict()` menjadi `.passthrough()` pada `scenePromptStateSchema` dan `preferencesSchema` guna mencegah sanitasi berlebih yang membuang field baru saat preferensi disimpan.
+- **Dukungan Alias Metode HTTP**: Menambahkan alias `export { PUT as POST };` untuk kompatibilitas ke belakang saat pemanggilan API preferences menggunakan method `POST`.
+- **File:** `src/app/api/user/preferences/route.ts`.
+
+---
+
+### 3 — Generator Studio Handover Synchronization
+
+- **Sinkronisasi Lengkap saat "Buka di Scene Prompt Studio"**:
+  - Tombol pengalihan skrip kini mengirimkan payload lengkap mencakup `rawText`, `selectedChannelId: channelId`, dan `ar: videoConfig.aspectRatio || "9:16"`.
+  - Memperbarui `localStorage` dan mengirimkan `PUT /api/user/preferences` sebelum melakukan navigasi, memastikan konteks channel dan rasio aspek dari Generator Studio terbawa secara akurat ke Scene Prompt Studio.
+- **File:** `src/components/generator/GeneratorForm.tsx`.
+
+---
+
 ## [#73] — 2026-09-24 | Feature: YouTube 2026 Strategy Engine (Shorts & Long-Form Studio, 3-Tier SEO, Retention Pacing Pro & Deduplication)
 
 ### Overview

@@ -2674,10 +2674,18 @@ export default function GeneratorForm({
  type="button"
  onClick={async () => {
  try {
+ const scenePromptPayload = {
+ rawText: generatedPrompt,
+ selectedChannelId: channelId,
+ ar: videoConfig.aspectRatio || "9:16",
+ };
+ try {
+ localStorage.setItem("scenePromptState", JSON.stringify(scenePromptPayload));
+ } catch {}
  await fetch("/api/user/preferences", {
- method: "POST",
+ method: "PUT",
  headers: { "Content-Type": "application/json" },
- body: JSON.stringify({ scenePromptState: { rawText: generatedPrompt } })
+ body: JSON.stringify({ scenePromptState: scenePromptPayload })
  });
  } catch(e) { console.error(e); }
  router.push(`/${document.documentElement.lang || "id"}/dashboard/scene-prompt`);

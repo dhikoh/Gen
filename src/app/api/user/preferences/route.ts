@@ -89,13 +89,20 @@ const scenePromptStateSchema = z.object({
   sref: z.string().max(5000).optional(),
   cref: z.string().max(5000).optional(),
   draftTitle: z.string().max(2000).optional(),
-}).strict();
+  ttsVoice: z.string().optional(),
+  ttsModel: z.string().optional(),
+  ttsPitch: z.string().optional(),
+  ttsSpeed: z.number().optional(),
+  ttsStyleInstruction: z.string().max(1000).optional(),
+  ttsVoiceFilter: z.string().optional(),
+  favoriteVoices: z.array(z.string()).optional(),
+}).passthrough();
 
 const preferencesSchema = z.object({
   generatorFormState: generatorFormStateSchema.optional(),
   channelFormStates: z.record(z.string(), generatorFormStateSchema).optional(),
   scenePromptState: scenePromptStateSchema.optional(),
-}).strict();
+}).passthrough();
 
 const MAX_PAYLOAD_BYTES = 250_000; // 250 KB max for multi-channel support
 
@@ -202,3 +209,5 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: "Failed to update preferences" }, { status: 500 });
   }
 }
+
+export { PUT as POST };

@@ -561,7 +561,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
               setHtmlBlog(extractHtmlBlog(p.rawText));
               setAffiliateRecs(extractAffiliateRecommendations(p.rawText));
             }
-            if (p.selectedChannelId) setSelectedChannelId(p.selectedChannelId);
+            if (p.selectedChannelId && channels.some(c => c.id === p.selectedChannelId)) setSelectedChannelId(p.selectedChannelId);
             if (p.ar) setAr(p.ar);
             if (p.sref) setSref(p.sref);
             if (p.cref) setCref(p.cref);
@@ -602,7 +602,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
             setHtmlBlog(extractHtmlBlog(p.rawText));
             setAffiliateRecs(extractAffiliateRecommendations(p.rawText));
           }
-          if (p.selectedChannelId) setSelectedChannelId(p.selectedChannelId);
+          if (p.selectedChannelId && channels.some(c => c.id === p.selectedChannelId)) setSelectedChannelId(p.selectedChannelId);
           if (p.ar) setAr(p.ar);
           if (p.sref) setSref(p.sref);
           if (p.cref) setCref(p.cref);
