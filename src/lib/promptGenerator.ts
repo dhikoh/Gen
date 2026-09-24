@@ -693,9 +693,42 @@ PENTING: Tulis URL pencarian yang VALID dan LENGKAP dengan nama produk sudah di-
   }
 
   if (hasTitleSection) {
-    formatOutputWajib += `Proses pembuatan konten ini WAJIB dilakukan dalam 2 TAHAP interaktif:\n\nTAHAP 1: Tampilkan Ide Konten & Tunggu Konfirmasi (BERHENTI SEBELUM MENULIS NASKAH)\n1. Tampilkan tepat 10 ide judul konten kreatif dengan daya tarik tinggi.\n2. Setiap ide ditulis dengan format:\n   [NOMOR]. [JUDUL IDE KONTEN]\n   Alasan Potensi: [Alasan kualitatif: curiosity gap, relevansi tren, emosi spesifik, atau kontras yang kuat — TANPA mencantumkan angka persentase palsu]\n3. Setelah menampilkan 10 ide, WAJIB BERHENTI dan ketik:\n   "Silakan pilih nomor ide konten (1-10) yang ingin Anda buat naskah lengkapnya."\n${affiliateTitleDirective}\nTAHAP 2: Pembuatan Naskah Lengkap (Setelah Konfirmasi User)\nSetelah user memilih, tulis naskah lengkap dengan format berikut:\n\n## RISET & VARIASI JUDUL\nJUDUL TERPILIH: [Judul yang dipilih user]\n\n${structural.hookStrategyDirective}`;
+    formatOutputWajib += `Proses pembuatan konten ini WAJIB dilakukan dalam 2 TAHAP interaktif:
+
+TAHAP 1: Dekonstruksi Materi, Tampilkan Ide Konten & Tunggu Konfirmasi (BERHENTI SEBELUM MENULIS NASKAH)
+Sebelum membuat ide judul, pelajari secara mendalam seluruh materi, topik, konteks tambahan, persona channel, serta pedoman platform di atas. Lakukan dekonstruksi materi terlebih dahulu dengan format wajib:
+
+[DEKONSTRUKSI MATERI & INTISARI STRATEGIS 2026]
+- Masalah Inti / Pain Point Audiens: [Satu-dua kalimat membedah masalah nyata, keresahan terdalam, atau rasa penasaran audiens seputar materi ini]
+- Transformasi & Janji Nilai 3 Detik (0-3s Value Promise): [Solusi konkret atau perubahan nyata bernilai tinggi yang dijanjikan materi ini kepada audiens dalam 3 detik pertama]
+- Sudut Pandang Kontras / Angle Pembeda: [Sudut pandang unik, pembeda dari konten pasaran, atau mitos umum yang dipatahkan oleh materi ini]
+
+Berdasarkan hasil dekonstruksi materi di atas, lanjutkan dengan menyajikan tepat 10 ide judul konten kreatif dengan daya tarik tinggi:
+1. Tampilkan tepat 10 ide judul konten kreatif dengan daya tarik tinggi.
+2. Setiap ide ditulis dengan format:
+   [NOMOR]. [JUDUL IDE KONTEN]
+   Alasan Potensi: [Alasan kualitatif: curiosity gap, relevansi tren, emosi spesifik, atau kontras yang kuat — TANPA mencantumkan angka persentase palsu]
+3. Setelah menampilkan 10 ide, WAJIB BERHENTI dan ketik:
+   "Silakan pilih nomor ide konten (1-10) yang ingin Anda buat naskah lengkapnya."
+${affiliateTitleDirective}
+TAHAP 2: Pembuatan Naskah Lengkap (Setelah Konfirmasi User)
+Setelah user memilih nomor judul, rancang naskah lengkap yang mengalirkan hasil dekonstruksi materi dan memenuhi janji nilai pada judul terpilih dengan format berikut:
+
+## RISET & VARIASI JUDUL
+JUDUL TERPILIH: [Judul yang dipilih user]
+
+${structural.hookStrategyDirective}`;
   } else {
-    formatOutputWajib += `Kamu WAJIB mengembalikan output dengan format terstruktur berikut:\n\n${structural.hookStrategyDirective}`;
+    formatOutputWajib += `Sebelum menulis naskah, pelajari seluruh materi, topik, konteks tambahan, persona channel, dan pedoman yang diberikan di atas, lalu tuliskan dekonstruksi materi singkat:
+
+[DEKONSTRUKSI MATERI & INTISARI STRATEGIS 2026]
+- Masalah Inti / Pain Point Audiens: [Satu-dua kalimat membedah masalah nyata atau keresahan audiens seputar materi ini]
+- Transformasi & Janji Nilai 3 Detik (0-3s Value Promise): [Solusi konkret atau perubahan nyata yang dijanjikan materi ini dalam 3 detik pertama]
+- Sudut Pandang Kontras / Angle Pembeda: [Sudut pandang unik atau pembeda dari konten pasaran]
+
+Selanjutnya, kamu WAJIB mengembalikan output naskah lengkap dengan format terstruktur berikut:
+
+${structural.hookStrategyDirective}`;
   }
 
   const hasHashtag  = !videoConfig.selectedSections || videoConfig.selectedSections.includes("HASHTAG");

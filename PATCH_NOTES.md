@@ -2,6 +2,49 @@
 
 ---
 
+## [#75] — 2026-09-24 | Feature: Strategic Material Deconstruction & Cognitive Priming 2026 (Tahap 0 Ingestion)
+
+### Overview
+
+Penerapan *Cognitive Priming & Strategic Material Deconstruction* (Tahap 0) pada generator prompt AI. Fitur ini mewajibkan LLM (ChatGPT / Claude / Gemini) mempelajari dan mendekonstruksi seluruh materi mentah, topik, persona, serta pedoman strategi YouTube 2026 sebelum melompat ke pembuatan judul (Tahap 1) dan naskah lengkap (Tahap 2). Pendekatan ini mengeliminasi *premature/shallow generation* dan menjamin setiap judul serta naskah berakar kuat pada *0–3s Value Promise*, pembedahan *pain point* nyata, dan sudut pandang kontras (*contrarian angle*).
+
+---
+
+### 1 — Master Prompt Directive: Dekonstruksi Materi & Intisari Strategis 2026
+
+- **Injeksi Format Wajib Sebelum Ide Judul (Tahap 1)**:
+  - Sebelum menampilkan 10 ide judul, AI diwajibkan menuliskan blok analisis:
+    ```markdown
+    [DEKONSTRUKSI MATERI & INTISARI STRATEGIS 2026]
+    - Masalah Inti / Pain Point Audiens: [Identifikasi masalah nyata atau keresahan terdalam audiens]
+    - Transformasi & Janji Nilai 3 Detik (0-3s Value Promise): [Solusi konkret atau janji nilai pembuka]
+    - Sudut Pandang Kontras / Angle Pembeda: [Sudut pandang segar pembeda dari konten pasaran]
+    ```
+  - 10 ide judul selanjutnya dirancang langsung berdasarkan hasil dekonstruksi tersebut, sehingga memiliki rasionalisasi retensi yang jelas dan bukan sekadar *clickbait* kosong.
+- **Dukungan Naskah Langsung (Direct Script Mode)**:
+  - Jika seksi judul dinonaktifkan, instruksi dekonstruksi materi tetap diinjeksikan sebelum naskah lengkap dibuat agar alur cerita tetap memiliki *grounding* kontekstual.
+- **File:** `src/lib/promptGenerator.ts`.
+
+---
+
+### 2 — Parser Hardening & Blacklist Keywords Expansion
+
+- **Ekspansi `TITLE_BLACKLIST_KEYWORDS`**:
+  - Menambahkan kata kunci dekonstruksi (`"dekonstruksi"`, `"intisari"`, `"pain point"`, `"transformasi"`, `"value promise"`, `"kontras"`, `"masalah"`) pada `parsers.ts`.
+  - Memastikan parser judul (`extractTitles`) mengabaikan baris analisis dekonstruksi materi secara bersih tanpa mengotori daftar judul video pada Scene Prompt Studio maupun tab generator.
+- **File:** `src/lib/parsers.ts`.
+
+---
+
+### 3 — Quality Assurance & Testing
+
+- **109/109 Unit Tests Lolos (100% Passing)**:
+  - Pengujian baru mencakup verifikasi injeksi dekonstruksi materi pada Tahap 1, pengujian pada mode tanpa seksi judul, serta uji isolasi parser judul terhadap blok dekonstruksi materi.
+- **TypeScript 0 Error**: `npx tsc --noEmit` terverifikasi lolos.
+- **File:** `tests/promptGenerator.test.ts`, `tests/parsers.test.ts`.
+
+---
+
 ## [#74] — 2026-09-24 | Fix: Scene Prompt Studio Channel Selection Synchronization & State Persistence
 
 ### Overview

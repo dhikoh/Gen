@@ -280,4 +280,41 @@ describe("promptGenerator", () => {
       expect(masterPrompt).toContain("[GAYA PENUTUP NASKAH — PERTANYAAN TERBUKA]");
     });
   });
+
+  describe("Cognitive Priming & Material Deconstruction 2026", () => {
+    it("instructs AI to deconstruct material/strategy before presenting titles in Tahap 1", () => {
+      const { masterPrompt } = generateMasterPrompt(
+        dummyChannel,
+        "Rahasia Algoritma YouTube 2026",
+        "Riset menunjukkan bahwa retensi 3 detik pertama menentukan APV",
+        {
+          targetPlatform: "YOUTUBE_SHORTS",
+          aspectRatio: "9:16",
+        }
+      );
+
+      expect(masterPrompt).toContain("TAHAP 1: Dekonstruksi Materi, Tampilkan Ide Konten & Tunggu Konfirmasi");
+      expect(masterPrompt).toContain("[DEKONSTRUKSI MATERI & INTISARI STRATEGIS 2026]");
+      expect(masterPrompt).toContain("Masalah Inti / Pain Point Audiens:");
+      expect(masterPrompt).toContain("Transformasi & Janji Nilai 3 Detik (0-3s Value Promise):");
+      expect(masterPrompt).toContain("Sudut Pandang Kontras / Angle Pembeda:");
+      expect(masterPrompt).toContain("Berdasarkan hasil dekonstruksi materi di atas, lanjutkan dengan menyajikan tepat 10 ide judul");
+    });
+
+    it("instructs AI to deconstruct material even when title section is disabled", () => {
+      const { masterPrompt } = generateMasterPrompt(
+        dummyChannel,
+        "Skrip Langsung",
+        "",
+        {
+          targetPlatform: "TIKTOK",
+          selectedSections: ["HOOK", "BODY", "CTA"], // No TITLE section
+        }
+      );
+
+      expect(masterPrompt).toContain("[DEKONSTRUKSI MATERI & INTISARI STRATEGIS 2026]");
+      expect(masterPrompt).toContain("Sebelum menulis naskah, pelajari seluruh materi, topik, konteks tambahan");
+    });
+  });
 });
+

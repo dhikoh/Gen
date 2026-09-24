@@ -229,7 +229,8 @@ const TITLE_BLACKLIST_KEYWORDS = [
   "alur", "platform", "caption", "hashtag", "scene", "adegan",
   "visual", "durasi", "thumbnail", "sfx", "bgm", "blogger", "artikel",
   "rekomendasi", "over-the-shoulder", "dialog", "voice over", "vo",
-  "alasan", "potensi", "target", "format",
+  "alasan", "potensi", "target", "format", "dekonstruksi", "intisari",
+  "pain point", "transformasi", "value promise", "kontras", "masalah",
 ];
 
 /** Extract up to 10 title candidates from an AI output. */

@@ -95,6 +95,27 @@ ALASAN POTENSI: Memberikan solusi langsung dan aplikatif
       expect(titles[0]).toBe("Trik Video AI Otomatis");
       expect(titles[1]).toBe("Bongkar Algoritma Reels");
     });
+
+    it("ignores dekonstruksi materi section when extracting titles", () => {
+      const outputWithDeconstruction = `
+[DEKONSTRUKSI MATERI & INTISARI STRATEGIS 2026]
+- Masalah Inti / Pain Point Audiens: Banyak kreator mengalami cliff drop di 3 detik pertama karena tidak menyampaikan value promise.
+- Transformasi & Janji Nilai 3 Detik (0-3s Value Promise): Cara mengunci 85%+ retention rate dengan hook langsung ke solusi.
+- Sudut Pandang Kontras / Angle Pembeda: Jangan mulai dengan salam atau perkenalan diri, langsung ke inti.
+
+# RISET & VARIASI JUDUL (10 IDE KONTEN)
+1. "Rahasia Retensi 85% YouTube Shorts 2026"
+   Alasan Potensi: Memancing rasa penasaran audiens kreator video
+2. "Jangan Pernah Ucapkan Kata Ini di 3 Detik Pertama!"
+   Alasan Potensi: Negative hook yang memicu rasa takut salah
+      `;
+      const titles = extractTitles(outputWithDeconstruction);
+      expect(titles).toHaveLength(2);
+      expect(titles[0]).toBe("Rahasia Retensi 85% YouTube Shorts 2026");
+      expect(titles[1]).toBe("Jangan Pernah Ucapkan Kata Ini di 3 Detik Pertama!");
+      expect(titles.some((t) => t.includes("Masalah Inti"))).toBe(false);
+      expect(titles.some((t) => t.includes("Value Promise"))).toBe(false);
+    });
   });
 
   describe("cleanNarasiForTts", () => {
