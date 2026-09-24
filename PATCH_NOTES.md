@@ -2,6 +2,53 @@
 
 ---
 
+## [#77] — 2026-09-25 | Bugfix: Elimination of Infinite Preferences Fetch Loop & Render Flooding in Scene Prompt Studio
+
+### Overview
+
+Penyelesaian tuntas masalah *infinite fetch loop* dan *render storm* pada halaman Scene Prompt Studio (`/dashboard/scene-prompt`). Bug ini sebelumnya menyebabkan browser console dibanjiri ratusan hingga ribuan log `Fetch finished loading: GET "https://muatin.id/api/user/preferences"`, ribuan panggilan `postMessage` internal React fiber (`ug`, `uh`), serta *excessive debounce PUT requests* yang menurunkan performa browser secara drastis.
+
+---
+
+### 1 — Root Cause Analysis & Resolution
+
+- **Akar Masalah (Object Reference Instability & Dependency Loop)**:
+  - Pada `ScenePromptStudioClient.tsx`, variabel `defaultSource` dideklarasikan secara *inline* tanpa `useMemo`. Setiap kali komponen me-render ulang, `defaultSource` selalu menghasilkan referensi objek JavaScript baru (`{ raw: ..., parsed: ... }`).
+  - Selain itu, `defaultSource` dan `t` dicantumkan ke dalam *dependency array* dari `useEffect` pemuat preferensi server (`/api/user/preferences`).
+  - Akibatnya:
+    1. Efek awal memanggil `GET /api/user/preferences`.
+    2. Data preferensi tiba dan mengupdate state (`selectedChannelId`, `ar`, `sref`, `cref`, `ttsVoice`, dll.).
+    3. State update memicu re-render komponen.
+    4. Re-render menghasilkan objek `defaultSource` baru di memori (`defaultSource !== prevDefaultSource`).
+    5. React mendeteksi perubahan dependensi dan mengeksekusi `useEffect` kembali.
+    6. Terjadi siklus rekursif tak berujung (*infinite loop*) yang membanjiri jaringan dan React rendering engine.
+
+- **Solusi & Hardening Terpasang**:
+  1. **Memoization `defaultSource` via `useMemo`**:
+     - `defaultSource` kini dibungkus dengan `React.useMemo(() => { ... }, [initialDraft, initialParsedOutputs])`.
+     - Menghentikan alokasi objek baru pada setiap render dan mengeliminasi eksekusi berulang fungsi regex berat `parseScenes` di setiap ketikan/render.
+  2. **Mount-Only Dependency (`[]`) pada Load Effect**:
+     - Memulihkan *dependency array* efek pemuatan preferensi dari `[defaultSource, t]` menjadi `[]` (strictly runs once on mount), selaras dengan pola standar yang terbukti stabil pada `GeneratorForm.tsx`.
+  3. **Auto-Save Initialization Guard (`isInitializedRef`)**:
+     - Menambahkan ref `isInitializedRef = useRef(false)` yang baru diaktifkan (`true`) dalam blok `.finally()` setelah pemanggilan `GET /api/user/preferences` selesai.
+     - Efek auto-save (`PUT /api/user/preferences`) kini memiliki guard `if (!isInitializedRef.current) return;`, mencegah transmisi PUT prematur dengan nilai default saat inisialisasi awal.
+  4. **Draft Handover Guard (`lastLoadedDraftIdRef`)**:
+     - Menambahkan `lastLoadedDraftIdRef` pada efek navigasi `initialDraft` agar notifikasi `toast.success` dan parser draft hanya dieksekusi satu kali per ID draft baru.
+
+- **File:** `src/app/[locale]/dashboard/scene-prompt/ScenePromptStudioClient.tsx`.
+
+---
+
+### 2 — Quality Assurance & Verification
+
+- **TypeScript Compilation (Zero Error)**: `npx tsc --noEmit` lolos 100% tanpa error typing.
+- **Unit Test Suite**: 112/112 tests lolos 100% (`vitest run`).
+- **Verifikasi Runtime**:
+  - `GET /api/user/preferences` hanya dipanggil tepat 1 kali saat halaman pertama kali dimuat.
+  - Render loop fiber dan spam `postMessage` sepenuhnya tereliminasi.
+
+---
+
 ## [#76] — 2026-09-25 | Feature: YouTube 2026 Strategy Master Reference Document Ingestion & Deduplication
 
 ### Overview

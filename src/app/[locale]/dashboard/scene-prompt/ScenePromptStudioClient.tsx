@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useTranslations } from "next-intl";
 import toast from "react-hot-toast";
 import sanitizeHtml from "sanitize-html";
@@ -80,26 +80,32 @@ interface TtsResult {
 export default function ScenePromptStudioClient({ channels, locale, planFeatures, initialDraft, initialParsedOutputs = [] }: Props) {
   const t = useTranslations("ScenePromptStudio");
 
-  // Determine initial default source
+  // Determine initial default source (memoized to prevent recalculation and reference instability)
   // 1. initialDraft (navigating with ?draftId=)
   // 2. initialParsedOutputs[0] (latest parse from database memory)
-  const defaultSource = initialDraft?.rawJson
-    ? {
+  const defaultSource = useMemo(() => {
+    if (initialDraft?.rawJson) {
+      return {
         raw: initialDraft.rawJson,
         parsed: parseScenes(initialDraft.rawJson),
         id: initialDraft.id,
         isDraft: true,
-      }
-    : initialParsedOutputs.length > 0
-    ? {
+      };
+    }
+    if (initialParsedOutputs.length > 0) {
+      return {
         raw: initialParsedOutputs[0].rawInput,
-        parsed: Array.isArray(initialParsedOutputs[0].parsedResult) && (initialParsedOutputs[0].parsedResult as unknown[]).length > 0
-          ? (initialParsedOutputs[0].parsedResult as Scene[])
-          : parseScenes(initialParsedOutputs[0].rawInput),
+        parsed:
+          Array.isArray(initialParsedOutputs[0].parsedResult) &&
+          (initialParsedOutputs[0].parsedResult as unknown[]).length > 0
+            ? (initialParsedOutputs[0].parsedResult as Scene[])
+            : parseScenes(initialParsedOutputs[0].rawInput),
         id: initialParsedOutputs[0].id,
         isDraft: false,
-      }
-    : null;
+      };
+    }
+    return null;
+  }, [initialDraft, initialParsedOutputs]);
 
   const [rawText, setRawText] = useState(defaultSource?.raw || "");
   const [scenes, setScenes] = useState<Scene[]>(() => defaultSource?.parsed || []);
@@ -141,6 +147,8 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
   );
   const [historyOpen, setHistoryOpen] = useState(false);
   const historyDropdownRef = useRef<HTMLDivElement>(null);
+  const isInitializedRef = useRef(false);
+  const lastLoadedDraftIdRef = useRef<string | null>(initialDraft?.id || null);
 
  // ── TTS State ──
  const [ttsVoice, setTtsVoice] = useState(DEFAULT_TTS_VOICE);
@@ -257,7 +265,8 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
 
   // Handover effect when navigating with initialDraft
   useEffect(() => {
-    if (initialDraft?.rawJson) {
+    if (initialDraft?.rawJson && lastLoadedDraftIdRef.current !== (initialDraft.id || null)) {
+      lastLoadedDraftIdRef.current = initialDraft.id || null;
       const raw = initialDraft.rawJson;
       setRawText(raw);
       if (initialDraft.title) setDraftTitle(initialDraft.title);
@@ -525,7 +534,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
     setDraftTitle(title);
   };
 
-  // Server-Side Sync & LocalStorage Persistence
+  // Server-Side Sync & LocalStorage Persistence (Run strictly once on mount)
   useEffect(() => {
     let ignore = false;
     const hasLoadedSource = Boolean(defaultSource);
@@ -618,14 +627,22 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
           }
         }
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (!ignore) {
+          isInitializedRef.current = true;
+        }
+      });
 
     return () => {
       ignore = true;
     };
-  }, [defaultSource, t]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
+    if (!isInitializedRef.current) return;
+
     const stateObj = {
       rawText,
       selectedChannelId,
