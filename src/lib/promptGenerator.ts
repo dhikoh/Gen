@@ -15,6 +15,7 @@ export interface ProfileChannelData {
   channelName: string;
   niche?: string | null;
   description?: string | null;
+  personaPov?: string | null;
   visualAesthetic?: string | null;
   cta1?: string | null;
   cta2?: string | null;
@@ -383,6 +384,12 @@ export function generateMasterPrompt(
   povSection += `[SUDUT PANDANG / PERSONA DAN GAYA AI]\n`;
   povSection += `Kamu wajib bertindak dari sudut pandang (POV) channel berikut:\n`;
   povSection += `- Sebagai "${channel.channelName}": yang memahami dan memiliki keahlian dalam "${channel.description || channel.niche || "konten digital"}"\n`;
+
+  // Fix #72: Persona & POV Kreator (resolved from videoConfig.pov with fallback to channel.personaPov)
+  const effectiveCreatorPOV = videoConfig.pov?.trim() || channel.personaPov?.trim() || null;
+  if (effectiveCreatorPOV) {
+    povSection += `- Persona & Sudut Pandang Kreator: "${effectiveCreatorPOV}" — Bawakan seluruh alur penceritaan, emosi, dan artikulasi ide dari kacamata persona ini.\n`;
+  }
 
   const isMarketingZero = videoConfig.composition?.marketing === 0;
   // Fix #71: Gate channel CTA text behind hasCTA — prevents AI from generating CTA

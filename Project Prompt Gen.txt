@@ -1974,3 +1974,28 @@ Perbaikan diimplementasikan secara terpusat pada `src/lib/promptGenerator.ts`:
 ### 36.3 Integritas & Verifikasi
 - TypeScript Typecheck: `tsc --noEmit` lolos 100% tanpa error.
 - Kompatibilitas Legacy: Properti warisan `hookStyleType` dan `customHookText` tetap dipertahankan pada interface untuk menjaga kompatibilitas preferensi tersimpan.
+
+## 37. Fix #72 — Creator Persona & POV Integration (2026-09-24)
+
+### 37.1 Latar Belakang & Identifikasi Gap
+Pada audit arsitektur prompt generator:
+1. **Disconnected Field `videoConfig.pov`**: Komponen UI `GeneratorForm.tsx` menyediakan kontrol input dan preset "Persona & POV Kreator" (misal: *Expert Storyteller*, *Energetic Reviewer*, *Casual Friend*, dsb.) yang juga diinisialisasi dari `channel.personaPov`. Nilai ini berhasil diteruskan melalui schema Zod ke `route.ts`. Namun di dalam `promptGenerator.ts`, field `videoConfig.pov` sama sekali tidak pernah diinjeksikan ke dalam blok teks `povSection` AI.
+2. **Missing Channel Mapping**: Objek `mappedChannel` di `route.ts` belum memetakan field `personaPov` dari data model Prisma `Channel`.
+
+### 37.2 Arsitektur Solusi & Implementasi Teknis
+1. **Perluasan Interface ProfileChannelData**:
+   - Menambahkan field `personaPov?: string | null` pada interface `ProfileChannelData` di `src/lib/promptGenerator.ts`.
+2. **Injeksi Direktif Persona Kreator pada `povSection`**:
+   - Menyelesaikan nilai persona dengan rantai fallback: `videoConfig.pov?.trim() || channel.personaPov?.trim() || null`.
+   - Menginjeksikan direktif eksplisit:
+     `- Persona & Sudut Pandang Kreator: "[Persona]" — Bawakan seluruh alur penceritaan, emosi, dan artikulasi ide dari kacamata persona ini.`
+   - Berfungsi secara komplementer dengan peran persona AI (`rolePOV`), tone of voice, dan gaya estetika visual.
+3. **Sinkronisasi API Route (`route.ts`)**:
+   - Memetakan `personaPov: channel.personaPov` pada `mappedChannel` (baik untuk video maupun image generator).
+   - Menetapkan fallback pada `fullVideoConfig.pov = videoConfig.pov || channel.personaPov || null`.
+4. **Unit Test & Regression Protection**:
+   - 4 unit test otomatis di `tests/promptGenerator.test.ts` memverifikasi integritas persona kreator, fallback profile, serta penegakan larangan CTA negatif dan direktif hook/ending.
+
+### 37.3 Hasil Verifikasi
+- TypeScript (`tsc --noEmit`): Lolos 100% tanpa error.
+- Vitest (`npm test`): 13 file pengujian, 102/102 test lolos (100% passing).

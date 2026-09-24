@@ -206,4 +206,78 @@ describe("promptGenerator", () => {
       expect(masterPrompt).not.toContain("[PEMBELAJARAN DARI KONTEN TERBAIK CHANNEL INI (CLOSED-LOOP INSIGHT)]");
     });
   });
+
+  describe("Fix #71 & #72: Persona & POV Kreator, Negative CTA, and Directives", () => {
+    it("injects Creator Persona & POV from videoConfig.pov", () => {
+      const { masterPrompt } = generateMasterPrompt(
+        dummyChannel,
+        "Review Gadget Terbaru",
+        "",
+        {
+          pov: "Energetic Reviewer (Review Produk)",
+          targetPlatform: "TIKTOK",
+        }
+      );
+
+      expect(masterPrompt).toContain('- Persona & Sudut Pandang Kreator: "Energetic Reviewer (Review Produk)"');
+    });
+
+    it("falls back to channel.personaPov when videoConfig.pov is missing", () => {
+      const channelWithPersona = {
+        ...dummyChannel,
+        personaPov: "Expert Storyteller (Edukasi & Inspirasi)",
+      };
+
+      const { masterPrompt } = generateMasterPrompt(
+        channelWithPersona,
+        "Kisah Sukses",
+        "",
+        {
+          targetPlatform: "TIKTOK",
+        }
+      );
+
+      expect(masterPrompt).toContain('- Persona & Sudut Pandang Kreator: "Expert Storyteller (Edukasi & Inspirasi)"');
+    });
+
+    it("enforces negative CTA directive and blocks channel CTA when includeCTA is false", () => {
+      const channelWithCTA = {
+        ...dummyChannel,
+        cta1: "Subscribe ke channel kami!",
+        cta2: "Follow akun kami!",
+      };
+
+      const { masterPrompt } = generateMasterPrompt(
+        channelWithCTA,
+        "Topik Tanpa Promosi",
+        "",
+        {
+          includeCTA: false,
+          targetPlatform: "TIKTOK",
+        }
+      );
+
+      expect(masterPrompt).toContain("[LARANGAN MUTLAK — CTA DINONAKTIFKAN OLEH USER]");
+      expect(masterPrompt).not.toContain('Kalimat CTA Utama: "Subscribe ke channel kami!"');
+      expect(masterPrompt).not.toContain('Kalimat CTA Alternatif: "Follow akun kami!"');
+    });
+
+    it("injects hookStyle and endingStyle directives correctly", () => {
+      const { masterPrompt } = generateMasterPrompt(
+        dummyChannel,
+        "Rahasia Algoritma",
+        "",
+        {
+          includeHook: true,
+          includeCTA: true,
+          hookStyle: "Fakta Mengejutkan",
+          endingStyle: "Pertanyaan Terbuka",
+          targetPlatform: "TIKTOK",
+        }
+      );
+
+      expect(masterPrompt).toContain("[GAYA HOOK PEMBUKA — FAKTA MENGEJUTKAN]");
+      expect(masterPrompt).toContain("[GAYA PENUTUP NASKAH — PERTANYAAN TERBUKA]");
+    });
+  });
 });

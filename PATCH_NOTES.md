@@ -2,6 +2,41 @@
 
 ---
 
+## [#72] — 2026-09-24 | Fix: Creator Persona & POV Integration (End-to-End Persona Coupling)
+
+### Overview
+
+Audit forensik lanjutan menemukan celah keterputusan (*disconnected field*) pada parameter **Persona & POV Kreator** (`videoConfig.pov` dan `channel.personaPov`). Meskipun kontrol UI telah tersedia di Generator Studio dan nilai divalidasi oleh API Route, nilai persona kreator tersebut sebelumnya tidak pernah diinjeksikan ke dalam teks prompt AI (`povSection`). Pembaruan ini menyambungkan parameter persona kreator secara utuh dari UI → API Route → Prompt Generator, lengkap dengan unit test otomatis.
+
+---
+
+### 1 — Creator Persona & POV Directive Injection
+
+- **Injeksi Direktif Persona Kreator**: `promptGenerator.ts` kini membaca nilai persona kreator (`videoConfig.pov`) dengan fallback otomatis ke `channel.personaPov`. Jika terisi, blok instruksi eksplisit ditambahkan ke `povSection`:
+  `- Persona & Sudut Pandang Kreator: "[Persona]" — Bawakan seluruh alur penceritaan, emosi, dan artikulasi ide dari kacamata persona ini.`
+- **Harmoni Multi-Persona**: Persona kreator (mis. *Expert Storyteller*, *Energetic Reviewer*, *Casual Friend*, atau kustom) kini berpadu secara sinergis dengan identitas channel, bobot komposisi, tone of voice, dan peran AI (*Role & POV AI*).
+- **File:** `src/lib/promptGenerator.ts`.
+
+---
+
+### 2 — API Route Mapping & Channel Profile Fallback
+
+- **Sinkronisasi `route.ts`**: Menambahkan pemetaan `personaPov: channel.personaPov` pada objek `mappedChannel` dan memastikan `fullVideoConfig.pov` mewarisi nilai `channel.personaPov` jika form tidak mengirimkan override.
+- **File:** `src/app/api/generate/route.ts`.
+
+---
+
+### 3 — Regression Protection & Unit Testing
+
+- **4 Unit Test Baru**: Menambahkan pengujian komprehensif di `tests/promptGenerator.test.ts` yang memvalidasi:
+  1. Injeksi persona kreator dari `videoConfig.pov`.
+  2. Fallback otomatis ke `channel.personaPov`.
+  3. Penegakan *Negative CTA Directive* saat CTA mati.
+  4. Injeksi direktif *Hook Style* dan *Ending Style*.
+- **File:** `tests/promptGenerator.test.ts`.
+
+---
+
 ## [#71] — 2026-09-24 | Fix: CTA Leakage Prevention, Negative CTA Directive & Hook/Ending Style Integration
 
 ### Overview

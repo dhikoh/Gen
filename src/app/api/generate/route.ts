@@ -360,6 +360,7 @@ export async function POST(req: Request) {
 
       const fullVideoConfig = {
         ...videoConfig,
+        pov: videoConfig.pov || channel.personaPov || null,
         contentArchetype: typedArchetype,
         narrationMode: videoConfig.narrationMode || effectiveArchetype?.narrationMode,
         selectedProduct,
@@ -370,6 +371,7 @@ export async function POST(req: Request) {
         channelName: channel.channelName,
         niche: channel.niche,
         description: channel.description,
+        personaPov: channel.personaPov,
         visualAesthetic: channel.visualAesthetic,
         cta1: channel.cta1,
         cta2: channel.cta2,
@@ -392,6 +394,7 @@ export async function POST(req: Request) {
         channelName: channel.channelName,
         niche: channel.niche,
         description: channel.description,
+        personaPov: channel.personaPov,
         visualAesthetic: channel.visualAesthetic,
         cta1: channel.cta1,
         cta2: channel.cta2,
