@@ -197,9 +197,10 @@ export interface VoiceGuidelines {
   sampleContext?: string;
   directorsNote?: string;
   traits?: string;
+  sync?: string;
 }
 
-/** Parse voice guidelines from a "Context: … | Note: … | Traits: …" string. */
+/** Parse voice guidelines from a "Context: … | Note: … | Traits: … | Sync: …" string. */
 export function parseVoiceGuidelines(val: string): VoiceGuidelines | undefined {
   if (!val) return undefined;
   const cleanVal = val.trim().replace(/^\[|\]$/g, "");
@@ -212,6 +213,7 @@ export function parseVoiceGuidelines(val: string): VoiceGuidelines | undefined {
         if (key.includes("context")) acc.sampleContext = value;
         else if (key.includes("note") || key.includes("direct")) acc.directorsNote = value;
         else if (key.includes("trait")) acc.traits = value;
+        else if (key.includes("sync")) acc.sync = value;
       }
       return acc;
     },
@@ -635,16 +637,13 @@ export interface Scene {
   overlayType?: "chapter_title" | "key_point";
   chapter?: number;
   chapterTitle?: string;
+  chapterPrefix?: string;
   visual: string;
   durasi: string;
   bgmCues?: string[];
   sfxCues?: string[];
   isDiegetic?: boolean;
-  voiceGuidelines?: {
-    sampleContext?: string;
-    directorsNote?: string;
-    traits?: string;
-  };
+  voiceGuidelines?: VoiceGuidelines;
   targetEmosi?: string;
   teknikPacing?: string;
 }
@@ -673,7 +672,7 @@ export function cleanNarasiForTts(text: string): string {
 
 /**
  * Parse AI generated script text into structured Scene items with support for:
- * - Chapter markers (BAB N: Title)
+ * - Chapter markers (BAB N: Title or CHAPTER N: Title)
  * - Narration, Audio cues (BGM, SFX, Diegetic)
  * - Target Emosi (VET 3-Act Storytelling)
  * - Teknik Editing & Pacing (Jump cut, beat-sync, b-roll cutaways)
@@ -683,12 +682,17 @@ export function cleanNarasiForTts(text: string): string {
 export function parseScenes(text: string): Scene[] {
   if (!text || !text.trim()) return [];
 
-  // Extract chapter markers: ## BAB N: Title
-  const chapterMarkers: { index: number; num: number; title: string }[] = [];
-  const chapterPattern = /(?:^|\r?\n)##\s*BAB\s+(\d+)\s*:\s*(.+?)(?=\r?\n|$)/gi;
+  // Extract chapter markers: ## BAB N: Title or ## CHAPTER N: Title
+  const chapterMarkers: { index: number; prefix: string; num: number; title: string }[] = [];
+  const chapterPattern = /(?:^|\r?\n)##\s*(BAB|CHAPTER)\s+(\d+)\s*:\s*(.+?)(?=\r?\n|$)/gi;
   let chMatch;
   while ((chMatch = chapterPattern.exec(text)) !== null) {
-    chapterMarkers.push({ index: chMatch.index, num: parseInt(chMatch[1], 10), title: chMatch[2].trim() });
+    chapterMarkers.push({
+      index: chMatch.index,
+      prefix: chMatch[1].toUpperCase(),
+      num: parseInt(chMatch[2], 10),
+      title: chMatch[3].trim(),
+    });
   }
 
   const splitter = /(?:^|\r?\n)(?:##\s*|###\s*|\*\*\s*|={1,4}\s*)?(?:Scene|Adegan|Bagian)\s*([a-zA-Z0-9_\-]+)(?:\s*(?:\*\*|={1,4}))?(?=\r?\n|$)/gi;
@@ -697,12 +701,12 @@ export function parseScenes(text: string): Scene[] {
   const delimiters = "(?:Target\\s*Emosi(?:\\s*\\(VET\\))?|Emosi|Teknik\\s*(?:Editing(?:\\s*&\\s*Pacing)?|Pacing)|Pacing|Teks\\s*Overlay|Text\\s*Overlay|Overlay|Panduan\\s*Suara|Voice\\s*Guidelines|Visual\\s*Prompt|Visual|Deskripsi\\s*Visual|Prompt|Durasi|Time|Duration)";
 
   // Helper: find which chapter a given text offset belongs to
-  function findChapterAt(offset: number): { num: number; title: string } | undefined {
+  function findChapterAt(offset: number): { prefix: string; num: number; title: string } | undefined {
     let best: (typeof chapterMarkers)[0] | undefined;
     for (const cm of chapterMarkers) {
       if (cm.index <= offset) best = cm;
     }
-    return best ? { num: best.num, title: best.title } : undefined;
+    return best ? { prefix: best.prefix, num: best.num, title: best.title } : undefined;
   }
 
   if (parts.length > 1) {
@@ -747,6 +751,7 @@ export function parseScenes(text: string): Scene[] {
           overlayType,
           chapter: chapterInfo?.num,
           chapterTitle: chapterInfo?.title,
+          chapterPrefix: chapterInfo?.prefix,
           visual: visVal || "—",
           durasi: durVal,
           bgmCues: audio.bgmCues,

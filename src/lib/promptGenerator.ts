@@ -804,7 +804,26 @@ Sangat ilustratif, dinamis, metaforis (HINDARI penerjemahan literal). Contoh yan
     // ── Overlay Style & Chapter Structure ──────────────────────────────────
     const overlayStyle = videoConfig.overlayStyle || "auto";
     const sceneCount = videoConfig.targetSceneCount;
-    const isLongForm = sceneCount ? sceneCount > 6 : false;
+
+    // Deteksi apakah konten adalah Short-Form (Shorts / Reels / TikTok / vertikal 9:16 / durasi <= 90 detik)
+    const normPlatform = (videoConfig.targetPlatform || "").toUpperCase();
+    const isVerticalOrShort =
+      videoConfig.aspectRatio === "9:16" ||
+      normPlatform === "TIKTOK" ||
+      normPlatform === "INSTAGRAM_REEL" ||
+      normPlatform === "INSTAGRAM_REELS" ||
+      normPlatform === "YOUTUBE_SHORTS" ||
+      normPlatform === "SHORTS" ||
+      (videoConfig.targetDurationSec != null && videoConfig.targetDurationSec <= 90);
+
+    const isExplicitChapterStyle = overlayStyle === "chapter_titles";
+    const isLongForm = isExplicitChapterStyle || (!isVerticalOrShort && (sceneCount ? sceneCount > 6 : false));
+
+    // Bahasa untuk bab/chapter
+    const isEnglishOutput = Boolean(outputLanguage && /english|inggris/i.test(outputLanguage));
+    const chapterKeyword = isEnglishOutput ? "CHAPTER" : "BAB";
+    const chapterSample1 = isEnglishOutput ? "Opening Hook" : "Opening Hook";
+    const chapterSample2 = isEnglishOutput ? "Core Deep Dive" : "Pembahasan Utama";
 
     // Build overlay instruction based on overlay style
     let overlayInstruction: string;
@@ -837,17 +856,17 @@ Tulis prefix jenis di depan teks, contoh: "[CHAPTER TITLE] Rahasia Sukses" atau 
     // ── Chapter Grouping (Long-form Auto) ──────────────────────────────────
     const needsChapterGrouping = isLongForm && (overlayStyle === "auto" || overlayStyle === "chapter_titles" || overlayStyle === "mixed");
     if (needsChapterGrouping) {
-      systemInstruction += `\n[STRUKTUR BAB OTOMATIS — KONTEN LONG-FORM]
-Karena jumlah scene ≥ 7, kamu WAJIB mengelompokkan scene ke dalam bab-bab tematik.
-Format: Tambahkan header "## BAB [nomor]: [Judul Bab]" sebelum kelompok scene pertama dari setiap bab.
-Scene pertama di setiap bab WAJIB memiliki TEKS OVERLAY bertipe [CHAPTER TITLE].
+      systemInstruction += `\n[STRUKTUR ${chapterKeyword} OTOMATIS — KONTEN LONG-FORM]
+Karena konten merupakan format panjang dengan jumlah scene ≥ 7, kamu WAJIB mengelompokkan scene ke dalam bab-bab tematik.
+Format: Tambahkan header "## ${chapterKeyword} [nomor]: [Judul Bab]" sebelum kelompok scene pertama dari setiap bab.
+Scene pertama di setiap bab WAJIB memiliki TEKS OVERLAY bertipe [CHAPTER TITLE] dengan judul yang selaras (dalam bahasa ${outputLanguage ? outputLanguage.trim() : "Indonesia"}).
 Contoh struktur:
-## BAB 1: Opening Hook
+## ${chapterKeyword} 1: ${chapterSample1}
 ## SCENE 1
 ...
 ## SCENE 2
 ...
-## BAB 2: Pembahasan Utama
+## ${chapterKeyword} 2: ${chapterSample2}
 ## SCENE 3
 ...
 Jumlah bab ditentukan secara natural berdasarkan alur konten (biasanya 3-6 bab untuk konten panjang).`;
@@ -1015,7 +1034,7 @@ ${structural.narrationModeDirective}
 
   // ── Exclude Titles ─────────────────────────────────────────────────────
   let excludeSection = "";
-  if (excludeTitles && excludeTitles.length > 0) {
+  if (Array.isArray(excludeTitles) && excludeTitles.length > 0) {
     excludeSection = `\n[EXCLUDE LIST JUDUL]\nHindari judul-judul berikut karena sudah pernah dipakai:\n${excludeTitles.map((t) => `- "${t}"`).join("\n")}\n`;
   }
 

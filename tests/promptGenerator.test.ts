@@ -370,6 +370,74 @@ describe("promptGenerator", () => {
       expect(systemInstruction).not.toContain("Panduan Lengkap Strategi YouTube 2026 (Shorts & Long-Form)");
     });
   });
+
+  describe("Chapter Structure & Long-Form vs Short-Form Auto Detection", () => {
+    it("does NOT inject chapter grouping for vertical 9:16 Shorts with 7 scenes", () => {
+      const { systemInstruction } = generateMasterPrompt(
+        dummyChannel,
+        "Reptil Gecko Eye Lick",
+        "",
+        {
+          targetPlatform: "SHORTS",
+          aspectRatio: "9:16",
+          targetSceneCount: 7,
+          targetDurationSec: 50,
+          overlayStyle: "auto",
+        },
+        undefined,
+        [],
+        "English"
+      );
+
+      expect(systemInstruction).not.toContain("KONTEN LONG-FORM");
+      expect(systemInstruction).not.toContain("## CHAPTER 1");
+      expect(systemInstruction).not.toContain("## BAB 1");
+    });
+
+    it("injects localized CHAPTER structure for 16:9 Long-Form English video", () => {
+      const { systemInstruction } = generateMasterPrompt(
+        dummyChannel,
+        "Why Geckos Lick Their Eyes Deep Dive",
+        "",
+        {
+          targetPlatform: "YOUTUBE_LONG",
+          aspectRatio: "16:9",
+          targetSceneCount: 8,
+          targetDurationSec: 480,
+          overlayStyle: "auto",
+        },
+        undefined,
+        [],
+        "English"
+      );
+
+      expect(systemInstruction).toContain("[STRUKTUR CHAPTER OTOMATIS — KONTEN LONG-FORM]");
+      expect(systemInstruction).toContain("## CHAPTER 1: Opening Hook");
+      expect(systemInstruction).toContain("## CHAPTER 2: Core Deep Dive");
+    });
+
+    it("injects localized BAB structure for 16:9 Long-Form Indonesian video", () => {
+      const { systemInstruction } = generateMasterPrompt(
+        dummyChannel,
+        "Misteri Mata Tokek Long Form",
+        "",
+        {
+          targetPlatform: "YOUTUBE_LONG",
+          aspectRatio: "16:9",
+          targetSceneCount: 8,
+          targetDurationSec: 480,
+          overlayStyle: "auto",
+        },
+        undefined,
+        [],
+        "Indonesian"
+      );
+
+      expect(systemInstruction).toContain("[STRUKTUR BAB OTOMATIS — KONTEN LONG-FORM]");
+      expect(systemInstruction).toContain("## BAB 1: Opening Hook");
+      expect(systemInstruction).toContain("## BAB 2: Pembahasan Utama");
+    });
+  });
 });
 
 

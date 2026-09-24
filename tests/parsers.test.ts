@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { cleanMarkdownLinks, cleanValue, cleanParsedValue, extractThumbnailData, extractTitles, cleanNarasiForTts, parseScenes, extractThreeTierSeo } from "@/lib/parsers";
+import { cleanMarkdownLinks, cleanValue, cleanParsedValue, extractThumbnailData, extractTitles, cleanNarasiForTts, parseScenes, extractThreeTierSeo, parseVoiceGuidelines } from "@/lib/parsers";
 
 describe("parsers", () => {
   describe("cleanMarkdownLinks", () => {
@@ -191,4 +191,62 @@ CHECKLIST KESIAPAN AKHIR:
       expect(seo?.checklist[0]).toContain("Janji Nilai");
     });
   });
+
+  describe("parseVoiceGuidelines", () => {
+    it("parses context, note, traits, and sync fields", () => {
+      const input = `Context: malam hari dekat terarium | Note: berbisik pelan lalu cepat | Traits: energetic, husky whisper | Sync: [SFX: Wet Tongue Flick] tepat saat lidah menyentuh mata`;
+      const result = parseVoiceGuidelines(input);
+      expect(result).toBeDefined();
+      expect(result?.sampleContext).toBe("malam hari dekat terarium");
+      expect(result?.directorsNote).toBe("berbisik pelan lalu cepat");
+      expect(result?.traits).toBe("energetic, husky whisper");
+      expect(result?.sync).toBe("[SFX: Wet Tongue Flick] tepat saat lidah menyentuh mata");
+    });
+  });
+
+  describe("parseScenes bilingual chapters & sync integration", () => {
+    it("parses CHAPTER and BAB markers, sets chapterPrefix, and captures sync in voice guidelines", () => {
+      const script = `
+## CHAPTER 1: The Weird Habit
+
+## SCENE 1
+NARASI: Ever seen an animal lick its own eyeball? [SFX: Wet Tongue Flick]
+TARGET EMOSI: Rasa Ingin Tahu
+TEKNIK PACING: Jump cut cepat
+TEKS OVERLAY: [CHAPTER TITLE] The Weird Habit
+PANDUAN SUARA: Context: malam hari | Note: berbisik pelan | Traits: energetic | Sync: [SFX: Wet Tongue Flick] tepat saat snap zoom
+VISUAL: Extreme close-up of gecko eye --ar 9:16
+DURASI: 6 detik
+
+## BAB 2: Investigasi Sains
+
+## SCENE 2
+NARASI: Most geckos don't have eyelids at all. [SFX: Soft Whoosh]
+TARGET EMOSI: Kejutan
+TEKNIK PACING: Rack focus
+TEKS OVERLAY: [CHAPTER TITLE] No Eyelids, No Problem?
+PANDUAN SUARA: Context: terarium terang | Note: santai | Traits: confident | Sync: [SFX: Soft Whoosh] saat rack focus
+VISUAL: Medium close-up of full face --ar 9:16
+DURASI: 7 detik
+      `;
+
+      const scenes = parseScenes(script);
+      expect(scenes).toHaveLength(2);
+
+      // Scene 1 with CHAPTER
+      expect(scenes[0].chapter).toBe(1);
+      expect(scenes[0].chapterTitle).toBe("The Weird Habit");
+      expect(scenes[0].chapterPrefix).toBe("CHAPTER");
+      expect(scenes[0].overlayType).toBe("chapter_title");
+      expect(scenes[0].voiceGuidelines?.sync).toBe("[SFX: Wet Tongue Flick] tepat saat snap zoom");
+
+      // Scene 2 with BAB
+      expect(scenes[1].chapter).toBe(2);
+      expect(scenes[1].chapterTitle).toBe("Investigasi Sains");
+      expect(scenes[1].chapterPrefix).toBe("BAB");
+      expect(scenes[1].overlayType).toBe("chapter_title");
+      expect(scenes[1].voiceGuidelines?.sync).toBe("[SFX: Soft Whoosh] saat rack focus");
+    });
+  });
 });
+

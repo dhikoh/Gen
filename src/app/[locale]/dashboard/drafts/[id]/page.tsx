@@ -34,11 +34,20 @@ interface SceneItem {
   overlayType?: "chapter_title" | "key_point";
   chapter?: number;
   chapterTitle?: string;
+  chapterPrefix?: string;
   visual?: string;
   durasi?: string;
   bgmCues?: string[];
   sfxCues?: string[];
   isDiegetic?: boolean;
+  voiceGuidelines?: {
+    sampleContext?: string;
+    directorsNote?: string;
+    traits?: string;
+    sync?: string;
+  };
+  targetEmosi?: string;
+  teknikPacing?: string;
 }
 
 interface ImageVariation {
@@ -370,7 +379,7 @@ export default async function DraftDetailPage({
   <div className="flex items-center gap-3 py-3 px-6">
    <div className="flex-1 h-px bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent" />
    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5">
-    📖 BAB {scene.chapter}: {scene.chapterTitle}
+    📖 {scene.chapterPrefix || "BAB"} {scene.chapter}: {scene.chapterTitle}
    </span>
    <div className="flex-1 h-px bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent" />
   </div>
@@ -388,6 +397,16 @@ export default async function DraftDetailPage({
  {scene.isDiegetic && (
  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
  🔇 Diegetic
+ </span>
+ )}
+ {scene.targetEmosi && (
+ <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300">
+ 🎯 {scene.targetEmosi}
+ </span>
+ )}
+ {scene.teknikPacing && (
+ <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+ ⚡ {scene.teknikPacing}
  </span>
  )}
  {scene.durasi && (
@@ -424,6 +443,14 @@ export default async function DraftDetailPage({
  ))}
  </div>
  ) : null}
+ {scene.voiceGuidelines && (
+ <div className="bg-blue-50 dark:bg-blue-900/20 rounded p-2.5 text-xs text-blue-700 dark:text-blue-300 space-y-0.5">
+  {scene.voiceGuidelines.sampleContext && <p>📍 {scene.voiceGuidelines.sampleContext}</p>}
+  {scene.voiceGuidelines.directorsNote && <p>🎬 {scene.voiceGuidelines.directorsNote}</p>}
+  {scene.voiceGuidelines.traits && <p>🎙️ {scene.voiceGuidelines.traits}</p>}
+  {scene.voiceGuidelines.sync && <p>⏱️ Sync: {scene.voiceGuidelines.sync}</p>}
+ </div>
+ )}
  </div>
  {scene.visual && (
  <div className="pg-bg-page p-3 rounded border pg-border">

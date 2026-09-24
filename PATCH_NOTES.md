@@ -2,6 +2,62 @@
 
 ---
 
+## [#78] — 2026-09-25 | Feature & Bugfix: Smart Short-Form Chapter Suppression, Bilingual Chapter Markers, and Voice Sync Guidelines
+
+### Overview
+
+Penyempurnaan arsitektur segmentasi bab (*chapter structure*), parser audio-visual, dan antarmuka *Scene Prompt Studio* & *Draft Preview*. Pembaruan ini mengatasi masalah di mana video Shorts/Reels vertikal (9:16) dengan durasi pendek (contoh: 50 detik, 7 scene) dipaksa memecah alur menjadi bab tematik (*Long-Form chaptering*), serta mengintegrasikan panduan sinkronisasi audio-kamera (`Sync:`) dan dukungan format bab dwibahasa (`CHAPTER` & `BAB`).
+
+---
+
+### 1 — Smart Long-Form vs Short-Form Detection (`promptGenerator.ts`)
+
+- **Akar Masalah**:
+  - Sebelumnya, `isLongForm` dihitung murni berdasarkan `sceneCount > 6`.
+  - Pada video pendek vertikal (YouTube Shorts, TikTok, Instagram Reels) dengan tempo cepat (jump cuts, B-rolls), kreator sering menggunakan 7–10 scene singkat (5–8 detik per scene).
+  - Akibatnya, video Shorts 50 detik otomatis diinjeksi direktif `[STRUKTUR BAB OTOMATIS — KONTEN LONG-FORM]`, memecah video pendek menjadi beberapa BAB dan memicu duplikasi overlay `[CHAPTER TITLE]`.
+- **Solusi & Implementasi**:
+  1. **Deteksi Short-Form Pintar (`isVerticalOrShort`)**:
+     - Memeriksa apakah `aspectRatio === "9:16"`, platform adalah `TIKTOK`, `INSTAGRAM_REEL(S)`, `YOUTUBE_SHORTS`, `SHORTS`, atau durasi total $\le 90$ detik.
+     - Video Short-Form **tidak akan lagi** menginjeksi struktur bab secara otomatis, kecuali jika pengguna secara eksplisit memilih `overlayStyle === "chapter_titles"`.
+  2. **Bilingual Chapter Localization (Anti Language Bleed)**:
+     - Jika bahasa output adalah bahasa Inggris, instruksi bab secara otomatis menggunakan kata kunci `CHAPTER` (`## CHAPTER 1: Opening Hook`, `## CHAPTER 2: Core Deep Dive`) dan menegaskan penulisan overlay dalam bahasa Inggris yang selaras.
+     - Jika bahasa Indonesia, menggunakan kata kunci `BAB` (`## BAB 1: Opening Hook`, `## BAB 2: Pembahasan Utama`).
+  3. **Array Type Guard pada `excludeTitles`**:
+     - Menambahkan guard `Array.isArray(excludeTitles)` untuk mencegah runtime error saat argumen dilewatkan tanpa array.
+
+---
+
+### 2 — Parser Engine & Voice Guidelines Sync (`parsers.ts`)
+
+- **Dukungan Parameter `Sync:`**:
+  - Menambahkan properti `sync?: string` pada antarmuka `VoiceGuidelines`.
+  - Fungsi `parseVoiceGuidelines` kini memproses segmen `Sync:` pada string `PANDUAN SUARA` (contoh: `[SFX: Wet Tongue Flick] tepat saat lidah menyentuh mata, snap zoom bersamaan`).
+- **Dukungan Bilingual Chapter Regex**:
+  - Memperbarui regex ekstraksi bab agar mengenali kedua marker `BAB` dan `CHAPTER`:
+    `/(?:^|\r?\n)##\s*(BAB|CHAPTER)\s+(\d+)\s*:\s*(.+?)(?=\r?\n|$)/gi`
+  - Menyimpan `chapterPrefix` (`"CHAPTER"` atau `"BAB"`) pada entitas `Scene`.
+
+---
+
+### 3 — UI Harmonization (`ScenePromptStudioClient.tsx` & `drafts/[id]/page.tsx`)
+
+- **Dynamic Chapter Divider**:
+  - Divider bab merender `{scene.chapterPrefix || "BAB"} {scene.chapter}: {scene.chapterTitle}`, sehingga naskah berbahasa Inggris tampil natural sebagai `CHAPTER 1` dan naskah Indonesia sebagai `BAB 1`.
+- **Integrasi Kotak Panduan Suara Studio & Draft**:
+  - Kotak biru panduan suara kini menampilkan baris sinkronisasi `⏱️ Sync: ...` agar kreator/editor video mengetahui momen persis sinkronisasi SFX/BGM dengan pergerakan kamera.
+  - Halaman Draft Preview (`drafts/[id]`) diselaraskan penuh dengan menyertakan badge emosi 🎯, pacing ⚡, dan kotak panduan suara lengkap.
+
+---
+
+### 4 — Quality Assurance & Verification
+
+- **TypeScript Compilation**: `npx tsc --noEmit` lolos 100% tanpa error (exit code 0).
+- **Unit Test Suite**: 117/117 tests lolos 100% di 13 test suites (`vitest run`).
+  - Menambahkan pengujian khusus untuk `parseVoiceGuidelines` (`Sync:`), bilingual chapter parsing (`CHAPTER` & `BAB`), dan deteksi otomatis short-form vs long-form.
+
+---
+
 ## [#77] — 2026-09-25 | Bugfix: Elimination of Infinite Preferences Fetch Loop & Render Flooding in Scene Prompt Studio
 
 ### Overview
