@@ -128,6 +128,24 @@ ALASAN POTENSI: Memberikan solusi langsung dan aplikatif
       expect(cleaned).not.toContain("tersenyum");
     });
 
+    it("strips acting notes in parentheses, asterisks, brackets, and quotes from Claude & ChatGPT", () => {
+      // Claude sample with quotes & acting note
+      const claude1 = `(hushed, urgent whisper) "This reptile has a third eye. Right on top of its skull."`;
+      expect(cleanNarasiForTts(claude1)).toBe("This reptile has a third eye. Right on top of its skull.");
+
+      // Claude sample with pause & apostrophe (can't)
+      const claude2 = `(curious, building) "It can't see pictures like your eyes do. (pause) But it tracks light... shadow... the slow crawl of the sun across the sky. "`;
+      expect(cleanNarasiForTts(claude2)).toBe("It can't see pictures like your eyes do. But it tracks light... shadow... the slow crawl of the sun across the sky.");
+
+      // ChatGPT sample with asterisks *(urgent, fast, controlled shock)* & SFX bracket
+      const chatgpt1 = `*(urgent, fast, controlled shock)* Some chameleons can launch their tongues up to two-and-a-half body lengths. [SFX: sharp whoosh]`;
+      expect(cleanNarasiForTts(chatgpt1)).toBe("Some chameleons can launch their tongues up to two-and-a-half body lengths.");
+
+      // Scene with aside and multiple pauses
+      const complexScene = `(soft revelation, connecting) "Here's the part that'll really get you: (pause) you have a buried piece of this same ancient eye too — deep inside your brain. [SFX: gentle glimmer] (warmly, aside) If that just cracked your brain a little... you know what to do."`;
+      expect(cleanNarasiForTts(complexScene)).toBe("Here's the part that'll really get you: you have a buried piece of this same ancient eye too — deep inside your brain. If that just cracked your brain a little... you know what to do.");
+    });
+
     it("handles plain text without modifications", () => {
       expect(cleanNarasiForTts("Ini narasi biasa tanpa instruksi sutradara.")).toBe("Ini narasi biasa tanpa instruksi sutradara.");
     });
@@ -246,6 +264,75 @@ DURASI: 7 detik
       expect(scenes[1].chapterPrefix).toBe("BAB");
       expect(scenes[1].overlayType).toBe("chapter_title");
       expect(scenes[1].voiceGuidelines?.sync).toBe("[SFX: Soft Whoosh] saat rack focus");
+    });
+
+    it("parses ChatGPT markdown with single hash scenes and bolded headers", () => {
+      const chatGptOutput = `
+# RISET & VARIASI JUDUL
+**JUDUL TERPILIH:** The Reptile That Looks Harmless
+
+---
+
+# SCENE 1
+
+**NARASI:**
+*(urgent, fast, controlled shock)* Some chameleons can launch their tongues up to two-and-a-half body lengths. [SFX: sharp whoosh]
+
+**TARGET EMOSI (VET):** Shock / Curiosity
+
+**TEKNIK EDITING & PACING:**
+Hard cold-open on tongue launch at frame 0. Snap cut on the prey contact moment.
+
+**TEKS OVERLAY:**
+**2.5 BODY LENGTHS**
+
+**PANDUAN SUARA:**
+Context: explosive wildlife reveal | Note: immediate attack | Traits: energetic | Sync: [SFX: sharp whoosh] on launch
+
+**VISUAL PROMPT:**
+Extreme close-up of a chameleon perched on a mossy branch --ar 9:16
+
+**DURASI:** 6 seconds
+
+---
+
+# SCENE 2
+
+**NARASI:**
+*(intrigued, slightly slower)* And that is not a trick. [SFX: subtle reveal]
+
+**TARGET EMOSI (VET):** Intrigue
+
+**TEKNIK EDITING & PACING:**
+Match cut from the tongue impact into a wider spatial visualization.
+
+**TEKS OVERLAY:**
+**LONGER THAN IT LOOKS**
+
+**PANDUAN SUARA:**
+Context: scientific reveal | Note: slightly slower | Traits: warm storyteller | Sync: [SFX: subtle reveal] at extension
+
+**VISUAL PROMPT:**
+Medium side-profile shot of a chameleon holding still --ar 9:16
+
+**DURASI:** 7 seconds
+
+---
+
+# THUMBNAIL STUDIO
+**TEKS OVERLAY SEO:** 264 G
+`;
+
+      const scenes = parseScenes(chatGptOutput);
+      expect(scenes).toHaveLength(2);
+      expect(scenes[0].sceneNumber).toBe("Scene 1");
+      expect(scenes[0].targetEmosi).toBe("Shock / Curiosity");
+      expect(scenes[0].teksOverlay).toBe("2.5 BODY LENGTHS");
+      expect(scenes[0].durasi).toBe("6s");
+      expect(scenes[0].voiceGuidelines?.sync).toBe("[SFX: sharp whoosh] on launch");
+      expect(scenes[0].narasi).toContain("Some chameleons can launch their tongues");
+      expect(scenes[1].sceneNumber).toBe("Scene 2");
+      expect(scenes[1].durasi).toBe("7s");
     });
   });
 });

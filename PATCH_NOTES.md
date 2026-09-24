@@ -2,6 +2,57 @@
 
 ---
 
+## [#79] — 2026-09-25 | Bugfix & Workflow Enhancement: ChatGPT Markdown Scene Parsing & Clean TTS Narration Copy
+
+### Overview
+
+Pembaruan komprehensif pada ketahanan (*resilience*) parser naskah AI dan efisiensi alur kerja *Text-to-Speech* (TTS). Patch ini menyelesaikan 2 kendala krusial:
+1. **Kegagalan Parsing Format ChatGPT**: Format output ChatGPT dengan header tingkat-1 (`# SCENE 1`), pembatas tebal (`**NARASI:**`, `**TARGET EMOSI (VET):**`, `**DURASI:** 6 seconds`), dan garis horizontal (`---`) sebelumnya gagal dikenali splitter regex dan memicu *fallback* keliru menjadi 1 scene tunggal berdurasi 15 detik dengan ratusan badge SFX duplikat.
+2. **Perlambatan Alur Kerja Salin Narasi ke TTS**: Tombol salin narasi (`Copy` dan `Copy All Narration`) sebelumnya menyalin instruksi akting mentah dalam tanda kurung (seperti `(hushed, urgent whisper)`, `(pause)`, `(warmly, aside)`) dan tanda kutip (`"..."`), yang menyebabkan model TTS membacakan instruksi panggung secara harfiah sehingga pengguna harus mengedit teks secara manual satu per satu.
+
+---
+
+### 1 — Ketahanan Parser ChatGPT & Multi-LLM (`parsers.ts`)
+
+- **Dukungan Single-Hash Header (`# SCENE 1`)**:
+  - Regex splitter diperluas dari `(?:##\s*|###\s*...)` menjadi `/(?:^|\r?\n)(?:#{1,4}\s*|\*\*\s*|={1,4}\s*)?(?:Scene|Adegan|Bagian|Part)\s*([a-zA-Z0-9_\-]+)(?:[:\s\*\-=_]*)(?=\r?\n|$)/gi`.
+  - Mampu membelah scene dari ChatGPT (`# SCENE 1`), Claude (`## SCENE 1`), Gemini (`Scene 1:`), maupun markdown tebal (`**SCENE 1:**`).
+- **Pencocokan Field Cerdas & Robust Delimiter Lookahead**:
+  - Delimiter lookahead `delimLookahead` kini mentolerir tanda tebal markdown (`**`), penempatan titik dua di dalam maupun di luar asterisks (`**NARASI:**` atau `**NARASI**:` atau `NARASI:`), baris horizontal `---`, serta pemisah antar field.
+  - Sisa teks footer seperti `# THUMBNAIL STUDIO` dan `# METADATA SEO` dipotong secara presisi menggunakan regex `stop` yang mendukung single hash (`#{1,4}`).
+- **Normalisasi Durasi Scene (`normalizeDurasi`)**:
+  - Nilai durasi verbal seperti `6 seconds`, `7 seconds`, atau `5 detik` dinormalisasi secara otomatis menjadi format ringkas seragam (`6s`, `7s`, `5s`) agar badge UI selalu rapi dan konsisten.
+
+---
+
+### 2 — Clean Spoken Narration Copy untuk Text-to-Speech (`parsers.ts` & `ScenePromptStudioClient.tsx`)
+
+- **Peningkatan Fungsi `cleanNarasiForTts`**:
+  - Membersihkan instruksi akting/panggung dalam tanda kurung: `(hushed, urgent whisper)`, `(pause)`, `(warmly, aside)`, `*(urgent)*`.
+  - Membersihkan cue audio/efek dalam tanda kurung siku: `[SFX: sharp whoosh]`, `[BGM: ...]`.
+  - Membersihkan tanda kutip ganda dekoratif (`"`, `“`, `”`).
+  - Membersihkan tanda petik pembungkus tepi tanpa merusak tanda apostrof di dalam kata (contoh: `can't`, `it's`, `reptile's` tetap utuh 100%).
+  - Membersihkan sisa asterisks pemformatan markdown (`*`, `**`, `***`, `_`).
+  - Menormalisasi spasi di depan tanda baca (` .` $\rightarrow$ `.`, spasi ganda $\rightarrow$ spasi tunggal).
+- **Integrasi Tombol Salin Narasi Studio**:
+  - **`🎤 Copy All Narration`**: Memetakan seluruh scene yang valid melalui `cleanNarasiForTts`, menghasilkan teks narasi bersih siap-tempel ke ElevenLabs, CapCut, Fish Audio, atau TTS lainnya tanpa instruksi akting atau tanda kutip yang mengganggu.
+  - **Tombol Salin per Scene**:
+    - Tombol utama `Copy` langsung menyalin teks narasi bersih (*pure spoken text*).
+    - Menambahkan tombol sekunder `Raw` yang otomatis muncul jika terdapat instruksi sutradara, memungkinkan kreator menyalin teks asli jika dibutuhkan untuk dokumentasi naskah.
+
+---
+
+### 3 — Verifikasi & Pengujian Kualitas
+
+- **Unit Testing (`tests/parsers.test.ts`)**:
+  - Menambahkan pengujian end-to-end untuk output ChatGPT dengan single-hash `# SCENE 1`, header `**NARASI:**`, dan baris horizontal `---`.
+  - Menambahkan pengujian pembersihan narasi TTS untuk sampel Claude, ChatGPT, dan naskah bilingual.
+  - Total pengujian: 119/119 lolos 100% di 13 test suites.
+- **TypeScript Typecheck**:
+  - `npx tsc --noEmit` lolos tanpa error (exit code 0).
+
+---
+
 ## [#78] — 2026-09-25 | Feature & Bugfix: Smart Short-Form Chapter Suppression, Bilingual Chapter Markers, and Voice Sync Guidelines
 
 ### Overview

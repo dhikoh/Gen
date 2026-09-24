@@ -772,7 +772,8 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
  const copyAllNarration = useCallback(() => {
  const validNarrations = scenes
  .filter(s => s.narasi && s.narasi !== "—" && !s.isDiegetic)
- .map(s => s.narasi.trim());
+ .map(s => cleanNarasiForTts(s.narasi).trim())
+ .filter(Boolean);
 
  if (!validNarrations.length) {
  toast.error(t("noNarrationToCopy"));
@@ -1168,15 +1169,38 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
   </div>
 
   {/* Narasi (jika ada spoken voiceover) */}
-  {scene.narasi !== "—" && (
-    <div>
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-xs font-semibold pg-text-muted uppercase">🎤 {t("narasi")}</span>
-        <button onClick={() => copy(`nar-${scene.id}`, scene.narasi)} className="text-xs text-blue-500 hover:underline">{copiedId === `nar-${scene.id}` ? "✓" : t("copy")}</button>
+  {scene.narasi !== "—" && (() => {
+    const cleanSpoken = cleanNarasiForTts(scene.narasi);
+    const hasDirectorNotes = cleanSpoken && cleanSpoken !== scene.narasi.trim();
+    return (
+      <div>
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-xs font-semibold pg-text-muted uppercase">🎤 {t("narasi")}</span>
+          <div className="flex items-center gap-2">
+            {hasDirectorNotes && (
+              <button
+                type="button"
+                onClick={() => copy(`nar-raw-${scene.id}`, scene.narasi)}
+                className="text-[11px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:underline"
+                title="Salin narasi mentah (dengan catatan sutradara)"
+              >
+                {copiedId === `nar-raw-${scene.id}` ? "✓ Raw" : "Raw"}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => copy(`nar-${scene.id}`, cleanSpoken || scene.narasi)}
+              className="text-xs text-blue-500 hover:underline font-medium"
+              title="Salin narasi bersih (siap TTS, tanpa instruksi/tanda kutip)"
+            >
+              {copiedId === `nar-${scene.id}` ? "✓" : t("copy")}
+            </button>
+          </div>
+        </div>
+        <p className="text-sm pg-text-sub leading-relaxed">{scene.narasi}</p>
       </div>
-      <p className="text-sm pg-text-sub leading-relaxed">{scene.narasi}</p>
-    </div>
-  )}
+    );
+  })()}
 
   {/* Teks Overlay Layar */}
   {scene.teksOverlay && (

@@ -657,15 +657,25 @@ export function parseOverlayType(raw: string): { text: string; type?: "chapter_t
 }
 
 /**
- * Strip acting instructions, parenthetical stage directions, and emotion cues (e.g. "(tersenyum ramah)", "(intonasi berbisik)")
- * before sending to TTS engine so the narrator does not read them out loud.
+ * Strip acting instructions, parenthetical stage directions, sound cues, quotation marks,
+ * and emotion cues (e.g. "(tersenyum ramah)", "(intonasi berbisik)", "(hushed, urgent whisper)", "(pause)", "[SFX: ...]")
+ * before sending to TTS engine so the narrator speaks pure spoken text cleanly without awkward pauses or reading instructions aloud.
  */
 export function cleanNarasiForTts(text: string): string {
   if (!text) return "";
   return text
-    .replace(/\([^)]*\)/g, "") // strip anything in parentheses (acting notes, stage cues)
-    .replace(/\[[^\]]*\]/g, "") // strip anything in brackets (SFX, BGM cues)
-    .replace(/\s+([,.:;?!])/g, "$1") // normalize spacing before punctuation
+    // 1. Strip sound effect & music cue brackets like [SFX: ...], [BGM: ...]
+    .replace(/\[[^\]]*\]/g, "")
+    // 2. Strip stage directions / acting instructions in parentheses e.g. (hushed, urgent whisper), (pause), *(urgent)*
+    .replace(/\*?\s*\([^)]*\)\s*\*?/g, " ")
+    // 3. Strip quotation marks (both straight and curly double quotes)
+    .replace(/["“”]/g, "")
+    // 4. Strip standalone or wrapping single quotes while preserving inner word apostrophes (e.g. can't, it's, reptile's)
+    .replace(/(?:^|\s)['‘]+|['’]+(?:\s|[.,!?;:]|$)/g, " ")
+    // 5. Strip leftover markdown formatting asterisks and underscores (*, **, ***, _, __)
+    .replace(/(?:\*{1,3}|_{1,3})/g, "")
+    // 6. Normalize punctuation spacing (e.g. "word ." -> "word.", multiple spaces -> single space)
+    .replace(/\s+([,.:;?!])/g, "$1")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -684,7 +694,7 @@ export function parseScenes(text: string): Scene[] {
 
   // Extract chapter markers: ## BAB N: Title or ## CHAPTER N: Title
   const chapterMarkers: { index: number; prefix: string; num: number; title: string }[] = [];
-  const chapterPattern = /(?:^|\r?\n)##\s*(BAB|CHAPTER)\s+(\d+)\s*:\s*(.+?)(?=\r?\n|$)/gi;
+  const chapterPattern = /(?:^|\r?\n)(?:#{1,4}\s*|\*\*\s*)?(BAB|CHAPTER)\s+(\d+)\s*:\s*(.+?)(?=\r?\n|$)/gi;
   let chMatch;
   while ((chMatch = chapterPattern.exec(text)) !== null) {
     chapterMarkers.push({
@@ -695,10 +705,11 @@ export function parseScenes(text: string): Scene[] {
     });
   }
 
-  const splitter = /(?:^|\r?\n)(?:##\s*|###\s*|\*\*\s*|={1,4}\s*)?(?:Scene|Adegan|Bagian)\s*([a-zA-Z0-9_\-]+)(?:\s*(?:\*\*|={1,4}))?(?=\r?\n|$)/gi;
+  const splitter = /(?:^|\r?\n)(?:#{1,4}\s*|\*\*\s*|={1,4}\s*)?(?:Scene|Adegan|Bagian|Part)\s*([a-zA-Z0-9_\-]+)(?:[:\s\*\-=_]*)(?=\r?\n|$)/gi;
   const parts = text.split(splitter);
   const scenes: Scene[] = [];
   const delimiters = "(?:Target\\s*Emosi(?:\\s*\\(VET\\))?|Emosi|Teknik\\s*(?:Editing(?:\\s*&\\s*Pacing)?|Pacing)|Pacing|Teks\\s*Overlay|Text\\s*Overlay|Overlay|Panduan\\s*Suara|Voice\\s*Guidelines|Visual\\s*Prompt|Visual|Deskripsi\\s*Visual|Prompt|Durasi|Time|Duration)";
+  const delimLookahead = `(?=(?:\\r?\\n)+(?:\\*\\*)?${delimiters}(?::\\s*\\*\\*|\\*\\*\\s*:|:)|\\r?\\n+[-*_]{3,}|\\r?\\n+#{1,4}|$)`;
 
   // Helper: find which chapter a given text offset belongs to
   function findChapterAt(offset: number): { prefix: string; num: number; title: string } | undefined {
@@ -707,6 +718,13 @@ export function parseScenes(text: string): Scene[] {
       if (cm.index <= offset) best = cm;
     }
     return best ? { prefix: best.prefix, num: best.num, title: best.title } : undefined;
+  }
+
+  function normalizeDurasi(val: string): string {
+    const cleaned = cleanParsedValue(val);
+    if (!cleaned) return "5s";
+    const numMatch = cleaned.match(/^(\d+)\s*(?:seconds?|secs?|detik|s)?$/i);
+    return numMatch ? `${numMatch[1]}s` : cleaned;
   }
 
   if (parts.length > 1) {
@@ -718,23 +736,29 @@ export function parseScenes(text: string): Scene[] {
       const sceneStartOffset = charOffset;
       charOffset += content.length;
 
-      const stop = /(?:^|\r?\n)(?:##\s*)?(?:TOTAL\s*DURASI|TOTAL|RINGKASAN|THUMBNAIL|ARTIKEL|HASHTAG|CAPTION|JUDUL\s*TERPILIH|HTML\s*BLOG|REKOMENDASI|METADATA\s*SEO)/i;
+      const stop = /(?:^|\r?\n)(?:#{1,4}\s*|\*\*\s*)?(?:TOTAL\s*DURASI|TOTAL|RINGKASAN|THUMBNAIL|ARTIKEL|HASHTAG|CAPTION|JUDUL\s*TERPILIH|HTML\s*BLOG|REKOMENDASI|METADATA\s*SEO)/i;
       const m = content.match(stop);
       const c = m ? content.slice(0, m.index) : content;
-      const nar = c.match(new RegExp(`(?:Narasi|Dialog|Voice\\s*Over|VO|Audio)\\s*:\\s*([\\s\\S]*?)(?=(?:${delimiters})\\s*:|##|$)`, "i"));
-      const emosi = c.match(new RegExp(`(?:Target\\s*Emosi(?:\\s*\\(VET\\))?|Emosi)\\s*:\\s*([\\s\\S]*?)(?=(?:${delimiters})\\s*:|##|$)`, "i"));
-      const pacing = c.match(new RegExp(`(?:Teknik\\s*(?:Editing(?:\\s*&\\s*Pacing)?|Pacing)|Pacing)\\s*:\\s*([\\s\\S]*?)(?=(?:${delimiters})\\s*:|##|$)`, "i"));
-      const overlay = c.match(new RegExp(`(?:Teks\\s*Overlay|Text\\s*Overlay|Overlay)\\s*:\\s*([\\s\\S]*?)(?=(?:${delimiters})\\s*:|##|$)`, "i"));
-      const vis = c.match(new RegExp(`(?:Visual\\s*Prompt|Visual|Deskripsi\\s*Visual|Prompt)\\s*:\\s*([\\s\\S]*?)(?=(?:${delimiters})\\s*:|##|$)`, "i"));
-      const dur = c.match(new RegExp(`(?:Durasi|Time|Duration)\\s*:\\s*([\\s\\S]*?)(?=(?:${delimiters})\\s*:|##|$)`, "i"));
-      const voi = c.match(new RegExp(`(?:Panduan\\s*Suara|Voice\\s*Guidelines)\\s*:\\s*([\\s\\S]*?)(?=(?:${delimiters})\\s*:|##|$)`, "i"));
+
+      const matchField = (keys: string) => {
+        const reg = new RegExp(`(?:^|\\r?\\n)(?:\\*\\*)?(?:${keys})(?::\\s*\\*\\*|\\*\\*\\s*:|:)\\s*([\\s\\S]*?)${delimLookahead}`, "i");
+        return c.match(reg);
+      };
+
+      const nar = matchField("Narasi|Dialog|Voice\\s*Over|VO|Audio");
+      const emosi = matchField("Target\\s*Emosi(?:\\s*\\(VET\\))?|Emosi");
+      const pacing = matchField("Teknik\\s*(?:Editing(?:\\s*&\\s*Pacing)?|Pacing)|Pacing");
+      const overlay = matchField("Teks\\s*Overlay|Text\\s*Overlay|Overlay");
+      const vis = matchField("Visual\\s*Prompt|Visual|Deskripsi\\s*Visual|Prompt");
+      const dur = matchField("Durasi|Time|Duration");
+      const voi = matchField("Panduan\\s*Suara|Voice\\s*Guidelines");
 
       const narVal = nar ? cleanParsedValue(nar[1]) : "";
       const emosiVal = emosi ? cleanParsedValue(emosi[1]) : "";
       const pacingVal = pacing ? cleanParsedValue(pacing[1]) : "";
       const rawOverlay = overlay ? cleanParsedValue(overlay[1]).replace(/^["']|["']$/g, "").trim() : "";
       const visVal = vis ? cleanParsedValue(vis[1]) : "";
-      const durVal = dur ? cleanParsedValue(dur[1]) : "5s";
+      const durVal = dur ? normalizeDurasi(dur[1]) : "5s";
 
       if (narVal || visVal || rawOverlay || emosiVal || pacingVal) {
         const audio = extractAudioCues(narVal);
