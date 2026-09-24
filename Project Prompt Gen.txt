@@ -1895,4 +1895,51 @@ Entry baru di `KNOWN_PLAN_FEATURES` (`src/lib/planFeatures.ts`):
 - Kedua field mempertahankan integrasi penuh terhadap autosave preferensi channel, validasi form, dan eksekusi generate prompt AI.
 
 
+# Addendum — Bagian 35: Overlay Style Selector, Auto-Chapter Grouping & Dynamic Textarea Auto-Expansion
+
+## 35. Fitur #70 — Overlay Style Selector, Struktur Bab Otomatis & Textarea Dinamis (2026-09-24)
+
+### 35.1 Overlay Style Selector
+
+Menambahkan kontrol `overlayStyle` pada interface `VideoConfigData` di `promptGenerator.ts` dengan 5 opsi: `auto`, `chapter_titles`, `key_points`, `mixed`, `minimal`.
+
+- **Data Flow**: `GeneratorForm.tsx` state → videoConfig.overlayStyle → `promptGenerator.ts` switch-case → TEKS OVERLAY instruction template → AI output → `parseScenes()` → Scene Viewer UI.
+- **UI Control**: Grid selector 5-tombol (2x3 mobile, 5-col desktop) di section "Gaya Teks Overlay" antara Narration Mode dan Audio Preferences.
+- **State Persistence**: `overlayStyle` disimpan dalam `localStorage` per channel (autosave) dan di-restore saat session berikutnya.
+- **Prompt Generator Logic**: `promptGenerator.ts` membangun `overlayInstruction` string berdasarkan style yang dipilih:
+  - `chapter_titles`: Instruksi `[CHAPTER TITLE]` prefix + fade-out behavior.
+  - `key_points`: Instruksi `[KEY POINT]` prefix + data/fakta annotation.
+  - `mixed`: Instruksi pilihan per-scene dengan prefix wajib.
+  - `minimal`: Instruksi overlay hanya jika esensial; mayoritas strip "—".
+  - `auto` (default): Long-form (≥7 scene) = Mixed mode; short-form = plain overlay.
+
+### 35.2 Auto-Chapter Grouping (Long-Form Content ≥7 Scene)
+
+- **System Instruction Injection**: Ketika `isLongForm` (scene target ≥7) DAN `overlayStyle` mendukung chapter (auto/chapter_titles/mixed), blok instruksi `[STRUKTUR BAB OTOMATIS — KONTEN LONG-FORM]` ditambahkan ke `systemInstruction`, memaksa AI mengelompokkan output menjadi bab-bab tematik dengan header `## BAB N: Judul Bab`.
+- **Parser Enhancement**: `parseScenes()` diperluas:
+  - Tahap 1: Regex `chapterPattern` (`/## BAB (\d+): (.+)/gi`) mendeteksi semua marker bab dan menyimpan posisi offset.
+  - Tahap 2: Saat iterasi scene, fungsi `findChapterAt(offset)` memetakan setiap scene ke bab terdekat berdasarkan offset karakter.
+  - Tahap 3: `parseOverlayType(raw)` mengekstrak prefix `[CHAPTER TITLE]` / `[KEY POINT]` dan memisahkan teks overlay bersih + tipe overlay.
+- **Scene Interface**: Field baru `overlayType?: "chapter_title" | "key_point"`, `chapter?: number`, `chapterTitle?: string`.
+- **UI — Chapter Dividers**: Komponen divider gradient emerald (`from-transparent via-emerald-400/50 to-transparent`) dengan badge rounded `📖 BAB N: Judul` tampil di antara scene yang memulai bab baru di Scene Viewer dan Drafts Page.
+- **UI — Overlay Badges**: Card overlay berubah warna: emerald (chapter_title), blue (key_point), amber (default).
+
+### 35.3 Export Format Upgrade
+
+- `SceneForExport` interface diperluas identik dengan Scene interface.
+- `buildBatchExportText()` menyertakan field baru `CHAPTER:N`, `CHAPTER_TITLE:text`, `OVERLAY_TYPE:type` dalam output delimiter-based.
+
+### 35.4 Dynamic Textarea Auto-Expansion
+
+- Field Main Topic dan Additional Context kini memiliki `onInput` handler yang menyesuaikan tinggi textarea secara otomatis (`el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'`).
+- CSS `transition-[height] duration-150` memberikan transisi halus.
+- `resize-y` tetap aktif untuk kontrol manual.
+
+### 35.5 Integritas End-to-End
+
+- Backward compatible: Scene lama tanpa `overlayType`/`chapter` tetap di-render dengan styling default amber.
+- Zero TypeScript errors (`npx tsc --noEmit`).
+- Tidak ada duplikasi fungsi, orphan code, atau gap dalam data flow.
+
+
 

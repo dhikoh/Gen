@@ -76,6 +76,8 @@ export interface VideoConfigData {
   narrationMode?: "VOICE_OVER" | "DIEGETIC_ONLY" | "SILENT_TEXT_ONLY" | "HYBRID" | string | null;
   targetKeywords?: string[] | string | null;
   trendingAudio?: string | null;
+  // Overlay Style & Chapter Structure
+  overlayStyle?: "auto" | "chapter_titles" | "key_points" | "mixed" | "minimal" | string | null;
 }
 
 export interface PromptSettingsData {
@@ -675,10 +677,61 @@ Sangat ilustratif, dinamis, metaforis (HINDARI penerjemahan literal). Contoh yan
       ? `Context: <konteks/suasana suara lingkungan adegan> | Note: <petunjuk audio diegetic/SFX/foley — sebutkan di detik ke berapa dalam scene SFX terjadi, misal: "SFX muncul tepat saat kamera settle di mid-scene"> | Traits: <elemen audio in-scene dominan>${audioTrendNote}`
       : `Context: <konteks/suasana adegan> | Note: <petunjuk intonasi/kecepatan/jeda — misal: "mulai lambat, akselerasi di kalimat ke-3, jeda 0.5 detik sebelum reveal kata kunci"> | Traits: <karakteristik vokal, misal: deep voice, energetic> | Sync: <audio event yang SYNC dengan visual — misal: "[SFX: impact] tepat saat kamera snap-zoom, [BGM] fade in di detik ke-2 bersamaan dengan ambient light warm masuk">${audioTrendNote}`;
 
-    formatOutputWajib += `\n## SCENE 1\nNARASI: [${narasiExample}]\nTEKS OVERLAY: [Teks singkat yang muncul di layar (maks 3-7 kata), atau strip "—" jika tanpa overlay]\nPANDUAN SUARA: [${panduanSuaraExample}]\nVISUAL PROMPT: [${visualPromptInstruction}]${arSuffix}\nDURASI: [Estimasi durasi adegan dalam detik, contoh: 5 detik]\n`;
-    formatOutputWajib += `\n## SCENE 2\nNARASI: [Narasi / dialog adegan kedua]\nTEKS OVERLAY: [Teks overlay layar adegan kedua]\nPANDUAN SUARA: [${panduanSuaraExample}]\nVISUAL PROMPT: [Tulis prompt visual adegan kedua secara TEMPORAL (klip berjalan, bukan snapshot): deskripsikan Subject Micro-Action, Environment Dynamics, dan Camera Movement + Timing, bahasa Inggris.]${arSuffix}\nDURASI: [Estimasi durasi]\n`;
-
+    // ── Overlay Style & Chapter Structure ──────────────────────────────────
+    const overlayStyle = videoConfig.overlayStyle || "auto";
     const sceneCount = videoConfig.targetSceneCount;
+    const isLongForm = sceneCount ? sceneCount > 6 : false;
+
+    // Build overlay instruction based on overlay style
+    let overlayInstruction: string;
+    switch (overlayStyle) {
+      case "chapter_titles":
+        overlayInstruction = `[CHAPTER TITLE] Judul bab/topik baru — teks ini muncul di awal scene sebagai penanda transisi topik lalu menghilang (fade out) saat narasi dimulai (maks 3-7 kata, bold/caps). Tulis strip "—" jika scene BUKAN pembuka bab baru.`;
+        break;
+      case "key_points":
+        overlayInstruction = `[KEY POINT] Teks poin kunci yang menemani narasi di layar (fakta, data, quote highlight) — muncul bersamaan narasi lalu menghilang di akhir segmen (maks 3-7 kata). Tulis strip "—" jika tidak ada poin kunci.`;
+        break;
+      case "mixed":
+        overlayInstruction = `Pilih salah satu jenis overlay yang paling sesuai konteks scene:
+- [CHAPTER TITLE] Judul bab/topik baru — muncul di awal scene sebagai penanda transisi topik, lalu menghilang (fade out) saat narasi dimulai. Gunakan di scene pertama setiap bab/topik baru.
+- [KEY POINT] Teks poin kunci menemani narasi (fakta, data, quote) — muncul bersama narasi lalu menghilang di akhir segmen.
+Tulis prefix jenis di depan teks, contoh: "[CHAPTER TITLE] Rahasia Sukses" atau "[KEY POINT] 3x Lebih Cepat". Tulis strip "—" jika tanpa overlay.`;
+        break;
+      case "minimal":
+        overlayInstruction = `Hanya gunakan overlay di scene yang BENAR-BENAR membutuhkannya (misal: hook pembuka, data kunci, CTA). Mayoritas scene TANPA overlay (tulis "—"). Jika overlay diperlukan, maks 3-5 kata.`;
+        break;
+      default: // "auto"
+        overlayInstruction = isLongForm
+          ? `Pilih salah satu jenis overlay yang paling sesuai konteks scene:
+- [CHAPTER TITLE] Judul bab/topik baru — muncul di awal scene sebagai penanda transisi topik, lalu menghilang (fade out) saat narasi dimulai. Gunakan di scene pertama setiap bab/topik baru.
+- [KEY POINT] Teks poin kunci menemani narasi (fakta, data, quote) — muncul bersama narasi lalu menghilang di akhir segmen.
+Tulis prefix jenis di depan teks, contoh: "[CHAPTER TITLE] Rahasia Sukses" atau "[KEY POINT] 3x Lebih Cepat". Tulis strip "—" jika tanpa overlay.`
+          : `Teks singkat yang muncul di layar (maks 3-7 kata), atau strip "—" jika tanpa overlay`;
+        break;
+    }
+
+    // ── Chapter Grouping (Long-form Auto) ──────────────────────────────────
+    const needsChapterGrouping = isLongForm && (overlayStyle === "auto" || overlayStyle === "chapter_titles" || overlayStyle === "mixed");
+    if (needsChapterGrouping) {
+      systemInstruction += `\n[STRUKTUR BAB OTOMATIS — KONTEN LONG-FORM]
+Karena jumlah scene ≥ 7, kamu WAJIB mengelompokkan scene ke dalam bab-bab tematik.
+Format: Tambahkan header "## BAB [nomor]: [Judul Bab]" sebelum kelompok scene pertama dari setiap bab.
+Scene pertama di setiap bab WAJIB memiliki TEKS OVERLAY bertipe [CHAPTER TITLE].
+Contoh struktur:
+## BAB 1: Opening Hook
+## SCENE 1
+...
+## SCENE 2
+...
+## BAB 2: Pembahasan Utama
+## SCENE 3
+...
+Jumlah bab ditentukan secara natural berdasarkan alur konten (biasanya 3-6 bab untuk konten panjang).`;
+    }
+
+    formatOutputWajib += `\n## SCENE 1\nNARASI: [${narasiExample}]\nTEKS OVERLAY: [${overlayInstruction}]\nPANDUAN SUARA: [${panduanSuaraExample}]\nVISUAL PROMPT: [${visualPromptInstruction}]${arSuffix}\nDURASI: [Estimasi durasi adegan dalam detik, contoh: 5 detik]\n`;
+    formatOutputWajib += `\n## SCENE 2\nNARASI: [Narasi / dialog adegan kedua]\nTEKS OVERLAY: [${overlayStyle === "minimal" ? 'Overlay hanya jika sangat diperlukan, strip "—" jika tidak' : 'Teks overlay sesuai jenis yang dipilih di atas'}]\nPANDUAN SUARA: [${panduanSuaraExample}]\nVISUAL PROMPT: [Tulis prompt visual adegan kedua secara TEMPORAL (klip berjalan, bukan snapshot): deskripsikan Subject Micro-Action, Environment Dynamics, dan Camera Movement + Timing, bahasa Inggris.]${arSuffix}\nDURASI: [Estimasi durasi]\n`;
+
     if (sceneCount && sceneCount > 2) {
       formatOutputWajib += `\n...dan seterusnya hingga TEPAT SCENE ${sceneCount}. Kamu WAJIB menghasilkan TEPAT ${sceneCount} SCENE.\n`;
     } else {

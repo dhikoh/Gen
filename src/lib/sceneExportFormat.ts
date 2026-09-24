@@ -11,6 +11,9 @@ export interface SceneForExport {
   narasi: string;
   visual: string;
   teksOverlay?: string;
+  overlayType?: "chapter_title" | "key_point";
+  chapter?: number;
+  chapterTitle?: string;
   durasi?: string;
 }
 
@@ -75,10 +78,15 @@ export function buildBatchExportText(scenes: SceneForExport[]): string {
     lines.push(SCENE_DELIMITER);
     lines.push(`SCENE_INDEX:${index + 1}`);
     lines.push(`SCENE_NUMBER:${sanitizeField(scene.sceneNumber)}`);
+    if (scene.chapter !== undefined) {
+      lines.push(`CHAPTER:${scene.chapter}`);
+      if (scene.chapterTitle) lines.push(`CHAPTER_TITLE:${sanitizeField(scene.chapterTitle)}`);
+    }
     lines.push(`NARASI:${sanitizeField(scene.narasi)}`);
     lines.push(`VISUAL:${sanitizeField(scene.visual)}`);
     if (scene.teksOverlay) {
       lines.push(`OVERLAY:${sanitizeField(scene.teksOverlay)}`);
+      if (scene.overlayType) lines.push(`OVERLAY_TYPE:${scene.overlayType}`);
     }
     if (scene.durasi) {
       lines.push(`DURASI:${sanitizeField(scene.durasi)}`);

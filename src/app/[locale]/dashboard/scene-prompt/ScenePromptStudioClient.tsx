@@ -44,6 +44,9 @@ interface Scene {
   sceneNumber: string;
   narasi: string;
   teksOverlay?: string;
+  overlayType?: "chapter_title" | "key_point";
+  chapter?: number;
+  chapterTitle?: string;
   visual: string;
   durasi: string;
   bgmCues?: string[];
@@ -78,36 +81,74 @@ interface TtsResult {
   durationSec?: number; // durasi audio, dibaca dari onLoadedMetadata
 }
 
+function parseOverlayType(raw: string): { text: string; type?: "chapter_title" | "key_point" } {
+  const chapterMatch = raw.match(/^\[CHAPTER\s*TITLE\]\s*/i);
+  if (chapterMatch) return { text: raw.slice(chapterMatch[0].length).trim(), type: "chapter_title" };
+  const keyPointMatch = raw.match(/^\[KEY\s*POINT\]\s*/i);
+  if (keyPointMatch) return { text: raw.slice(keyPointMatch[0].length).trim(), type: "key_point" };
+  return { text: raw };
+}
+
 function parseScenes(text: string): Scene[] {
   if (!text.trim()) return [];
+
+  // Extract chapter markers: ## BAB N: Title
+  const chapterMarkers: { index: number; num: number; title: string }[] = [];
+  const chapterPattern = /(?:^|\r?\n)##\s*BAB\s+(\d+)\s*:\s*(.+?)(?=\r?\n|$)/gi;
+  let chMatch;
+  while ((chMatch = chapterPattern.exec(text)) !== null) {
+    chapterMarkers.push({ index: chMatch.index, num: parseInt(chMatch[1], 10), title: chMatch[2].trim() });
+  }
+
   const splitter = /(?:^|\r?\n)(?:##\s*|###\s*|\*\*\s*)?(?:Scene|Adegan|Bagian)\s*([a-zA-Z0-9_\-]+)(?:\s*\*\*)?(?=\r?\n|$)/gi;
   const parts = text.split(splitter);
   const scenes: Scene[] = [];
   const delimiters = "(?:Teks\\s*Overlay|Text\\s*Overlay|Overlay|Panduan\\s*Suara|Voice\\s*Guidelines|Visual\\s*Prompt|Visual|Deskripsi\\s*Visual|Prompt|Durasi|Time|Duration)";
 
+  // Helper: find which chapter a given text offset belongs to
+  function findChapterAt(offset: number): { num: number; title: string } | undefined {
+    let best: (typeof chapterMarkers)[0] | undefined;
+    for (const cm of chapterMarkers) {
+      if (cm.index <= offset) best = cm;
+    }
+    return best ? { num: best.num, title: best.title } : undefined;
+  }
+
   if (parts.length > 1) {
     let count = 1;
+    let charOffset = parts[0].length;
     for (let i = 1; i < parts.length; i += 2) {
       const sceneNum = parts[i], content = parts[i + 1] || "";
+      charOffset += sceneNum.length;
+      const sceneStartOffset = charOffset;
+      charOffset += content.length;
+
       const stop = /(?:^|\r?\n)(?:##\s*)?(?:TOTAL\s*DURASI|TOTAL|RINGKASAN|THUMBNAIL|ARTIKEL|HASHTAG|CAPTION|JUDUL\s*TERPILIH|HTML\s*BLOG|REKOMENDASI)/i;
       const m = content.match(stop);
       const c = m ? content.slice(0, m.index) : content;
-      const nar = c.match(new RegExp(`(?:Narasi|Dialog|Voice\\s*Over|VO|Audio)\\s*:\\s*([\\s\\S]*?)(?=(?:${delimiters})\\s*:|##|$)`, "i"));
-      const overlay = c.match(new RegExp(`(?:Teks\\s*Overlay|Text\\s*Overlay|Overlay)\\s*:\\s*([\\s\\S]*?)(?=(?:${delimiters})\\s*:|##|$)`, "i"));
-      const vis = c.match(new RegExp(`(?:Visual\\s*Prompt|Visual|Deskripsi\\s*Visual|Prompt)\\s*:\\s*([\\s\\S]*?)(?=(?:${delimiters})\\s*:|##|$)`, "i"));
-      const dur = c.match(new RegExp(`(?:Durasi|Time|Duration)\\s*:\\s*([\\s\\S]*?)(?=(?:${delimiters})\\s*:|##|$)`, "i"));
-      const voi = c.match(new RegExp(`(?:Panduan\\s*Suara|Voice\\s*Guidelines)\\s*:\\s*([\\s\\S]*?)(?=(?:${delimiters})\\s*:|##|$)`, "i"));
+      const nar = c.match(new RegExp(`(?:Narasi|Dialog|Voice\\\\s*Over|VO|Audio)\\\\s*:\\\\s*([\\\\s\\\\S]*?)(?=(?:${delimiters})\\\\s*:|##|$)`, "i"));
+      const overlay = c.match(new RegExp(`(?:Teks\\\\s*Overlay|Text\\\\s*Overlay|Overlay)\\\\s*:\\\\s*([\\\\s\\\\S]*?)(?=(?:${delimiters})\\\\s*:|##|$)`, "i"));
+      const vis = c.match(new RegExp(`(?:Visual\\\\s*Prompt|Visual|Deskripsi\\\\s*Visual|Prompt)\\\\s*:\\\\s*([\\\\s\\\\S]*?)(?=(?:${delimiters})\\\\s*:|##|$)`, "i"));
+      const dur = c.match(new RegExp(`(?:Durasi|Time|Duration)\\\\s*:\\\\s*([\\\\s\\\\S]*?)(?=(?:${delimiters})\\\\s*:|##|$)`, "i"));
+      const voi = c.match(new RegExp(`(?:Panduan\\\\s*Suara|Voice\\\\s*Guidelines)\\\\s*:\\\\s*([\\\\s\\\\S]*?)(?=(?:${delimiters})\\\\s*:|##|$)`, "i"));
       const narVal = nar ? cleanParsedValue(nar[1]) : "";
-      const overlayVal = overlay ? cleanParsedValue(overlay[1]).replace(/^["']|["']$/g, "").trim() : "";
+      const rawOverlay = overlay ? cleanParsedValue(overlay[1]).replace(/^["']|["']$/g, "").trim() : "";
       const visVal = vis ? cleanParsedValue(vis[1]) : "";
       const durVal = dur ? cleanParsedValue(dur[1]) : "5s";
-      if (narVal || visVal || overlayVal) {
+      if (narVal || visVal || rawOverlay) {
         const audio = extractAudioCues(narVal);
+        const overlayParsed = rawOverlay ? parseOverlayType(rawOverlay) : null;
+        const overlayText = overlayParsed?.text || undefined;
+        const overlayType = overlayParsed?.type || undefined;
+        const chapterInfo = findChapterAt(sceneStartOffset);
         scenes.push({
           id: count,
           sceneNumber: isNaN(Number(sceneNum)) ? sceneNum : `Scene ${sceneNum}`,
           narasi: audio.cleanNarasi || "—",
-          teksOverlay: overlayVal || undefined,
+          teksOverlay: overlayText && overlayText !== "—" ? overlayText : undefined,
+          overlayType,
+          chapter: chapterInfo?.num,
+          chapterTitle: chapterInfo?.title,
           visual: visVal || "—",
           durasi: durVal,
           bgmCues: audio.bgmCues,
@@ -1156,8 +1197,22 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
       </div>
     </div>
 
-  {scenes.map(scene => (
-  <div key={scene.id} className="glass-panel rounded-xl p-5 space-y-3">
+  {scenes.map((scene, sceneIdx) => {
+    // Chapter divider: show when this scene starts a new chapter
+    const prevScene = sceneIdx > 0 ? scenes[sceneIdx - 1] : null;
+    const isNewChapter = scene.chapter !== undefined && (prevScene?.chapter !== scene.chapter);
+    return (
+    <div key={scene.id}>
+    {isNewChapter && (
+      <div className="flex items-center gap-3 py-3">
+        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent" />
+        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5 shadow-sm">
+          <span>📖</span> BAB {scene.chapter}: {scene.chapterTitle}
+        </span>
+        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent" />
+      </div>
+    )}
+    <div className="glass-panel rounded-xl p-5 space-y-3">
   <div className="flex items-center justify-between">
     <div className="flex items-center gap-2">
       <input
@@ -1189,12 +1244,13 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
 
   {/* Teks Overlay Layar */}
   {scene.teksOverlay && (
-    <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
+    <div className={`rounded-lg p-3 border ${scene.overlayType === "chapter_title" ? "bg-emerald-500/10 border-emerald-500/20" : scene.overlayType === "key_point" ? "bg-blue-500/10 border-blue-500/20" : "bg-amber-500/10 border-amber-500/20"}`}>
       <div className="flex items-center justify-between mb-1">
-        <span className="text-xs font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1">
-          <span>💬</span> Teks Overlay Layar
+        <span className={`text-xs font-semibold flex items-center gap-1 ${scene.overlayType === "chapter_title" ? "text-emerald-600 dark:text-emerald-400" : scene.overlayType === "key_point" ? "text-blue-600 dark:text-blue-400" : "text-amber-600 dark:text-amber-400"}`}>
+          <span>{scene.overlayType === "chapter_title" ? "📖" : scene.overlayType === "key_point" ? "📌" : "💬"}</span>
+          {scene.overlayType === "chapter_title" ? "Chapter Title" : scene.overlayType === "key_point" ? "Key Point" : "Teks Overlay Layar"}
         </span>
-        <button onClick={() => copy(`ov-${scene.id}`, scene.teksOverlay!)} className="text-xs text-amber-600 dark:text-amber-400 hover:underline">{copiedId === `ov-${scene.id}` ? "✓" : t("copy")}</button>
+        <button onClick={() => copy(`ov-${scene.id}`, scene.teksOverlay!)} className={`text-xs hover:underline ${scene.overlayType === "chapter_title" ? "text-emerald-600 dark:text-emerald-400" : scene.overlayType === "key_point" ? "text-blue-600 dark:text-blue-400" : "text-amber-600 dark:text-amber-400"}`}>{copiedId === `ov-${scene.id}` ? "✓" : t("copy")}</button>
       </div>
       <p className="text-sm font-medium pg-text-heading italic">&ldquo;{scene.teksOverlay}&rdquo;</p>
     </div>
@@ -1248,7 +1304,9 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
     </button>
   )}
   </div>
-  ))}
+  </div>
+  );
+  })}
   </div>
   )}
 

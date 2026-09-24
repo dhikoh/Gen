@@ -31,6 +31,9 @@ interface SceneItem {
   sceneNumber?: string;
   narasi?: string;
   teksOverlay?: string;
+  overlayType?: "chapter_title" | "key_point";
+  chapter?: number;
+  chapterTitle?: string;
   visual?: string;
   durasi?: string;
   bgmCues?: string[];
@@ -358,8 +361,21 @@ export default async function DraftDetailPage({
  <h2 className="text-sm font-bold uppercase tracking-wider pg-text-muted">{t('segments')}</h2>
  </div>
  <div className="divide-y pg-divide">
- {scenesFallback.map((scene: SceneItem, idx: number) => (
- <div key={idx} className="p-6 hover:pg-surface-dim/50 dark:hover:pg-surface/50 transition-colors">
+ {scenesFallback.map((scene: SceneItem, idx: number) => {
+ const prevScene = idx > 0 ? scenesFallback[idx - 1] : null;
+ const isNewChapter = scene.chapter !== undefined && (prevScene?.chapter !== scene.chapter);
+ return (
+ <div key={idx}>
+ {isNewChapter && (
+  <div className="flex items-center gap-3 py-3 px-6">
+   <div className="flex-1 h-px bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent" />
+   <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5">
+    📖 BAB {scene.chapter}: {scene.chapterTitle}
+   </span>
+   <div className="flex-1 h-px bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent" />
+  </div>
+ )}
+ <div className="p-6 hover:pg-surface-dim/50 dark:hover:pg-surface/50 transition-colors">
  <div className="flex items-center space-x-3 mb-4">
  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 text-xs font-bold">
  {idx + 1}
@@ -387,8 +403,10 @@ export default async function DraftDetailPage({
  </div>
  )}
  {scene.teksOverlay && (
- <div className="bg-amber-500/10 border border-amber-500/20 p-3 rounded">
- <p className="text-xs font-bold text-amber-600 dark:text-amber-400 mb-1">💬 Teks Overlay Layar</p>
+ <div className={`p-3 rounded border ${scene.overlayType === "chapter_title" ? "bg-emerald-500/10 border-emerald-500/20" : scene.overlayType === "key_point" ? "bg-blue-500/10 border-blue-500/20" : "bg-amber-500/10 border-amber-500/20"}`}>
+ <p className={`text-xs font-bold mb-1 ${scene.overlayType === "chapter_title" ? "text-emerald-600 dark:text-emerald-400" : scene.overlayType === "key_point" ? "text-blue-600 dark:text-blue-400" : "text-amber-600 dark:text-amber-400"}`}>
+  {scene.overlayType === "chapter_title" ? "📖 Chapter Title" : scene.overlayType === "key_point" ? "📌 Key Point" : "💬 Teks Overlay Layar"}
+ </p>
  <p className="text-sm font-medium pg-text-heading italic">&ldquo;{scene.teksOverlay}&rdquo;</p>
  </div>
  )}
@@ -415,7 +433,9 @@ export default async function DraftDetailPage({
  )}
  </div>
  </div>
- ))}
+ </div>
+ );
+ })}
  </div>
  </div>
  );

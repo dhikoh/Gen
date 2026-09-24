@@ -2,6 +2,66 @@
 
 ---
 
+## [#70] — 2026-09-24 | Feature: Overlay Style Selector, Auto-Chapter Grouping & Dynamic Textarea Expansion
+
+### Overview
+
+Rilis ini menghadirkan tiga fitur baru yang memperkuat pengalaman produksi konten long-form: **Overlay Style Selector** (pemilih gaya teks overlay), **Auto-Chapter Grouping** (pengelompokan bab otomatis untuk konten ≥7 scene), dan **Dynamic Textarea Auto-Expansion** (field input yang otomatis melebar mengikuti panjang konten). Semua fitur terintegrasi end-to-end dari Generator Studio → Prompt Generator → Scene Parser → Scene Viewer → Drafts Page → Batch Export.
+
+---
+
+### 1 — Overlay Style Selector (5 Mode Overlay)
+
+- **Dropdown Gaya Overlay**: Menambahkan kontrol `💬 Gaya Teks Overlay` di Generator Studio dengan 5 opsi: `🤖 Auto`, `📖 Chapter Title`, `📌 Key Point`, `🔀 Mixed`, dan `✨ Minimal`.
+- **Auto (Default)**: AI memilih gaya overlay terbaik berdasarkan konteks dan panjang konten. Untuk konten long-form (≥7 scene), otomatis menggunakan mode Mixed.
+- **Chapter Title**: Overlay muncul sebagai judul bab di awal scene lalu menghilang (fade out) saat narasi dimulai — cocok untuk konten panjang bertopik terstruktur.
+- **Key Point**: Overlay menampilkan fakta/data kunci yang menemani narasi lalu menghilang di akhir segmen.
+- **Mixed**: AI memilih antara Chapter Title atau Key Point per scene sesuai konteks, ditandai prefix `[CHAPTER TITLE]` atau `[KEY POINT]`.
+- **Minimal**: Overlay hanya di scene yang benar-benar membutuhkan (hook, data kunci, CTA), mayoritas scene tanpa overlay.
+- **Contextual Help**: Info badge muncul saat Chapter Title atau Minimal mode dipilih, menjelaskan perilaku mode.
+- **State Persistence**: Setting overlay style disimpan di localStorage dan di-restore saat halaman dibuka kembali.
+- **File:** `src/components/generator/GeneratorForm.tsx`, `src/lib/promptGenerator.ts`.
+
+---
+
+### 2 — Auto-Chapter Grouping (Struktur Bab Otomatis untuk Konten Long-Form)
+
+- **Deteksi Otomatis**: Ketika jumlah scene target ≥7 dan overlay style mendukung (Auto/Chapter Titles/Mixed), AI secara otomatis mengelompokkan scene ke dalam bab-bab tematik.
+- **Format BAB**: AI menghasilkan header `## BAB [N]: [Judul Bab]` sebelum kelompok scene pertama setiap bab. Jumlah bab ditentukan natural berdasarkan alur konten (biasanya 3-6 bab).
+- **Parser Support**: Fungsi `parseScenes()` di `ScenePromptStudioClient.tsx` diperluas untuk mendeteksi marker `## BAB N: Title`, melacak offset posisi, dan meng-assign `chapter`/`chapterTitle` ke setiap scene.
+- **Overlay Type Parser**: Fungsi baru `parseOverlayType()` mengekstrak prefix `[CHAPTER TITLE]` dan `[KEY POINT]` dari teks overlay dan memetakannya ke field `overlayType` pada objek Scene.
+- **Visual Chapter Dividers**: Di Scene Viewer dan Drafts Page, sebuah divider gradient hijau dengan badge `📖 BAB N: Judul` muncul di antara scene yang memulai bab baru.
+- **Overlay Type Badges**: Overlay card berubah warna sesuai tipe — hijau emerald untuk Chapter Title, biru untuk Key Point, amber default untuk overlay biasa.
+- **File:** `src/app/[locale]/dashboard/scene-prompt/ScenePromptStudioClient.tsx`, `src/app/[locale]/dashboard/drafts/[id]/page.tsx`, `src/lib/promptGenerator.ts`.
+
+---
+
+### 3 — Scene Type & Export Format Upgrade
+
+- **Scene Interface Extended**: Interface `Scene` dan `SceneForExport` diperluas dengan field baru: `overlayType?: "chapter_title" | "key_point"`, `chapter?: number`, `chapterTitle?: string`.
+- **Batch Export Enhanced**: Fungsi `buildBatchExportText()` kini menyertakan field `CHAPTER`, `CHAPTER_TITLE`, dan `OVERLAY_TYPE` dalam output ekspor untuk kompatibilitas parse-engine eksternal.
+- **File:** `src/lib/sceneExportFormat.ts`.
+
+---
+
+### 4 — Dynamic Textarea Auto-Expansion (Main Topic & Additional Context)
+
+- **Auto-Grow Textareas**: Field Main Topic dan Additional Context kini otomatis melebar secara vertikal sesuai panjang konten yang diketik (auto-height adjustment via `onInput` handler).
+- **Manual Resize Tetap Tersedia**: CSS `resize-y` tetap aktif sehingga user dapat memperbesar/mengecilkan secara manual jika diinginkan.
+- **Smooth Transition**: Perubahan tinggi textarea memiliki transisi halus 150ms untuk pengalaman visual yang premium.
+- **File:** `src/components/generator/GeneratorForm.tsx`.
+
+---
+
+### 5 — End-to-End Integration & Quality Assurance
+
+- **Zero TypeScript Errors**: Seluruh perubahan lulus `npx tsc --noEmit` tanpa error.
+- **No Duplicate Code**: Audit kode konfirmasi tidak ada duplikasi fungsi, script, atau orphan code.
+- **Data Flow Verified**: Data `overlayStyle` mengalir dari GeneratorForm → videoConfig payload → promptGenerator → AI output → parseScenes → Scene Viewer UI → Drafts Page → Batch Export tanpa gap.
+- **Backward Compatibility**: Scene tanpa overlay type atau chapter info tetap di-render seperti sebelumnya (amber default styling).
+
+---
+
 ## [#69] — 2026-09-24 | Feature: Scene Prompt Studio Last Parse Memory (Option 2B), 10-Item History Selector & Dynamic Resizable Input Fields in Generator Studio
 
 ### Overview

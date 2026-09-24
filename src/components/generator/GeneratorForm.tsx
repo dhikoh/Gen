@@ -105,6 +105,7 @@ export default function GeneratorForm({
  const [cameraMovementPresets, setCameraMovementPresets] = useState<string[]>([]);
  const [cameraMovementCustom, setCameraMovementCustom] = useState<string>("");
  const [cameraMovementProMode, setCameraMovementProMode] = useState<boolean>(false); // Opsi B: PRO auto toggle
+ const [overlayStyle, setOverlayStyle] = useState<string>("auto");
  const [affiliateAngle, setAffiliateAngle] = useState<boolean>(false);
  const [affiliateAngleMode, setAffiliateAngleMode] = useState<"CTA" | "SOFT">("SOFT");
 
@@ -275,6 +276,7 @@ export default function GeneratorForm({
       cameraMovementPresets,
       cameraMovementCustom,
       cameraMovementProMode,
+      overlayStyle,
       affiliateAngle,
       affiliateAngleMode,
       affiliateMarketplaces,
@@ -308,6 +310,7 @@ export default function GeneratorForm({
     cameraMovementPresets,
     cameraMovementCustom,
     cameraMovementProMode,
+    overlayStyle,
     affiliateAngle,
     affiliateAngleMode,
     affiliateMarketplaces,
@@ -344,6 +347,7 @@ export default function GeneratorForm({
       setCameraMovementPresets(Array.isArray(savedState.cameraMovementPresets) ? savedState.cameraMovementPresets : []);
       setCameraMovementCustom(savedState.cameraMovementCustom || "");
       setCameraMovementProMode(savedState.cameraMovementProMode || false);
+      setOverlayStyle(savedState.overlayStyle || "auto");
       setAffiliateAngle(savedState.affiliateAngle || false);
       setAffiliateAngleMode(savedState.affiliateAngleMode || "SOFT");
       if (Array.isArray(savedState.affiliateMarketplaces)) setAffiliateMarketplaces(savedState.affiliateMarketplaces);
@@ -814,6 +818,7 @@ export default function GeneratorForm({
  contentArchetypeId: selectedChannel?.contentArchetypeId || selectedChannel?.contentArchetype?.id,
  narrationMode: narrationModeOverride !== "auto" ? narrationModeOverride : selectedChannel?.contentArchetype?.narrationMode,
  trendingAudio: trendingAudio.trim() || undefined,
+ overlayStyle: overlayStyle !== "auto" ? overlayStyle : undefined,
  } : undefined,
  imageConfig: type === "IMAGE" ? {
   ...imageConfig,
@@ -1090,9 +1095,10 @@ export default function GeneratorForm({
  <textarea
  value={topic}
  onChange={(e) => setTopic(e.target.value)}
+ onInput={(e) => { const el = e.currentTarget; el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }}
  placeholder={t("mainTopicPlaceholder")}
  rows={2}
- className="w-full px-4 py-2 bg-white dark:bg-slate-700 border pg-border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none dark:text-white resize-y min-h-[46px]"
+ className="w-full px-4 py-2 bg-white dark:bg-slate-700 border pg-border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none dark:text-white resize-y min-h-[46px] transition-[height] duration-150"
  />
 
  {/* Target SEO Badges */}
@@ -1164,9 +1170,10 @@ export default function GeneratorForm({
  <textarea
  value={additionalContext}
  onChange={(e) => setAdditionalContext(e.target.value)}
+ onInput={(e) => { const el = e.currentTarget; el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }}
  placeholder={t("additionalContextPlaceholder")}
  rows={2}
- className="w-full px-4 py-2 bg-white dark:bg-slate-700 border pg-border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none dark:text-white resize-y min-h-[64px]"
+ className="w-full px-4 py-2 bg-white dark:bg-slate-700 border pg-border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none dark:text-white resize-y min-h-[64px] transition-[height] duration-150"
  />
  </div>
  </div>
@@ -1554,6 +1561,74 @@ export default function GeneratorForm({
     {effectiveNarrationMode === "DIEGETIC_ONLY" && (
       <p className="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 p-1.5 rounded border border-amber-200 dark:border-amber-900">
         ℹ️ <strong>Mode Diegetik Aktif</strong>: Video dirancang tanpa narator luar. Cerita disampaikan lewat SFX/suara lingkungan dan Teks Overlay di layar.
+      </p>
+    )}
+  </div>
+
+ {/* ── Push Enrichment: Overlay Style Selector ── */}
+ <div className="space-y-2 pt-2 border-t pg-border">
+    <div className="flex items-center justify-between">
+      <label className="block text-xs font-semibold pg-text-sub">
+        💬 Gaya Teks Overlay
+      </label>
+      <span className="text-[10px] pg-text-muted">
+        {overlayStyle === "auto" ? "Otomatis (AI Pilih)" : "Manual Override"}
+      </span>
+    </div>
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1.5">
+      {[
+        {
+          value: "auto",
+          label: "🤖 Auto",
+          desc: "AI pilih sesuai konteks & panjang konten",
+        },
+        {
+          value: "chapter_titles",
+          label: "📖 Chapter Title",
+          desc: "Judul bab muncul lalu menghilang",
+        },
+        {
+          value: "key_points",
+          label: "📌 Key Point",
+          desc: "Fakta/data menemani narasi",
+        },
+        {
+          value: "mixed",
+          label: "🔀 Mixed",
+          desc: "Campuran chapter + key point",
+        },
+        {
+          value: "minimal",
+          label: "✨ Minimal",
+          desc: "Overlay hanya jika perlu",
+        },
+      ].map((m) => {
+        const isSelected = overlayStyle === m.value;
+        return (
+          <button
+            key={m.value}
+            type="button"
+            onClick={() => setOverlayStyle(m.value)}
+            className={`flex flex-col items-start p-2 rounded-lg border text-left transition-colors text-xs ${
+              isSelected
+                ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/50"
+                : "pg-border hover:pg-surface-dim pg-text-sub"
+            }`}
+          >
+            <span className="font-semibold text-[11px] truncate">{m.label}</span>
+            <span className="text-[9px] pg-text-muted mt-0.5 leading-tight">{m.desc}</span>
+          </button>
+        );
+      })}
+    </div>
+    {overlayStyle === "chapter_titles" && (
+      <p className="text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 p-1.5 rounded border border-emerald-200 dark:border-emerald-900">
+        📖 <strong>Chapter Title Mode</strong>: Overlay muncul sebagai judul bab di awal scene, lalu menghilang (fade out) saat narasi dimulai. Cocok untuk konten panjang dengan pembagian topik.
+      </p>
+    )}
+    {overlayStyle === "minimal" && (
+      <p className="text-[10px] text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-950/30 p-1.5 rounded border border-slate-200 dark:border-slate-800">
+        ✨ <strong>Minimal Mode</strong>: Overlay hanya di scene yang sangat membutuhkannya (hook, data kunci, CTA). Mayoritas scene tanpa overlay.
       </p>
     )}
   </div>
