@@ -1427,6 +1427,38 @@ export default function GeneratorForm({
  />
  </div>
 
+ {/* Dynamic Timing & Word Count Calculator Helper */}
+ {type === "VIDEO" && (() => {
+ const dur = Number(videoConfig.targetDurationSec) || 60;
+ const rate = Number(videoConfig.speechRate) || 0.35;
+ const scenes = Math.max(1, Number(videoConfig.targetSceneCount) || 6);
+ const totalWords = Math.round(dur / rate);
+ const wordsPerScene = Math.max(1, Math.round(totalWords / scenes));
+ const wpm = Math.round(60 / rate);
+
+ return (
+ <div className="p-3 rounded-lg border pg-border pg-surface-dim flex flex-wrap items-center justify-between gap-2.5 text-xs shadow-xs">
+ <div className="flex items-center gap-2">
+ <span className="text-base select-none">⏱️</span>
+ <div>
+ <span className="font-semibold pg-text-heading">{t("timingCalcTitle")} </span>
+ <span className="pg-text-sub">
+ {t("timingCalcDesc", { total: totalWords, perScene: wordsPerScene })}
+ </span>
+ </div>
+ </div>
+ <div className="flex items-center gap-1.5 shrink-0">
+ <span className="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 font-mono font-medium">
+ ~{wpm} WPM
+ </span>
+ <span className="px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 font-mono font-medium">
+ {rate} {t("timingCalcUnit")}
+ </span>
+ </div>
+ </div>
+ );
+ })()}
+
  {/* Hook Style & Ending Style */}
  {(videoConfig.includeHook || videoConfig.includeCTA) && (
    <div className={`grid gap-4 ${videoConfig.includeHook && videoConfig.includeCTA ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"}`}>

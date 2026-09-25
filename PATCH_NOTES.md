@@ -2,6 +2,97 @@
 
 ---
 
+## [#85] — 2026-09-25 | Speech Rate & Target Duration Integration: Exact Mathematical Word Budget, Expressive Pause & Acting Tag Overhead, Real-Time Calculator Helper, Archetype Duration Mode Sync, & Zero-Gap Audio Timing Pipeline
+
+### Overview
+
+Audit dan rekonstruksi menyeluruh integrasi parameter **Speech Rate (Laju Bicara)**, **Target Durasi**, dan **Target Jumlah Scene** di seluruh pipeline: Studio Generator (`GeneratorForm.tsx`), Mesin Generator Prompt AI (`promptGenerator.ts`), Backend Drafts API (`drafts/route.ts`), Scene Prompt Studio (`ScenePromptStudioClient.tsx`), dan Parser (`parsers.ts`). Mengeliminasi kesenjangan antara estimasi durasi abstrak AI dengan durasi audio riil (voice-over/TTS) melalui formula matematis kuota kata yang presisi, perlakuan khusus tag jeda/akting ekspresif (*expressive pause overhead*), kartu helper interaktif *real-time*, sinkronisasi `DurationCalcMode` model konten, serta penambahan unit test terverifikasi (159/159 tests passing).
+
+---
+
+### 1 — Mesin Perhitungan Waktu & Kuota Kata Presisi (`promptGenerator.ts`)
+
+- **Fungsi Resolver: `resolveSpeechRateSecondsPerWord(rateInput, fallback): number`**:
+  - Menerima dan menormalisasi berbagai format input: angka desimal (`0.35`), angka WPM (`171` $\rightarrow$ $0.35$ s/kata), teks bersatuan (`"0.35 detik/kata"`, `"0.30 s/kata"`), serta kata kunci preset (`"super_fast"`: 0.25, `"fast"`: 0.30, `"medium"`: 0.35, `"relaxed"`: 0.40, `"slow"`: 0.50).
+  - Menyediakan fallback hierarkis terpadu hingga default standar $0.35$ detik/kata (~171 WPM).
+- **Fungsi Kalkulator: `calculateSpeechRateTiming(rawSpeechRate, targetDuration, targetScenes, fallbackRate): SpeechRateTimingCalculation`**:
+  - Menghitung kuota kata total naskah:
+    $$\text{Total Target Words} = \text{round}\left(\frac{\text{Target Duration (detik)}}{\text{Speech Rate (detik per kata)}}\right)$$
+  - Menghitung distribusi kata rata-rata per scene:
+    $$\text{Average Words per Scene} = \text{round}\left(\frac{\text{Total Target Words}}{\text{Target Scene Count}}\right)$$
+  - Menyediakan batas toleransi ketat ($\pm 10\%$ total kuota kata, rentang ideal $75\% - 125\%$ per scene) untuk mengontrol kepanjangan kalimat.
+- **Pembaruan Instruksi Master Prompt AI**:
+  - **Mode Voice-Over (`VOICE_OVER` / `HYBRID`)**:
+    - Menyuntikkan blok `[PANDUAN TEMPO, KUOTA KATA & KECEPATAN BICARA (SPEECH RATE & DURATION CONTROL)]` yang mewajibkan AI mematuhi total target kata dan rentang kata per scene (hook pendek/punchy, body detail, CTA ringkas).
+    - Memperingatkan AI secara tegas bahwa kelebihan kata akan membuat durasi video molor dan tidak pas saat diisi suara (TTS / Voice-over).
+    - Menyelaraskan field `DURASI:` setiap scene dengan kuota kata scene bersangkutan.
+  - **Aturan Tag Jeda Ekspresif & Akting (`[beat]`, `[sigh]`, `[silence]`, `[pause]`)**:
+    - AI diinstruksikan secara eksplisit bahwa tag jeda/akting seperti `[beat]` (~0.5s), `[sigh]` (~0.8s), `[silence]`/`[pause]` (~1.0s), dan `[pause 2s]` mengonsumsi durasi waktu nyata meskipun tidak dihitung sebagai kata spoken.
+    - AI diwajibkan mengurangi jumlah kata spoken pada scene yang memuat tag jeda agar total waktu bicara + jeda akting tetap pas dan tidak molor dari durasi scene.
+  - **Mode Non-Voice-Over (`DIEGETIC_ONLY` / `SILENT_TEXT_ONLY`)**:
+    - Menginstruksikan AI bahwa ritme video digerakkan oleh aksi visual dan audio ambient tanpa memaksakan kuota kata vokal.
+  - **Integrasi `DurationCalcMode` Archetype**:
+    - `NARRATION_WORDCOUNT`: AI diinstruksikan bahwa durasi dikunci ketat oleh kuota kata narasi.
+    - `SEGMENT_SELF_ESTIMATE`: AI diinstruksikan menyesuaikan narasi dengan durasi adegan visual.
+    - `HYBRID`: AI diinstruksikan menyinkronkan narasi dengan durasi visual adegan.
+  - **Lokalisasi Dwibahasa**:
+    - Format instruksi otomatis diterjemahkan ke bahasa Inggris (`[TEMPO, WORD COUNT BUDGET & SPEECH RATE GUIDELINES]`) jika `outputLanguage` menggunakan bahasa Inggris.
+
+---
+
+### 2 — Helper Kalkulator Interaktif Real-Time di Studio Form (`GeneratorForm.tsx`)
+
+- **Kartu Indikator Waktu & Kata Interaktif**:
+  - Ditambahkan tepat di bawah grid kontrol presisi (*Target Jumlah Scene, Aspect Ratio Video, Speech Rate*).
+  - Menghitung dan menampilkan estimasi secara instan setiap kali user mengubah durasi (15s–600s), scene count (1–30), atau speech rate (0.25–0.50 s/kata):
+    - *Target ~{total} kata (rata-rata ~{perScene} kata/scene)*.
+    - Badge WPM (~{wpm} WPM).
+    - Badge kecepatan kata ({rate} s/kata).
+  - Dilengkapi lokalisasi i18n penuh (`timingCalcTitle`, `timingCalcDesc`, `timingCalcUnit`) di `messages/id.json` dan `messages/en.json`.
+
+---
+
+### 3 — Penyelarasan Alur Simpan Draft & Mode Durasi (`src/app/api/drafts/route.ts`)
+
+- **Perhitungan Kata Spoken Bersih**:
+  - Memanfaatkan fungsi kanonikal `cleanNarasiForTts` dan `countWords` dari `parsers.ts`, memastikan catatan sutradara dan bracket audio (misal: `[SFX: whoosh]`) tidak ikut terhitung sebagai kata yang diucapkan.
+- **Kompensasi Jeda Ekspresif (`estimateExpressivePauseSeconds`)**:
+  - Akumulasi jeda dari tag akting di setiap scene (`totalExpressivePauseSec`) ditambahkan ke perhitungan `wordcountDurationSec`, menghasilkan durasi realistis yang mencerminkan tempo pembacaan aktor/TTS.
+- **Kepatuhan Terhadap `DurationCalcMode` Model Konten**:
+  - Jika archetype channel menggunakan `NARRATION_WORDCOUNT` dan mode suara aktif, estimasi durasi diprioritaskan berbasis kata narasi + jeda ekspresif dengan `durationSource: "WORDCOUNT_ESTIMATE"`.
+  - Jika `SEGMENT_SELF_ESTIMATE`, memprioritaskan akumulasi durasi segmen visual.
+  - Jika `HYBRID`, menyeimbangkan durasi segmen visual dan fallback kuota kata.
+
+---
+
+### 4 — Peningkatan Scene Prompt Studio (`ScenePromptStudioClient.tsx`)
+
+- **Badge Jumlah Kata Narasi & Kompensasi Jeda per Scene**:
+  - Menampilkan pill jumlah kata spoken (`{sceneWords} kata` / `{sceneWords} words`) di samping label `🎤 Narasi` pada setiap scene card.
+  - Menampilkan badge kompensasi jeda ekspresif (`+{pauseSec}s jeda` / `+{pauseSec}s pause`) jika narasi mengandung tag akting/jeda seperti `[beat]`, `[sigh]`, `[silence]`, atau `[pause 2s]`.
+  - Membantu kreator memverifikasi kepanjangan naskah scene sebelum di-copy atau di-generate audio TTS.
+
+---
+
+### 5 — Verifikasi, Parser Kanonikal, & Pengujian Menyeluruh
+
+- **Fungsi Kanonikal `parsers.ts`**:
+  - `countWords(text)`: Helper terpusat untuk menghitung kata spoken secara konsisten di seluruh aplikasi tanpa duplikasi regex `split(/\s+/)`.
+  - `estimateExpressivePauseSeconds(text)`: Helper untuk mengukur bobot waktu nyata dari tag jeda akting (`[beat]` ~0.5s, `[silence]` ~1.0s, `[sigh]` ~0.8s, `[pause 2s]`, dll.) dengan mengabaikan cue teknis SFX/BGM.
+  - `estimateNarrationDuration(text, speechRateSec)`: Menghitung total durasi narasi gabungan (kata bicara + jeda akting).
+- **Unit & Integration Tests (`tests/promptGenerator.test.ts` & `tests/parsers.test.ts`)**:
+  - Pengujian komprehensif yang mencakup:
+    - Normalisasi input speech rate (desimal, WPM, satuan string, keyword preset, fallback).
+    - Kalkulasi matematis waktu 60s @ 0.35s dan 30s @ 0.25s.
+    - Integrasi prompt master (voice-over, non-voiceover diegetic, durationCalcMode archetype, aturan jeda ekspresif, lokalisasi bahasa Inggris).
+    - Parsing kata `countWords` dengan berbagai kasus batas (empty, null, whitespace, format TTS).
+    - Perhitungan jeda ekspresif `estimateExpressivePauseSeconds` dan `estimateNarrationDuration`.
+- **Hasil Uji**:
+  - `npx tsc --noEmit` $\rightarrow$ **0 Errors**.
+  - `npm test` $\rightarrow$ **13 test files passed, 159 tests passed (100% pass)**.
+
+---
+
 ## [#84] — 2026-09-25 | YouTube 2026 SEO Tag & Hashtag Standardization: Studio 500-Char Combiner, Dual-Action Smart Copier, & Zero-Gap Chip Badging
 
 ### Overview

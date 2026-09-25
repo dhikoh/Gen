@@ -16,6 +16,8 @@ import {
   extractAffiliateRecommendations,
   parseScenes,
   cleanNarasiForTts,
+  countWords,
+  estimateExpressivePauseSeconds,
   extractThreeTierSeo,
   formatAsYouTubeTags,
   formatAsHashtags,
@@ -1211,11 +1213,26 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
       {scene.narasi !== "—" && (() => {
         const cleanSpoken = cleanNarasiForTts(scene.narasi);
         const hasDirectorNotes = cleanSpoken && cleanSpoken !== scene.narasi.trim();
+        const sceneWords = countWords(cleanSpoken || scene.narasi);
+        const pauseSec = estimateExpressivePauseSeconds(scene.narasi);
         return (
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold pg-text-sub uppercase tracking-wide flex items-center gap-1.5">
+              <span className="text-xs font-bold pg-text-sub uppercase tracking-wide flex items-center gap-1.5 flex-wrap">
                 <span>🎤</span> {t("narasi")}
+                {sceneWords > 0 && (
+                  <span className="text-[10px] font-normal font-mono px-1.5 py-0.2 rounded-full bg-slate-200/60 dark:bg-slate-700/60 pg-text-sub">
+                    {sceneWords} {locale === "en" ? "words" : "kata"}
+                  </span>
+                )}
+                {pauseSec > 0 && (
+                  <span
+                    className="text-[10px] font-normal font-mono px-1.5 py-0.2 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/25"
+                    title={locale === "en" ? `Expressive pause overhead: ~${pauseSec}s` : `Kompensasi jeda ekspresif: ~${pauseSec}s`}
+                  >
+                    +{pauseSec}s {locale === "en" ? "pause" : "jeda"}
+                  </span>
+                )}
               </span>
               <div className="flex items-center gap-1.5">
                 {hasDirectorNotes && (

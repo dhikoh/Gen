@@ -38,7 +38,7 @@ export interface VideoConfigData {
   narrativeLoopStyle?: string | null;
   visualLoopStyle?: string | null;
   pov?: string | null;
-  speechRate?: string | null;
+  speechRate?: number | string | null;
   hookStyle?: string | null;
   endingStyle?: string | null;
   selectedProductId?: string | null;
@@ -116,6 +116,111 @@ export interface TopPerformingDraftSummary {
   hookText?: string | null;
   toneOfVoice?: string | null;
   targetKeywords?: string[] | string | null;
+}
+
+export interface SpeechRateTimingCalculation {
+  speechRateSec: number;
+  wpm: number;
+  targetDurationSec: number;
+  targetSceneCount: number;
+  totalTargetWords: number;
+  minTotalWords: number;
+  maxTotalWords: number;
+  avgWordsPerScene: number;
+  minWordsPerScene: number;
+  maxWordsPerScene: number;
+  rateLabel: string;
+}
+
+/**
+ * Resolves any speech rate input (number, string, preset key, or WPM) into seconds per word.
+ * Standard default: 0.35 s/kata (~171 WPM).
+ */
+export function resolveSpeechRateSecondsPerWord(
+  rateInput?: number | string | null,
+  fallback?: number | string | null
+): number {
+  const candidates = [rateInput, fallback];
+  for (const cand of candidates) {
+    if (cand == null || cand === "") continue;
+    if (typeof cand === "number" && !isNaN(cand) && cand > 0) {
+      if (cand > 10) return Number((60 / cand).toFixed(2)); // WPM converted to s/word
+      return Number(cand.toFixed(2));
+    }
+    if (typeof cand === "string") {
+      const cleaned = cand.trim().toLowerCase();
+      if (cleaned === "super_fast" || cleaned === "super fast" || cleaned === "sangat cepat") return 0.25;
+      if (cleaned === "fast" || cleaned === "cepat") return 0.30;
+      if (cleaned === "medium" || cleaned === "normal" || cleaned === "standard" || cleaned === "standar") return 0.35;
+      if (cleaned === "relaxed" || cleaned === "santai") return 0.40;
+      if (cleaned === "slow" || cleaned === "lambat") return 0.50;
+      const numMatch = cleaned.match(/^([0-9.]+)/);
+      if (numMatch) {
+        const parsed = parseFloat(numMatch[1]);
+        if (!isNaN(parsed) && parsed > 0) {
+          if (parsed > 10) return Number((60 / parsed).toFixed(2));
+          return Number(parsed.toFixed(2));
+        }
+      }
+    }
+  }
+  return 0.35;
+}
+
+/**
+ * Calculates exact mathematical word budget, scenes, and duration timing.
+ */
+export function calculateSpeechRateTiming(
+  rawSpeechRate?: number | string | null,
+  targetDuration?: number | null,
+  targetScenes?: number | null,
+  fallbackRate?: number | string | null
+): SpeechRateTimingCalculation {
+  const speechRateSec = resolveSpeechRateSecondsPerWord(rawSpeechRate, fallbackRate);
+  const targetDurationSec = (targetDuration && targetDuration > 0) ? targetDuration : 60;
+
+  let targetSceneCount = 6;
+  if (targetScenes && targetScenes > 0) {
+    targetSceneCount = targetScenes;
+  } else if (targetDurationSec <= 30) {
+    targetSceneCount = 3;
+  } else if (targetDurationSec <= 60) {
+    targetSceneCount = 6;
+  } else if (targetDurationSec <= 90) {
+    targetSceneCount = 8;
+  } else {
+    targetSceneCount = Math.max(8, Math.round(targetDurationSec / 10));
+  }
+
+  const wpm = Math.round(60 / speechRateSec);
+  const totalTargetWords = Math.round(targetDurationSec / speechRateSec);
+  const minTotalWords = Math.max(5, Math.round(totalTargetWords * 0.9));
+  const maxTotalWords = Math.max(8, Math.round(totalTargetWords * 1.1));
+
+  const avgWordsPerScene = Math.max(3, Math.round(totalTargetWords / targetSceneCount));
+  const minWordsPerScene = Math.max(2, Math.round(avgWordsPerScene * 0.75));
+  const maxWordsPerScene = Math.max(4, Math.round(avgWordsPerScene * 1.25));
+
+  let rateLabel = `${speechRateSec} detik/kata (~${wpm} WPM)`;
+  if (speechRateSec <= 0.27) rateLabel = `${speechRateSec} detik/kata (Sangat Cepat ~${wpm} WPM)`;
+  else if (speechRateSec <= 0.32) rateLabel = `${speechRateSec} detik/kata (Cepat ~${wpm} WPM)`;
+  else if (speechRateSec <= 0.37) rateLabel = `${speechRateSec} detik/kata (Normal / Standar ~${wpm} WPM)`;
+  else if (speechRateSec <= 0.45) rateLabel = `${speechRateSec} detik/kata (Santai ~${wpm} WPM)`;
+  else rateLabel = `${speechRateSec} detik/kata (Lambat ~${wpm} WPM)`;
+
+  return {
+    speechRateSec,
+    wpm,
+    targetDurationSec,
+    targetSceneCount,
+    totalTargetWords,
+    minTotalWords,
+    maxTotalWords,
+    avgWordsPerScene,
+    minWordsPerScene,
+    maxWordsPerScene,
+    rateLabel,
+  };
 }
 
 const YOUTUBE_SHORTS_GUIDE = `[STRATEGI ALGORITMA PLATFORM: YOUTUBE SHORTS] — ALGORITMA EMPATI 2026
@@ -359,7 +464,8 @@ export function generateMasterPrompt(
   topPerformers?: TopPerformingDraftSummary[] | null
 ): { masterPrompt: string; systemInstruction: string } {
 
-  // ── Archetype & Structural Resolution (Bagian 23) ───────────────────────
+  // ── Language & Archetype & Structural Resolution (Bagian 23) ───────────
+  const isEnglishOutput = Boolean(outputLanguage && /english|inggris/i.test(outputLanguage));
   const effectiveArchetype = videoConfig?.contentArchetype || channel?.contentArchetype || null;
   const finalVoPreference = videoConfig?.voPreference !== undefined ? Boolean(videoConfig.voPreference) : Boolean(channel?.audioVO !== false);
   const effectiveNarrationMode = videoConfig?.narrationMode || effectiveArchetype?.narrationMode || "VOICE_OVER";
@@ -837,7 +943,6 @@ Sangat ilustratif, dinamis, metaforis (HINDARI penerjemahan literal). Contoh yan
     const isLongForm = isExplicitChapterStyle || (!isVerticalOrShort && (sceneCount ? sceneCount > 6 : false));
 
     // Bahasa untuk bab/chapter
-    const isEnglishOutput = Boolean(outputLanguage && /english|inggris/i.test(outputLanguage));
     const chapterKeyword = isEnglishOutput ? "CHAPTER" : "BAB";
     const chapterSample1 = isEnglishOutput ? "Opening Hook" : "Opening Hook";
     const chapterSample2 = isEnglishOutput ? "Core Deep Dive" : "Pembahasan Utama";
@@ -945,7 +1050,15 @@ Jumlah bab ditentukan secara natural berdasarkan alur konten (biasanya 3-6 bab u
     formatOutputWajib += `\n## HTML BLOG\nTulis sebuah artikel blog berbasis naskah video di atas dengan ketentuan berikut:\n1. Panjang artikel: 400–600 kata, SEO-friendly, dengan sub-heading menggunakan tag <h2> dan <h3>.\n2. Meta Description: Tulis meta description 150-160 karakter di bawah judul artikel (label: META DESCRIPTION:).\n3. Judul Artikel (H1): Tulis judul artikel blog yang mengandung kata kunci utama, menarik untuk diklik.\n4. Isi Artikel: Kembangkan narasi video menjadi artikel lengkap. Gunakan paragraf pendek (2-4 kalimat), tambahkan contoh konkret, statistik fiktif yang masuk akal, dan CTA di akhir.\n5. Format output WAJIB HTML murni (bukan Markdown), siap ditempel ke CMS. Mulai dari <h1> hingga paragraf penutup.\n`;
   }
 
-  const effectiveSpeechRate = videoConfig.speechRate || (channel.speechRate ? `${channel.speechRate} detik/kata` : null) || promptSettings?.defaultSpeechRate || "medium";
+  const timingCalc = calculateSpeechRateTiming(
+    videoConfig.speechRate,
+    videoConfig.targetDurationSec,
+    videoConfig.targetSceneCount,
+    (channel.speechRate ? `${channel.speechRate} detik/kata` : null) || promptSettings?.defaultSpeechRate
+  );
+
+  const isVoiceOver = effectiveNarrationMode === "VOICE_OVER" || effectiveNarrationMode === "HYBRID";
+  const durationCalcMode = effectiveArchetype?.durationCalcMode || "HYBRID";
 
   // Extracted to avoid nested backtick syntax error
   const thumbnailGuidelineSection = hasThumbnail
@@ -1068,8 +1181,75 @@ ATURAN WAJIB:
 
 ${structural.pacingGuidelineSection}
 
-[PANDUAN TEMPO & KECEPATAN BICARA (SPEECH RATE)]
-Kecepatan narasi ditetapkan pada: "${effectiveSpeechRate}". Susun panjang kalimat narasi setiap scene agar pas dengan kecepatan bicara ini dan target durasi ${videoConfig.targetDurationSec || 60} detik.
+${(() => {
+  if (isEnglishOutput) {
+    if (isVoiceOver) {
+      let modeNote = "";
+      if (durationCalcMode === "NARRATION_WORDCOUNT") {
+        modeNote = `\n7. DURATION CALCULATION METHOD: NARRATION_WORDCOUNT (WPM). Video duration is strictly governed by narration word count. Keep the word budget strict.`;
+      } else if (durationCalcMode === "SEGMENT_SELF_ESTIMATE") {
+        modeNote = `\n7. DURATION CALCULATION METHOD: SEGMENT_SELF_ESTIMATE. Video duration is determined by visual scene segments. Tailor narration to fit each scene's visual timing.`;
+      } else {
+        modeNote = `\n7. DURATION CALCULATION METHOD: HYBRID. Synchronize spoken narration length (~${timingCalc.speechRateSec}s per word) with visual scene duration so both complete harmoniously.`;
+      }
+
+       return `[TEMPO, WORD COUNT BUDGET & SPEECH RATE GUIDELINES]
+1. Speech Rate: ${timingCalc.rateLabel}.
+2. Target Total Video Duration: ${timingCalc.targetDurationSec} seconds (${timingCalc.targetSceneCount} scenes).
+3. TOTAL SPOKEN WORD BUDGET (STRICT REQUIREMENT):
+   - The total spoken narration words across ALL scenes MUST be around: ~${timingCalc.totalTargetWords} words (strict range: ${timingCalc.minTotalWords}–${timingCalc.maxTotalWords} words).
+4. PER-SCENE WORD BUDGET:
+   - Average per scene: ~${timingCalc.avgWordsPerScene} words (ideal range: ${timingCalc.minWordsPerScene}–${timingCalc.maxWordsPerScene} words per scene).
+   - Hook / Opening scene: punchy & fast (~${Math.max(3, Math.round(timingCalc.avgWordsPerScene * 0.7))}–${timingCalc.avgWordsPerScene} words).
+   - Core explanation scenes: ~${timingCalc.avgWordsPerScene}–${timingCalc.maxWordsPerScene} words.
+   - Closing / CTA scene: concise & punchy (~${Math.max(3, Math.round(timingCalc.avgWordsPerScene * 0.7))}–${timingCalc.avgWordsPerScene} words).
+5. AUDIO & TTS SYNCHRONIZATION:
+   - DO NOT write overly long narration. Every excess word will cause video duration overflow beyond ${timingCalc.targetDurationSec} seconds during voice-over / Text-to-Speech (TTS) playback.
+   - Ensure the "DURASI:" field in each scene accurately reflects the scene narration length (words × ${timingCalc.speechRateSec} seconds).
+6. EXPRESSIVE PAUSES & ACTING TAGS ([beat], [sigh], [silence], [pause]):
+   - Acting and pause tags inside brackets (e.g., [beat] ~0.5s, [sigh] ~0.8s, [silence]/[pause] ~1.0s) consume real playback duration even though they are not spoken words.
+   - When inserting pause or acting tags in a scene's narration, REDUCE the spoken word count in that scene proportionally so the combined duration (spoken words + acting pauses) stays strictly within the scene's allocated duration.${modeNote}`;
+    } else {
+      return `[TIMING & DURATION GUIDELINES (NON-VOICE-OVER MODE: ${effectiveNarrationMode})]
+1. Narration Mode: ${effectiveNarrationMode} (No spoken voice-over).
+2. Target Video Duration: ${timingCalc.targetDurationSec} seconds across ${timingCalc.targetSceneCount} scenes (~${Math.round(timingCalc.targetDurationSec / timingCalc.targetSceneCount)}s per scene).
+3. Rhythm and scene durations are driven entirely by visual scene actions, editing rhythm, and diegetic/ambient audio.`;
+    }
+  } else {
+    if (isVoiceOver) {
+      let modeNote = "";
+      if (durationCalcMode === "NARRATION_WORDCOUNT") {
+        modeNote = `\n7. METODE KALKULASI DURASI: NARRATION_WORDCOUNT (WPM). Durasi video sepenuhnya ditentukan oleh kuota kata narasi yang dibaca narator. Jaga kuota kata secara ketat.`;
+      } else if (durationCalcMode === "SEGMENT_SELF_ESTIMATE") {
+        modeNote = `\n7. METODE KALKULASI DURASI: SEGMENT_SELF_ESTIMATE. Durasi video ditentukan oleh kebutuhan visual scene. Sesuaikan narasi agar pas mengisi durasi scene visual tersebut.`;
+      } else {
+        modeNote = `\n7. METODE KALKULASI DURASI: HYBRID. Sinkronkan panjang kata narasi (~${timingCalc.speechRateSec} detik per kata) dengan durasi visual adegan agar waktu bicara dan visual selesai serentak.`;
+      }
+
+      return `[PANDUAN TEMPO, KUOTA KATA & KECEPATAN BICARA (SPEECH RATE & DURATION CONTROL)]
+1. Kecepatan Bicara (Speech Rate): ${timingCalc.rateLabel}.
+2. Target Total Durasi Video: ${timingCalc.targetDurationSec} detik (terdiri dari ${timingCalc.targetSceneCount} scene).
+3. KUOTA KATA TOTAL NASKAH (WAJIB DIPATUHI SECARA KETAT):
+   - Total kata spoken narasi untuk SELURUH naskah WAJIB berkisar: ~${timingCalc.totalTargetWords} kata (rentang ketat: ${timingCalc.minTotalWords}–${timingCalc.maxTotalWords} kata).
+4. DISTRIBUSI KATA PER SCENE:
+   - Rata-rata per scene: ~${timingCalc.avgWordsPerScene} kata (rentang ideal: ${timingCalc.minWordsPerScene}–${timingCalc.maxWordsPerScene} kata per scene).
+   - Scene pembuka (Hook): buat punchy & cepat (~${Math.max(3, Math.round(timingCalc.avgWordsPerScene * 0.7))}–${timingCalc.avgWordsPerScene} kata).
+   - Scene isi/penjelasan: ~${timingCalc.avgWordsPerScene}–${timingCalc.maxWordsPerScene} kata.
+   - Scene penutup (CTA/Ending): singkat & padat (~${Math.max(3, Math.round(timingCalc.avgWordsPerScene * 0.7))}–${timingCalc.avgWordsPerScene} kata).
+5. SINKRONISASI AUDIO & TTS:
+   - DILARANG menulis narasi melebihi batas kuota kata di atas. Setiap kelebihan kata akan membuat durasi video molor dan tidak pas dengan durasi visual ${timingCalc.targetDurationSec} detik saat diisi suara (TTS / Voice-over).
+   - Pastikan estimasi durasi pada field "DURASI:" di setiap scene mencerminkan panjang kata narasi scene tersebut (kata × ${timingCalc.speechRateSec} detik).
+6. TAG JEDA EKSPRESIF & AKTING ([beat], [sigh], [silence], [pause]):
+   - Tag ekspresif/akting di dalam kurung siku (seperti [beat] ~0.5 detik, [sigh] ~0.8 detik, [silence]/[pause] ~1.0 detik) mengonsumsi durasi waktu nyata meskipun tidak dihitung sebagai kata bicara.
+   - Jika kamu menyisipkan tag jeda/akting pada narasi suatu scene, WAJIB KURANGI jumlah kata spoken pada scene tersebut secara proporsional agar total durasi (kata spoken + jeda akting) tetap tepat dan tidak melebihi alokasi durasi scene.${modeNote}`;
+    } else {
+      return `[PANDUAN TEMPO & DURASI KONTEN (MODE NON-VOICE-OVER: ${effectiveNarrationMode})]
+1. Mode Narasi Terpilih: ${effectiveNarrationMode} (Tanpa pengisi suara / narasi vokal manusia).
+2. Target Total Durasi: ${timingCalc.targetDurationSec} detik di seluruh ${timingCalc.targetSceneCount} scene (rata-rata ~${Math.round(timingCalc.targetDurationSec / timingCalc.targetSceneCount)}s per scene).
+3. Ritme dan durasi adegan ditentukan sepenuhnya oleh aksi visual, pacing editing, dan suara ambient/diegetik.`;
+    }
+  }
+})()}
 
 ${structural.emotionalArcSection}
 
@@ -1091,10 +1271,9 @@ ${structural.narrationModeDirective}
   }
 
   // ── Duration & Scene Count ─────────────────────────────────────────────
-  let durationText = "";
-  if (videoConfig.targetDurationSec) {
-    durationText = `\n[TARGET DURASI VIDEO]\nWAJIB mengarahkan estimasi durasi agar total seluruh scene mendekati atau TEPAT ${videoConfig.targetDurationSec} detik.`;
-  }
+  const durationText = isEnglishOutput
+    ? `\n[TARGET VIDEO DURATION & SCENE CONTROL]\nTarget duration is MANDATORY: total duration across all scenes must equal or closely match ${timingCalc.targetDurationSec} seconds${isVoiceOver ? ` (total narration ~${timingCalc.totalTargetWords} words at ${timingCalc.speechRateSec} s/word)` : ""}. Ensure exactly ${timingCalc.targetSceneCount} scenes are produced and the sum of all "DURASI:" fields equals ${timingCalc.targetDurationSec} seconds.\n`
+    : `\n[TARGET DURASI VIDEO & KONTROL SCENE]\nWAJIB mengarahkan estimasi durasi agar akumulasi seluruh scene TEPAT atau mendekati ${timingCalc.targetDurationSec} detik${isVoiceOver ? ` (total narasi ~${timingCalc.totalTargetWords} kata pada kecepatan ${timingCalc.speechRateSec} s/kata)` : ""}. Pastikan jumlah seluruh scene adalah TEPAT ${timingCalc.targetSceneCount} scene dan total nilai pada field DURASI dari Scene 1 sampai Scene ${timingCalc.targetSceneCount} berjumlah ${timingCalc.targetDurationSec} detik.\n`;
 
   // ── Product Context ────────────────────────────────────────────────────
   // Hanya inject productContext jika affiliateAngle TIDAK aktif.

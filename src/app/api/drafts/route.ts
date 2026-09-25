@@ -8,6 +8,7 @@ import { z } from "zod";
 import { requireActiveSubscription, SubscriptionInactiveError } from "@/lib/subscription";
 import { getClientIp, applyRateLimit } from "@/lib/rateLimit";
 import sanitizeHtml from "sanitize-html";
+import { cleanNarasiForTts, countWords, estimateExpressivePauseSeconds } from "@/lib/parsers";
 
 const saveDraftSchema = z.object({
   channelId: z.string(),
@@ -106,13 +107,14 @@ export async function POST(req: Request) {
 
     let wordCount = 0;
     let estimatedDurationSec = 0;
-    let durationSource: "SEGMENT_ESTIMATE" | "WORDCOUNT_FALLBACK" = "SEGMENT_ESTIMATE";
+    let durationSource: "SEGMENT_ESTIMATE" | "WORDCOUNT_FALLBACK" | "WORDCOUNT_ESTIMATE" = "SEGMENT_ESTIMATE";
 
     const effectiveTopic = topic || manualTitle || (typeof parsedData.judul_konten === "string" ? parsedData.judul_konten : "") || `Draft ${type}`;
     const title = manualTitle || (typeof parsedData.judul_konten === "string" ? parsedData.judul_konten : "") || `Draft ${type}: ${effectiveTopic.substring(0, 30)}`;
 
     if (type === "VIDEO") {
       let totalWords = 0;
+      let totalExpressivePauseSec = 0;
       let totalSegmentDuration = 0;
       let validSegmentDurationCount = 0;
 
@@ -120,7 +122,8 @@ export async function POST(req: Request) {
       if (parsedData.segments && Array.isArray(parsedData.segments)) {
         parsedData.segments.forEach((segment: Record<string, unknown>) => {
           if (segment.caption && typeof segment.caption === "string") {
-            totalWords += segment.caption.split(/\s+/).filter(Boolean).length;
+            totalWords += countWords(segment.caption);
+            totalExpressivePauseSec += estimateExpressivePauseSeconds(segment.caption);
           }
           const segSec = parseSec(segment.durasi_estimasi || segment.durasi || segment.duration);
           if (segSec !== null) {
@@ -134,10 +137,12 @@ export async function POST(req: Request) {
       if (parsedData.scenes && Array.isArray(parsedData.scenes)) {
         parsedData.scenes.forEach((scene: Record<string, unknown>) => {
           if (scene.narasi && typeof scene.narasi === "string") {
-            totalWords += scene.narasi.split(/\s+/).filter(Boolean).length;
+            const spoken = cleanNarasiForTts(scene.narasi);
+            totalWords += countWords(spoken || scene.narasi);
+            totalExpressivePauseSec += estimateExpressivePauseSeconds(scene.narasi);
           }
           if (scene.caption && typeof scene.caption === "string") {
-            totalWords += scene.caption.split(/\s+/).filter(Boolean).length;
+            totalWords += countWords(scene.caption);
           }
           const scnSec = parseSec(scene.durasi_estimasi || scene.durasi || scene.duration);
           if (scnSec !== null) {
@@ -153,17 +158,24 @@ export async function POST(req: Request) {
       const effectiveNarrationMode = narrationMode || channel.contentArchetype?.narrationMode || "VOICE_OVER";
       const isVoiceOverMode = effectiveNarrationMode === "VOICE_OVER" || effectiveNarrationMode === "HYBRID";
       const effectiveRate = speechRate && speechRate > 0 ? speechRate : (channel.speechRate || 0.35);
+      const durationCalcMode = channel.contentArchetype?.durationCalcMode || "HYBRID";
 
-      if (totalSegmentDuration > 0 && validSegmentDurationCount > 0) {
+      const rateMultiplier = effectiveRate <= 2 ? effectiveRate : 60 / effectiveRate;
+      const wordcountDurationSec = (totalWords > 0 || totalExpressivePauseSec > 0)
+        ? Math.round((totalWords * rateMultiplier) + totalExpressivePauseSec)
+        : 0;
+
+      if (durationCalcMode === "NARRATION_WORDCOUNT" && isVoiceOverMode && wordcountDurationSec > 0) {
+        estimatedDurationSec = wordcountDurationSec;
+        durationSource = "WORDCOUNT_ESTIMATE";
+      } else if (durationCalcMode === "SEGMENT_SELF_ESTIMATE" && totalSegmentDuration > 0 && validSegmentDurationCount > 0) {
         estimatedDurationSec = totalSegmentDuration;
         durationSource = "SEGMENT_ESTIMATE";
-      } else if (isVoiceOverMode && totalWords > 0) {
-        if (effectiveRate <= 2) {
-          estimatedDurationSec = Math.round(totalWords * effectiveRate);
-        } else {
-          const wordsPerSecond = effectiveRate / 60;
-          estimatedDurationSec = Math.round(totalWords / wordsPerSecond);
-        }
+      } else if (totalSegmentDuration > 0 && validSegmentDurationCount > 0) {
+        estimatedDurationSec = totalSegmentDuration;
+        durationSource = "SEGMENT_ESTIMATE";
+      } else if (isVoiceOverMode && wordcountDurationSec > 0) {
+        estimatedDurationSec = wordcountDurationSec;
         durationSource = "WORDCOUNT_FALLBACK";
       } else if (targetDurationSec && targetDurationSec > 0) {
         estimatedDurationSec = targetDurationSec;

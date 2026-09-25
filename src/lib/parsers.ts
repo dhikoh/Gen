@@ -698,6 +698,91 @@ export function cleanNarasiForTts(text: string): string {
 }
 
 /**
+ * Accurately count words in a given text string, filtering out empty tokens.
+ */
+export function countWords(text?: string | null): number {
+  if (!text || !text.trim()) return 0;
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
+/**
+ * Estimates real expressive pause / acting dead-air time in seconds from brackets/parentheticals.
+ * E.g., [beat] (~0.5s), [silence]/[pause] (~1.0s), [pause 2s] (~2.0s), [sigh] (~0.8s), [gasp] (~0.6s).
+ */
+export function estimateExpressivePauseSeconds(text?: string | null): number {
+  if (!text || !text.trim()) return 0;
+
+  let totalPauseSec = 0;
+
+  // 1. Explicit numbered pause tags: [pause 2s], (jeda 1.5 detik), [silence 3s]
+  const explicitNumberRegex = /[\[\(](?:pause|jeda|silence|hening)\s+(\d+(?:\.\d+)?)\s*(?:s|detik|sec|secs|seconds)?[\]\)]/gi;
+  let match: RegExpExecArray | null;
+  const strippedText = text.replace(explicitNumberRegex, (_, numStr) => {
+    const val = parseFloat(numStr);
+    if (!isNaN(val) && val > 0) {
+      totalPauseSec += val;
+    }
+    return " ";
+  });
+
+  // 2. Standard bracketed tags and parentheticals
+  const tagRegex = /[\[\(]([^\]\)]+)[\]\)]/g;
+  while ((match = tagRegex.exec(strippedText)) !== null) {
+    const rawTag = match[1].trim().toLowerCase();
+
+    // Ignore SFX/BGM technical cues like [SFX: explosion], [BGM: epic]
+    if (/^(?:sfx|bgm|audio|visual|music)\b/i.test(rawTag)) {
+      continue;
+    }
+
+    if (/\b(?:beat|jeda(?:\s+singkat)?)\b/.test(rawTag)) {
+      totalPauseSec += 0.5;
+    } else if (/\b(?:silence|hening|pause)\b/.test(rawTag)) {
+      totalPauseSec += 1.0;
+    } else if (/\b(?:sigh|hela(?:\s+napas)?|tarik(?:\s+napas)?)\b/.test(rawTag)) {
+      totalPauseSec += 0.8;
+    } else if (/\b(?:gasp|terkesiap)\b/.test(rawTag)) {
+      totalPauseSec += 0.6;
+    } else if (/\b(?:chuckle|tertawa|kekeh|giggle)\b/.test(rawTag)) {
+      totalPauseSec += 0.8;
+    } else if (/\b(?:whisper|berbisik)\b/.test(rawTag)) {
+      totalPauseSec += 0.5;
+    }
+  }
+
+  return Number(totalPauseSec.toFixed(1));
+}
+
+export interface NarrationDurationEstimate {
+  spokenWords: number;
+  wordDurationSec: number;
+  pauseDurationSec: number;
+  totalDurationSec: number;
+}
+
+/**
+ * Calculates a complete, accurate estimate of narration duration by combining
+ * spoken words (at a given speech rate) with expressive pause overheads.
+ */
+export function estimateNarrationDuration(
+  text?: string | null,
+  speechRateSec: number = 0.35
+): NarrationDurationEstimate {
+  const cleanSpoken = cleanNarasiForTts(text || "");
+  const spokenWords = countWords(cleanSpoken || text);
+  const wordDurationSec = Number((spokenWords * speechRateSec).toFixed(1));
+  const pauseDurationSec = estimateExpressivePauseSeconds(text);
+  const totalDurationSec = Number((wordDurationSec + pauseDurationSec).toFixed(1));
+
+  return {
+    spokenWords,
+    wordDurationSec,
+    pauseDurationSec,
+    totalDurationSec,
+  };
+}
+
+/**
  * Parse AI generated script text into structured Scene items with support for:
  * - Chapter markers (BAB N: Title or CHAPTER N: Title)
  * - Narration, Audio cues (BGM, SFX, Diegetic)
