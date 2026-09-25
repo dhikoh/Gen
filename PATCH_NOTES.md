@@ -2,6 +2,64 @@
 
 ---
 
+## [#82] — 2026-09-25 | Dynamic Custom Role & POV AI Engine: 3-Tier Precedence Hierarchy & Conflict-Free Persona Resolution
+
+### Overview
+
+Pembaruan strategis pada fleksibilitas personalisasi AI di Generator Studio (`GeneratorForm.tsx`), menghadirkan fitur **Role & POV AI Dinamis / Custom** yang memungkinkan kreator merumuskan persona AI khusus secara bebas per topik/tema video. Sistem ini menerapkan arsitektur **3-Tier Precedence Hierarchy** pada mesin pembuat prompt (`promptGenerator.ts`) untuk memastikan arahan persona di Generator Studio menjadi prioritas utama (*Theme-Specific Override*) tanpa bentrok dengan pengaturan default saluran (*Channel Profile*), seraya menjaga database saluran tetap murni (*immutable baseline*).
+
+---
+
+### 1 — Antarmuka Role & POV Dinamis di Generator Studio (`GeneratorForm.tsx`)
+
+- **Tombol Pilihan Baru `[✏️ Custom]` pada Grid Role & POV**:
+  - Menambahkan opsi ke-7 dengan border beraksen dashed halus (`role.value === "CUSTOM"`), berdampingan dengan preset bawaan (*Auto, Kreator, Marketing, Pebisnis, Pendidik, Storyteller*).
+  - Tampilan grid responsif 2 kolom di layar HP, 3 kolom di tablet, dan 4 kolom di desktop (`grid-cols-2 sm:grid-cols-3 md:grid-cols-4`).
+- **Kotak Input Interaktif Persona Kustom**:
+  - Muncul secara halus saat tombol *Custom* diaktifkan, dilengkapi badge *"Prioritas #1 Override"* dan pembatas 300 karakter.
+  - Memberikan contoh persona nyata (misal: *Dokter Spesialis Anak ramah*, *Mekanik Senior to-the-point*) untuk memandu pengguna merumuskan karakter AI terbaik.
+  - Menyertakan tooltip edukatif bahwa persona kustom ini hanya berlaku khusus untuk tema video yang sedang dibuat tanpa mengubah profil permanen saluran.
+- **Indikator Transparan Mode Auto & Saluran Aktif**:
+  - Ketika memilih *Auto*, sistem menampilkan cuplikan persona default saluran yang sedang aktif (`ℹ️ Mengikuti Persona Channel: "..."`), memberikan kejelasan visual penuh tanpa tebak-tebak.
+
+---
+
+### 2 — Arsitektur 3-Tingkat Presedensi Persona (`promptGenerator.ts`)
+
+- **Hierarki Presedensi Authoritative**:
+  - **Tier 1 (Prioritas #1 / Studio Custom Override)**: Apabila pengguna memilih *Custom* dan mengisi persona spesifik di Generator Studio (`rolePOV === "CUSTOM"` & `customRolePOV`), AI diinstruksikan via directif:
+    `- Peran & POV AI (Prioritas Tema Video): Bertindaklah sebagai [customRolePOV] — Karena tema video ini memiliki kebutuhan spesifik, prioritaskan karakter/persona ini di atas profil default channel untuk membawakan seluruh gaya penceritaan, emosi, dan artikulasi ide.`
+    Persona bawaan saluran (`channel.personaPov`) secara otomatis disupresi sehingga naskah bebas dari kalimat persona yang saling bertentangan atau mendua.
+  - **Tier 2 (Studio Preset Override)**: Pilihan preset studio (*KONTEN_KREATOR, MARKETING, PEBISNIS, PENDIDIK, STORYTELLER*) secara aktif mengesampingkan persona default saluran untuk video tersebut.
+  - **Tier 3 (Fallback Saluran / Default Channel)**: Mode *Auto* mengalirkan persona bawaan saluran (`channel.personaPov`) atau konfigurasi video (`videoConfig.pov`) secara murni:
+    `- Persona & Sudut Pandang Kreator: "[channel.personaPov]" — Bawakan seluruh alur penceritaan, emosi, dan artikulasi ide dari kacamata persona ini.`
+- **Proteksi Input Kosong (*Blank Guard*)**:
+  - Apabila opsi *Custom* dipilih namun kotak teks dibiarkan kosong atau hanya berisi spasi, generator secara otomatis jatuh ke persona saluran (*graceful fallback*) tanpa menghasilkan prompt yang cacat.
+- **Imutabilitas Profil Saluran (*Channel Baseline Preservation*)**:
+  - Persona kustom di generator studio bersifat *ephemeral per generation*, tidak pernah memodifikasi tabel database `ProfileChannel`. Saluran tetap memiliki identitas inti yang konsisten.
+
+---
+
+### 3 — Validasi API & Isolasi State Antar-Saluran (`route.ts`, `preferences/route.ts`)
+
+- **Zod Schema Synchronization**:
+  - Menambahkan field `customRolePOV: z.string().optional().nullable()` pada skema endpoint pembuatan prompt `/api/generate`.
+  - Menambahkan `customRolePOV: z.string().max(500).optional()` pada skema penyimpanan otomatis preferensi form `/api/user/preferences`.
+- **Per-Channel State Isolation**:
+  - Input persona kustom disimpan terpisah per saluran (`channelFormStates[channelId].customRolePOV`). Saat kreator beralih saluran di generator, teks kustom saluran lain tidak akan bocor ke saluran baru.
+
+---
+
+### 4 — Verifikasi Kualitas & Pengujian Otomatis
+
+- **Vitest Suite Pass 100% (126/126 Tests)**:
+  - 4 pengujian unit baru di `tests/promptGenerator.test.ts` memvalidasi Tier 1 Custom Override, Tier 2 Preset Override, Tier 3 Channel Fallback, serta Blank Custom Fallback.
+  - Pengujian isolasi state multi-saluran di `tests/channelStateIsolation.test.ts` memvalidasi persistensi field `customRolePOV`.
+- **TypeScript Typecheck Clean**:
+  - `npx tsc --noEmit` lolos dengan 0 error di seluruh workspace.
+
+---
+
 ## [#81] — 2026-09-25 | UI/UX Precision & Ergonomics: Design System Unification, Mobile/PWA Optimization & Zero-Friction Polish
 
 ### Overview

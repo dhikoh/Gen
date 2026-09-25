@@ -36,6 +36,7 @@ const generatorFormStateSchema = z.object({
   topic: z.string().max(500).optional(),
   additionalContext: z.string().max(2000).optional(),
   rolePOV: z.string().optional(),
+  customRolePOV: z.string().max(500).optional(),
   toneOfVoice: z.string().optional(),
   visualStyleKey: z.string().optional(),
   hookStyleType: z.string().optional(),
@@ -82,7 +83,8 @@ describe("Per-Channel State Isolation & Preferences Sync (Section 32)", () => {
           channelId: "channel-tech-1",
           topic: "AI Agents 2026",
           visualStyleKey: "cyberpunk",
-          rolePOV: "PENDIDIK",
+          rolePOV: "CUSTOM",
+          customRolePOV: "AI Specialist & Machine Learning Researcher",
           videoConfig: {
             targetPlatform: "YouTube Long",
             speechRate: 0.35,
@@ -105,7 +107,10 @@ describe("Per-Channel State Isolation & Preferences Sync (Section 32)", () => {
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.channelFormStates?.["channel-tech-1"]?.topic).toBe("AI Agents 2026");
+      expect(result.data.channelFormStates?.["channel-tech-1"]?.rolePOV).toBe("CUSTOM");
+      expect(result.data.channelFormStates?.["channel-tech-1"]?.customRolePOV).toBe("AI Specialist & Machine Learning Researcher");
       expect(result.data.channelFormStates?.["channel-cooking-2"]?.topic).toBe("Resep Rendang Daging");
+      expect(result.data.channelFormStates?.["channel-cooking-2"]?.customRolePOV).toBeUndefined();
     }
   });
 

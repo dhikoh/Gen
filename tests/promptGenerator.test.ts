@@ -438,6 +438,78 @@ describe("promptGenerator", () => {
       expect(systemInstruction).toContain("## BAB 2: Pembahasan Utama");
     });
   });
+
+  describe("Patch #82: Dynamic Custom Role & POV AI with 3-Tier Precedence Hierarchy", () => {
+    const channelWithPersona = {
+      ...dummyChannel,
+      personaPov: "Default Channel Guru Biologi Senior",
+    };
+
+    it("Tier 1: Custom Role/POV typed in Studio overrides channel default without persona conflict", () => {
+      const { masterPrompt } = generateMasterPrompt(
+        channelWithPersona,
+        "Tips Parenting Anak",
+        "",
+        {
+          rolePOV: "CUSTOM",
+          customRolePOV: "Dokter Spesialis Anak yang ramah dan menenangkan orang tua",
+          targetPlatform: "TIKTOK",
+        }
+      );
+
+      expect(masterPrompt).toContain("- Peran & POV AI (Prioritas Tema Video): Bertindaklah sebagai Dokter Spesialis Anak yang ramah dan menenangkan orang tua");
+      expect(masterPrompt).not.toContain("Default Channel Guru Biologi Senior");
+      expect(masterPrompt).not.toContain("- Persona & Sudut Pandang Kreator:");
+    });
+
+    it("Tier 2: Preset Role/POV in Studio overrides channel default without persona conflict", () => {
+      const { masterPrompt } = generateMasterPrompt(
+        channelWithPersona,
+        "Promo Produk Baru",
+        "",
+        {
+          rolePOV: "MARKETING",
+          targetPlatform: "TIKTOK",
+        }
+      );
+
+      expect(masterPrompt).toContain("- Peran & POV AI (Prioritas Tema Video): Bertindaklah sebagai Copywriter dan Ahli Pemasaran Profesional");
+      expect(masterPrompt).not.toContain("Default Channel Guru Biologi Senior");
+      expect(masterPrompt).not.toContain("- Persona & Sudut Pandang Kreator:");
+    });
+
+    it("Tier 3: Default Role/POV falls back gracefully to channel.personaPov", () => {
+      const { masterPrompt } = generateMasterPrompt(
+        channelWithPersona,
+        "Evolusi Sel Hewan",
+        "",
+        {
+          rolePOV: "default",
+          targetPlatform: "TIKTOK",
+        }
+      );
+
+      expect(masterPrompt).toContain('- Persona & Sudut Pandang Kreator: "Default Channel Guru Biologi Senior"');
+      expect(masterPrompt).not.toContain("- Peran & POV AI (Prioritas Tema Video):");
+    });
+
+    it("falls back to channel.personaPov if CUSTOM role is selected but custom text is blank", () => {
+      const { masterPrompt } = generateMasterPrompt(
+        channelWithPersona,
+        "Evolusi Sel Hewan",
+        "",
+        {
+          rolePOV: "CUSTOM",
+          customRolePOV: "   ",
+          targetPlatform: "TIKTOK",
+        }
+      );
+
+      expect(masterPrompt).toContain('- Persona & Sudut Pandang Kreator: "Default Channel Guru Biologi Senior"');
+      expect(masterPrompt).not.toContain("- Peran & POV AI (Prioritas Tema Video):");
+    });
+  });
 });
+
 
 

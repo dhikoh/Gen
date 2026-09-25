@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import toast from "react-hot-toast";
@@ -70,6 +70,7 @@ export default function GeneratorForm({
 
  const [type, setType] = useState<"VIDEO" | "IMAGE">("VIDEO");
  const [channelId, setChannelId] = useState(channels.length > 0 ? channels[0].id : "");
+ const currentChannel = useMemo(() => channels.find((c) => c.id === channelId), [channels, channelId]);
  const [topic, setTopic] = useState("");
  const [targetKeywords, setTargetKeywords] = useState<string[]>([]);
  const [outputLanguage, setOutputLanguage] = useState("Indonesian");
@@ -91,6 +92,7 @@ export default function GeneratorForm({
 
  // Push-ported enrichment state
  const [rolePOV, setRolePOV] = useState<string>("default");
+ const [customRolePOV, setCustomRolePOV] = useState<string>("");
  const [toneOfVoice, setToneOfVoice] = useState<string>("");
  const [visualStyleKey, setVisualStyleKey] = useState<string>("");
  const [visualStyleCustom, setVisualStyleCustom] = useState<string>(""); // Fix #60: custom style input
@@ -277,6 +279,7 @@ export default function GeneratorForm({
       targetKeywords,
       additionalContext,
       rolePOV,
+      customRolePOV,
       toneOfVoice,
       visualStyleKey,
       visualStyleCustom,
@@ -322,6 +325,7 @@ export default function GeneratorForm({
     targetKeywords,
     additionalContext,
     rolePOV,
+    customRolePOV,
     toneOfVoice,
     visualStyleKey,
     visualStyleCustom,
@@ -376,6 +380,7 @@ export default function GeneratorForm({
       setAdditionalContext(savedState.additionalContext || "");
       if (Array.isArray(savedState.targetKeywords)) setTargetKeywords(savedState.targetKeywords);
       setRolePOV(savedState.rolePOV || "default");
+      setCustomRolePOV(savedState.customRolePOV || "");
       setToneOfVoice(savedState.toneOfVoice || "");
       setHookStyleType(savedState.hookStyleType || "auto");
       setCustomHookText(savedState.customHookText || "");
@@ -453,6 +458,7 @@ export default function GeneratorForm({
       setAdditionalContext("");
       setTargetKeywords([]);
       setRolePOV("default");
+      setCustomRolePOV("");
       setToneOfVoice("");
       setVisualStyleKey(channelVisualStyle);
       setVisualStyleCustom("");
@@ -878,6 +884,7 @@ export default function GeneratorForm({
  htmlBlog: videoConfig.includeHtmlBlog,
  // Push enrichment params
  rolePOV,
+ customRolePOV: rolePOV === "CUSTOM" ? (customRolePOV.trim() || undefined) : undefined,
  toneOfVoice: toneOfVoice || undefined,
  // Fix #60: if __custom__ is selected, use the custom text; else use the preset key
  visualStyle: visualStyleKey === "__custom__"
@@ -1494,27 +1501,39 @@ export default function GeneratorForm({
  </div>
  </div>
 
- {/* ── Push Enrichment: Role/POV AI ── */}
+ {/* ── Push Enrichment: Role/POV AI (3-Tier Precedence Hierarchy) ── */}
  <div className="space-y-2 pt-2 border-t pg-border">
+ <div className="flex items-center justify-between">
  <label className="block text-xs font-semibold pg-text-sub">
  🎭 Role & POV AI
  </label>
- <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+ <span className="text-[10px] pg-text-muted">
+ {rolePOV === "CUSTOM"
+   ? "Mode Custom Aktif"
+   : rolePOV === "default"
+   ? "Profil Channel"
+   : "Preset Studio"}
+ </span>
+ </div>
+ <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
  {[
- { value: "default", label: "Auto", desc: "Ikuti channel profile" },
+ { value: "default", label: "Auto", desc: "Ikuti profil channel" },
  { value: "KONTEN_KREATOR", label: "Kreator", desc: "Influencer personal brand" },
  { value: "MARKETING", label: "Marketing", desc: "Copywriter persuasif" },
  { value: "PEBISNIS", label: "Pebisnis", desc: "Founder/brand story" },
  { value: "PENDIDIK", label: "Pendidik", desc: "Guru/ahli teknis" },
  { value: "STORYTELLER", label: "Storyteller", desc: "Sinematik & naratif" },
+ { value: "CUSTOM", label: "✏️ Custom", desc: "Tulis persona sendiri" },
  ].map((role) => (
  <button
  key={role.value}
  type="button"
  onClick={() => setRolePOV(role.value)}
  className={`flex flex-col items-start px-3 py-2 text-left border rounded-lg transition-colors text-xs ${
+ role.value === "CUSTOM" && rolePOV !== "CUSTOM" ? "border-dashed" : ""
+ } ${
  rolePOV === role.value
- ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
+ ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 shadow-sm font-medium"
  : "pg-border hover:pg-surface-dim"
  }`}
  >
@@ -1523,6 +1542,40 @@ export default function GeneratorForm({
  </button>
  ))}
  </div>
+
+ {/* Custom Persona Interactive Input */}
+ {rolePOV === "CUSTOM" && (
+ <div className="mt-2.5 p-3 rounded-xl border border-blue-500/30 bg-blue-50/50 dark:bg-blue-950/20 space-y-2">
+ <div className="flex items-center justify-between text-xs font-semibold text-blue-700 dark:text-blue-300">
+ <span className="flex items-center gap-1.5">
+ <span>✏️ Persona / Role AI Khusus Video Ini</span>
+ </span>
+ <span className="text-[10px] text-blue-600/80 dark:text-blue-400/80 bg-blue-100/70 dark:bg-blue-900/40 px-2 py-0.5 rounded-full font-normal">
+ Prioritas #1 Override
+ </span>
+ </div>
+ <textarea
+ value={customRolePOV}
+ onChange={(e) => setCustomRolePOV(e.target.value)}
+ placeholder="Tulis persona khusus untuk video ini... Contoh: Dokter Spesialis Anak yang ramah dan menenangkan orang tua, atau Mekanik Senior dengan tips to-the-point..."
+ rows={2}
+ maxLength={300}
+ className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-800 border pg-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-slate-800 dark:text-slate-100 placeholder:text-slate-400 resize-none transition-all shadow-sm"
+ />
+ <div className="flex items-center justify-between text-[10px] pg-text-muted">
+ <span>💡 Persona ini hanya berlaku untuk video ini tanpa mengubah profil permanen channel.</span>
+ <span>{customRolePOV.length}/300</span>
+ </div>
+ </div>
+ )}
+
+ {/* Default Channel Fallback Indicator */}
+ {rolePOV === "default" && currentChannel?.personaPov && (
+ <p className="text-[10px] pg-text-muted mt-1 flex items-center gap-1.5 px-0.5">
+ <span className="text-slate-400">ℹ️ Mengikuti Persona Channel:</span>
+ <span className="font-medium text-slate-700 dark:text-slate-300 truncate max-w-[280px] sm:max-w-md">"{currentChannel.personaPov}"</span>
+ </p>
+ )}
  </div>
 
  {/* ── Push Enrichment: Visual Style Preset ── */}

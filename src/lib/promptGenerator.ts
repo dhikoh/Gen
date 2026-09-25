@@ -55,6 +55,7 @@ export interface VideoConfigData {
   affiliateCustomUrl?: string | null;
   // Push-ported enrichment params
   rolePOV?: string | null;
+  customRolePOV?: string | null;
   toneOfVoice?: string | null;
   visualStyle?: string | null;
   hookStyleType?: string | null; // Legacy Push field — no UI, always "auto". Kept for API backward compat.
@@ -449,10 +450,39 @@ export function generateMasterPrompt(
   povSection += `Kamu wajib bertindak dari sudut pandang (POV) channel berikut:\n`;
   povSection += `- Sebagai "${channel.channelName}": yang memahami dan memiliki keahlian dalam "${channel.description || channel.niche || "konten digital"}"\n`;
 
-  // Fix #72: Persona & POV Kreator (resolved from videoConfig.pov with fallback to channel.personaPov)
-  const effectiveCreatorPOV = videoConfig.pov?.trim() || channel.personaPov?.trim() || null;
-  if (effectiveCreatorPOV) {
-    povSection += `- Persona & Sudut Pandang Kreator: "${effectiveCreatorPOV}" — Bawakan seluruh alur penceritaan, emosi, dan artikulasi ide dari kacamata persona ini.\n`;
+  // Role descriptions for preset choices
+  const roleDescriptions: Record<string, string> = {
+    KONTEN_KREATOR: "Konten Kreator / Influencer digital yang karismatik dan sangat dekat dengan audiens. Gunakan gaya personal brand yang kuat, menceritakan pengalaman pribadi (POV orang pertama), ramah, kasual, dan fokus pada interaksi komunitas.",
+    MARKETING: "Copywriter dan Ahli Pemasaran Profesional. Fokus pada psikologi konsumen, penulisan persuasif, penonjolan USP, mengatasi keraguan pembeli, dan mengarahkan audiens menuju konversi.",
+    PEBISNIS: "Pebisnis, Founder, atau Brand Owner yang visioner. Tulis dari sudut pandang pembangun bisnis, menceritakan kisah behind the scenes, tantangan operasional, dan nilai-nilai brand.",
+    PENDIDIK: "Guru, Dosen, atau Ahli Teknis yang mahir menyederhanakan materi kompleks. Gunakan analogi visual, penjelasan step-by-step, dan pastikan mudah dipahami pemula.",
+    STORYTELLER: "Storyteller profesional dan Sutradara Naratif. Fokus pada plot twist, emosi mendalam, suspense, latar imersif, dan alur narasi sinematik.",
+  };
+
+  // ── Role & POV Hierarchy (Fix #82) ──────────────────────────────────────
+  // Tier 1 (Override): Custom persona typed in Generator Studio
+  // Tier 2 (Override): Preset persona selected in Generator Studio
+  // Tier 3 (Fallback): Channel default persona (channel.personaPov / videoConfig.pov)
+  let activeStudioRoleDesc: string | null = null;
+  let isStudioRoleOverride = false;
+
+  const isCustomRole = videoConfig.rolePOV === "CUSTOM" || (Boolean(videoConfig.customRolePOV?.trim()) && (!videoConfig.rolePOV || videoConfig.rolePOV === "CUSTOM"));
+  if (isCustomRole && videoConfig.customRolePOV?.trim()) {
+    activeStudioRoleDesc = videoConfig.customRolePOV.trim();
+    isStudioRoleOverride = true;
+  } else if (videoConfig.rolePOV && videoConfig.rolePOV !== "default" && videoConfig.rolePOV !== "CUSTOM" && roleDescriptions[videoConfig.rolePOV]) {
+    activeStudioRoleDesc = roleDescriptions[videoConfig.rolePOV];
+    isStudioRoleOverride = true;
+  }
+
+  if (isStudioRoleOverride && activeStudioRoleDesc) {
+    povSection += `- Peran & POV AI (Prioritas Tema Video): Bertindaklah sebagai ${activeStudioRoleDesc} — Karena tema video ini memiliki kebutuhan spesifik, prioritaskan karakter/persona ini di atas profil default channel untuk membawakan seluruh gaya penceritaan, emosi, dan artikulasi ide.\n`;
+  } else {
+    // Fix #72: Persona & POV Kreator fallback (resolved from videoConfig.pov with fallback to channel.personaPov)
+    const effectiveCreatorPOV = videoConfig.pov?.trim() || channel.personaPov?.trim() || null;
+    if (effectiveCreatorPOV) {
+      povSection += `- Persona & Sudut Pandang Kreator: "${effectiveCreatorPOV}" — Bawakan seluruh alur penceritaan, emosi, dan artikulasi ide dari kacamata persona ini.\n`;
+    }
   }
 
   const isMarketingZero = videoConfig.composition?.marketing === 0;
@@ -471,19 +501,6 @@ export function generateMasterPrompt(
     if (isMarketingZero) {
       povSection += `- Catatan Penting: Karena bobot Marketing 0%, tulislah naskah yang murni edukatif/hiburan tanpa promosi komersial.\n`;
     }
-  }
-
-  // Role/POV Persona
-  if (videoConfig.rolePOV && videoConfig.rolePOV !== "default") {
-    const roleDescriptions: Record<string, string> = {
-      KONTEN_KREATOR: "Konten Kreator / Influencer digital yang karismatik dan sangat dekat dengan audiens. Gunakan gaya personal brand yang kuat, menceritakan pengalaman pribadi (POV orang pertama), ramah, kasual, dan fokus pada interaksi komunitas.",
-      MARKETING: "Copywriter dan Ahli Pemasaran Profesional. Fokus pada psikologi konsumen, penulisan persuasif, penonjolan USP, mengatasi keraguan pembeli, dan mengarahkan audiens menuju konversi.",
-      PEBISNIS: "Pebisnis, Founder, atau Brand Owner yang visioner. Tulis dari sudut pandang pembangun bisnis, menceritakan kisah behind the scenes, tantangan operasional, dan nilai-nilai brand.",
-      PENDIDIK: "Guru, Dosen, atau Ahli Teknis yang mahir menyederhanakan materi kompleks. Gunakan analogi visual, penjelasan step-by-step, dan pastikan mudah dipahami pemula.",
-      STORYTELLER: "Storyteller profesional dan Sutradara Naratif. Fokus pada plot twist, emosi mendalam, suspense, latar imersif, dan alur narasi sinematik.",
-    };
-    const desc = roleDescriptions[videoConfig.rolePOV];
-    if (desc) povSection += `- Peran & POV AI (Persona): Bertindaklah sebagai ${desc}\n`;
   }
 
   if (videoConfig.toneOfVoice) {

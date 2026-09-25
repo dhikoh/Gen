@@ -42,6 +42,7 @@ const videoConfigSchema = z.object({
   narrationMode: z.enum(["VOICE_OVER", "DIEGETIC_ONLY", "SILENT_TEXT_ONLY", "HYBRID"]).optional().nullable(),
   // Push-ported enrichment params
   rolePOV: z.string().optional().nullable(),
+  customRolePOV: z.string().optional().nullable(),
   toneOfVoice: z.string().optional().nullable(),
   visualStyle: z.string().optional().nullable(),
   hookStyleType: z.string().optional().nullable(),

@@ -57,6 +57,7 @@ const generatorFormStateSchema = z.object({
   topic: z.string().max(500).optional(),
   additionalContext: z.string().max(2000).optional(),
   rolePOV: z.string().optional(),
+  customRolePOV: z.string().max(500).optional(),
   toneOfVoice: z.string().optional(),
   visualStyleKey: z.string().optional(),
   hookStyleType: z.string().optional(),
