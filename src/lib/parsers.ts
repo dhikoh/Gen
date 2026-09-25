@@ -899,3 +899,88 @@ export function extractThreeTierSeo(text: string): ThreeTierSeoData | null {
   };
 }
 
+/**
+ * Format raw tags string into clean, comma-separated YouTube Studio keywords.
+ * Removes leading '#' or quotes, trims whitespace, deduplicates, and joins with ', '.
+ */
+export function formatAsYouTubeTags(rawText: string): string {
+  if (!rawText) return "";
+  const items = rawText
+    .split(/[,;\n]+/)
+    .map((t) => t.replace(/^[#\s"']+|[#\s"']+$/g, "").replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+
+  const seen = new Set<string>();
+  const unique: string[] = [];
+  for (const item of items) {
+    const lower = item.toLowerCase();
+    if (!seen.has(lower)) {
+      seen.add(lower);
+      unique.push(item);
+    }
+  }
+  return unique.join(", ");
+}
+
+/**
+ * Format tag keywords into valid social media / video description hashtags.
+ * Converts multi-word phrases to PascalCase (e.g. "reptile third eye" -> "#ReptileThirdEye").
+ * Strips spaces and invalid characters, joins with space.
+ */
+export function formatAsHashtags(rawText: string): string {
+  if (!rawText) return "";
+  const items = rawText
+    .split(/[,;\n]+/)
+    .map((t) => t.replace(/^[#\s"']+|[#\s"']+$/g, "").trim())
+    .filter(Boolean);
+
+  const seen = new Set<string>();
+  const tags: string[] = [];
+  for (const item of items) {
+    const words = item.split(/\s+/).filter(Boolean);
+    if (!words.length) continue;
+    const pascal = words
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join("")
+      .replace(/[^a-zA-Z0-9_]/g, "");
+    if (!pascal) continue;
+    const tag = `#${pascal}`;
+    const lower = tag.toLowerCase();
+    if (!seen.has(lower)) {
+      seen.add(lower);
+      tags.push(tag);
+    }
+  }
+  return tags.join(" ");
+}
+
+/**
+ * Combines 3-Tier tags (Specific + General + Long-tail) into a single comma-separated string
+ * bounded by YouTube's maximum tag box limit (default: 500 characters).
+ */
+export function buildCombinedYouTubeTags(
+  tagSpesifik: string,
+  tagUmum: string,
+  tagMajemuk: string,
+  maxChars = 500
+): string {
+  const combinedRaw = [tagSpesifik, tagUmum, tagMajemuk].filter(Boolean).join(", ");
+  const allTags = formatAsYouTubeTags(combinedRaw).split(", ").filter(Boolean);
+
+  const result: string[] = [];
+  let currentLength = 0;
+
+  for (const tag of allTags) {
+    const additional = result.length === 0 ? tag.length : tag.length + 2; // "+2" for ", "
+    if (currentLength + additional <= maxChars) {
+      result.push(tag);
+      currentLength += additional;
+    } else {
+      break;
+    }
+  }
+
+  return result.join(", ");
+}
+
+

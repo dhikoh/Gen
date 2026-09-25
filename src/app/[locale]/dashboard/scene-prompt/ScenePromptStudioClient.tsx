@@ -17,6 +17,9 @@ import {
   parseScenes,
   cleanNarasiForTts,
   extractThreeTierSeo,
+  formatAsYouTubeTags,
+  formatAsHashtags,
+  buildCombinedYouTubeTags,
 } from "@/lib/parsers";
 import type { ThumbnailData, AffiliateRecommendation, Scene, ThreeTierSeoData } from "@/lib/parsers";
 import { GEMINI_TTS_VOICES, GEMINI_TTS_MODELS, DEFAULT_TTS_VOICE, DEFAULT_TTS_MODEL, TTS_PITCH_PRESETS, DEFAULT_TTS_PITCH, type TtsPitchPresetId } from "@/lib/ttsVoices";
@@ -1722,7 +1725,29 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
               Arsitektur Tag 3-Tier, Deskripsi Berempati, & Checklist Anti-Gagal sesuai Panduan Algoritma YouTube 2026.
             </p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                const tags500 = buildCombinedYouTubeTags(
+                  threeTierSeo.tagSpesifik,
+                  threeTierSeo.tagUmum,
+                  threeTierSeo.tagMajemuk,
+                  500
+                );
+                if (!tags500) {
+                  toast.error("Tag kosong atau belum tersedia");
+                  return;
+                }
+                copy("all-yt-tags", tags500);
+                toast.success("Tag YouTube Studio disalin (Maks 500 Char)!");
+              }}
+              className="px-3.5 py-2 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-medium text-xs transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+              title="Gabungkan Tier 1 + Tier 2 + Tier 3 menjadi format koma tanpa #, otomatis dibatasi maksimal 500 karakter untuk Tag Box YouTube Studio"
+            >
+              <span>⚡</span>
+              {copiedId === "all-yt-tags" ? "✓ Tags Studio Disalin" : "Salin Tag Studio (500 Char)"}
+            </button>
             <button
               type="button"
               onClick={() => {
@@ -1749,31 +1774,58 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Tier 1: Tag Spesifik */}
         <div className="glass-panel rounded-xl p-5 border border-blue-500/20 space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+              <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0"></span>
               <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
                 Tier 1: Tag Spesifik
               </span>
             </div>
-            <button
-              type="button"
-              onClick={() => copy("tag-spec", threeTierSeo.tagSpesifik)}
-              className="text-xs text-blue-500 hover:underline cursor-pointer"
-            >
-              {copiedId === "tag-spec" ? "✓ Tersalin" : "Salin"}
-            </button>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  const val = formatAsYouTubeTags(threeTierSeo.tagSpesifik);
+                  if (val) {
+                    copy("tag-spec-yt", val);
+                    toast.success("Tags spesifik disalin untuk YouTube Studio!");
+                  }
+                }}
+                className="text-[11px] font-medium px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 cursor-pointer transition-colors"
+                title="Salin sebagai keyword dengan koma untuk Tag Box YouTube Studio"
+              >
+                {copiedId === "tag-spec-yt" ? "✓ Tags" : "📋 Tags"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const val = formatAsHashtags(threeTierSeo.tagSpesifik);
+                  if (val) {
+                    copy("tag-spec-hash", val);
+                    toast.success("Hashtag deskripsi disalin!");
+                  }
+                }}
+                className="text-[11px] font-medium px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 cursor-pointer transition-colors"
+                title="Salin sebagai #Hashtag tanpa spasi untuk Deskripsi Video"
+              >
+                {copiedId === "tag-spec-hash" ? "✓ #Hashtag" : "🏷️ #Hashtag"}
+              </button>
+            </div>
           </div>
           <p className="text-[11px] pg-text-muted leading-relaxed">
             Brand / Seri / Entitas Utama topik untuk membedakan video secara tepat di Knowledge Graph YouTube.
           </p>
           <div className="pg-surface-dim rounded-lg p-3 text-xs font-mono pg-text-sub border border-slate-200/40 dark:border-slate-800/40 min-h-[60px] flex flex-wrap gap-1.5 items-start">
             {threeTierSeo.tagSpesifik ? (
-              threeTierSeo.tagSpesifik.split(/[,;\n]+/).map(t => t.trim()).filter(Boolean).map((t, idx) => (
-                <span key={idx} className="inline-block px-2 py-0.5 rounded-md bg-blue-100/70 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[11px]">
-                  #{t.replace(/^#/, "")}
-                </span>
-              ))
+              threeTierSeo.tagSpesifik
+                .split(/[,;\n]+/)
+                .map((t) => t.replace(/^[#\s"']+|[#\s"']+$/g, "").trim())
+                .filter(Boolean)
+                .map((t, idx) => (
+                  <span key={idx} className="inline-block px-2 py-0.5 rounded-md bg-blue-100/70 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[11px]">
+                    {t}
+                  </span>
+                ))
             ) : (
               <span className="text-slate-400 italic">Tidak ada tag spesifik</span>
             )}
@@ -1782,31 +1834,58 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
 
         {/* Tier 2: Tag Umum */}
         <div className="glass-panel rounded-xl p-5 border border-purple-500/20 space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
+              <span className="w-2.5 h-2.5 rounded-full bg-purple-500 shrink-0"></span>
               <span className="text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">
                 Tier 2: Tag Umum
               </span>
             </div>
-            <button
-              type="button"
-              onClick={() => copy("tag-gen", threeTierSeo.tagUmum)}
-              className="text-xs text-purple-500 hover:underline cursor-pointer"
-            >
-              {copiedId === "tag-gen" ? "✓ Tersalin" : "Salin"}
-            </button>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  const val = formatAsYouTubeTags(threeTierSeo.tagUmum);
+                  if (val) {
+                    copy("tag-gen-yt", val);
+                    toast.success("Tags umum disalin untuk YouTube Studio!");
+                  }
+                }}
+                className="text-[11px] font-medium px-2 py-0.5 rounded bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/50 cursor-pointer transition-colors"
+                title="Salin sebagai keyword dengan koma untuk Tag Box YouTube Studio"
+              >
+                {copiedId === "tag-gen-yt" ? "✓ Tags" : "📋 Tags"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const val = formatAsHashtags(threeTierSeo.tagUmum);
+                  if (val) {
+                    copy("tag-gen-hash", val);
+                    toast.success("Hashtag deskripsi disalin!");
+                  }
+                }}
+                className="text-[11px] font-medium px-2 py-0.5 rounded bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/50 cursor-pointer transition-colors"
+                title="Salin sebagai #Hashtag tanpa spasi untuk Deskripsi Video"
+              >
+                {copiedId === "tag-gen-hash" ? "✓ #Hashtag" : "🏷️ #Hashtag"}
+              </button>
+            </div>
           </div>
           <p className="text-[11px] pg-text-muted leading-relaxed">
             Kategori, Niche & Industri luas untuk menempatkan video dalam klaster rekomendasi penonton relevan.
           </p>
           <div className="pg-surface-dim rounded-lg p-3 text-xs font-mono pg-text-sub border border-slate-200/40 dark:border-slate-800/40 min-h-[60px] flex flex-wrap gap-1.5 items-start">
             {threeTierSeo.tagUmum ? (
-              threeTierSeo.tagUmum.split(/[,;\n]+/).map(t => t.trim()).filter(Boolean).map((t, idx) => (
-                <span key={idx} className="inline-block px-2 py-0.5 rounded-md bg-purple-100/70 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-[11px]">
-                  #{t.replace(/^#/, "")}
-                </span>
-              ))
+              threeTierSeo.tagUmum
+                .split(/[,;\n]+/)
+                .map((t) => t.replace(/^[#\s"']+|[#\s"']+$/g, "").trim())
+                .filter(Boolean)
+                .map((t, idx) => (
+                  <span key={idx} className="inline-block px-2 py-0.5 rounded-md bg-purple-100/70 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-[11px]">
+                    {t}
+                  </span>
+                ))
             ) : (
               <span className="text-slate-400 italic">Tidak ada tag umum</span>
             )}
@@ -1815,31 +1894,58 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
 
         {/* Tier 3: Tag Majemuk / Long-Tail */}
         <div className="glass-panel rounded-xl p-5 border border-emerald-500/20 space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></span>
               <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
                 Tier 3: Tag Majemuk (Long-Tail)
               </span>
             </div>
-            <button
-              type="button"
-              onClick={() => copy("tag-long", threeTierSeo.tagMajemuk)}
-              className="text-xs text-emerald-500 hover:underline cursor-pointer"
-            >
-              {copiedId === "tag-long" ? "✓ Tersalin" : "Salin"}
-            </button>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  const val = formatAsYouTubeTags(threeTierSeo.tagMajemuk);
+                  if (val) {
+                    copy("tag-long-yt", val);
+                    toast.success("Tags long-tail disalin untuk YouTube Studio!");
+                  }
+                }}
+                className="text-[11px] font-medium px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 cursor-pointer transition-colors"
+                title="Salin sebagai keyword dengan koma untuk Tag Box YouTube Studio"
+              >
+                {copiedId === "tag-long-yt" ? "✓ Tags" : "📋 Tags"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const val = formatAsHashtags(threeTierSeo.tagMajemuk);
+                  if (val) {
+                    copy("tag-long-hash", val);
+                    toast.success("Hashtag deskripsi disalin!");
+                  }
+                }}
+                className="text-[11px] font-medium px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 cursor-pointer transition-colors"
+                title="Salin sebagai #Hashtag tanpa spasi untuk Deskripsi Video"
+              >
+                {copiedId === "tag-long-hash" ? "✓ #Hashtag" : "🏷️ #Hashtag"}
+              </button>
+            </div>
           </div>
           <p className="text-[11px] pg-text-muted leading-relaxed">
             Frasa pencarian alami (3-5 kata) target penonton dengan intensi tinggi untuk mendominasi YouTube Search.
           </p>
           <div className="pg-surface-dim rounded-lg p-3 text-xs font-mono pg-text-sub border border-slate-200/40 dark:border-slate-800/40 min-h-[60px] flex flex-wrap gap-1.5 items-start">
             {threeTierSeo.tagMajemuk ? (
-              threeTierSeo.tagMajemuk.split(/[,;\n]+/).map(t => t.trim()).filter(Boolean).map((t, idx) => (
-                <span key={idx} className="inline-block px-2 py-0.5 rounded-md bg-emerald-100/70 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-[11px]">
-                  {t}
-                </span>
-              ))
+              threeTierSeo.tagMajemuk
+                .split(/[,;\n]+/)
+                .map((t) => t.replace(/^[#\s"']+|[#\s"']+$/g, "").trim())
+                .filter(Boolean)
+                .map((t, idx) => (
+                  <span key={idx} className="inline-block px-2 py-0.5 rounded-md bg-emerald-100/70 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-[11px]">
+                    {t}
+                  </span>
+                ))
             ) : (
               <span className="text-slate-400 italic">Tidak ada tag majemuk</span>
             )}

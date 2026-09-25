@@ -2,6 +2,60 @@
 
 ---
 
+## [#84] — 2026-09-25 | YouTube 2026 SEO Tag & Hashtag Standardization: Studio 500-Char Combiner, Dual-Action Smart Copier, & Zero-Gap Chip Badging
+
+### Overview
+
+Audit dan standarisasi menyeluruh arsitektur metadata YouTube 2026 pada Scene Prompt Studio (`ScenePromptStudioClient.tsx`), mesin parser (`parsers.ts`), dan generator prompt AI (`promptGenerator.ts`). Memisahkan secara tegas dan elegan antara **YouTube Studio Keyword Tags** (kata kunci koma tanpa tanda pagar `#`, dibatasi maksimal 500 karakter) dengan **Video Description Hashtags** (format `#PascalCase` valid tanpa spasi). Dilengkapi tombol salin pintar sekali klik: tombol *⚡ Salin Tag Studio (500 Char)* pada header banner dan tombol ganda (*📋 Tags* & *🏷️ #Hashtag*) pada setiap kartu tier SEO.
+
+---
+
+### 1 — Mesin Parser Presisi & Formatters Baru (`parsers.ts`)
+
+- **`formatAsYouTubeTags(rawText: string): string`**:
+  - Membersihkan karakter pagar `#`, tanda kutip tunggal/ganda, dan kelebihan spasi dari tag mentah AI.
+  - Melakukan deduplikasi kata kunci secara *case-insensitive*.
+  - Menggabungkan hasil dengan separator standar `, ` yang siap langsung ditempel ke kotak tag YouTube Studio.
+- **`formatAsHashtags(rawText: string): string`**:
+  - Mengonversi frasa multi-kata menjadi format hashtag media sosial yang valid dalam `#PascalCase` tanpa spasi (contoh: `"reptile third eye"` → `"#ReptileThirdEye"`).
+  - Menghilangkan tanda baca ilegal serta melakukan deduplikasi *case-insensitive* untuk deskripsi video dan media sosial.
+- **`buildCombinedYouTubeTags(tagSpesifik, tagUmum, tagMajemuk, maxChars = 500): string`**:
+  - Menggabungkan kata kunci dari Tier 1 (Spesifik), Tier 2 (Umum), dan Tier 3 (Long-tail) menjadi satu kesatuan.
+  - Membatasi panjang teks secara cerdas tepat di batas kata kunci terakhir sebelum melampaui limit 500 karakter dari YouTube Studio.
+
+---
+
+### 2 — Penyempurnaan Antarmuka Scene Prompt Studio (`ScenePromptStudioClient.tsx`)
+
+- **Tombol Cepat Header: `⚡ Salin Tag Studio (500 Char)`**:
+  - Menyediakan tombol gradient Amber-Orange di samping *"Salin Semua Metadata SEO"*, memungkinkan kreator menyalin seluruh tag yang sudah dipangkas otomatis di bawah 500 karakter dalam 1 klik.
+  - Dilengkapi feedback visual seketika (`✓ Tags Studio Disalin`) dan notifikasi toast.
+- **Dual-Action Smart Copy pada Kartu Tier 1, Tier 2, & Tier 3**:
+  - Tombol teks biasa *"Salin"* digantikan dengan tombol ganda:
+    - **`📋 Tags`**: Menyalin kata kunci terpisah koma untuk Tag Box YouTube Studio.
+    - **`🏷️ #Hashtag`**: Menyalin tag dalam format hashtag PascalCase untuk Deskripsi Video.
+- **Pembersihan Chip Badge Kata Kunci**:
+  - Mengeliminasi bug tampilan hashtag berpasi (sebelumnya `#{t.replace(/^#/, "")}` yang menampilkan `#reptile third eye`).
+  - Chip kini disajikan sebagai pill keyword yang bersih dan rapi tanpa awalan tanda pagar palsu.
+
+---
+
+### 3 — Pembaruan Instruksi Generator Prompt AI (`promptGenerator.ts`)
+
+- **Instruksi Output AI Tanpa Tanda Pagar**:
+  - Memperbarui panduan output blok `## METADATA SEO YOUTUBE 2026` agar AI menyajikan kata kunci yang dipisahkan koma murni tanpa tanda pagar `#` sesuai spesifikasi YouTube Tag Box.
+
+---
+
+### 4 — Verifikasi & Pengujian Komprehensif
+
+- **Vitest Suite 100% Green (139/139 Tests)**:
+  - 8 pengujian unit baru ditambahkan di `tests/parsers.test.ts` untuk menguji fungsionalitas `formatAsYouTubeTags`, `formatAsHashtags`, serta batasan panjang `buildCombinedYouTubeTags`.
+- **TypeScript Typecheck**:
+  - `npx tsc --noEmit` lolos bersih dengan 0 error.
+
+---
+
 ## [#83] — 2026-09-25 | Standardized Bracket Acting & Beat Cues `[...]`: Studio Raw Copy Normalization & Zero-Gap TTS Cleaning
 
 ### Overview
