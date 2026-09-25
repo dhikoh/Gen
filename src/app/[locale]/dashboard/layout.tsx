@@ -132,8 +132,7 @@ export default async function DashboardLayout({
 
         {/* Page Content */}
         <main
-          className="flex-1 overflow-y-auto custom-scrollbar"
-          style={{ paddingBottom: "calc(4rem + env(safe-area-inset-bottom, 0px))" }}
+          className="flex-1 overflow-y-auto custom-scrollbar pb-safe-nav md:pb-8"
         >
           <div className="py-6 px-4 md:px-8 pg-fade-in">
             {children}

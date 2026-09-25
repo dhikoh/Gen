@@ -2,6 +2,72 @@
 
 ---
 
+## [#81] — 2026-09-25 | UI/UX Precision & Ergonomics: Design System Unification, Mobile/PWA Optimization & Zero-Friction Polish
+
+### Overview
+
+Pembaruan komprehensif pada kualitas visual (UI) dan ergonomi antarmuka (UX) di seluruh aplikasi Prompt Gen, mencakup penyelarasan token desain global, penghapusan benturan elemen melayang (*floating stacking collisions*) di mobile view & PWA, perbaikan kontras mode terang (WCAG AA), dan standarisasi kartu adegan (*scene cards*) studio adegan dengan hierarki 2-baris responsif tanpa mengubah alur kerja (*zero-friction workflow*).
+
+---
+
+### 1 — Fondasi Presisi & Token Desain Global (`globals.css`)
+
+- **Penambahan Precision Utility Classes**:
+  - `.pg-btn-primary`: Tombol aksi primer dengan Brand Orange Accent (`#ff7600`), hover glow, dan transisi elevasi halus.
+  - `.pg-btn-secondary` & `.pg-btn-compact`: Tombol sekunder berstruktur bersih dengan border kontras stabil.
+  - `.pg-input-precision`: Kontrol input dengan focus ring brand oranye terpadu.
+  - `.pb-safe-nav`: Padding bawah ergonomis `calc(5.5rem + env(safe-area-inset-bottom, 16px))` untuk mencegah konten paling bawah terpotong oleh bilah navigasi HP.
+- **Penyelarasan Warna Brand Global**:
+  - Menggantikan inkonsistensi tombol biru generik (`bg-blue-600`) pada Generator, Saluran, Pengaturan, dan Pricing menjadi Brand Orange Neumorphism terpadu.
+
+---
+
+### 2 — Optimasi Tampilan Mobile & PWA (`layout.tsx`, `InstallPWABanner.tsx`)
+
+- **Penyelesaian Benturan Elemen Mengambang (*Floating Stacking Collisions*)**:
+  - Banner Install PWA di layar smartphone kini diposisikan secara elegan di bawah bilah atas (`top-16 left-3 right-3`), meninggalkan area bawah layar bebas untuk navigasi jempol dan tombol bantuan Customer Service.
+  - Floating CS Widget tetap bebas diakses di `bottom-24 right-4` tanpa tertutup banner PWA.
+- **Ergonomi Safe Area Notch & Home Indicator**:
+  - Mengadopsi `.pb-safe-nav` pada kontainer `main` di `dashboard/layout.tsx` sehingga formulir panjang dan tombol aksi paling bawah dapat digeser tuntas di atas tombol navigasi mengambang.
+
+---
+
+### 3 — Pemolesan Studio Prompt Adegan (`ScenePromptStudioClient.tsx`)
+
+- **Bilah Tab Kontrol Tersegmentasi (*Segmented Tab Bar*)**:
+  - Wadah tab dibungkus dengan kartu kaca (*glass-panel*) bersudut melengkung halus `rounded-2xl` dengan badge jumlah adegan real-time (`🎬 Scene Viewer (X)`).
+- **Toolbar Aksi Adegan Responsif**:
+  - Checkbox pemilihan adegan menggunakan aksen oranye brand.
+  - Tombol split **Copy All Narration (Clean TTS / Raw)** dan **Batch Export** memiliki ketinggian presisi `h-9` yang simetris di desktop dan tertata rapi di mobile.
+- **Hierarki Kartu Adegan 2-Baris (Anti-Overflow)**:
+  - **Baris 1**: Checkbox adegan + Judul Adegan (`Scene 1`) di kiri, dan Monospace Duration Pill (`⏱️ 08s`) di kanan.
+  - **Baris 2**: Badge Emosi (🎯) dan Pacing (⚡) berbaris rapi dengan chip lembut tanpa menabrak durasi di layar HP selebar 360–390px.
+- **Spoken Narration & Visual Prompt Console**:
+  - Blok narasi memiliki pemisah visual yang nyaman dibaca dengan tombol salin TTS bersih dan opsi Raw yang jelas.
+  - Visual Prompt disajikan dalam gaya konsol studio gelap (`bg-slate-950 border-slate-800 font-mono`) dengan tombol salin berumpan balik instan.
+
+---
+
+### 4 — Standardisasi Modul Pendukung (Drafts, Pricing, Settings, Channels)
+
+- **Perbaikan Bug Kontras Mode Terang di Drafts (`drafts/page.tsx`)**:
+  - Mengubah tombol status kosong yang sebelumnya memiliki teks putih di atas latar abu-abu terang (`text-white` di atas `pg-surface`) menjadi `pg-btn-primary` dengan teks kontras tinggi yang jelas terbaca.
+  - Tautan aksi draft diselaraskan dengan aksen brand oranye.
+- **Formulir Pengaturan & Akun (`SettingsClient.tsx`)**:
+  - Mengganti focus ring biru hardcoded dengan `focus:ring-[var(--pg-brand)]` dan tombol simpan profil ke `pg-btn-primary`.
+- **Manajemen Saluran (`ChannelManagerClient.tsx`) & Pricing (`PricingClient.tsx`)**:
+  - Tombol tambah saluran dan langganan paket Pro diselaraskan ke tema oranye brand dengan kartu berpenampilan konsisten.
+
+---
+
+### 5 — Verifikasi Kualitas & Integritas Kode
+
+- **Automated Tests**: **122/122 tests lolos 100%** di 13 test suites (`vitest run`).
+- **TypeScript Typecheck**: `npx tsc --noEmit` lolos dengan 0 error.
+- **User Workflow Continuity**: 100% posisi fungsi dan tombol penting dipertahankan tanpa perubahan alur kerja yang membingungkan.
+
+---
+
 ## [#80] — 2026-09-25 | Feature & Resilience: Multi-LLM Double-Prefix Header Support (# ##), Split "Copy All (TTS / Raw)" & Syntax Directive
 
 ### Overview

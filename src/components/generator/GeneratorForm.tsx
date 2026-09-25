@@ -2572,7 +2572,7 @@ export default function GeneratorForm({
  {step === 1 && (
  <button
  type="submit"
- className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-all focus:ring-4 focus:ring-blue-500/20 disabled:opacity-50 disabled:cursor-wait flex items-center justify-center mt-6"
+ className="w-full min-h-[44px] py-3 px-5 pg-btn-primary font-semibold rounded-xl shadow-md transition-all disabled:opacity-50 disabled:cursor-wait flex items-center justify-center mt-6 text-sm"
  >
  {loading ? (
  <>
@@ -2595,7 +2595,7 @@ export default function GeneratorForm({
  setGeneratedPrompt("");
  setAiResultJson("");
  }}
- className="w-full py-3 px-4 pg-surface-dim pg-text-heading font-medium rounded-lg shadow-sm transition-all"
+ className="w-full min-h-[44px] py-3 px-4 pg-surface-dim pg-text-heading font-medium rounded-xl border pg-border shadow-sm transition-all hover:bg-black/5 dark:hover:bg-white/5 flex items-center justify-center text-sm"
  >
  {t("backToEdit")}
  </button>
@@ -2603,7 +2603,7 @@ export default function GeneratorForm({
  type="button"
  onClick={() => handleGenerate()}
  disabled={loading}
- className="w-full py-3 px-4 bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-800/50 font-medium rounded-lg shadow-sm transition-all disabled:opacity-50"
+ className="w-full min-h-[44px] py-3 px-4 bg-[var(--pg-brand)]/15 text-[var(--pg-brand)] hover:bg-[var(--pg-brand)] hover:text-white font-semibold rounded-xl shadow-sm transition-all disabled:opacity-50 flex items-center justify-center text-sm"
  >
  {t("regenerateBtn")}
  </button>

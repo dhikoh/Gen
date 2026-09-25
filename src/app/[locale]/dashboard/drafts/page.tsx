@@ -92,7 +92,7 @@ export default async function DraftsPage({
  </p>
  <Link 
  href={`/${locale}/dashboard/generator`}
- className="px-4 py-2 pg-surface hover:pg-surface-dim text-white font-medium rounded-lg shadow-sm transition-colors text-sm"
+ className="pg-btn-primary min-h-[40px] px-5 text-sm font-semibold rounded-lg shadow-sm"
  >
  {t('startGenerate')}
  </Link>
@@ -184,7 +184,7 @@ export default async function DraftsPage({
  {draft.type === DraftType.VIDEO && (
  <Link 
  href={`/${locale}/dashboard/scene-prompt?draftId=${draft.id}`}
- className="font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center gap-1"
+ className="font-semibold text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 flex items-center gap-1"
  title={t('openInSceneStudio')}
  >
  <span>🎙️</span> Studio
@@ -192,7 +192,7 @@ export default async function DraftsPage({
  )}
  <Link 
  href={`/${locale}/dashboard/drafts/${draft.id}`}
- className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+ className="font-semibold text-[var(--pg-brand)] hover:text-[var(--pg-brand-hover)]"
  >
  {t('open')} →
  </Link>

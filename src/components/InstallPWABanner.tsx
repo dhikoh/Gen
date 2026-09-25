@@ -84,7 +84,7 @@ export default function InstallPWABanner() {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed bottom-20 left-4 right-4 md:left-auto md:right-4 md:bottom-4 md:w-96 pg-surface dark:pg-surface-dim border pg-border dark:pg-border shadow-2xl rounded-2xl p-4 flex items-start gap-4 z-[100] animate-in slide-in-from-bottom-5 fade-in duration-300">
+    <div className="fixed top-16 left-3 right-3 sm:left-4 sm:right-4 md:top-auto md:bottom-24 md:right-6 md:left-auto md:w-96 pg-surface dark:pg-surface-dim border pg-border dark:pg-border shadow-2xl rounded-2xl p-4 flex items-start gap-4 z-50 animate-in slide-in-from-top-4 md:slide-in-from-bottom-5 fade-in duration-300">
       <div className="p-2.5 rounded-xl shrink-0 text-white" style={{ background: "var(--pg-brand)", boxShadow: "0 2px 8px var(--pg-brand-glow)" }}>
         <DownloadIcon />
       </div>

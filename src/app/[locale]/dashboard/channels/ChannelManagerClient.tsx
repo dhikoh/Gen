@@ -102,7 +102,7 @@ export default function ChannelManagerClient({ channels, maxChannels }: { channe
  {!addingNew && canAddMore && (
  <button 
  onClick={() => setAddingNew(true)}
- className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg shadow-sm"
+ className="pg-btn-primary min-h-[40px] px-4 py-2 text-sm font-semibold rounded-lg shadow-sm"
  >
  {t('addChannel')}
  </button>
@@ -110,9 +110,9 @@ export default function ChannelManagerClient({ channels, maxChannels }: { channe
  </div>
 
  {addingNew && (
- <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-xl border border-blue-100 dark:border-blue-800">
+ <div className="pg-surface border pg-border p-6 rounded-2xl shadow-sm">
  <div className="flex justify-between items-center mb-4">
- <h3 className="text-base font-bold text-blue-900 dark:text-blue-100">{t('createNew')}</h3>
+ <h3 className="text-base font-bold pg-text-heading">{t('createNew')}</h3>
  <button onClick={() => setAddingNew(false)} className="text-sm pg-text-muted hover:pg-text-sub">{t('cancel')}</button>
  </div>
  <EditChannelClient 

@@ -49,7 +49,7 @@ export default function PricingClient({ plans, locale }: { plans: PricingPlanDto
  {plans.map((plan) => (
  <div key={plan.id} className="pg-surface rounded-2xl shadow-sm border pg-border overflow-hidden flex flex-col relative">
  {plan.code === "PRO" && (
- <div className="absolute top-0 inset-x-0 h-1 bg-blue-600"></div>
+ <div className="absolute top-0 inset-x-0 h-1.5 bg-[var(--pg-brand)]"></div>
  )}
  <div className="p-8 flex-1">
  <h3 className="text-xl font-bold pg-text-heading mb-2">{plan.name}</h3>
@@ -85,10 +85,10 @@ export default function PricingClient({ plans, locale }: { plans: PricingPlanDto
  <button
  onClick={() => handleSubscribe(plan.id)}
  disabled={loading !== null}
- className={`w-full py-3 px-4 font-medium rounded-lg shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 flex justify-center items-center ${
+ className={`w-full py-3 px-4 font-semibold rounded-xl shadow-sm transition-all focus:outline-none flex justify-center items-center ${
  plan.code === "PRO"
- ? "bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500"
- : "pg-surface-dim pg-text-heading"
+ ? "bg-[var(--pg-brand)] hover:bg-[var(--pg-brand-hover)] text-white shadow-md hover:scale-[1.01] active:scale-[0.99]"
+ : "pg-surface-dim pg-text-heading border pg-border hover:bg-black/5 dark:hover:bg-white/5"
  }`}
  >
  {loading === plan.id ? (

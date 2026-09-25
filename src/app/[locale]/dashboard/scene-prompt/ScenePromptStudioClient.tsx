@@ -868,8 +868,8 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
   } catch { setSaveMsg(t("draftError")); } finally { setSaving(false); setTimeout(() => setSaveMsg(null), 4000); }
   };
 
- const cls = "w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white";
- const btn = (active?: boolean) => `px-3 py-1.5 text-sm font-medium rounded-lg border transition-colors ${active ? "bg-blue-600 text-white border-blue-600" : "pg-surface pg-border pg-text-sub hover:pg-surface-dim"}`;
+  const cls = "w-full px-3.5 py-2 text-sm pg-surface-dim border pg-border rounded-lg outline-none pg-text-heading focus:border-[var(--pg-brand)] focus:ring-2 focus:ring-[var(--pg-brand-light)] transition-all";
+  const btn = (active?: boolean) => `px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl border transition-all ${active ? "bg-[var(--pg-brand)] text-white border-[var(--pg-brand)] shadow-sm" : "pg-surface pg-border pg-text-sub hover:pg-surface-dim hover:pg-text-heading"}`;
 
  return (
  <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
@@ -900,10 +900,10 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
         <textarea value={rawText} onChange={e => setRawText(e.target.value)} placeholder={t("pastePlaceholder")} rows={8} className={`${cls} resize-y min-h-[140px] font-mono text-xs`} />
         <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
           <div className="flex items-center gap-3">
-            <button onClick={handleParse} disabled={!rawText.trim()} className="px-5 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors">
+            <button onClick={handleParse} disabled={!rawText.trim()} className="pg-btn-primary min-h-[40px] px-5 text-sm font-semibold rounded-lg shadow-sm">
               ⚡ {t("parseButton")}
             </button>
-            {scenes.length > 0 && <span className="text-xs pg-text-muted">{scenes.length} {t("scenesFound")}</span>}
+            {scenes.length > 0 && <span className="text-xs pg-text-muted font-medium">{scenes.length} {t("scenesFound")}</span>}
           </div>
 
           {/* Riwayat Parse Dropdown */}
@@ -985,13 +985,13 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
 
  {scenes.length > 0 && (
  <>
- <div className="flex gap-2 overflow-x-auto whitespace-nowrap pb-1 custom-scrollbar">
+ <div className="glass-panel p-1.5 rounded-2xl border pg-border flex gap-1.5 overflow-x-auto whitespace-nowrap custom-scrollbar shadow-sm">
  {(["scenes","thumbnail","seo2026","platform","voiceStudio","htmlBlog"] as const).map(tab => {
  if (tab === "seo2026" && !threeTierSeo) return null;
  if (tab === "htmlBlog" && !htmlBlog) return null;
  return (
  <button key={tab} onClick={() => setActiveTab(tab)} className={btn(activeTab === tab)}>
- {tab === "scenes" ? `🎬 ${t("sceneViewerTab")}` : tab === "thumbnail" ? `🖼️ ${t("thumbnailTab")}` : tab === "seo2026" ? `🎯 SEO 2026` : tab === "htmlBlog" ? `📝 HTML Blog` : tab === "voiceStudio" ? `🎙️ ${t("voiceStudioTab")}` : `📱 ${t("platformTab")}`}
+ {tab === "scenes" ? `🎬 ${t("sceneViewerTab")} (${scenes.length})` : tab === "thumbnail" ? `🖼️ ${t("thumbnailTab")}` : tab === "seo2026" ? `🎯 SEO 2026` : tab === "htmlBlog" ? `📝 HTML Blog` : tab === "voiceStudio" ? `🎙️ ${t("voiceStudioTab")}` : `📱 ${t("platformTab")}`}
  </button>
  );
  })}
@@ -1099,20 +1099,20 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
   {activeTab === "scenes" && (
   <div className="space-y-4">
     {/* Scene Viewer Actions Toolbar */}
-    <div className="flex flex-wrap items-center justify-between gap-3 glass-panel rounded-xl px-4 py-3 border border-slate-200/60 dark:border-slate-800/60 shadow-sm">
-      <div className="flex items-center gap-2">
+    <div className="glass-panel rounded-2xl px-4 py-3 border pg-border shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="flex items-center gap-2.5">
         {/* Select All Checkbox */}
         <input
           type="checkbox"
           checked={selectedSceneIds.size === scenes.length && scenes.length > 0}
           onChange={toggleAllScenes}
-          className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 accent-blue-600"
+          className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 accent-[var(--pg-brand)] cursor-pointer"
           title={t("selectAllScenes")}
         />
         <span className="text-sm font-bold pg-text-heading flex items-center gap-1.5">
           <span>🎬</span> {t("sceneViewerTab")}
         </span>
-        <span className="text-xs pg-surface-dim px-2.5 py-0.5 rounded-full pg-text-muted font-medium">
+        <span className="text-xs pg-surface-dim border pg-border px-2.5 py-0.5 rounded-full pg-text-sub font-medium">
           {selectedSceneIds.size}/{scenes.length} {t("scenesFound")}
         </span>
       </div>
@@ -1121,7 +1121,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
           type="button"
           onClick={handleCopyBatchExport}
           disabled={selectedSceneIds.size === 0}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white transition-all shadow-sm active:scale-95 disabled:opacity-40"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold h-9 px-3.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white transition-all shadow-sm active:scale-95 disabled:opacity-40"
           title={t("copyBatchExport")}
         >
           <span>📦</span>
@@ -1131,7 +1131,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
           <button
             type="button"
             onClick={copyAllNarration}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-l-lg bg-blue-600 hover:bg-blue-700 text-white transition-all active:scale-95"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold h-9 px-3.5 rounded-l-lg bg-[var(--pg-brand)] hover:bg-[var(--pg-brand-hover)] text-white transition-all active:scale-95 shadow-sm"
             title="Salin semua narasi bersih (siap TTS, tanpa instruksi/tanda kutip)"
           >
             <span>🎤</span>
@@ -1140,7 +1140,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
           <button
             type="button"
             onClick={copyAllNarrationRaw}
-            className="inline-flex items-center text-xs font-semibold px-2.5 py-1.5 rounded-r-lg bg-blue-700 hover:bg-blue-800 text-blue-100 border-l border-blue-500/50 transition-all active:scale-95"
+            className="inline-flex items-center text-xs font-semibold h-9 px-3 rounded-r-lg bg-[var(--pg-brand-hover)] hover:bg-[#d96500] text-white border-l border-white/20 transition-all active:scale-95 shadow-sm"
             title="Salin semua narasi mentah / raw (dengan catatan sutradara & tanda kutip untuk pertimbangan)"
           >
             {copiedId === "all-narration-raw" ? "✓ Raw" : "Raw"}
@@ -1164,134 +1164,161 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
         <div className="flex-1 h-px bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent" />
       </div>
     )}
-    <div className="glass-panel rounded-xl p-5 space-y-3">
-  <div className="flex items-center justify-between">
-    <div className="flex items-center gap-2">
-      <input
-        type="checkbox"
-        checked={selectedSceneIds.has(scene.id)}
-        onChange={() => toggleScene(scene.id)}
-        className="w-3.5 h-3.5 rounded border-slate-300 dark:border-slate-600 accent-blue-600"
-      />
-      <h3 className="font-bold pg-text-heading">{scene.sceneNumber}</h3>
-      {scene.isDiegetic && (
-        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 flex items-center gap-1">
-          <span>🔇</span> Diegetic (Tanpa VO)
-        </span>
-      )}
-      {scene.targetEmosi && (
-        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 flex items-center gap-1" title="Target Emosi (VET 3-Act)">
-          <span>🎯</span> {scene.targetEmosi}
-        </span>
-      )}
-      {scene.teknikPacing && (
-        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 flex items-center gap-1" title="Teknik Editing & Pacing">
-          <span>⚡</span> {scene.teknikPacing}
-        </span>
-      )}
-    </div>
-    <span className="text-xs pg-surface-dim px-2 py-1 rounded pg-text-muted font-medium">{scene.durasi}</span>
-  </div>
+    <div className="glass-panel rounded-2xl p-4 sm:p-5 space-y-4 border pg-border hover:border-[var(--pg-brand-glow)] transition-all shadow-sm">
+      {/* Scene Header — 2-Row Responsive Layout (Zero mobile overflow) */}
+      <div className="space-y-2 pb-1 border-b pg-border/40">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <input
+              type="checkbox"
+              checked={selectedSceneIds.has(scene.id)}
+              onChange={() => toggleScene(scene.id)}
+              className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 accent-[var(--pg-brand)] cursor-pointer"
+            />
+            <h3 className="font-bold text-sm sm:text-base pg-text-heading truncate">{scene.sceneNumber}</h3>
+          </div>
+          <span className="font-mono text-xs font-semibold px-2.5 py-1 rounded-full pg-surface-dim border pg-border pg-text-heading shrink-0 shadow-xs">
+            ⏱️ {scene.durasi}
+          </span>
+        </div>
 
-  {/* Narasi (jika ada spoken voiceover) */}
-  {scene.narasi !== "—" && (() => {
-    const cleanSpoken = cleanNarasiForTts(scene.narasi);
-    const hasDirectorNotes = cleanSpoken && cleanSpoken !== scene.narasi.trim();
-    return (
-      <div>
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-xs font-semibold pg-text-muted uppercase">🎤 {t("narasi")}</span>
-          <div className="flex items-center gap-2">
-            {hasDirectorNotes && (
-              <button
-                type="button"
-                onClick={() => copy(`nar-raw-${scene.id}`, scene.narasi)}
-                className="text-[11px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:underline"
-                title="Salin narasi mentah (dengan catatan sutradara)"
-              >
-                {copiedId === `nar-raw-${scene.id}` ? "✓ Raw" : "Raw"}
-              </button>
+        {/* Emotion / Pacing / Diegetic Tags Row */}
+        {(scene.isDiegetic || scene.targetEmosi || scene.teknikPacing) && (
+          <div className="flex flex-wrap items-center gap-1.5 pl-6 sm:pl-6.5">
+            {scene.isDiegetic && (
+              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 flex items-center gap-1">
+                <span>🔇</span> Diegetic (Tanpa VO)
+              </span>
             )}
+            {scene.targetEmosi && (
+              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 flex items-center gap-1" title="Target Emosi (VET 3-Act)">
+                <span>🎯</span> {scene.targetEmosi}
+              </span>
+            )}
+            {scene.teknikPacing && (
+              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center gap-1" title="Teknik Editing & Pacing">
+                <span>⚡</span> {scene.teknikPacing}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Narasi (jika ada spoken voiceover) */}
+      {scene.narasi !== "—" && (() => {
+        const cleanSpoken = cleanNarasiForTts(scene.narasi);
+        const hasDirectorNotes = cleanSpoken && cleanSpoken !== scene.narasi.trim();
+        return (
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold pg-text-sub uppercase tracking-wide flex items-center gap-1.5">
+                <span>🎤</span> {t("narasi")}
+              </span>
+              <div className="flex items-center gap-1.5">
+                {hasDirectorNotes && (
+                  <button
+                    type="button"
+                    onClick={() => copy(`nar-raw-${scene.id}`, scene.narasi)}
+                    className="text-xs px-2 py-0.5 rounded border pg-border pg-surface-dim pg-text-sub hover:pg-text-heading transition-colors"
+                    title="Salin narasi mentah (dengan catatan sutradara)"
+                  >
+                    {copiedId === `nar-raw-${scene.id}` ? "✓ Raw" : "Raw"}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => copy(`nar-${scene.id}`, cleanSpoken || scene.narasi)}
+                  className="text-xs px-2.5 py-0.5 rounded font-semibold bg-[var(--pg-brand)]/10 text-[var(--pg-brand)] hover:bg-[var(--pg-brand)] hover:text-white transition-all shadow-xs"
+                  title="Salin narasi bersih (siap TTS, tanpa instruksi/tanda kutip)"
+                >
+                  {copiedId === `nar-${scene.id}` ? "✓ " + t("copied") : `📋 ${t("copy")}`}
+                </button>
+              </div>
+            </div>
+            <p className="text-sm pg-text-heading leading-relaxed font-normal bg-card/40 p-3 rounded-xl border pg-border/50">{scene.narasi}</p>
+          </div>
+        );
+      })()}
+
+      {/* Teks Overlay Layar */}
+      {scene.teksOverlay && (
+        <div className={`rounded-xl p-3.5 border ${scene.overlayType === "chapter_title" ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-800 dark:text-emerald-200" : scene.overlayType === "key_point" ? "bg-blue-500/10 border-blue-500/25 text-blue-800 dark:text-blue-200" : "bg-amber-500/10 border-amber-500/25 text-amber-800 dark:text-amber-200"}`}>
+          <div className="flex items-center justify-between mb-1.5">
+            <span className={`text-xs font-bold flex items-center gap-1.5 ${scene.overlayType === "chapter_title" ? "text-emerald-600 dark:text-emerald-400" : scene.overlayType === "key_point" ? "text-blue-600 dark:text-blue-400" : "text-amber-600 dark:text-amber-400"}`}>
+              <span>{scene.overlayType === "chapter_title" ? "📖" : scene.overlayType === "key_point" ? "📌" : "💬"}</span>
+              {scene.overlayType === "chapter_title" ? "Chapter Title" : scene.overlayType === "key_point" ? "Key Point" : "Teks Overlay Layar"}
+            </span>
             <button
-              type="button"
-              onClick={() => copy(`nar-${scene.id}`, cleanSpoken || scene.narasi)}
-              className="text-xs text-blue-500 hover:underline font-medium"
-              title="Salin narasi bersih (siap TTS, tanpa instruksi/tanda kutip)"
+              onClick={() => copy(`ov-${scene.id}`, scene.teksOverlay!)}
+              className="text-xs px-2 py-0.5 rounded font-semibold hover:underline"
             >
-              {copiedId === `nar-${scene.id}` ? "✓" : t("copy")}
+              {copiedId === `ov-${scene.id}` ? "✓" : t("copy")}
             </button>
           </div>
+          <p className="text-sm font-semibold italic">&ldquo;{scene.teksOverlay}&rdquo;</p>
         </div>
-        <p className="text-sm pg-text-sub leading-relaxed">{scene.narasi}</p>
-      </div>
+      )}
+
+      {/* Audio Cues (SFX & BGM) — Selalu tampil jika ada cue */}
+      {(scene.bgmCues?.length || scene.sfxCues?.length) ? (
+        <div className="flex flex-wrap gap-1.5 pt-0.5">
+          {scene.bgmCues?.map((c, i) => (
+            <span key={i} className="text-[11px] font-medium px-2.5 py-0.5 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 rounded-full flex items-center gap-1">
+              <span>🎵</span> {c}
+            </span>
+          ))}
+          {scene.sfxCues?.map((c, i) => (
+            <span key={i} className="text-[11px] font-medium px-2.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full flex items-center gap-1">
+              <span>🔊</span> {c}
+            </span>
+          ))}
+        </div>
+      ) : null}
+
+      {/* Panduan Suara / Voice Guidelines */}
+      {scene.voiceGuidelines && (
+        <div className="pg-surface-dim border pg-border/60 rounded-xl p-3 text-xs pg-text-sub space-y-1">
+          {scene.voiceGuidelines.sampleContext && <p>📍 <span className="font-medium pg-text-heading">Context:</span> {scene.voiceGuidelines.sampleContext}</p>}
+          {scene.voiceGuidelines.directorsNote && <p>🎬 <span className="font-medium pg-text-heading">Note:</span> {scene.voiceGuidelines.directorsNote}</p>}
+          {scene.voiceGuidelines.traits && <p>🎙️ <span className="font-medium pg-text-heading">Traits:</span> {scene.voiceGuidelines.traits}</p>}
+          {scene.voiceGuidelines.sync && <p>⏱️ <span className="font-medium pg-text-heading">Sync:</span> {scene.voiceGuidelines.sync}</p>}
+        </div>
+      )}
+
+      {/* Visual Prompt */}
+      {scene.visual !== "—" && (
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold pg-text-sub uppercase tracking-wide flex items-center gap-1.5">
+              <span>🎨</span> {t("visualPrompt")}
+            </span>
+            <button
+              onClick={() => copy(`vis-${scene.id}`, buildVisualPrompt(scene.visual))}
+              className="text-xs px-2.5 py-0.5 rounded font-semibold bg-slate-800 text-slate-200 hover:text-white hover:bg-slate-700 transition-colors shadow-xs"
+            >
+              {copiedId === `vis-${scene.id}` ? "✓ " + t("copied") : `📋 ${t("copy")}`}
+            </button>
+          </div>
+          <div className="rounded-xl p-3.5 bg-slate-950 dark:bg-black/60 border border-slate-800 shadow-inner">
+            <p className="text-xs font-mono text-slate-200 leading-relaxed break-words">{buildVisualPrompt(scene.visual)}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Copy Overlay + Visual (Fitur 2) */}
+      {(scene.teksOverlay || (scene.visual && scene.visual !== "—")) && (
+        <button
+          type="button"
+          onClick={() => handleCopyOverlayVisual(scene)}
+          className="pg-btn-secondary min-h-[32px] px-3 py-1 text-xs font-semibold rounded-lg shadow-xs hover:border-[var(--pg-brand)] transition-all flex items-center gap-1.5"
+        >
+          <span>📋</span>
+          {copiedId === `ov-vis-${scene.id}` ? `✓ ${t("copyOverlayVisualSuccess")}` : t("copyOverlayVisual")}
+        </button>
+      )}
+    </div>
+    </div>
     );
-  })()}
-
-  {/* Teks Overlay Layar */}
-  {scene.teksOverlay && (
-    <div className={`rounded-lg p-3 border ${scene.overlayType === "chapter_title" ? "bg-emerald-500/10 border-emerald-500/20" : scene.overlayType === "key_point" ? "bg-blue-500/10 border-blue-500/20" : "bg-amber-500/10 border-amber-500/20"}`}>
-      <div className="flex items-center justify-between mb-1">
-        <span className={`text-xs font-semibold flex items-center gap-1 ${scene.overlayType === "chapter_title" ? "text-emerald-600 dark:text-emerald-400" : scene.overlayType === "key_point" ? "text-blue-600 dark:text-blue-400" : "text-amber-600 dark:text-amber-400"}`}>
-          <span>{scene.overlayType === "chapter_title" ? "📖" : scene.overlayType === "key_point" ? "📌" : "💬"}</span>
-          {scene.overlayType === "chapter_title" ? "Chapter Title" : scene.overlayType === "key_point" ? "Key Point" : "Teks Overlay Layar"}
-        </span>
-        <button onClick={() => copy(`ov-${scene.id}`, scene.teksOverlay!)} className={`text-xs hover:underline ${scene.overlayType === "chapter_title" ? "text-emerald-600 dark:text-emerald-400" : scene.overlayType === "key_point" ? "text-blue-600 dark:text-blue-400" : "text-amber-600 dark:text-amber-400"}`}>{copiedId === `ov-${scene.id}` ? "✓" : t("copy")}</button>
-      </div>
-      <p className="text-sm font-medium pg-text-heading italic">&ldquo;{scene.teksOverlay}&rdquo;</p>
-    </div>
-  )}
-
-  {/* Audio Cues (SFX & BGM) — Selalu tampil jika ada cue */}
-  {(scene.bgmCues?.length || scene.sfxCues?.length) ? (
-    <div className="flex flex-wrap gap-1.5 pt-0.5">
-      {scene.bgmCues?.map((c, i) => (
-        <span key={i} className="text-[10px] font-medium px-2 py-0.5 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 rounded-full flex items-center gap-1">
-          <span>🎵</span> {c}
-        </span>
-      ))}
-      {scene.sfxCues?.map((c, i) => (
-        <span key={i} className="text-[10px] font-medium px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full flex items-center gap-1">
-          <span>🔊</span> {c}
-        </span>
-      ))}
-    </div>
-  ) : null}
-
-  {/* Panduan Suara / Voice Guidelines */}
-  {scene.voiceGuidelines && (
-    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 text-xs text-blue-700 dark:text-blue-300 space-y-0.5">
-      {scene.voiceGuidelines.sampleContext && <p>📍 {scene.voiceGuidelines.sampleContext}</p>}
-      {scene.voiceGuidelines.directorsNote && <p>🎬 {scene.voiceGuidelines.directorsNote}</p>}
-      {scene.voiceGuidelines.traits && <p>🎙️ {scene.voiceGuidelines.traits}</p>}
-      {scene.voiceGuidelines.sync && <p>⏱️ Sync: {scene.voiceGuidelines.sync}</p>}
-    </div>
-  )}
-
-  {/* Visual Prompt */}
-  {scene.visual !== "—" && (
-    <div>
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-xs font-semibold pg-text-muted uppercase">🎨 {t("visualPrompt")}</span>
-        <button onClick={() => copy(`vis-${scene.id}`, buildVisualPrompt(scene.visual))} className="text-xs text-blue-500 hover:underline">{copiedId === `vis-${scene.id}` ? "✓" : t("copy")}</button>
-      </div>
-      <p className="text-xs font-mono pg-text-sub pg-surface-dim rounded p-2 leading-relaxed">{buildVisualPrompt(scene.visual)}</p>
-    </div>
-  )}
-
-  {/* Copy Overlay + Visual (Fitur 2) */}
-  {(scene.teksOverlay || (scene.visual && scene.visual !== "—")) && (
-    <button
-      type="button"
-      onClick={() => handleCopyOverlayVisual(scene)}
-      className="inline-flex items-center gap-1.5 text-[10px] font-semibold px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 pg-text-sub hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors w-fit"
-    >
-      <span>📋</span>
-      {copiedId === `ov-vis-${scene.id}` ? `✓ ${t("copyOverlayVisualSuccess")}` : t("copyOverlayVisual")}
-    </button>
-  )}
-  </div>
-  </div>
-  );
   })}
   </div>
   )}

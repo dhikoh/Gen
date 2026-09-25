@@ -125,7 +125,7 @@ export default async function DraftDetailPage({
       <div className="mb-6">
         <Link
           href={`/${locale}/dashboard/drafts`}
-          className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 mb-4 inline-block"
+          className="text-sm font-semibold text-[var(--pg-brand)] hover:text-[var(--pg-brand-hover)] mb-4 inline-flex items-center gap-1.5 transition-colors"
         >
           ← {t("backToHistory")}
         </Link>

@@ -200,7 +200,7 @@ export default function SettingsClient() {
   return (
     <div className="space-y-8">
       {/* Profile Section */}
-      <section className="pg-surface border pg-border rounded-xl p-6 shadow-sm">
+      <section className="pg-surface border pg-border rounded-2xl p-6 shadow-sm">
         <h2 className="text-xl font-semibold pg-text-heading mb-4">{t("profileTitle")}</h2>
         <form onSubmit={handleProfileSubmit} className="space-y-4 max-w-md">
           <div>
@@ -209,7 +209,7 @@ export default function SettingsClient() {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-2 border pg-border rounded-lg bg-transparent pg-text-heading focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border pg-border rounded-lg bg-transparent pg-text-heading focus:outline-none focus:ring-2 focus:ring-[var(--pg-brand)]"
               placeholder={t("newNamePlaceholder")}
               required
             />
@@ -217,7 +217,7 @@ export default function SettingsClient() {
           <button
             type="submit"
             disabled={profileLoading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            className="pg-btn-primary min-h-[40px] px-5 text-sm font-semibold rounded-lg shadow-sm disabled:opacity-50"
           >
             {profileLoading ? t("savingProfile") : t("saveProfile")}
           </button>
@@ -226,7 +226,7 @@ export default function SettingsClient() {
       </section>
 
       {/* Password Section */}
-      <section className="pg-surface border pg-border rounded-xl p-6 shadow-sm">
+      <section className="pg-surface border pg-border rounded-2xl p-6 shadow-sm">
         <h2 className="text-xl font-semibold pg-text-heading mb-4">{t("changePasswordTitle")}</h2>
         <form onSubmit={handlePasswordSubmit} className="space-y-4 max-w-md">
           <div>
@@ -235,7 +235,7 @@ export default function SettingsClient() {
               type="password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
-              className="w-full px-4 py-2 border pg-border rounded-lg bg-transparent pg-text-heading focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border pg-border rounded-lg bg-transparent pg-text-heading focus:outline-none focus:ring-2 focus:ring-[var(--pg-brand)]"
               required
             />
           </div>
@@ -245,14 +245,14 @@ export default function SettingsClient() {
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full px-4 py-2 border pg-border rounded-lg bg-transparent pg-text-heading focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border pg-border rounded-lg bg-transparent pg-text-heading focus:outline-none focus:ring-2 focus:ring-[var(--pg-brand)]"
               required
             />
           </div>
           <button
             type="submit"
             disabled={passwordLoading}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+            className="min-h-[40px] px-5 text-sm font-semibold rounded-lg bg-red-600 hover:bg-red-700 text-white shadow-sm transition-all disabled:opacity-50"
           >
             {passwordLoading ? t("savingPassword") : t("changePassword")}
           </button>
