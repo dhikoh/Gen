@@ -2,6 +2,49 @@
 
 ---
 
+## [#80] — 2026-09-25 | Feature & Resilience: Multi-LLM Double-Prefix Header Support (# ##), Split "Copy All (TTS / Raw)" & Syntax Directive
+
+### Overview
+
+Penyempurnaan arsitektur parsing multi-LLM (mengatasi kebiasaan format unik ChatGPT seperti `# ## SCENE 1`), penambahan tombol split **Copy All Narration (TTS Ready & Raw)** di antarmuka Studio, serta penyuntikan direktif sintaks ketat pada `promptGenerator.ts` agar seluruh model AI (ChatGPT, Claude, Gemini, DeepSeek) menghasilkan format naskah yang terstandardisasi.
+
+---
+
+### 1 — Imunitas Parser Terhadap Variasi Header Ekstrem (`parsers.ts`)
+
+- **Dukungan Double-Prefix Header (`# ## SCENE 1`, `# ## THUMBNAIL STUDIO`)**:
+  - Pada beberapa sesi, ChatGPT menghasilkan header gabungan seperti `# ## SCENE 1` (kombinasi H1 dan H2). Regex splitter kini menggunakan `/(?:^|\r?\n)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:Scene|Adegan|Bagian|Part)\s*([a-zA-Z0-9_\-]+)(?:[:\s\*\-=_]*)(?=\r?\n|$)/gi`.
+  - Mampu mendeteksi dan memecah adegan secara sempurna dari model apa pun, baik `## SCENE 1` (Claude), `# ## SCENE 1` (ChatGPT), `# SCENE 1`, `Scene 1:`, maupun `**SCENE 1:**`.
+- **Refactoring Pencarian Header Berikutnya pada SEO & Thumbnail**:
+  - Memperbaiki `nextHeaderMatch` pada `extractThreeTierSeo` agar pencarian section berikutnya dilakukan secara ketat setelah baris judul section aktif, mencegah *false positive* pada header berawalan `# ##`.
+  - Memperluas pencocokan field thumbnail (`extractThumbnailData`) dan SEO (`extractThreeTierSeo`) terhadap penempatan titik dua di dalam tanda bintang tebal (`**TAG SPESIFIK:**`).
+
+---
+
+### 2 — Split Button "Copy All Narration" (Clean TTS & Raw) (`ScenePromptStudioClient.tsx`)
+
+- **Tombol Split Terpadu**:
+  - **Bagian Kiri (`🎤 Copy All Narration`)**: Menyalin seluruh teks spoken narasi yang telah dibersihkan secara instan melalui `cleanNarasiForTts` (siap ditempel ke ElevenLabs, CapCut, dsb. tanpa perlu menghapus instruksi panggung).
+  - **Bagian Kanan (`Raw`)**: Menyalin seluruh naskah narasi dalam bentuk mentah (*raw*) lengkap dengan tanda kurung petunjuk akting `(...)`, jeda `(pause)`, dan tanda kutip, memudahkan kreator untuk membandingkan atau mendokumentasikan catatan sutradara.
+
+---
+
+### 3 — Penguatan Direktif Sintaks pada Prompt Generator (`promptGenerator.ts`)
+
+- **Direct Syntax Formatting Enforcement**:
+  - Menyuntikkan blok instruksi khusus `[ATURAN SINTAKS FORMAT WAJIB — SEMUA AI (CHATGPT, CLAUDE, GEMINI)]` ke dalam prompt naskah.
+  - Menginstruksikan AI secara eksplisit untuk menggunakan `## SCENE [NOMOR]`, melarang penulisan `# ##`, dan melarang membungkus titik dua di dalam tanda bintang tebal.
+  - Menyediakan perlindungan berlapis (*defense-in-depth*): Prompt mengarahkan AI untuk disiplin, dan Parser siap mengoreksi jika AI tetap menyimpang.
+
+---
+
+### 4 — Verifikasi & Pengujian Kualitas
+
+- **Automated Tests**: **122/122 tests lolos 100%** di 13 test suites (`vitest run`), termasuk pengujian naskah 7-scene penuh dari ChatGPT dan Claude.
+- **TypeScript Typecheck**: `npx tsc --noEmit` lolos tanpa error (exit code 0).
+
+---
+
 ## [#79] — 2026-09-25 | Bugfix & Workflow Enhancement: ChatGPT Markdown Scene Parsing & Clean TTS Narration Copy
 
 ### Overview

@@ -872,7 +872,35 @@ Contoh struktur:
 Jumlah bab ditentukan secara natural berdasarkan alur konten (biasanya 3-6 bab untuk konten panjang).`;
     }
 
-    formatOutputWajib += `\n## SCENE 1\nNARASI: [${narasiExample}]\nTARGET EMOSI (VET): [Target emosi spesifik penonton: misal Rasa Ingin Tahu / Shock / Empati / Kelegaan / Urgensi]\nTEKNIK EDITING & PACING: [Instruksi pacing: misal Jump Cut (0s dead-air) / B-Roll Cutaway Overlay / Visual Beat Sync / Stabilized Flow]\nTEKS OVERLAY: [${overlayInstruction}]\nPANDUAN SUARA: [${panduanSuaraExample}]\nVISUAL PROMPT: [${visualPromptInstruction}]${arSuffix}\nDURASI: [Estimasi durasi adegan dalam detik, contoh: 5 detik]\n`;
+    const syntaxGuide = isEnglishOutput
+      ? `\n[STRICT MARKDOWN SYNTAX RULES — ALL AI MODELS (CHATGPT, CLAUDE, GEMINI)]
+1. SCENE HEADERS MUST BE EXACTLY: "## SCENE 1", "## SCENE 2", etc.
+   - Use EXACTLY two hashes "## " followed by "SCENE" and the number.
+   - DO NOT use double prefix hashes like "# ##" or single hash "#".
+2. FIELD LABELS MUST BE EXACT:
+   - NARASI:
+   - TARGET EMOSI (VET):
+   - TEKNIK EDITING & PACING:
+   - TEKS OVERLAY:
+   - PANDUAN SUARA:
+   - VISUAL PROMPT:
+   - DURASI:
+   - DO NOT wrap the colon inside bold asterisks (write "NARASI:", not "**NARASI:**").\n`
+      : `\n[ATURAN SINTAKS FORMAT WAJIB — SEMUA AI (CHATGPT, CLAUDE, GEMINI)]
+1. AWAL SETIAP SCENE WAJIB PERSIS: "## SCENE 1", "## SCENE 2", dst.
+   - Gunakan TEPAT dua tanda pagar "## " diikuti "SCENE" dan angka (CONTOH: "## SCENE 1").
+   - DILARANG menggunakan kombinasi pagar ganda seperti "# ##" atau hanya satu pagar "#".
+2. LABEL FIELD WAJIB PERSIS:
+   - NARASI:
+   - TARGET EMOSI (VET):
+   - TEKNIK EDITING & PACING:
+   - TEKS OVERLAY:
+   - PANDUAN SUARA:
+   - VISUAL PROMPT:
+   - DURASI:
+   - DILARANG menyisipkan titik dua di dalam tanda bintang tebal (tulis "NARASI:", bukan "**NARASI:**").\n`;
+
+    formatOutputWajib += `${syntaxGuide}\n## SCENE 1\nNARASI: [${narasiExample}]\nTARGET EMOSI (VET): [Target emosi spesifik penonton: misal Rasa Ingin Tahu / Shock / Empati / Kelegaan / Urgensi]\nTEKNIK EDITING & PACING: [Instruksi pacing: misal Jump Cut (0s dead-air) / B-Roll Cutaway Overlay / Visual Beat Sync / Stabilized Flow]\nTEKS OVERLAY: [${overlayInstruction}]\nPANDUAN SUARA: [${panduanSuaraExample}]\nVISUAL PROMPT: [${visualPromptInstruction}]${arSuffix}\nDURASI: [Estimasi durasi adegan dalam detik, contoh: 5 detik]\n`;
     formatOutputWajib += `\n## SCENE 2\nNARASI: [Narasi / dialog adegan kedua dengan tanda kurung intonasi (...)]\nTARGET EMOSI (VET): [Target emosi adegan kedua]\nTEKNIK EDITING & PACING: [Instruksi pacing adegan kedua]\nTEKS OVERLAY: [${overlayStyle === "minimal" ? 'Overlay hanya jika sangat diperlukan, strip "—" jika tidak' : 'Teks overlay sesuai jenis yang dipilih di atas'}]\nPANDUAN SUARA: [${panduanSuaraExample}]\nVISUAL PROMPT: [Tulis prompt visual adegan kedua secara TEMPORAL (klip berjalan, bukan snapshot): deskripsikan Subject Micro-Action, Environment Dynamics, dan Camera Movement + Timing, bahasa Inggris.]${arSuffix}\nDURASI: [Estimasi durasi]\n`;
 
     if (sceneCount && sceneCount > 2) {

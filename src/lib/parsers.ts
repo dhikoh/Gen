@@ -62,31 +62,29 @@ export interface ThumbnailData {
 /** Extract structured thumbnail data from an AI-generated output string. */
 export function extractThumbnailData(text: string): ThumbnailData | null {
   const match = text.match(
-    /(?:##|###|\*\*|\b)\s*(?:THUMBNAIL STUDIO|IMAGE PROMPT|THUMBNAIL VISUAL PROMPT|THUMBNAIL PROMPT|THUMBNAIL)/i,
+    /(?:^|\r?\n|^)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:THUMBNAIL STUDIO|IMAGE PROMPT|THUMBNAIL VISUAL PROMPT|THUMBNAIL PROMPT|THUMBNAIL)/i,
   );
   const index = match?.index !== undefined ? match.index : -1;
   if (index === -1) return null;
 
   let thumbnailPart = text.substring(index).trim();
-  const stopMatch = thumbnailPart.match(/(?:\r?\n|^)\s*(?:##\s*|###\s*|\*\*\s*|\b)(?:HTML\s*BLOG|REKOMENDASI\s*PRODUK)/i);
+  const stopMatch = thumbnailPart.match(/(?:\r?\n|^)\s*(?:#{1,6}\s*|\*{2,3}\s*|\b)(?:HTML\s*BLOG|REKOMENDASI\s*PRODUK)/i);
   if (stopMatch && stopMatch.index !== undefined && stopMatch.index > 0) {
     thumbnailPart = thumbnailPart.substring(0, stopMatch.index).trim();
   }
 
   const keys = [
-    { field: "seoText" as const, pattern: /(?:TEKS\s+OVERLAY\s+SEO|SEO\s+OVERLAY\s+TEXT|SEO\s+TEXT|TEKS\s+OVERLAY)\s*(?:\*\*|\*)*\s*:\s*(?:\*\*|\*)*/i },
-    { field: "opsi1Prompt" as const, pattern: /(?:OPSI\s+1\s+(?:VISUAL\s+)?PROMPT|OPSI\s+1|OPTION\s+1\s+(?:VISUAL\s+)?PROMPT|OPTION\s+1)\s*(?:\*\*|\*)*\s*:\s*(?:\*\*|\*)*/i },
-    { field: "opsi1Overlay" as const, pattern: /(?:OPSI\s+1\s+TEKS\s+OVERLAY|OPTION\s+1\s+TEXT\s+OVERLAY|TEXT\s+OVERLAY\s+OPTION\s+1|TEKS\s+OVERLAY\s+OPSI\s+1)\s*(?:\*\*|\*)*\s*:\s*(?:\*\*|\*)*/i },
-    { field: "opsi2Prompt" as const, pattern: /(?:OPSI\s+2\s+(?:VISUAL\s+)?PROMPT|OPSI\s+2|OPTION\s+2\s+(?:VISUAL\s+)?PROMPT|OPTION\s+2)\s*(?:\*\*|\*)*\s*:\s*(?:\*\*|\*)*/i },
-    { field: "opsi2Overlay" as const, pattern: /(?:OPSI\s+2\s+TEKS\s+OVERLAY|OPTION\s+2\s+TEXT\s+OVERLAY|TEXT\s+OVERLAY\s+OPTION\s+2|TEKS\s+OVERLAY\s+OPSI\s+2)\s*(?:\*\*|\*)*\s*:\s*(?:\*\*|\*)*/i },
-    { field: "recommendations" as const, pattern: /(?:REKOMENDASI\s+WARNA\s*(?:&\s*ELEMEN)?|REKOMENDASI|RECOMMENDATIONS)\s*(?:\*\*|\*)*\s*:\s*(?:\*\*|\*)*/i },
+    { field: "seoText" as const, pattern: /(?:^|\r?\n|^)\s*(?:\*\*)?(?:TEKS\s+OVERLAY\s+SEO|SEO\s+OVERLAY\s+TEXT|SEO\s+TEXT|TEKS\s+OVERLAY)(?::\s*\*\*|\*\*\s*:|:)\s*/i },
+    { field: "opsi1Prompt" as const, pattern: /(?:^|\r?\n|^)\s*(?:\*\*)?(?:OPSI\s+1\s+(?:VISUAL\s+)?PROMPT|OPSI\s+1|OPTION\s+1\s+(?:VISUAL\s+)?PROMPT|OPTION\s+1)(?::\s*\*\*|\*\*\s*:|:)\s*/i },
+    { field: "opsi1Overlay" as const, pattern: /(?:^|\r?\n|^)\s*(?:\*\*)?(?:OPSI\s+1\s+TEKS\s+OVERLAY|OPTION\s+1\s+TEXT\s+OVERLAY|TEXT\s+OVERLAY\s+OPTION\s+1|TEKS\s+OVERLAY\s+OPSI\s+1)(?::\s*\*\*|\*\*\s*:|:)\s*/i },
+    { field: "opsi2Prompt" as const, pattern: /(?:^|\r?\n|^)\s*(?:\*\*)?(?:OPSI\s+2\s+(?:VISUAL\s+)?PROMPT|OPSI\s+2|OPTION\s+2\s+(?:VISUAL\s+)?PROMPT|OPTION\s+2)(?::\s*\*\*|\*\*\s*:|:)\s*/i },
+    { field: "opsi2Overlay" as const, pattern: /(?:^|\r?\n|^)\s*(?:\*\*)?(?:OPSI\s+2\s+TEKS\s+OVERLAY|OPTION\s+2\s+TEXT\s+OVERLAY|TEXT\s+OVERLAY\s+OPTION\s+2|TEKS\s+OVERLAY\s+OPSI\s+2)(?::\s*\*\*|\*\*\s*:|:)\s*/i },
+    { field: "recommendations" as const, pattern: /(?:^|\r?\n|^)\s*(?:\*\*)?(?:REKOMENDASI\s+WARNA\s*(?:&\s*ELEMEN)?|REKOMENDASI|RECOMMENDATIONS)(?::\s*\*\*|\*\*\s*:|:)\s*/i },
   ];
 
   const cv = (v: string) => {
     if (!v) return "";
-    const qm = v.match(/^"([^"]+)"$/);
-    if (qm) return qm[1].trim();
-    return v.replace(/^["'\s]+|["'\s]+$/g, "").trim();
+    return cleanParsedValue(v);
   };
 
   const keyPatternStr = keys.map(k => k.pattern.source).join("|");
@@ -694,7 +692,7 @@ export function parseScenes(text: string): Scene[] {
 
   // Extract chapter markers: ## BAB N: Title or ## CHAPTER N: Title
   const chapterMarkers: { index: number; prefix: string; num: number; title: string }[] = [];
-  const chapterPattern = /(?:^|\r?\n)(?:#{1,4}\s*|\*\*\s*)?(BAB|CHAPTER)\s+(\d+)\s*:\s*(.+?)(?=\r?\n|$)/gi;
+  const chapterPattern = /(?:^|\r?\n)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(BAB|CHAPTER)\s+(\d+)\s*:\s*(.+?)(?=\r?\n|$)/gi;
   let chMatch;
   while ((chMatch = chapterPattern.exec(text)) !== null) {
     chapterMarkers.push({
@@ -705,11 +703,11 @@ export function parseScenes(text: string): Scene[] {
     });
   }
 
-  const splitter = /(?:^|\r?\n)(?:#{1,4}\s*|\*\*\s*|={1,4}\s*)?(?:Scene|Adegan|Bagian|Part)\s*([a-zA-Z0-9_\-]+)(?:[:\s\*\-=_]*)(?=\r?\n|$)/gi;
+  const splitter = /(?:^|\r?\n)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:Scene|Adegan|Bagian|Part)\s*([a-zA-Z0-9_\-]+)(?:[:\s\*\-=_]*)(?=\r?\n|$)/gi;
   const parts = text.split(splitter);
   const scenes: Scene[] = [];
   const delimiters = "(?:Target\\s*Emosi(?:\\s*\\(VET\\))?|Emosi|Teknik\\s*(?:Editing(?:\\s*&\\s*Pacing)?|Pacing)|Pacing|Teks\\s*Overlay|Text\\s*Overlay|Overlay|Panduan\\s*Suara|Voice\\s*Guidelines|Visual\\s*Prompt|Visual|Deskripsi\\s*Visual|Prompt|Durasi|Time|Duration)";
-  const delimLookahead = `(?=(?:\\r?\\n)+(?:\\*\\*)?${delimiters}(?::\\s*\\*\\*|\\*\\*\\s*:|:)|\\r?\\n+[-*_]{3,}|\\r?\\n+#{1,4}|$)`;
+  const delimLookahead = `(?=(?:\\r?\\n)+(?:\\*\\*)?${delimiters}(?::\\s*\\*\\*|\\*\\*\\s*:|:)|\\r?\\n+[-*_]{3,}|\\r?\\n+(?:#{1,6}\\s*|\\*{2,3}\\s*|={2,4}\\s*)*(?:Scene|Adegan|Bagian|Part)\\s+[a-zA-Z0-9_\\-]+|\\r?\\n+(?:#{1,6}\\s*|\\*{2,3}\\s*|={2,4}\\s*)*(?:TOTAL|THUMBNAIL|METADATA|RINGKASAN|HASHTAG|CAPTION)|$)`;
 
   // Helper: find which chapter a given text offset belongs to
   function findChapterAt(offset: number): { prefix: string; num: number; title: string } | undefined {
@@ -736,7 +734,7 @@ export function parseScenes(text: string): Scene[] {
       const sceneStartOffset = charOffset;
       charOffset += content.length;
 
-      const stop = /(?:^|\r?\n)(?:#{1,4}\s*|\*\*\s*)?(?:TOTAL\s*DURASI|TOTAL|RINGKASAN|THUMBNAIL|ARTIKEL|HASHTAG|CAPTION|JUDUL\s*TERPILIH|HTML\s*BLOG|REKOMENDASI|METADATA\s*SEO)/i;
+      const stop = /(?:^|\r?\n)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:TOTAL\s*DURASI|TOTAL|RINGKASAN|THUMBNAIL|ARTIKEL|HASHTAG|CAPTION|JUDUL\s*TERPILIH|HTML\s*BLOG|REKOMENDASI|METADATA\s*SEO)/i;
       const m = content.match(stop);
       const c = m ? content.slice(0, m.index) : content;
 
@@ -825,21 +823,23 @@ export function extractThreeTierSeo(text: string): ThreeTierSeoData | null {
   if (!text) return null;
 
   const match = text.match(
-    /(?:##|###|\*\*|\b)\s*(?:METADATA\s*SEO\s*(?:YOUTUBE)?(?:\s*2026)?|SEO\s*METADATA)/i
+    /(?:^|\r?\n|^)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:METADATA\s*SEO\s*(?:YOUTUBE)?(?:\s*2026)?|SEO\s*METADATA)/i
   );
   if (!match || match.index === undefined) return null;
 
   const startIdx = match.index;
   const afterSection = text.substring(startIdx);
-  const nextHeaderMatch = afterSection.search(/(?:\n##\s+(?!METADATA)|\n(?:\*\*\s*)?HTML\s*BLOG|\n(?:\*\*\s*)?REKOMENDASI|\n(?:\*\*\s*)?THUMBNAIL)/i);
+  const firstNewline = afterSection.indexOf("\n");
+  const rest = firstNewline !== -1 ? afterSection.substring(firstNewline + 1) : "";
+  const nextHeaderMatch = rest.search(/(?:\r?\n)(?:#{1,6}\s*|\*{2,3}\s*)*(?:HTML\s*BLOG|REKOMENDASI|THUMBNAIL|SCENE|ADEGAN)/i);
   const sectionRaw = nextHeaderMatch !== -1
-    ? afterSection.substring(0, nextHeaderMatch).trim()
+    ? afterSection.substring(0, firstNewline + 1 + nextHeaderMatch).trim()
     : afterSection.trim();
 
-  const tagSpesifikMatch = sectionRaw.match(/(?:TAG\s+SPESIFIK|SPECIFIC\s+TAGS?)\s*(?:\*\*|\*)*\s*:\s*([^\n]+)/i);
-  const tagUmumMatch = sectionRaw.match(/(?:TAG\s+UMUM|GENERAL\s+TAGS?)\s*(?:\*\*|\*)*\s*:\s*([^\n]+)/i);
-  const tagMajemukMatch = sectionRaw.match(/(?:TAG\s+MAJEMUK(?:\s*\(LONG-TAIL\))?|LONG-?TAIL\s+TAGS?)\s*(?:\*\*|\*)*\s*:\s*([^\n]+)/i);
-  const deskripsiMatch = sectionRaw.match(/(?:DESKRIPSI\s+(?:YOUTUBE)?(?:\s*\(SEO\s*&\s*EMPATI\))?|DESKRIPSI)\s*(?:\*\*|\*)*\s*:\s*([\s\S]*?)(?=(?:CHECKLIST|##|$))/i);
+  const tagSpesifikMatch = sectionRaw.match(/(?:\*\*)?(?:TAG\s+SPESIFIK|SPECIFIC\s+TAGS?)(?::\s*\*\*|\*\*\s*:|:)\s*([^\n]+)/i);
+  const tagUmumMatch = sectionRaw.match(/(?:\*\*)?(?:TAG\s+UMUM|GENERAL\s+TAGS?)(?::\s*\*\*|\*\*\s*:|:)\s*([^\n]+)/i);
+  const tagMajemukMatch = sectionRaw.match(/(?:\*\*)?(?:TAG\s+MAJEMUK(?:\s*\(LONG-TAIL\))?|LONG-?TAIL\s+TAGS?)(?::\s*\*\*|\*\*\s*:|:)\s*([^\n]+)/i);
+  const deskripsiMatch = sectionRaw.match(/(?:\*\*)?(?:DESKRIPSI\s+(?:YOUTUBE)?(?:\s*\(SEO\s*&\s*EMPATI\))?|DESKRIPSI)(?::\s*\*\*|\*\*\s*:|:)\s*([\s\S]*?)(?=(?:CHECKLIST|##|$))/i);
 
   // Extract checklist items
   const checklist: string[] = [];

@@ -785,6 +785,21 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
  toast.success(t("allNarasiCopied"));
  }, [scenes, copy, t]);
 
+ const copyAllNarrationRaw = useCallback(() => {
+   const validNarrations = scenes
+     .filter(s => s.narasi && s.narasi !== "—" && !s.isDiegetic)
+     .map(s => s.narasi.trim());
+
+   if (!validNarrations.length) {
+     toast.error(t("noNarrationToCopy"));
+     return;
+   }
+
+   const fullNarrationText = validNarrations.join("\n\n");
+   copy("all-narration-raw", fullNarrationText);
+   toast.success(t("allNarasiCopied") + " (Raw)");
+ }, [scenes, copy, t]);
+
  const copyAllThumbnailConcept = useCallback(() => {
  if (!thumbnailData) return;
  const parts: string[] = [];
@@ -1112,15 +1127,25 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
           <span>📦</span>
           {copiedId === "batch-export" ? `✓ ${t("batchExportCopied")}` : t("copyBatchExport")}
         </button>
-        <button
-          type="button"
-          onClick={copyAllNarration}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-sm active:scale-95"
-          title={t("copyAllNarasi")}
-        >
-          <span>🎤</span>
-          {copiedId === "all-narration" ? `✓ ${t("allNarasiCopied")}` : t("copyAllNarasi")}
-        </button>
+        <div className="inline-flex rounded-lg shadow-sm">
+          <button
+            type="button"
+            onClick={copyAllNarration}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-l-lg bg-blue-600 hover:bg-blue-700 text-white transition-all active:scale-95"
+            title="Salin semua narasi bersih (siap TTS, tanpa instruksi/tanda kutip)"
+          >
+            <span>🎤</span>
+            {copiedId === "all-narration" ? `✓ ${t("allNarasiCopied")}` : t("copyAllNarasi")}
+          </button>
+          <button
+            type="button"
+            onClick={copyAllNarrationRaw}
+            className="inline-flex items-center text-xs font-semibold px-2.5 py-1.5 rounded-r-lg bg-blue-700 hover:bg-blue-800 text-blue-100 border-l border-blue-500/50 transition-all active:scale-95"
+            title="Salin semua narasi mentah / raw (dengan catatan sutradara & tanda kutip untuk pertimbangan)"
+          >
+            {copiedId === "all-narration-raw" ? "✓ Raw" : "Raw"}
+          </button>
+        </div>
       </div>
     </div>
 

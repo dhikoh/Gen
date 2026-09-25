@@ -334,6 +334,316 @@ Medium side-profile shot of a chameleon holding still --ar 9:16
       expect(scenes[1].sceneNumber).toBe("Scene 2");
       expect(scenes[1].durasi).toBe("7s");
     });
+
+    it("parses ChatGPT markdown with # ## double prefix headers", () => {
+      const doubleHashPrefixOutput = `
+# ## RISET & VARIASI JUDUL
+**JUDUL TERPILIH:** This Reptile Can Survive What Should Kill It
+
+# ## SCENE 1
+
+**NARASI:**
+*(shocked whisper, then rapidly accelerating)* “This tiny reptile can survive temperatures below freezing. [SFX: icy impact] And the craziest part? It doesn’t always need to freeze.”
+
+**TARGET EMOSI (VET):**
+Shock / Curiosity
+
+**TEKNIK EDITING & PACING:**
+Aggressive cold open.
+
+**TEKS OVERLAY:**
+**IT SURVIVES**
+
+**PANDUAN SUARA:**
+Context: urgent scientific reveal | Note: whisper first | Traits: energetic | Sync: [SFX: icy impact] on reveal
+
+**VISUAL PROMPT:**
+Extreme macro opening frame of a tiny painted turtle hatchling --ar 9:16
+
+**DURASI:** 7 seconds
+
+---
+
+# ## SCENE 2
+
+**NARASI:**
+*(fast, explanatory)* “Painted turtle hatchlings spend winter buried in shallow nests, where temperatures can drop below zero.”
+
+**TARGET EMOSI (VET):**
+Disbelief / Tension
+
+**TEKNIK EDITING & PACING:**
+Fast environmental reveal.
+
+**TEKS OVERLAY:**
+**BELOW ZERO**
+
+**PANDUAN SUARA:**
+Context: underground winter | Note: rapid | Traits: authoritative | Sync: [SFX: low winter rumble] on ground reveal
+
+**VISUAL PROMPT:**
+Begin with a tight side-profile view of the hatchling tucked beneath compact soil --ar 9:16
+
+**DURASI:** 7 seconds
+
+---
+
+# ## THUMBNAIL STUDIO
+**TEKS OVERLAY SEO:** GILA!
+`;
+
+      const scenes = parseScenes(doubleHashPrefixOutput);
+      expect(scenes).toHaveLength(2);
+      expect(scenes[0].sceneNumber).toBe("Scene 1");
+      expect(scenes[0].targetEmosi).toBe("Shock / Curiosity");
+      expect(scenes[0].teksOverlay).toBe("IT SURVIVES");
+      expect(scenes[0].durasi).toBe("7s");
+      expect(scenes[0].voiceGuidelines?.sync).toBe("[SFX: icy impact] on reveal");
+      expect(scenes[0].narasi).toContain("This tiny reptile can survive temperatures below freezing");
+      expect(scenes[1].sceneNumber).toBe("Scene 2");
+      expect(scenes[1].durasi).toBe("7s");
+
+      // Verify thumbnail data extraction with # ##
+      const thumb = extractThumbnailData(doubleHashPrefixOutput);
+      expect(thumb).not.toBeNull();
+      expect(thumb?.seoText).toBe("GILA!");
+    });
+
+    it("parses full 7-scene ChatGPT output with # ## headers and extracts all metadata", () => {
+      const chatGptFull = `
+# ## RISET & VARIASI JUDUL
+**JUDUL TERPILIH:**
+**This Reptile Can Survive What Should Kill It**
+
+---
+
+# ## SCENE 1
+**NARASI:**
+*(shocked whisper, then rapidly accelerating)* “This tiny reptile can survive temperatures below freezing. [SFX: icy impact] And the craziest part? It doesn’t always need to freeze.”
+**TARGET EMOSI (VET):** Shock / Curiosity
+**TEKNIK EDITING & PACING:** Aggressive cold open.
+**TEKS OVERLAY:** **IT SURVIVES**
+**PANDUAN SUARA:** Context: urgent | Note: whisper | Traits: energetic | Sync: [SFX: icy impact] on reveal
+**VISUAL PROMPT:** Extreme macro opening frame of a tiny painted turtle hatchling --ar 9:16
+**DURASI:** 7 seconds
+
+---
+
+# ## SCENE 2
+**NARASI:**
+*(fast, explanatory)* “Painted turtle hatchlings spend winter buried in shallow nests, where temperatures can drop below zero.”
+**TARGET EMOSI (VET):** Disbelief / Tension
+**TEKNIK EDITING & PACING:** Fast environmental reveal.
+**TEKS OVERLAY:** **BELOW ZERO**
+**PANDUAN SUARA:** Context: underground winter | Note: rapid | Traits: authoritative | Sync: [SFX: low winter rumble] on ground reveal
+**VISUAL PROMPT:** Begin with a tight side-profile view --ar 9:16
+**DURASI:** 7 seconds
+
+---
+
+# ## SCENE 3
+**NARASI:**
+*(leaning closer, fascinated)* “But here’s the trick: when conditions get brutal, the turtle can remain liquid inside—even below the normal freezing point.”
+**TARGET EMOSI (VET):** Wonder / Curiosity
+**TEKNIK EDITING & PACING:** Progressive visual reveal.
+**TEKS OVERLAY:** **STILL LIQUID**
+**PANDUAN SUARA:** Context: scientific | Note: slow | Traits: fascinated | Sync: [SFX: crystalline shimmer] on reveal
+**VISUAL PROMPT:** Open on the turtle's shell --ar 9:16
+**DURASI:** 8 seconds
+
+---
+
+# ## SCENE 4
+**NARASI:**
+*(excited, punchy)* “And this is where it gets weird. Its body has adaptations that help keep ice from invading vulnerable tissues.”
+**TARGET EMOSI (VET):** Surprise / Fascination
+**TEKNIK EDITING & PACING:** Mid-video plot pivot.
+**TEKS OVERLAY:** **ICE: STOPPED**
+**PANDUAN SUARA:** Context: unexpected | Note: hit weird | Traits: energetic | Sync: [SFX: sharp crystalline crack] on invading
+**VISUAL PROMPT:** Start with an extreme macro --ar 9:16
+**DURASI:** 7 seconds
+
+---
+
+# ## SCENE 5
+**NARASI:**
+*(dramatic, slower)* “So it’s not simply a frozen turtle waking back up. The real survival trick is controlling the freezing process itself.”
+**TARGET EMOSI (VET):** Realization / Awe
+**TEKNIK EDITING & PACING:** Major re-engagement moment.
+**TEKS OVERLAY:** **THE REAL TRICK**
+**PANDUAN SUARA:** Context: myth-busting | Note: slow | Traits: deep | Sync: [SFX: deep pulse] under split
+**VISUAL PROMPT:** Open on a dramatic visual contrast --ar 9:16
+**DURASI:** 8 seconds
+
+---
+
+# ## SCENE 6
+**NARASI:**
+*(amazed, energetic)* “That means this tiny hatchling can face a winter that would be devastating to most animals—and still emerge when spring returns.”
+**TARGET EMOSI (VET):** Awe / Relief
+**TEKNIK EDITING & PACING:** Transition from danger to resolution.
+**TEKS OVERLAY:** **WAIT FOR SPRING**
+**PANDUAN SUARA:** Context: survival payoff | Note: accelerate | Traits: warm | Sync: [SFX: soft thawing crackle] on melting
+**VISUAL PROMPT:** Begin underground with hatchling --ar 9:16
+**DURASI:** 7 seconds
+
+---
+
+# ## SCENE 7
+**NARASI:**
+*(smiling, reflective, then playful)* “A turtle this small basically found a loophole in winter. Would you call that a superpower?”
+**TARGET EMOSI (VET):** Wonder / Engagement
+**TEKNIK EDITING & PACING:** Slow pull-out ending.
+**TEKS OVERLAY:** **SUPERPOWER?**
+**PANDUAN SUARA:** Context: satisfying conclusion | Note: calm | Traits: warm | Sync: [SFX: subtle magical chime] on loophole
+**VISUAL PROMPT:** Open on a close-up of the painted turtle --ar 9:16
+**DURASI:** 6 seconds
+
+---
+
+# ## THUMBNAIL STUDIO
+**TEKS OVERLAY SEO:** **GILA!**
+**OPSI 1 PROMPT:** Extreme close-up of a painted turtle hatchling --ar 9:16
+**OPSI 1 TEKS OVERLAY:** **GILA!**
+**OPSI 2 PROMPT:** Medium close-up of a painted turtle hatchling --ar 9:16
+**OPSI 2 TEKS OVERLAY:** **KAGET!**
+**REKOMENDASI WARNA & ELEMEN:** Use high-contrast bright yellow or white text.
+
+---
+
+# ## METADATA SEO YOUTUBE 2026
+**TAG SPESIFIK:** painted turtle, painted turtle hatchling
+**TAG UMUM:** reptiles, turtles, animal facts
+**TAG MAJEMUK (LONG-TAIL):** how painted turtles survive winter
+**DESKRIPSI YOUTUBE (SEO & EMPATI):**
+How can a tiny painted turtle hatchling survive a winter cold enough to freeze its surroundings?
+`;
+
+      const scenes = parseScenes(chatGptFull);
+      expect(scenes).toHaveLength(7);
+      expect(scenes[0].sceneNumber).toBe("Scene 1");
+      expect(scenes[0].durasi).toBe("7s");
+      expect(scenes[6].sceneNumber).toBe("Scene 7");
+      expect(scenes[6].durasi).toBe("6s");
+
+      // Verify TTS cleaning on scene 1
+      const cleanNarasi1 = cleanNarasiForTts(scenes[0].narasi);
+      expect(cleanNarasi1).toBe("This tiny reptile can survive temperatures below freezing. And the craziest part? It doesn’t always need to freeze.");
+      expect(cleanNarasi1).not.toContain("shocked whisper");
+      expect(cleanNarasi1).not.toContain("SFX");
+
+      // Verify Thumbnail
+      const thumb = extractThumbnailData(chatGptFull);
+      expect(thumb).not.toBeNull();
+      expect(thumb?.seoText).toBe("GILA!");
+      expect(thumb?.opsi1Overlay).toBe("GILA!");
+      expect(thumb?.opsi2Overlay).toBe("KAGET!");
+
+      // Verify SEO
+      const seo = extractThreeTierSeo(chatGptFull);
+      expect(seo).not.toBeNull();
+      expect(seo?.tagSpesifik).toContain("painted turtle");
+      expect(seo?.tagMajemuk).toContain("how painted turtles survive winter");
+    });
+
+    it("parses full 7-scene Claude output and normalizes durasi properly", () => {
+      const claudeFull = `
+## RISET & VARIASI JUDUL
+**JUDUL TERPILIH:** *The Snake With Built-In Heat Vision*
+
+## SCENE 1
+**NARASI:** (hushed, tense whisper) Total darkness. Zero light. [SFX: Low Ambient Drone] (voice drops, urgent) And somewhere out there... something can still see you. Perfectly.
+**TARGET EMOSI (VET):** Tegang & Penasaran (Suspense/Curiosity)
+**TEKNIK EDITING & PACING:** Jump cut agresif tanpa dead-air.
+**TEKS OVERLAY:** SOMETHING SEES YOU
+**PANDUAN SUARA:** Context: Momen pembuka | Note: mulai pelan | Traits: suara rendah | Sync: [SFX: Low Ambient Drone] masuk bersamaan layar gelap
+**VISUAL PROMPT:** Extreme close-up opening on a single reptilian eye --ar 9:16
+**DURASI:** 6 detik
+
+## SCENE 2
+**NARASI:** (building intensity, almost proud) That's not magic. That's the pit viper — a snake that reads body heat like a living thermal camera. [SFX: Soft Electronic Ping]
+**TARGET EMOSI (VET):** Kagum bercampur Takjub (Awe)
+**TEKNIK EDITING & PACING:** Slow reveal dolly-out.
+**TEKS OVERLAY:** MEET THE PIT VIPER
+**PANDUAN SUARA:** Context: Reveal identitas | Note: tempo naik | Traits: energik | Sync: [SFX: Soft Electronic Ping] muncul tepat saat kamera dolly-out
+**VISUAL PROMPT:** Medium close-up continuing framing --ar 9:16
+**DURASI:** 7 detik
+
+## SCENE 3
+**NARASI:** (explaining, fascinated tone) Between its eye and its nostril sits a tiny pit — [SFX: Subtle Digital Beep] packed with nerve endings.
+**TARGET EMOSI (VET):** Penasaran Ilmiah
+**TEKNIK EDITING & PACING:** Steady arc shot.
+**TEKS OVERLAY:** A HEAT-SENSING PIT
+**PANDUAN SUARA:** Context: Penjelasan ilmiah | Note: tempo sedang | Traits: nada penasaran | Sync: overlay grafis muncul
+**VISUAL PROMPT:** Medium shot picking up --ar 9:16
+**DURASI:** 8 detik
+
+## SCENE 4
+**NARASI:** (leaning in, almost conspiratorial) Here's the wild part — this isn't just "sensing warm."
+**TARGET EMOSI (VET):** Kejutan
+**TEKNIK EDITING & PACING:** Rack focus.
+**TEKS OVERLAY:** PINPOINT ACCURATE HEAT SENSE
+**PANDUAN SUARA:** Context: Titik balik | Note: tempo dipercepat | Traits: penuh semangat | Sync: [SFX: Rising Tension Hit]
+**VISUAL PROMPT:** Close-up opening on pit organ --ar 9:16
+**DURASI:** 8 detik
+
+## SCENE 5
+**NARASI:** (fast, breathless) No eyes needed. No light needed. Just heat — and a strike faster than you can blink. [SFX: Whoosh Snake Strike]
+**TARGET EMOSI (VET):** Ketegangan Puncak
+**TEKNIK EDITING & PACING:** Handheld terkendali.
+**TEKS OVERLAY:** STRIKES WITHOUT SEEING
+**PANDUAN SUARA:** Context: Momen aksi puncak | Note: tempo cepat | Traits: intens | Sync: [SFX: Whoosh Snake Strike]
+**VISUAL PROMPT:** Low wide shot opening --ar 9:16
+**DURASI:** 7 detik
+
+## SCENE 6
+**NARASI:** (softer, reflective, warm) Evolution built this heat-sensing system millions of years before humans ever invented a thermal camera.
+**TARGET EMOSI (VET):** Kekaguman Reflektif
+**TEKNIK EDITING & PACING:** Slow crane-up.
+**TEKS OVERLAY:** MILLIONS OF YEARS AHEAD
+**PANDUAN SUARA:** Context: Refleksi | Note: tempo melambat | Traits: hangat | Sync: transisi cross-fade
+**VISUAL PROMPT:** Wide shot opening --ar 9:16
+**DURASI:** 8 detik
+
+## SCENE 7
+**NARASI:** (energetic, warm smile in voice) So next time someone calls reptiles "boring"... tell them about the snake with built-in heat vision.
+**TARGET EMOSI (VET):** Keterlibatan
+**TEKNIK EDITING & PACING:** Kembali ke tempo cepat.
+**TEKS OVERLAY:** WHICH SUPERPOWER WOULD YOU PICK?
+**PANDUAN SUARA:** Context: Penutup | Note: tempo kembali cepat | Traits: hangat | Sync: [SFX: Playful Chime]
+**VISUAL PROMPT:** Medium shot continuing --ar 9:16
+**DURASI:** 6 detik
+
+## THUMBNAIL STUDIO
+**TEKS OVERLAY SEO:** IT SEES HEAT
+**OPSI 1 PROMPT:** Extreme close-up shot --ar 9:16
+**OPSI 1 TEKS OVERLAY:** IT SEES HEAT
+**OPSI 2 PROMPT:** Medium close-up --ar 9:16
+**OPSI 2 TEKS OVERLAY:** HIDDEN SENSE
+**REKOMENDASI WARNA & ELEMEN:** Palet kontras tinggi.
+
+## METADATA SEO YOUTUBE 2026
+**TAG SPESIFIK:** pit viper, snake heat vision
+**TAG UMUM:** reptiles, wildlife facts
+**TAG MAJEMUK (LONG-TAIL):** how do snakes see in the dark
+**DESKRIPSI YOUTUBE (SEO & EMPATI):**
+Imagine a predator that can find you in complete darkness.
+`;
+
+      const scenes = parseScenes(claudeFull);
+      expect(scenes).toHaveLength(7);
+      expect(scenes[0].sceneNumber).toBe("Scene 1");
+      expect(scenes[0].durasi).toBe("6s");
+      expect(scenes[1].durasi).toBe("7s");
+      expect(scenes[2].durasi).toBe("8s");
+      expect(scenes[6].durasi).toBe("6s");
+
+      // Verify TTS cleaning on scene 1
+      const cleanNarasi1 = cleanNarasiForTts(scenes[0].narasi);
+      expect(cleanNarasi1).toBe("Total darkness. Zero light. And somewhere out there... something can still see you. Perfectly.");
+      expect(cleanNarasi1).not.toContain("hushed");
+      expect(cleanNarasi1).not.toContain("SFX");
+    });
   });
 });
 
