@@ -549,7 +549,7 @@ export function generateMasterPrompt(
   else visualAudioSuffix = ", silent audio, no sound effects, no background music";
   if (!finalVo) visualAudioSuffix += ", no voice over";
 
-  let narasiExample = "Tulis naskah dialog/narasi lengkap dan natural. WAJIB sertakan instruksi intonasi suara, emosi, dan bahasa tubuh di dalam tanda kurung '(...)' di awal atau sela-sela kalimat, misal: \"(tersenyum ramah, berbisik) Kamu pasti berpikir...\" atau \"(antusias, tempo cepat) Stop! Perhatikan baik-baik...\"";
+  let narasiExample = "Tulis naskah dialog/narasi lengkap dan natural. WAJIB sertakan instruksi intonasi suara, emosi, dan bahasa tubuh di dalam tanda kurung siku '[...]' di awal atau sela-sela kalimat, misal: \"[tersenyum ramah, berbisik] Kamu pasti berpikir...\" atau \"[antusias, tempo cepat] Stop! Perhatikan baik-baik...\" atau \"[beat]\"";
   if (effectiveNarrationMode === "DIEGETIC_ONLY" || effectiveNarrationMode === "SILENT_TEXT_ONLY") {
     narasiExample = "[DIEGETIC - TANPA VOICE-OVER] Dilarang ada narasi/voice-over luar adegan. Hanya suara diegetic/in-scene.";
   } else {
@@ -918,7 +918,7 @@ Jumlah bab ditentukan secara natural berdasarkan alur konten (biasanya 3-6 bab u
    - DILARANG menyisipkan titik dua di dalam tanda bintang tebal (tulis "NARASI:", bukan "**NARASI:**").\n`;
 
     formatOutputWajib += `${syntaxGuide}\n## SCENE 1\nNARASI: [${narasiExample}]\nTARGET EMOSI (VET): [Target emosi spesifik penonton: misal Rasa Ingin Tahu / Shock / Empati / Kelegaan / Urgensi]\nTEKNIK EDITING & PACING: [Instruksi pacing: misal Jump Cut (0s dead-air) / B-Roll Cutaway Overlay / Visual Beat Sync / Stabilized Flow]\nTEKS OVERLAY: [${overlayInstruction}]\nPANDUAN SUARA: [${panduanSuaraExample}]\nVISUAL PROMPT: [${visualPromptInstruction}]${arSuffix}\nDURASI: [Estimasi durasi adegan dalam detik, contoh: 5 detik]\n`;
-    formatOutputWajib += `\n## SCENE 2\nNARASI: [Narasi / dialog adegan kedua dengan tanda kurung intonasi (...)]\nTARGET EMOSI (VET): [Target emosi adegan kedua]\nTEKNIK EDITING & PACING: [Instruksi pacing adegan kedua]\nTEKS OVERLAY: [${overlayStyle === "minimal" ? 'Overlay hanya jika sangat diperlukan, strip "—" jika tidak' : 'Teks overlay sesuai jenis yang dipilih di atas'}]\nPANDUAN SUARA: [${panduanSuaraExample}]\nVISUAL PROMPT: [Tulis prompt visual adegan kedua secara TEMPORAL (klip berjalan, bukan snapshot): deskripsikan Subject Micro-Action, Environment Dynamics, dan Camera Movement + Timing, bahasa Inggris.]${arSuffix}\nDURASI: [Estimasi durasi]\n`;
+    formatOutputWajib += `\n## SCENE 2\nNARASI: [Narasi / dialog adegan kedua dengan tanda kurung siku intonasi [...] (contoh: [beat], [berbisik])]\nTARGET EMOSI (VET): [Target emosi adegan kedua]\nTEKNIK EDITING & PACING: [Instruksi pacing adegan kedua]\nTEKS OVERLAY: [${overlayStyle === "minimal" ? 'Overlay hanya jika sangat diperlukan, strip "—" jika tidak' : 'Teks overlay sesuai jenis yang dipilih di atas'}]\nPANDUAN SUARA: [${panduanSuaraExample}]\nVISUAL PROMPT: [Tulis prompt visual adegan kedua secara TEMPORAL (klip berjalan, bukan snapshot): deskripsikan Subject Micro-Action, Environment Dynamics, dan Camera Movement + Timing, bahasa Inggris.]${arSuffix}\nDURASI: [Estimasi durasi]\n`;
 
     if (sceneCount && sceneCount > 2) {
       formatOutputWajib += `\n...dan seterusnya hingga TEPAT SCENE ${sceneCount}. Kamu WAJIB menghasilkan TEPAT ${sceneCount} SCENE.\n`;

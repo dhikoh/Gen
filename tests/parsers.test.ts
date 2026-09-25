@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { cleanMarkdownLinks, cleanValue, cleanParsedValue, extractThumbnailData, extractTitles, cleanNarasiForTts, parseScenes, extractThreeTierSeo, parseVoiceGuidelines } from "@/lib/parsers";
+import { cleanMarkdownLinks, cleanValue, cleanParsedValue, extractThumbnailData, extractTitles, cleanNarasiForTts, normalizeActingCuesToBrackets, parseScenes, extractThreeTierSeo, parseVoiceGuidelines } from "@/lib/parsers";
 
 describe("parsers", () => {
   describe("cleanMarkdownLinks", () => {
@@ -149,6 +149,29 @@ ALASAN POTENSI: Memberikan solusi langsung dan aplikatif
     it("handles plain text without modifications", () => {
       expect(cleanNarasiForTts("Ini narasi biasa tanpa instruksi sutradara.")).toBe("Ini narasi biasa tanpa instruksi sutradara.");
     });
+
+    it("strips acting cues and beats formatted in square brackets [...]", () => {
+      const bracketSample = "[wide-eyed, urgent whisper] Right there. On top of its head. That's not a scale. [beat] That's an eye. And it's been staring at the sky this whole time.";
+      expect(cleanNarasiForTts(bracketSample)).toBe("Right there. On top of its head. That's not a scale. That's an eye. And it's been staring at the sky this whole time.");
+    });
+  });
+
+  describe("normalizeActingCuesToBrackets", () => {
+    it("converts parenthetical stage directions into square brackets for raw audio copy", () => {
+      const rawWithParens = "(wide-eyed, urgent whisper) Right there. On top of its head. That's not a scale. (beat) That's an eye. And it's been staring at the sky this whole time.";
+      const normalized = normalizeActingCuesToBrackets(rawWithParens);
+      expect(normalized).toBe("[wide-eyed, urgent whisper] Right there. On top of its head. That's not a scale. [beat] That's an eye. And it's been staring at the sky this whole time.");
+    });
+
+    it("preserves stage directions already formatted in square brackets", () => {
+      const alreadyBrackets = "[antusias, tempo cepat] Stop! [beat] Perhatikan baik-baik...";
+      expect(normalizeActingCuesToBrackets(alreadyBrackets)).toBe("[antusias, tempo cepat] Stop! [beat] Perhatikan baik-baik...");
+    });
+
+    it("handles markdown asterisks around parentheses", () => {
+      const withAsterisks = "*(urgent, fast, controlled shock)* Some chameleons can launch their tongues.";
+      expect(normalizeActingCuesToBrackets(withAsterisks)).toBe("[urgent, fast, controlled shock] Some chameleons can launch their tongues.");
+    });
   });
 
   describe("parseScenes with YouTube 2026 VET emotion and pacing", () => {
@@ -178,6 +201,21 @@ NARASI: Faktanya, 90% kreator pemula gagal karena melupakan langkah krusial ini.
       expect(scenes[0].teksOverlay).toBe("Jangan Lakukan Ini di 2026!");
       expect(scenes[1].targetEmosi).toBe("Validasi Masalah & Empati");
       expect(scenes[1].teknikPacing).toBe("Ritme Sedang Penjelasan");
+    });
+
+    it("parses narration with brackets and normalizes parentheses into brackets for raw copy while cleaning cleanly for TTS", () => {
+      const script = `
+## SCENE 1
+NARASI: (wide-eyed, urgent whisper) Right there. On top of its head. That's not a scale. (beat) That's an eye. And it's been staring at the sky this whole time.
+VISUAL: Cinematic close-up
+DURASI: 8s
+      `;
+      const scenes = parseScenes(script);
+      expect(scenes).toHaveLength(1);
+      // Raw copy narration has brackets [...]
+      expect(scenes[0].narasi).toBe("[wide-eyed, urgent whisper] Right there. On top of its head. That's not a scale. [beat] That's an eye. And it's been staring at the sky this whole time.");
+      // Clean TTS narration strips both [...]
+      expect(cleanNarasiForTts(scenes[0].narasi)).toBe("Right there. On top of its head. That's not a scale. That's an eye. And it's been staring at the sky this whole time.");
     });
   });
 

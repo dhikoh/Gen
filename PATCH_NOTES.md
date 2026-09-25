@@ -2,6 +2,46 @@
 
 ---
 
+## [#83] — 2026-09-25 | Standardized Bracket Acting & Beat Cues `[...]`: Studio Raw Copy Normalization & Zero-Gap TTS Cleaning
+
+### Overview
+
+Penyelarasan standar penulisan arahan panggung (*stage direction*), intonasi emosi, dan jeda (*beat*) pada naskah narasi ke format kurung siku industri profesional `[...]` (misal: `[wide-eyed, urgent whisper]` dan `[beat]`). Pembaruan ini memperbarui instruksi generator prompt AI (`promptGenerator.ts`), memperkuat parser pemisah audio cue (`parsers.ts`), dan memperkenalkan normalisasi dua arah (*backward compatibility*) agar draft naskah lama maupun baru disajikan dalam format kurung siku yang konsisten pada **Raw Copy** di Scene Prompt Studio, sementara **Clean TTS Copy** dan Gemini TTS tetap membaca dialog lisan secara murni tanpa hambatan.
+
+---
+
+### 1 — Pembaruan Instruksi Generator Prompt AI (`promptGenerator.ts`)
+
+- **Standarisasi Format Kurung Siku `[...]`**:
+  - Memperbarui instruksi format narasi (`narasiExample`) dari kurung bulat `'(...)'` menjadi kurung siku `'[...]'`:
+    *`WAJIB sertakan instruksi intonasi suara, emosi, dan bahasa tubuh di dalam tanda kurung siku '[...]' di awal atau sela-sela kalimat, misal: "[tersenyum ramah, berbisik] Kamu pasti berpikir..." atau "[antusias, tempo cepat] Stop! Perhatikan baik-baik..." atau "[beat]"`*
+  - Memperbarui panduan sintaks Markdown Scene 2 agar AI model (ChatGPT, Claude, Gemini) konsisten menerapkan tanda kurung siku `[...]` untuk intonasi dan jeda naskah.
+
+---
+
+### 2 — Mesin Parser Presisi & Normalisasi Narasi Mentah (`parsers.ts`)
+
+- **Fungsi Normalisasi Baru `normalizeActingCuesToBrackets`**:
+  - Mengonversi otomatis instruksi panggung lama berkurung bulat `(...)` atau bertanda bintang `*(...)*` menjadi kurung siku `[...]` secara elegan saat naskah diurai.
+  - Contoh: `(wide-eyed, urgent whisper) Right there. (beat) That's an eye.` → `[wide-eyed, urgent whisper] Right there. [beat] That's an eye.`
+  - Cues yang sudah berformat `[...]` dipertahankan utuh tanpa re-formatting ganda.
+- **Penyempurnaan Proteksi Audio Cues (`extractAudioCues`)**:
+  - Memperketat regex pendeteksi efek suara (`[SFX: ...]` dan `[Sound: ...]`) dengan kewajiban separator tegas agar instruksi akting deskriptif yang mengandung kata `sound` (misal: `[sound of footsteps]`, `[sighing sound]`) tidak terhapus keliru sebagai audio cue.
+- **Pembersihan Bersih TTS Zero-Gap (`cleanNarasiForTts`)**:
+  - Menyempurnakan pembersih bracket kurung siku dengan spasi normalizer (`\s*\[[^\]]*\]\s*`) sehingga kalimat di antara acting cue tidak menempel rapat (*zero-gap spacing preservation*).
+  - Teks spoken dialogue yang disalin melalui tombol *"Copy Narration"* ataupun dikirim ke Gemini TTS tetap 100% bebas dari bracket dan bersih untuk dibacakan.
+
+---
+
+### 3 — Verifikasi & Pengujian Komprehensif
+
+- **Vitest Suite 100% Green (131/131 Tests)**:
+  - 5 test baru di `tests/parsers.test.ts` memverifikasi normalisasi `normalizeActingCuesToBrackets`, pembersihan `cleanNarasiForTts` pada bracket acting cue & beat, serta penguraian adegan `parseScenes` dengan Raw Copy preservation.
+- **TypeScript Typecheck**:
+  - `npx tsc --noEmit` lolos bersih dengan 0 error.
+
+---
+
 ## [#82] — 2026-09-25 | Dynamic Custom Role & POV AI Engine: 3-Tier Precedence Hierarchy & Conflict-Free Persona Resolution
 
 ### Overview

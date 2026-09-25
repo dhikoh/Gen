@@ -139,6 +139,21 @@ export interface AudioCues {
   isDiegetic?: boolean;
 }
 
+/**
+ * Normalizes stage direction and acting cues in narration from parentheses into standard bracket notation.
+ * e.g. "(wide-eyed, urgent whisper)" -> "[wide-eyed, urgent whisper]"
+ * "(beat)" -> "[beat]", "(pause)" -> "[pause]", "*(urgent)*" -> "[urgent]"
+ * Preserves cues that are already in bracket notation.
+ */
+export function normalizeActingCuesToBrackets(text: string): string {
+  if (!text) return "";
+  return text
+    // Convert *(stage direction)*, _(stage direction)_, or (stage direction) to [stage direction]
+    .replace(/(?:\*|_)?\s*\(([^)]+)\)\s*(?:\*|_)?/g, (_match, cue) => ` [${cue.trim()}] `)
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 /** Extract [SFX: …] and [BGM: …] cues and diegetic status from narration text. */
 export function extractAudioCues(text: string): AudioCues {
   const bgmRegex = /\[(?:bgm|backsound):\s*([^\]]+)\]/gi;
@@ -150,13 +165,17 @@ export function extractAudioCues(text: string): AudioCues {
   const isDiegetic = diegeticRegex.test(text) || /diegetic\s*only/i.test(text);
 
   let cleanNarasi = text
-    .replace(/\[(?:SFX|sfx|Sound|sound|Sfx)\b[^\]]*\]/gi, "")
+    .replace(/\[(?:SFX|sfx)\b[^\]]*\]/gi, "")
+    .replace(/\[(?:Sound|sound)\s*[:\-][^\]]*\]/gi, "")
     .replace(/\[(?:BGM|bgm|Backsound|backsound)\b[^\]]*\]/gi, "")
     .replace(/\[(?:diegetic|tanpa\s*voice-?over|no\s*voice-?over)(?:\s*-\s*[^\]]+)?\]/gi, "")
     .replace(/dilarang ada narasi\/voice-over luar adegan[^\n.]*(?:\.|$)/gi, "")
     .replace(/hanya suara diegetic\/in-scene[^\n.]*(?:\.|$)/gi, "")
     .replace(/\s+/g, " ")
     .trim();
+
+  // Normalize acting / stage direction cues from parentheses (...) into standard bracket [...] notation
+  cleanNarasi = normalizeActingCuesToBrackets(cleanNarasi);
 
   // If narration is empty or only hyphens/quotes/whitespace
   if (/^[-—\s"':]+$/.test(cleanNarasi)) {
@@ -662,8 +681,8 @@ export function parseOverlayType(raw: string): { text: string; type?: "chapter_t
 export function cleanNarasiForTts(text: string): string {
   if (!text) return "";
   return text
-    // 1. Strip sound effect & music cue brackets like [SFX: ...], [BGM: ...]
-    .replace(/\[[^\]]*\]/g, "")
+    // 1. Strip sound effect, music cue, and acting brackets like [SFX: ...], [BGM: ...], [beat], [whisper]
+    .replace(/\*?\s*\[[^\]]*\]\s*\*?/g, " ")
     // 2. Strip stage directions / acting instructions in parentheses e.g. (hushed, urgent whisper), (pause), *(urgent)*
     .replace(/\*?\s*\([^)]*\)\s*\*?/g, " ")
     // 3. Strip quotation marks (both straight and curly double quotes)
