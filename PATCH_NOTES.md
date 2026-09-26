@@ -41,6 +41,183 @@
 > | `[#84]` | Fitur #84 | YouTube 2026 SEO Tag & Hashtag Standardization | 2026-09-25 |
 > | `[#85]` | Fitur #85 | Speech Rate & Target Duration Integration | 2026-09-25 |
 > | `[#86]` | Audit & Remediasi P0–P3 | Type Safety (Zero any), Zero-Orphan, i18n Parity (1.393 keys), Audit v2 | 2026-09-27 |
+> | `[#87]` | Fitur #87 (Bagian 39) | Scene Context, English Acting Cues & Speech-Rate Script Timing Engine | 2026-09-27 |
+
+---
+
+## [#87] — 2026-09-27 | Fitur #87: Scene Context, English Acting Cues & Speech-Rate Script Timing Engine
+
+### Overview
+
+Penyempurnaan arsitektur skrip dan studio pengolahan prompt adegan (Scene Prompt Studio) mencakup:
+1. **Scene Context Extraction**: Penambahan field kontekstual kejadian adegan (`sceneContext`) yang bilingual (`KONTEKS SCENE:` untuk ID, `SCENE CONTEXT:` untuk EN) pada generator master prompt dan parse engine, dengan fallback otomatis ke embedded tag `[Scene: ...]` pada prompt visual.
+2. **English-Only Acting Cues Standardization**: Penyeragaman direktif akting dan jeda pada dialog narasi (`[pause]`, `[beat]`, `[sigh]`, `[whisper]`, `[gasp]`, `[chuckle]`, `[clears throat]`) secara ketat dalam Bahasa Inggris di seluruh naskah (termasuk naskah Bahasa Indonesia) guna mencegah kegagalan sintesis vokal Gemini TTS / ElevenLabs yang kerap melafalkan tag terjemahan seperti `[menghela nafas]`.
+3. **Speech-Rate-Driven Script Timing Engine**: Mesin estimasi durasi skrip matematis berbasis parameter `speechRate` dari Generator Studio (`0.25s`, `0.30s`, `0.35s`, `0.40s`, `0.50s` per kata). Menghitung durasi per-scene dan total skrip secara presisi termasuk akumulasi jeda ekspresif.
+4. **Scene Prompt Studio UI Integration**:
+   - **Script Timing & Duration Control Bar**: Menampilkan total durasi format `mm:ss`, total kata terucap, jumlah adegan, overhead jeda akting, badge dinamis `⚡ Shorts Ready (<60s)` vs `📺 Format Panjang (>60s)`, serta dropdown selektor interaktif `Speech Rate` yang memperbarui estimasi secara instan.
+   - **Scene Card Duration Badge**: Badge durasi dan jumlah kata di header setiap kartu adegan (`⏱️ ~5.4s (14w)`).
+   - **Scene Context Box**: Kotak panggil `🎬 Konteks Adegan` dengan tombol salin satu-klik tepat di atas narasi.
+5. **Dukungan Ekspor & Paritas i18n Penuh**: Field `SCENE CONTEXT` disertakan dalam utilitas ekspor batch `buildBatchExportText()` dan 11 kunci lokalisasi baru disinkronkan ke `messages/id.json` dan `messages/en.json` (1.404 keys per bahasa, 100% key parity).
+
+---
+
+### 1 — Scene Context Field & Bilingual Parser Support
+
+- **Generator Master Prompt (`src/lib/promptGenerator.ts`)**:
+  - Menambahkan baris instruksi `KONTEKS SCENE:` (Bahasa Indonesia) atau `SCENE CONTEXT:` (Bahasa Inggris) sebelum blok `NARASI:` dalam panduan format output adegan LLM.
+  - Memandu AI untuk merangkum kejadian nyata di adegan secara ringkas dan presisi sebelum menyusun prompt visual Midjourney / Imagen.
+- **Engine Parser (`src/lib/parsers.ts`)**:
+  - Memperluas antarmuka `Scene` dengan properti opsional `sceneContext?: string`.
+  - Memperbarui ekspresi reguler lookahead delimiter parser adegan dengan menyertakan `Narasi|Dialog|Voice Over|VO|Audio` agar field konteks tidak menyerap baris narasi pertama.
+  - Menambahkan parser fallback yang mendeteksi tag `[Scene: ...]` atau `[Konteks: ...]` yang terbenam di awal deskripsi prompt visual jika model tidak menyertakan baris eksplisit `KONTEKS SCENE:`.
+- **Scene Export (`src/lib/sceneExportFormat.ts`)**:
+  - Memperluas antarmuka `SceneForExport` dengan `sceneContext?: string`.
+  - Menyertakan baris `SCENE CONTEXT: ...` di dalam teks hasil fungsi `buildBatchExportText()` untuk memudahkan kreator dan tim produksi memahami alur cerita.
+
+---
+
+### 2 — Standardisasi Bahasa Direktif Akting (English-Only Acting Tags)
+
+- **Instruksi Master Prompt (`src/lib/promptGenerator.ts`)**:
+  - Menambahkan bab penegasan `STANDARISASI BAHASA TAG AKTING (WAJIB BAHASA INGGRIS)` pada prompt berbahasa Indonesia dan `MANDATORY ENGLISH-ONLY ACTING TAGS` pada prompt berbahasa Inggris.
+  - Mewajibkan seluruh instruksi jeda dan emosi ekspresif dituliskan hanya menggunakan tag resmi: `[pause]`, `[beat]`, `[sigh]`, `[whisper]`, `[gasp]`, `[chuckle]`, `[clears throat]` atau format durasi eksplisit `[pause 2s]`.
+  - Melarang keras penerjemahan tag ke bahasa lokal (seperti `[menghela nafas]`, `[berbisik]`, `[jeda]`) yang dapat disalahartikan sebagai teks lisan oleh modul Text-to-Speech.
+- **Dukungan Parser & Pembersihan TTS (`src/lib/parsers.ts`)**:
+  - Menambahkan variasi `[clears throat]` dan `[berdeham]` (overhead jeda 0.8 detik) ke dalam fungsi `estimateExpressivePauseSeconds()`.
+  - Menjaga fungsi `cleanNarasiForTts()` tetap menghapus seluruh tag bracket sebelum dikirimkan ke endpoint Gemini TTS.
+
+---
+
+### 3 — Mesin Kalkulasi Waktu Berbasis Speech Rate & Integrasi Studio
+
+- **Kalkulator Terpusat (`calculateScriptTiming` di `src/lib/parsers.ts`)**:
+  - Mengambil parameter `scenes: Scene[]` dan `speechRateSec = 0.35`.
+  - Mengembalikan objek `ScriptTimingSummary`:
+    ```ts
+    export interface ScriptTimingSummary {
+      totalWords: number;
+      totalPausesSec: number;
+      totalDurationSec: number;
+      formattedTotalDuration: string; // "mm:ss"
+      isShortsReady: boolean;          // totalDurationSec <= 60
+      sceneCount: number;
+    }
+    ```
+  - Otomatis menghitung durasi per-scene di dalam `parseScenes()` dan menyimpannya pada `scene.wordCount`, `scene.pauseSec`, dan `scene.estimatedDurationSec`.
+- **UI Scene Prompt Studio (`ScenePromptStudioClient.tsx`)**:
+  - Menambahkan bar kontrol durasi interaktif di atas daftar adegan.
+  - Dropdown selektor `Speech Rate` dengan 5 pilihan standar:
+    - `0.25 s/kata` (Super Cepat ~240 WPM - Shorts Punchy)
+    - `0.30 s/kata` (Cepat ~200 WPM - Storytelling Dinamis)
+    - `0.35 s/kata` (Normal ~171 WPM - Standar Narasi Indonesia)
+    - `0.40 s/kata` (Santai ~150 WPM - Eksplanasi / Dokumenter)
+    - `0.50 s/kata` (Lambat ~120 WPM - Meditasi / Cerita Mendalam)
+  - Perubahan `speechRate` secara instan mengkalkulasi ulang durasi total dan durasi setiap scene secara reaktif.
+  - Menyimpan preferensi `speechRate` ke dalam payload draft (`Draft.parsedData`).
+- **Penyelarasan Server Page (`page.tsx`)**:
+  - Memilih field `speechRate` dari relasi `profileChannel` pada query server-side.
+
+---
+
+### 4 — Audit Paritas Lokalisasi (i18n)
+
+- Penambahan 11 kunci terjemahan pada `messages/id.json` dan `messages/en.json` di bawah namespace `ScenePromptStudio`:
+  - `sceneContext`: "Konteks Adegan" / "Scene Context"
+  - `totalDuration`: "Total Estimasi Durasi" / "Total Estimated Duration"
+  - `shortsReadyBadge`: "⚡ Shorts Ready (<60s)" / "⚡ Shorts Ready (<60s)"
+  - `longFormBadge`: "📺 Format Panjang (>60s)" / "📺 Long-Form Format (>60s)"
+  - `wordsCount`: "kata" / "words"
+  - `speechRateLabel`: "Kecepatan Bicara (Speech Rate)" / "Speech Rate"
+  - `speechRateSuperFast`: "0.25 s/kata (Super Cepat ~240 WPM)" / "0.25 s/word (Super Fast ~240 WPM)"
+  - `speechRateFast`: "0.30 s/kata (Cepat ~200 WPM)" / "0.30 s/word (Fast ~200 WPM)"
+  - `speechRateNormal`: "0.35 s/kata (Normal ~171 WPM)" / "0.35 s/word (Normal ~171 WPM)"
+  - `speechRateRelaxed`: "0.40 s/kata (Santai ~150 WPM)" / "0.40 s/word (Relaxed ~150 WPM)"
+  - `speechRateSlow`: "0.50 s/kata (Lambat ~120 WPM)" / "0.50 s/word (Slow ~120 WPM)"
+- Paritas terverifikasi 100% (1.404 / 1.404 keys, 0 missing).
+
+---
+
+### 5 — Bukti Eksekusi Suite Verifikasi (RAW Outputs)
+
+#### A. `npx tsc --noEmit`
+```
+Exit code: 0
+Output: (Clean, 0 errors)
+```
+
+#### B. `npm run lint`
+```
+> prompt-gen@0.1.0 lint
+> eslint .
+
+Exit code: 0
+Output: (Clean, 0 errors, 0 warnings)
+```
+
+#### C. `npm test`
+```
+ RUN  v3.2.7 C:/Users/Dhiko Herlambang/.gemini/antigravity/playground/pulsing-pinwheel/Project/Prompt Gen
+
+ ✓ tests/parsers.test.ts (48 tests) 136ms
+ ✓ tests/promptGenerator.test.ts (37 tests) 44ms
+ ✓ tests/researchService.test.ts (8 tests) 416ms
+ ✓ tests/rateLimit.test.ts (7 tests) 10ms
+ ✓ tests/subscription.test.ts (7 tests) 12ms
+ ✓ tests/crypto.test.ts (6 tests) 10ms
+ ✓ tests/geminiTts.test.ts (8 tests) 11ms
+ ✓ tests/channelStateIsolation.test.ts (4 tests) 13ms
+ ✓ tests/historyStudioIntegration.test.ts (11 tests) 10ms
+ ✓ tests/channelLockLogic.test.ts (4 tests) 9ms
+ ✓ tests/sceneExportFormat.test.ts (12 tests) 8ms
+ ✓ tests/enumMapping.test.ts (9 tests) 7ms
+ ✓ tests/planFeatures.test.ts (5 tests) 4ms
+
+ Test Files  13 passed (13)
+      Tests  166 passed (166)
+```
+
+#### D. `npm run audit:i18n`
+```
+> prompt-gen@0.1.0 audit:i18n
+> node scripts/audit-i18n.mjs
+
+🔍 [AUDIT-I18N] Running strict i18n parity audit...
+📊 Total Indonesian (id) keys: 1404
+📊 Total English (en) keys:    1404
+✅ [AUDIT-I18N] 100% key parity confirmed between id.json and en.json. Zero missing keys!
+```
+
+#### E. `npm run audit:design`
+```
+> prompt-gen@0.1.0 audit:design
+> node scripts/audit-design.mjs
+
+🎨 [AUDIT-DESIGN] Running Prompt Gen Design System Token Audit...
+📁 Scanning 82 UI components...
+✨ Total Design Token occurrences: 2159
+📊 Component adoption rate: 71/82 (86.6%)
+✅ [AUDIT-DESIGN] Design system health check: PASS! Strong design token enforcement.
+```
+
+#### F. `npm run build`
+```
+> prompt-gen@0.1.0 build
+> next build
+
+▲ Next.js 16.3.1 (Turbopack)
+- Environments: .env
+✓ Running next.config.ts took 1630ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 5.7s
+  Running TypeScript ...
+  Finished TypeScript in 4.4s ...
+  Collecting page data using 3 workers ...
+  Generating static pages using 3 workers (0/48) ...
+✓ Generating static pages using 3 workers (48/48) in 408ms
+  Finalizing page optimization ...
+Exit code: 0
+```
 
 ---
 

@@ -649,7 +649,11 @@ export function extractAffiliateRecommendations(text: string): AffiliateRecommen
 export interface Scene {
   id: number;
   sceneNumber: string;
+  sceneContext?: string;
   narasi: string;
+  wordCount?: number;
+  pauseSec?: number;
+  estimatedDurationSec?: number;
   teksOverlay?: string;
   overlayType?: "chapter_title" | "key_point";
   chapter?: number;
@@ -747,6 +751,8 @@ export function estimateExpressivePauseSeconds(text?: string | null): number {
       totalPauseSec += 0.8;
     } else if (/\b(?:whisper|berbisik)\b/.test(rawTag)) {
       totalPauseSec += 0.5;
+    } else if (/\b(?:clears?\s+throat|berdeham)\b/.test(rawTag)) {
+      totalPauseSec += 0.8;
     }
   }
 
@@ -782,6 +788,54 @@ export function estimateNarrationDuration(
   };
 }
 
+export interface ScriptTimingSummary {
+  totalDurationSec: number;
+  formattedTotalDuration: string; // "mm:ss"
+  totalWords: number;
+  totalPausesSec: number;
+  sceneCount: number;
+  isShortsReady: boolean; // totalDurationSec <= 60
+  speechRateSec: number;
+}
+
+/**
+ * Calculates aggregated script timing across all scenes using a specific speech rate.
+ * Reuses estimateNarrationDuration for 100% consistency without duplicate logic.
+ */
+export function calculateScriptTiming(
+  scenes: Scene[],
+  speechRateSec: number = 0.35
+): ScriptTimingSummary {
+  let totalWords = 0;
+  let totalPausesSec = 0;
+  let totalDurationSec = 0;
+
+  for (const scene of scenes) {
+    const timing = estimateNarrationDuration(scene.narasi, speechRateSec);
+    totalWords += timing.spokenWords;
+    totalPausesSec += timing.pauseDurationSec;
+    totalDurationSec += timing.totalDurationSec;
+  }
+
+  totalDurationSec = Number(totalDurationSec.toFixed(1));
+  totalPausesSec = Number(totalPausesSec.toFixed(1));
+
+  const totalSecondsRound = Math.round(totalDurationSec);
+  const minutes = Math.floor(totalSecondsRound / 60);
+  const seconds = totalSecondsRound % 60;
+  const formattedTotalDuration = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+
+  return {
+    totalDurationSec,
+    formattedTotalDuration,
+    totalWords,
+    totalPausesSec,
+    sceneCount: scenes.length,
+    isShortsReady: totalDurationSec > 0 && totalDurationSec <= 60,
+    speechRateSec,
+  };
+}
+
 /**
  * Parse AI generated script text into structured Scene items with support for:
  * - Chapter markers (BAB N: Title or CHAPTER N: Title)
@@ -791,7 +845,7 @@ export function estimateNarrationDuration(
  * - Overlay types (Chapter Title / Key Point)
  * - Visual prompts and durations
  */
-export function parseScenes(text: string): Scene[] {
+export function parseScenes(text: string, speechRateSec: number = 0.35): Scene[] {
   if (!text || !text.trim()) return [];
 
   // Extract chapter markers: ## BAB N: Title or ## CHAPTER N: Title
@@ -810,7 +864,7 @@ export function parseScenes(text: string): Scene[] {
   const splitter = /(?:^|\r?\n)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:Scene|Adegan|Bagian|Part)\s*([a-zA-Z0-9_\-]+)(?:[:\s\*\-=_]*)(?=\r?\n|$)/gi;
   const parts = text.split(splitter);
   const scenes: Scene[] = [];
-  const delimiters = "(?:Target\\s*Emosi(?:\\s*\\(VET\\))?|Emosi|Teknik\\s*(?:Editing(?:\\s*&\\s*Pacing)?|Pacing)|Pacing|Teks\\s*Overlay|Text\\s*Overlay|Overlay|Panduan\\s*Suara|Voice\\s*Guidelines|Visual\\s*Prompt|Visual|Deskripsi\\s*Visual|Prompt|Durasi|Time|Duration)";
+  const delimiters = "(?:Konteks\\s*Scene|Konteks\\s*Adegan|Scene\\s*Context|Konteks|Context|Narasi|Dialog|Voice\\s*Over|VO|Audio|Target\\s*Emosi(?:\\s*\\(VET\\))?|Emosi|Teknik\\s*(?:Editing(?:\\s*&\\s*Pacing)?|Pacing)|Pacing|Teks\\s*Overlay|Text\\s*Overlay|Overlay|Panduan\\s*Suara|Voice\\s*Guidelines|Visual\\s*Prompt|Visual|Deskripsi\\s*Visual|Prompt|Durasi|Time|Duration)";
   const delimLookahead = `(?=(?:\\r?\\n)+(?:\\*\\*)?${delimiters}(?::\\s*\\*\\*|\\*\\*\\s*:|:)|\\r?\\n+[-*_]{3,}|\\r?\\n+(?:#{1,6}\\s*|\\*{2,3}\\s*|={2,4}\\s*)*(?:Scene|Adegan|Bagian|Part)\\s+[a-zA-Z0-9_\\-]+|\\r?\\n+(?:#{1,6}\\s*|\\*{2,3}\\s*|={2,4}\\s*)*(?:TOTAL|THUMBNAIL|METADATA|RINGKASAN|HASHTAG|CAPTION)|$)`;
 
   // Helper: find which chapter a given text offset belongs to
@@ -847,6 +901,7 @@ export function parseScenes(text: string): Scene[] {
         return c.match(reg);
       };
 
+      const context = matchField("Konteks\\s*Scene|Konteks\\s*Adegan|Scene\\s*Context|Konteks|Context");
       const nar = matchField("Narasi|Dialog|Voice\\s*Over|VO|Audio");
       const emosi = matchField("Target\\s*Emosi(?:\\s*\\(VET\\))?|Emosi");
       const pacing = matchField("Teknik\\s*(?:Editing(?:\\s*&\\s*Pacing)?|Pacing)|Pacing");
@@ -855,15 +910,29 @@ export function parseScenes(text: string): Scene[] {
       const dur = matchField("Durasi|Time|Duration");
       const voi = matchField("Panduan\\s*Suara|Voice\\s*Guidelines");
 
+      let contextVal = context ? cleanParsedValue(context[1]) : "";
+      if (contextVal.startsWith("[") && contextVal.endsWith("]")) {
+        contextVal = contextVal.slice(1, -1).trim();
+      }
       const narVal = nar ? cleanParsedValue(nar[1]) : "";
       const emosiVal = emosi ? cleanParsedValue(emosi[1]) : "";
       const pacingVal = pacing ? cleanParsedValue(pacing[1]) : "";
       const rawOverlay = overlay ? cleanParsedValue(overlay[1]).replace(/^["']|["']$/g, "").trim() : "";
-      const visVal = vis ? cleanParsedValue(vis[1]) : "";
+      let visVal = vis ? cleanParsedValue(vis[1]) : "";
       const durVal = dur ? normalizeDurasi(dur[1]) : "5s";
 
-      if (narVal || visVal || rawOverlay || emosiVal || pacingVal) {
+      // Fallback: If context wasn't parsed as an explicit field, check if visual prompt started with [Scene: ...] or [Konteks: ...]
+      if (!contextVal && visVal) {
+        const embeddedContextMatch = visVal.match(/^\[(?:Scene|Konteks|Context)\s*:\s*([^\]]+)\]\s*/i);
+        if (embeddedContextMatch) {
+          contextVal = embeddedContextMatch[1].trim();
+          visVal = visVal.slice(embeddedContextMatch[0].length).trim();
+        }
+      }
+
+      if (narVal || visVal || rawOverlay || emosiVal || pacingVal || contextVal) {
         const audio = extractAudioCues(narVal);
+        const timing = estimateNarrationDuration(audio.cleanNarasi || "", speechRateSec);
         const overlayParsed = rawOverlay ? parseOverlayType(rawOverlay) : null;
         const overlayText = overlayParsed?.text || undefined;
         const overlayType = overlayParsed?.type || undefined;
@@ -872,7 +941,11 @@ export function parseScenes(text: string): Scene[] {
         scenes.push({
           id: count,
           sceneNumber: isNaN(Number(sceneNum)) ? sceneNum : `Scene ${sceneNum}`,
+          sceneContext: contextVal && contextVal !== "—" ? contextVal : undefined,
           narasi: audio.cleanNarasi || "—",
+          wordCount: timing.spokenWords,
+          pauseSec: timing.pauseDurationSec,
+          estimatedDurationSec: timing.totalDurationSec,
           teksOverlay: overlayText && overlayText !== "—" ? overlayText : undefined,
           overlayType,
           chapter: chapterInfo?.num,
@@ -894,10 +967,14 @@ export function parseScenes(text: string): Scene[] {
 
   if (!scenes.length) {
     const audio = extractAudioCues(text);
+    const timing = estimateNarrationDuration(audio.cleanNarasi || text, speechRateSec);
     scenes.push({
       id: 1,
       sceneNumber: "Scene 1",
       narasi: audio.cleanNarasi.slice(0, 120) || (audio.isDiegetic ? "—" : text.slice(0, 120)),
+      wordCount: timing.spokenWords,
+      pauseSec: timing.pauseDurationSec,
+      estimatedDurationSec: timing.totalDurationSec,
       visual: text,
       durasi: "15s",
       bgmCues: audio.bgmCues,

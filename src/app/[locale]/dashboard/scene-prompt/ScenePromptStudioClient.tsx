@@ -16,6 +16,8 @@ import {
   cleanNarasiForTts,
   countWords,
   estimateExpressivePauseSeconds,
+  estimateNarrationDuration,
+  calculateScriptTiming,
   extractThreeTierSeo,
   formatAsYouTubeTags,
   formatAsHashtags,
@@ -56,7 +58,12 @@ function formatHistoryDate(dateStr: string, locale?: string): string {
   }
 }
 
-interface Channel { id: string; channelName: string; niche?: string | null; }
+interface Channel {
+  id: string;
+  channelName: string;
+  niche?: string | null;
+  speechRate?: number | null;
+}
 interface Props {
   channels: Channel[];
   locale: string;
@@ -67,6 +74,8 @@ interface Props {
     channelId?: string | null;
     rawJson: string;
     parsedData?: unknown;
+    estimatedDurationSec?: number | null;
+    wordCount?: number | null;
   };
   initialParsedOutputs?: SerializedParsedOutput[];
 }
@@ -83,6 +92,20 @@ interface TtsResult {
 export default function ScenePromptStudioClient({ channels, locale, planFeatures, initialDraft, initialParsedOutputs = [] }: Props) {
   const t = useTranslations("ScenePromptStudio");
 
+  const initialSpeechRate = useMemo(() => {
+    if (initialDraft?.parsedData && typeof initialDraft.parsedData === "object" && "speechRate" in (initialDraft.parsedData as Record<string, unknown>)) {
+      const rate = Number((initialDraft.parsedData as Record<string, unknown>).speechRate);
+      if (!isNaN(rate) && rate > 0) return rate;
+    }
+    const ch = channels.find((c) => c.id === initialDraft?.channelId) || channels[0];
+    if (ch?.speechRate && !isNaN(ch.speechRate) && ch.speechRate > 0) {
+      return ch.speechRate;
+    }
+    return 0.35;
+  }, [channels, initialDraft]);
+
+  const [speechRate, setSpeechRate] = useState<number>(initialSpeechRate);
+
   // Determine initial default source (memoized to prevent recalculation and reference instability)
   // 1. initialDraft (navigating with ?draftId=)
   // 2. initialParsedOutputs[0] (latest parse from database memory)
@@ -90,7 +113,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
     if (initialDraft?.rawJson) {
       return {
         raw: initialDraft.rawJson,
-        parsed: parseScenes(initialDraft.rawJson),
+        parsed: parseScenes(initialDraft.rawJson, initialSpeechRate),
         id: initialDraft.id,
         isDraft: true,
       };
@@ -102,16 +125,20 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
           Array.isArray(initialParsedOutputs[0].parsedResult) &&
           (initialParsedOutputs[0].parsedResult as unknown[]).length > 0
             ? (initialParsedOutputs[0].parsedResult as Scene[])
-            : parseScenes(initialParsedOutputs[0].rawInput),
+            : parseScenes(initialParsedOutputs[0].rawInput, initialSpeechRate),
         id: initialParsedOutputs[0].id,
         isDraft: false,
       };
     }
     return null;
-  }, [initialDraft, initialParsedOutputs]);
+  }, [initialDraft, initialParsedOutputs, initialSpeechRate]);
 
   const [rawText, setRawText] = useState(defaultSource?.raw || "");
   const [scenes, setScenes] = useState<Scene[]>(() => defaultSource?.parsed || []);
+
+  const timingSummary = useMemo(() => {
+    return calculateScriptTiming(scenes, speechRate);
+  }, [scenes, speechRate]);
   const [caption, setCaption] = useState(() => (defaultSource?.raw ? extractCaption(defaultSource.raw) : ""));
   const [hashtags, setHashtags] = useState(() => (defaultSource?.raw ? extractHashtags(defaultSource.raw) : ""));
   const [thumbnailData, setThumbnailData] = useState<ThumbnailData | null>(() => (defaultSource?.raw ? extractThumbnailData(defaultSource.raw) : null));
@@ -277,7 +304,15 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
         if (initialDraft.channelId && channels.some((c) => c.id === initialDraft.channelId)) {
           setSelectedChannelId(initialDraft.channelId);
         }
-        const parsed = parseScenes(raw);
+        let draftSpeechRate = speechRate;
+        if (initialDraft.parsedData && typeof initialDraft.parsedData === "object" && "speechRate" in (initialDraft.parsedData as Record<string, unknown>)) {
+          const rate = Number((initialDraft.parsedData as Record<string, unknown>).speechRate);
+          if (!isNaN(rate) && rate > 0) {
+            draftSpeechRate = rate;
+            setSpeechRate(rate);
+          }
+        }
+        const parsed = parseScenes(raw, draftSpeechRate);
         setScenes(parsed);
         setSelectedSceneIds(new Set(parsed.map((s) => s.id)));
         setCaption(extractCaption(raw));
@@ -295,7 +330,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
         toast.success(t("draftLoadedSuccess"));
       });
     }
-  }, [initialDraft, channels, t]);
+  }, [initialDraft, channels, speechRate, t]);
 
  // ── TTS Functions (Fitur 1) ──
  const buildTtsInputText = useCallback((scene: Scene) => {
@@ -705,7 +740,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
     setRawText(raw);
     const parsed = Array.isArray(item.parsedResult) && (item.parsedResult as unknown[]).length > 0
       ? (item.parsedResult as Scene[])
-      : parseScenes(raw);
+      : parseScenes(raw, speechRate);
     setScenes(parsed);
     setSelectedSceneIds(new Set(parsed.map((s) => s.id)));
     setTtsResults({}); // reset TTS results for new script
@@ -721,11 +756,11 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
     setAffiliateRecs(extractAffiliateRecommendations(raw));
     setSelectedHistoryId(item.id);
     toast.success(t("historyLoadedSuccess"));
-  }, [t]);
+  }, [speechRate, t]);
 
   const handleParse = async () => {
     if (!rawText.trim()) return;
-    const parsed = parseScenes(rawText);
+    const parsed = parseScenes(rawText, speechRate);
     setScenes(parsed);
     setSelectedSceneIds(new Set(parsed.map(s => s.id))); // auto-select semua scene
     setTtsResults({}); // reset TTS results
@@ -846,34 +881,41 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
       ].filter(Boolean).join("\n\n")
     : undefined;
 
-  const parsedData: Record<string, unknown> = {
-    segments: scenes,
-    caption_medsos: caption || undefined,
-    ide_thumbnail: ideThumbText,
-    opsi_judul: parsedTitles.length > 0 ? parsedTitles : undefined,
-    html_blog: htmlBlogContent || undefined,
-    scenes,
-    caption: caption || undefined,
-    hashtags: hashtags || undefined,
-    thumbnailData: thumbnailData ?? undefined,
-  };
+    const parsedData: Record<string, unknown> = {
+      segments: scenes,
+      caption_medsos: caption || undefined,
+      ide_thumbnail: ideThumbText,
+      opsi_judul: parsedTitles.length > 0 ? parsedTitles : undefined,
+      html_blog: htmlBlogContent || undefined,
+      scenes,
+      caption: caption || undefined,
+      hashtags: hashtags || undefined,
+      thumbnailData: thumbnailData ?? undefined,
+      speechRate,
+    };
 
-  const res = await fetch("/api/drafts", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    channelId: selectedChannelId || undefined,
-    type: "VIDEO",
-    topic: effectiveTopic,
-    title: draftTitle,
-    rawJson: JSON.stringify({ scenes, caption, hashtags, thumbnailData }),
-    parsedData,
-  }),
-  });
-  const data = await res.json();
-  setSaveMsg(res.ok ? t("draftSaved") : (data.error || t("draftError")));
-  } catch { setSaveMsg(t("draftError")); } finally { setSaving(false); setTimeout(() => setSaveMsg(null), 4000); }
-  };
+    const res = await fetch("/api/drafts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        channelId: selectedChannelId || undefined,
+        type: "VIDEO",
+        topic: effectiveTopic,
+        title: draftTitle,
+        rawJson: JSON.stringify({ scenes, caption, hashtags, thumbnailData }),
+        parsedData,
+        speechRate,
+      }),
+    });
+    const data = await res.json();
+    setSaveMsg(res.ok ? t("draftSaved") : (data.error || t("draftError")));
+  } catch {
+    setSaveMsg(t("draftError"));
+  } finally {
+    setSaving(false);
+    setTimeout(() => setSaveMsg(null), 4000);
+  }
+};
 
   const cls = "w-full px-3.5 py-2 text-sm pg-surface-dim border pg-border rounded-lg outline-none pg-text-heading focus:border-[var(--pg-brand)] focus:ring-2 focus:ring-[var(--pg-brand-light)] transition-all";
   const btn = (active?: boolean) => `px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl border transition-all ${active ? "bg-[var(--pg-brand)] text-white border-[var(--pg-brand)] shadow-sm" : "pg-surface pg-border pg-text-sub hover:pg-surface-dim hover:pg-text-heading"}`;
@@ -889,7 +931,18 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
  <div>
  <label className="block text-xs font-medium pg-text-sub mb-1">{t("channelLabel")}</label>
- <select value={selectedChannelId} onChange={e => setSelectedChannelId(e.target.value)} className={cls}>
+ <select
+   value={selectedChannelId}
+   onChange={(e) => {
+     const newId = e.target.value;
+     setSelectedChannelId(newId);
+     const ch = channels.find((c) => c.id === newId);
+     if (ch?.speechRate && !isNaN(ch.speechRate) && ch.speechRate > 0) {
+       setSpeechRate(ch.speechRate);
+     }
+   }}
+   className={cls}
+ >
  {channels.map(c => <option key={c.id} value={c.id}>{c.channelName}</option>)}
  </select>
  </div>
@@ -1105,6 +1158,82 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
 
   {activeTab === "scenes" && (
   <div className="space-y-4">
+    {/* Script Timing & Duration Control Bar */}
+    {scenes.length > 0 && (
+      <div className="glass-panel rounded-2xl p-4 sm:p-5 border pg-border shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-[var(--pg-surface)] to-[var(--pg-surface-dim)]">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+          {/* Total Duration Badge */}
+          <div className="flex items-center gap-2">
+            <span className="text-xl">⏱️</span>
+            <div>
+              <div className="text-[11px] uppercase tracking-wider font-bold pg-text-sub">
+                {t("totalDuration")}
+              </div>
+              <div className="text-base sm:text-lg font-extrabold font-mono pg-text-heading">
+                ~{timingSummary.formattedTotalDuration}{" "}
+                <span className="text-xs font-normal font-sans pg-text-sub">
+                  ({timingSummary.totalDurationSec}s)
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="h-8 w-px bg-border/60 hidden sm:block" />
+
+          {/* Word Count & Scenes Badge */}
+          <div className="flex items-center gap-2">
+            <span className="text-xl">📝</span>
+            <div>
+              <div className="text-[11px] uppercase tracking-wider font-bold pg-text-sub">
+                {t("wordsCount", { count: timingSummary.totalWords })}
+              </div>
+              <div className="text-xs sm:text-sm font-semibold pg-text-heading">
+                {timingSummary.sceneCount} {t("scenesFound")?.replace(/^[0-9\/ ]+/, "") || "Scene"}
+                {timingSummary.totalPausesSec > 0 && (
+                  <span className="ml-1.5 text-[11px] font-mono text-amber-600 dark:text-amber-400">
+                    (+{timingSummary.totalPausesSec}s {locale === "en" ? "pause" : "jeda"})
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="h-8 w-px bg-border/60 hidden sm:block" />
+
+          {/* Shorts Ready vs Long-Form Badge */}
+          <div>
+            {timingSummary.isShortsReady ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 shadow-xs">
+                <span>⚡</span> {t("shortsReadyBadge")}
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 shadow-xs">
+                <span>📺</span> {t("longFormBadge")}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Interactive Speech Rate Selector */}
+        <div className="flex items-center gap-2 self-start md:self-auto">
+          <label className="text-xs font-bold pg-text-sub flex items-center gap-1 shrink-0">
+            <span>🎙️</span> {t("speechRateLabel")}:
+          </label>
+          <select
+            value={speechRate}
+            onChange={(e) => setSpeechRate(parseFloat(e.target.value))}
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg border pg-border bg-background pg-text-heading focus:ring-1 focus:ring-[var(--pg-brand)] cursor-pointer shadow-xs"
+          >
+            <option value={0.25}>{t("speechRateSuperFast")}</option>
+            <option value={0.30}>{t("speechRateFast")}</option>
+            <option value={0.35}>{t("speechRateNormal")}</option>
+            <option value={0.40}>{t("speechRateRelaxed")}</option>
+            <option value={0.50}>{t("speechRateSlow")}</option>
+          </select>
+        </div>
+      </div>
+    )}
+
     {/* Scene Viewer Actions Toolbar */}
     <div className="glass-panel rounded-2xl px-4 py-3 border pg-border shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <div className="flex items-center gap-2.5">
@@ -1184,9 +1313,21 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
             />
             <h3 className="font-bold text-sm sm:text-base pg-text-heading truncate">{scene.sceneNumber}</h3>
           </div>
-          <span className="font-mono text-xs font-semibold px-2.5 py-1 rounded-full pg-surface-dim border pg-border pg-text-heading shrink-0 shadow-xs">
-            ⏱️ {scene.durasi}
-          </span>
+          {(() => {
+            const sceneTiming = estimateNarrationDuration(scene.narasi, speechRate);
+            return (
+              <span
+                className="font-mono text-xs font-semibold px-2.5 py-1 rounded-full pg-surface-dim border pg-border pg-text-heading shrink-0 shadow-xs flex items-center gap-1.5"
+                title={`${locale === "en" ? "Calculated Narration Duration" : "Estimasi Durasi Narasi Real"}: ~${sceneTiming.totalDurationSec}s (${sceneTiming.spokenWords} ${locale === "en" ? "words" : "kata"} + ${sceneTiming.pauseDurationSec}s ${locale === "en" ? "pause" : "jeda"})`}
+              >
+                <span>⏱️</span>
+                <span>{sceneTiming.totalDurationSec > 0 ? `~${sceneTiming.totalDurationSec}s` : scene.durasi}</span>
+                {sceneTiming.spokenWords > 0 && (
+                  <span className="text-[10px] opacity-75 font-normal">({sceneTiming.spokenWords}w)</span>
+                )}
+              </span>
+            );
+          })()}
         </div>
 
         {/* Emotion / Pacing / Diegetic Tags Row */}
@@ -1210,6 +1351,25 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
           </div>
         )}
       </div>
+
+      {/* Scene Context (Konteks Adegan) */}
+      {scene.sceneContext && (
+        <div className="rounded-xl p-3.5 bg-indigo-500/10 border border-indigo-500/25 text-indigo-900 dark:text-indigo-200">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-bold flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 uppercase tracking-wide">
+              <span>🎬</span> {t("sceneContext")}
+            </span>
+            <button
+              type="button"
+              onClick={() => copy(`ctx-${scene.id}`, scene.sceneContext!)}
+              className="text-xs px-2 py-0.5 rounded font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+            >
+              {copiedId === `ctx-${scene.id}` ? "✓ " + t("copied") : `📋 ${t("copy")}`}
+            </button>
+          </div>
+          <p className="text-xs sm:text-sm font-medium leading-relaxed">{scene.sceneContext}</p>
+        </div>
+      )}
 
       {/* Narasi (jika ada spoken voiceover) */}
       {scene.narasi !== "—" && (() => {

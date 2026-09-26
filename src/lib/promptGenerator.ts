@@ -1000,6 +1000,7 @@ Jumlah bab ditentukan secara natural berdasarkan alur konten (biasanya 3-6 bab u
    - Use EXACTLY two hashes "## " followed by "SCENE" and the number.
    - DO NOT use double prefix hashes like "# ##" or single hash "#".
 2. FIELD LABELS MUST BE EXACT:
+   - SCENE CONTEXT:
    - NARASI:
    - TARGET EMOSI (VET):
    - TEKNIK EDITING & PACING:
@@ -1013,6 +1014,7 @@ Jumlah bab ditentukan secara natural berdasarkan alur konten (biasanya 3-6 bab u
    - Gunakan TEPAT dua tanda pagar "## " diikuti "SCENE" dan angka (CONTOH: "## SCENE 1").
    - DILARANG menggunakan kombinasi pagar ganda seperti "# ##" atau hanya satu pagar "#".
 2. LABEL FIELD WAJIB PERSIS:
+   - KONTEKS SCENE:
    - NARASI:
    - TARGET EMOSI (VET):
    - TEKNIK EDITING & PACING:
@@ -1022,8 +1024,16 @@ Jumlah bab ditentukan secara natural berdasarkan alur konten (biasanya 3-6 bab u
    - DURASI:
    - DILARANG menyisipkan titik dua di dalam tanda bintang tebal (tulis "NARASI:", bukan "**NARASI:**").\n`;
 
-    formatOutputWajib += `${syntaxGuide}\n## SCENE 1\nNARASI: [${narasiExample}]\nTARGET EMOSI (VET): [Target emosi spesifik penonton: misal Rasa Ingin Tahu / Shock / Empati / Kelegaan / Urgensi]\nTEKNIK EDITING & PACING: [Instruksi pacing: misal Jump Cut (0s dead-air) / B-Roll Cutaway Overlay / Visual Beat Sync / Stabilized Flow]\nTEKS OVERLAY: [${overlayInstruction}]\nPANDUAN SUARA: [${panduanSuaraExample}]\nVISUAL PROMPT: [${visualPromptInstruction}]${arSuffix}\nDURASI: [Estimasi durasi adegan dalam detik, contoh: 5 detik]\n`;
-    formatOutputWajib += `\n## SCENE 2\nNARASI: [Narasi / dialog adegan kedua dengan tanda kurung siku intonasi [...] (contoh: [beat], [berbisik])]\nTARGET EMOSI (VET): [Target emosi adegan kedua]\nTEKNIK EDITING & PACING: [Instruksi pacing adegan kedua]\nTEKS OVERLAY: [${overlayStyle === "minimal" ? 'Overlay hanya jika sangat diperlukan, strip "—" jika tidak' : 'Teks overlay sesuai jenis yang dipilih di atas'}]\nPANDUAN SUARA: [${panduanSuaraExample}]\nVISUAL PROMPT: [Tulis prompt visual adegan kedua secara TEMPORAL (klip berjalan, bukan snapshot): deskripsikan Subject Micro-Action, Environment Dynamics, dan Camera Movement + Timing, bahasa Inggris.]${arSuffix}\nDURASI: [Estimasi durasi]\n`;
+    const scene1Context = isEnglishOutput
+      ? "SCENE CONTEXT: [1 concise sentence summarizing narrative action/event occurring in this scene]"
+      : "KONTEKS SCENE: [1 kalimat menjelaskan kejadian nyata/aksi alur cerita di adegan ini]";
+
+    const scene2Context = isEnglishOutput
+      ? "SCENE CONTEXT: [Concise narrative action/event of scene 2]"
+      : "KONTEKS SCENE: [Konteks kejadian/aksi adegan kedua]";
+
+    formatOutputWajib += `${syntaxGuide}\n## SCENE 1\n${scene1Context}\nNARASI: [${narasiExample}]\nTARGET EMOSI (VET): [Target emosi spesifik penonton: misal Rasa Ingin Tahu / Shock / Empati / Kelegaan / Urgensi]\nTEKNIK EDITING & PACING: [Instruksi pacing: misal Jump Cut (0s dead-air) / B-Roll Cutaway Overlay / Visual Beat Sync / Stabilized Flow]\nTEKS OVERLAY: [${overlayInstruction}]\nPANDUAN SUARA: [${panduanSuaraExample}]\nVISUAL PROMPT: [${visualPromptInstruction}]${arSuffix}\nDURASI: [Estimasi durasi adegan dalam detik, contoh: 5 detik]\n`;
+    formatOutputWajib += `\n## SCENE 2\n${scene2Context}\nNARASI: [Narasi / dialog adegan kedua dengan tanda kurung siku cue akting bahasa Inggris [...] (contoh wajib bahasa Inggris: [beat], [pause], [sigh], [whisper], [gasp], [chuckle])]\nTARGET EMOSI (VET): [Target emosi adegan kedua]\nTEKNIK EDITING & PACING: [Instruksi pacing adegan kedua]\nTEKS OVERLAY: [${overlayStyle === "minimal" ? 'Overlay hanya jika sangat diperlukan, strip "—" jika tidak' : 'Teks overlay sesuai jenis yang dipilih di atas'}]\nPANDUAN SUARA: [${panduanSuaraExample}]\nVISUAL PROMPT: [Tulis prompt visual adegan kedua secara TEMPORAL (klip berjalan, bukan snapshot): deskripsikan Subject Micro-Action, Environment Dynamics, dan Camera Movement + Timing, bahasa Inggris.]${arSuffix}\nDURASI: [Estimasi durasi]\n`;
 
     if (sceneCount && sceneCount > 2) {
       formatOutputWajib += `\n...dan seterusnya hingga TEPAT SCENE ${sceneCount}. Kamu WAJIB menghasilkan TEPAT ${sceneCount} SCENE.\n`;
@@ -1207,7 +1217,8 @@ ${(() => {
    - DO NOT write overly long narration. Every excess word will cause video duration overflow beyond ${timingCalc.targetDurationSec} seconds during voice-over / Text-to-Speech (TTS) playback.
    - Ensure the "DURASI:" field in each scene accurately reflects the scene narration length (words × ${timingCalc.speechRateSec} seconds).
 6. EXPRESSIVE PAUSES & ACTING TAGS ([beat], [sigh], [silence], [pause]):
-   - Acting and pause tags inside brackets (e.g., [beat] ~0.5s, [sigh] ~0.8s, [silence]/[pause] ~1.0s) consume real playback duration even though they are not spoken words.
+   - Acting and pause tags inside brackets (e.g., [beat] ~0.5s, [sigh] ~0.8s, [silence]/[pause] ~1.0s, [clears throat] ~0.8s, [whisper] ~0.5s) consume real playback duration even though they are not spoken words.
+   - MANDATORY ENGLISH-ONLY ACTING TAGS: All acting cues, vocal directions, and pause tags inside square brackets [...] MUST BE IN ENGLISH ONLY ([pause], [beat], [sigh], [whisper], [gasp], [chuckle], [clears throat]), regardless of output language. This guarantees that Text-to-Speech (TTS) engines cleanly parse them as prosodic directions without mispronouncing or vocalizing translated words.
    - When inserting pause or acting tags in a scene's narration, REDUCE the spoken word count in that scene proportionally so the combined duration (spoken words + acting pauses) stays strictly within the scene's allocated duration.${modeNote}`;
     } else {
       return `[TIMING & DURATION GUIDELINES (NON-VOICE-OVER MODE: ${effectiveNarrationMode})]
@@ -1240,7 +1251,8 @@ ${(() => {
    - DILARANG menulis narasi melebihi batas kuota kata di atas. Setiap kelebihan kata akan membuat durasi video molor dan tidak pas dengan durasi visual ${timingCalc.targetDurationSec} detik saat diisi suara (TTS / Voice-over).
    - Pastikan estimasi durasi pada field "DURASI:" di setiap scene mencerminkan panjang kata narasi scene tersebut (kata × ${timingCalc.speechRateSec} detik).
 6. TAG JEDA EKSPRESIF & AKTING ([beat], [sigh], [silence], [pause]):
-   - Tag ekspresif/akting di dalam kurung siku (seperti [beat] ~0.5 detik, [sigh] ~0.8 detik, [silence]/[pause] ~1.0 detik) mengonsumsi durasi waktu nyata meskipun tidak dihitung sebagai kata bicara.
+   - Tag ekspresif/akting di dalam kurung siku (seperti [beat] ~0.5 detik, [sigh] ~0.8 detik, [silence]/[pause] ~1.0 detik, [clears throat] ~0.8 detik, [whisper] ~0.5 detik) mengonsumsi durasi waktu nyata meskipun tidak dihitung sebagai kata bicara.
+   - STANDARISASI BAHASA TAG AKTING (WAJIB BAHASA INGGRIS): Seluruh cue akting, intonasi vokal, dan tag jeda dalam tanda kurung siku [...] WAJIB DITULIS DALAM BAHASA INGGRIS ([pause], [beat], [sigh], [whisper], [gasp], [chuckle], [clears throat]) MESKIPUN naskah narasi berbahasa Indonesia. DILARANG menerjemahkan tag ke bahasa Indonesia (misal: JANGAN gunakan [menghela nafas], [berbisik], [jeda]) agar Text-to-Speech (TTS) tidak melafalkan kata-kata instruksi tersebut secara harfiah.
    - Jika kamu menyisipkan tag jeda/akting pada narasi suatu scene, WAJIB KURANGI jumlah kata spoken pada scene tersebut secara proporsional agar total durasi (kata spoken + jeda akting) tetap tepat dan tidak melebihi alokasi durasi scene.${modeNote}`;
     } else {
       return `[PANDUAN TEMPO & DURASI KONTEN (MODE NON-VOICE-OVER: ${effectiveNarrationMode})]

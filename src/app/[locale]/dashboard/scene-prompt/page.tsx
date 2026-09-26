@@ -30,7 +30,7 @@ export default async function ScenePromptPage({ params, searchParams }: PageProp
     prisma.profileChannel.findMany({
       where: { userId: session.user.id, isLocked: false },
       orderBy: { lastUsedAt: "desc" },
-      select: { id: true, channelName: true, niche: true },
+      select: { id: true, channelName: true, niche: true, speechRate: true },
     }),
     prisma.user.findUnique({
       where: { id: session.user.id },
@@ -42,7 +42,7 @@ export default async function ScenePromptPage({ params, searchParams }: PageProp
     draftId && typeof draftId === "string"
       ? prisma.draft.findUnique({
           where: { id: draftId, userId: session.user.id },
-          select: { id: true, title: true, channelId: true, rawJson: true, parsedData: true },
+          select: { id: true, title: true, channelId: true, rawJson: true, parsedData: true, estimatedDurationSec: true, wordCount: true },
         })
       : Promise.resolve(null),
     prisma.parsedOutput.findMany({

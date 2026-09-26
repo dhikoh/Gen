@@ -8,6 +8,7 @@
 export interface SceneForExport {
   id: number;
   sceneNumber: string;
+  sceneContext?: string;
   narasi: string;
   visual: string;
   teksOverlay?: string;
@@ -62,6 +63,7 @@ function sanitizeField(value: string): string {
  * ---SCENE---
  * SCENE_INDEX:1
  * SCENE_NUMBER:Scene 1
+ * SCENE_CONTEXT:penjelasan aksi (opsional)
  * NARASI:teks narasi...
  * VISUAL:prompt visual...
  * OVERLAY:teks overlay (opsional)
@@ -78,6 +80,9 @@ export function buildBatchExportText(scenes: SceneForExport[]): string {
     lines.push(SCENE_DELIMITER);
     lines.push(`SCENE_INDEX:${index + 1}`);
     lines.push(`SCENE_NUMBER:${sanitizeField(scene.sceneNumber)}`);
+    if (scene.sceneContext) {
+      lines.push(`SCENE_CONTEXT:${sanitizeField(scene.sceneContext)}`);
+    }
     if (scene.chapter !== undefined) {
       lines.push(`CHAPTER:${scene.chapter}`);
       if (scene.chapterTitle) lines.push(`CHAPTER_TITLE:${sanitizeField(scene.chapterTitle)}`);
