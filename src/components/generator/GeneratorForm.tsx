@@ -7,6 +7,12 @@ import toast from "react-hot-toast";
 import CompositionSliderGroup from "./CompositionSliderGroup";
 import { PresetSelect, PresetOption } from "@/components/ui/PresetSelect";
 import { getVisualStyleOptions, mapVisualAestheticToKey } from "@/lib/visualStyleMap";
+import type { Prisma } from "@prisma/client";
+import type {
+  GeneratorFormStateSnapshot,
+  ContentArchetypeIncludedSections,
+  ContentArchetypeCompositionCategory,
+} from "@/types/generator";
 
 interface ProductItem {
  id: string;
@@ -34,10 +40,8 @@ interface GeneratorFormChannel {
     description?: string | null;
     narrationMode: "VOICE_OVER" | "DIEGETIC_ONLY" | "SILENT_TEXT_ONLY" | "HYBRID" | string;
     emotionalArcTemplate: string;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    defaultIncludedSections?: any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    compositionCategories?: any;
+    defaultIncludedSections?: ContentArchetypeIncludedSections | Prisma.JsonValue;
+    compositionCategories?: ContentArchetypeCompositionCategory[] | Prisma.JsonValue;
     durationCalcMode?: string;
     isSystem?: boolean;
   } | null;
@@ -58,6 +62,16 @@ interface GeneratorFormProps {
  retentionPacingPro?: boolean;
  };
 }
+
+const MARKETPLACE_OPTIONS = [
+  { key: "tokopedia",  label: "Tokopedia" },
+  { key: "shopee",     label: "Shopee" },
+  { key: "tiktokshop", label: "TikTok Shop" },
+  { key: "lazada",     label: "Lazada" },
+  { key: "blibli",     label: "Blibli" },
+  { key: "custom",     label: "Custom URL" },
+];
+const ALL_MARKETPLACE_KEYS = MARKETPLACE_OPTIONS.map((m) => m.key);
 
 export default function GeneratorForm({
  channels,
@@ -127,15 +141,6 @@ export default function GeneratorForm({
  const [audioBeatSync, setAudioBeatSync] = useState<boolean>(true);
 
  // Marketplace settings (persisted)
- const MARKETPLACE_OPTIONS = [
-  { key: "tokopedia",  label: "Tokopedia" },
-  { key: "shopee",     label: "Shopee" },
-  { key: "tiktokshop", label: "TikTok Shop" },
-  { key: "lazada",     label: "Lazada" },
-  { key: "blibli",     label: "Blibli" },
-  { key: "custom",     label: "Custom URL" },
- ];
- const ALL_MARKETPLACE_KEYS = MARKETPLACE_OPTIONS.map(m => m.key);
  const [affiliateMarketplaces, setAffiliateMarketplaces] = useState<string[]>(ALL_MARKETPLACE_KEYS.filter(k => k !== "custom"));
  const [affiliateCustomUrl, setAffiliateCustomUrl] = useState<string>("");
 
@@ -267,7 +272,7 @@ export default function GeneratorForm({
  });
 
   // ── Per-Channel State Isolation & Multi-Profile Synchronization (Section 32) ──
-  const serverChannelStatesRef = useRef<Record<string, any>>({});
+  const serverChannelStatesRef = useRef<Record<string, GeneratorFormStateSnapshot>>({});
   const isInitializedRef = useRef<boolean>(false);
 
   const getCurrentStateSnapshot = useCallback(() => {
@@ -364,12 +369,14 @@ export default function GeneratorForm({
     manualTitle,
   ]);
 
-  const applyStateForChannel = useCallback((targetChannelId: string, savedState?: any) => {
+  const applyStateForChannel = useCallback((targetChannelId: string, savedState?: GeneratorFormStateSnapshot | null) => {
     const ch = channels.find((c: GeneratorFormChannel) => c.id === targetChannelId);
     if (!ch) return;
 
     const arch = ch.contentArchetype;
-    const defSections = arch?.defaultIncludedSections as { hook?: boolean; cta?: boolean; caption?: boolean; thumbnail?: boolean } | undefined;
+    const defSections = (arch?.defaultIncludedSections && typeof arch.defaultIncludedSections === "object"
+      ? (arch.defaultIncludedSections as ContentArchetypeIncludedSections)
+      : null);
     const isNoVoMode = arch?.narrationMode === "DIEGETIC_ONLY" || arch?.narrationMode === "SILENT_TEXT_ONLY";
     const channelVisualStyle = mapVisualAestheticToKey(ch.visualAesthetic) || "";
 
@@ -429,15 +436,22 @@ export default function GeneratorForm({
         pov: ch.personaPov || "Expert Storyteller (Edukasi & Inspirasi)",
         speechRate: ch.speechRate ?? 0.35,
         selectedProductId: "", // Reset to avoid foreign product ID leakage
-        includeHook: savedState.videoConfig?.includeHook !== undefined ? savedState.videoConfig.includeHook : (defSections?.hook ?? true),
-        includeCTA: savedState.videoConfig?.includeCTA !== undefined ? savedState.videoConfig.includeCTA : (defSections?.cta ?? true),
-        includeCaption: savedState.videoConfig?.includeCaption !== undefined ? savedState.videoConfig.includeCaption : (defSections?.caption ?? true),
-        includeThumbnail: savedState.videoConfig?.includeThumbnail !== undefined ? savedState.videoConfig.includeThumbnail : (defSections?.thumbnail ?? false),
+        includeHook: savedState.videoConfig?.includeHook !== undefined ? Boolean(savedState.videoConfig.includeHook) : (defSections?.hook ?? true),
+        includeCTA: savedState.videoConfig?.includeCTA !== undefined ? Boolean(savedState.videoConfig.includeCTA) : (defSections?.cta ?? true),
+        includeCaption: savedState.videoConfig?.includeCaption !== undefined ? Boolean(savedState.videoConfig.includeCaption) : (defSections?.caption ?? true),
+        includeThumbnail: savedState.videoConfig?.includeThumbnail !== undefined ? Boolean(savedState.videoConfig.includeThumbnail) : (defSections?.thumbnail ?? false),
+        includeHtmlBlog: Boolean(savedState.videoConfig?.includeHtmlBlog ?? prev.includeHtmlBlog),
+        composition: {
+          education: savedState.videoConfig?.composition?.education ?? prev.composition.education,
+          entertainment: savedState.videoConfig?.composition?.entertainment ?? prev.composition.entertainment,
+          marketing: savedState.videoConfig?.composition?.marketing ?? prev.composition.marketing,
+        },
       }));
 
       setImageConfig((prev) => ({
         ...prev,
         ...(savedState.imageConfig || {}),
+        negativePrompt: savedState.imageConfig?.negativePrompt ?? prev.negativePrompt,
         visualStyle: channelVisualStyle || prev.visualStyle || "Cinematic Dark Mode (Sleek & Professional)",
       }));
 
@@ -514,7 +528,7 @@ export default function GeneratorForm({
       setAiResultJson("");
       setManualTitle("");
     }
-  }, [channels]);
+  }, [channels, setImageConfig]);
 
   const handleChannelChange = useCallback((newChannelId: string) => {
     if (!newChannelId || newChannelId === channelId) return;
@@ -534,7 +548,7 @@ export default function GeneratorForm({
     } catch {}
 
     // 3. Retrieve saved state for target channel
-    let targetSaved: any = null;
+    let targetSaved: GeneratorFormStateSnapshot | null = null;
     try {
       const local = localStorage.getItem(`generatorFormState_${newChannelId}`);
       if (local) targetSaved = JSON.parse(local);
@@ -550,6 +564,7 @@ export default function GeneratorForm({
 
   // Mount effect: Resolve active channel, load per-channel state, fetch server preferences
   useEffect(() => {
+    if (isInitializedRef.current) return;
     let ignore = false;
 
     const topicParam = searchParams.get("topic");
@@ -568,12 +583,8 @@ export default function GeneratorForm({
       } catch {}
     }
 
-    if (initialChannelId && initialChannelId !== channelId) {
-      setChannelId(initialChannelId);
-    }
-
     // Load initial channel state
-    let initialSaved: any = null;
+    let initialSaved: GeneratorFormStateSnapshot | null = null;
     try {
       const savedCh = localStorage.getItem(`generatorFormState_${initialChannelId}`);
       if (savedCh) {
@@ -591,6 +602,9 @@ export default function GeneratorForm({
 
     queueMicrotask(() => {
       if (!ignore) {
+        if (initialChannelId && initialChannelId !== channelId) {
+          setChannelId(initialChannelId);
+        }
         applyStateForChannel(initialChannelId, initialSaved);
         if (topicParam) setTopic(topicParam);
         if (keywordsParam) {
@@ -630,7 +644,7 @@ export default function GeneratorForm({
     return () => {
       ignore = true;
     };
-  }, []); // Run only once on mount
+  }, [channels, channelId, searchParams, applyStateForChannel]);
 
   // Auto-Save: Persist to per-channel localStorage immediately & debounced server sync
   useEffect(() => {
@@ -701,7 +715,7 @@ export default function GeneratorForm({
  }
  })
  .catch(() => {});
- }, []);
+ }, [planFeatures.youtubeLongStudio]);
 
    // Reactive sync if URL search params change while on page (e.g. navigation from Research Studio)
   useEffect(() => {
@@ -1058,11 +1072,13 @@ export default function GeneratorForm({
    ? narrationModeOverride
    : (currentArchetype?.narrationMode || "VOICE_OVER");
  const isNoVoMode = effectiveNarrationMode === "DIEGETIC_ONLY" || effectiveNarrationMode === "SILENT_TEXT_ONLY";
+ const compCategories = Array.isArray(currentArchetype?.compositionCategories)
+   ? (currentArchetype.compositionCategories as ContentArchetypeCompositionCategory[])
+   : [];
  const hasRequiredComposition =
    !currentArchetype ||
-   (Array.isArray(currentArchetype.compositionCategories) &&
-     currentArchetype.compositionCategories.length > 0 &&
-     currentArchetype.compositionCategories.some((cat: { required: boolean }) => cat.required));
+   (compCategories.length > 0 &&
+     compCategories.some((cat) => Boolean(cat && cat.required)));
 
  return (
  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -1230,7 +1246,7 @@ export default function GeneratorForm({
  type="button"
  onClick={() => setTargetKeywords(targetKeywords.filter((_, i) => i !== idx))}
  className="hover:text-red-600 text-emerald-700 dark:text-emerald-400 font-bold ml-0.5"
- title="Hapus keyword"
+ title={t("removeKeywordTitle")}
  >
  ×
  </button>
@@ -1334,7 +1350,7 @@ export default function GeneratorForm({
  onChange={(e) => handleVideoConfigChange("selectedProductId", e.target.value)}
  className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white"
  >
- <option value="">-- Semua Produk / Tanpa Produk Spesifik --</option>
+ <option value="">{t("allProductsOption")}</option>
  {channelProducts.map((prod) => (
  <option key={prod.id} value={prod.id}>
  {prod.name} ({prod.price > 0 ? `Rp ${prod.price.toLocaleString("id-ID")}` : "Gratis"})
@@ -1580,22 +1596,22 @@ export default function GeneratorForm({
  <div className="mt-2.5 p-3 rounded-xl border border-blue-500/30 bg-blue-50/50 dark:bg-blue-950/20 space-y-2">
  <div className="flex items-center justify-between text-xs font-semibold text-blue-700 dark:text-blue-300">
  <span className="flex items-center gap-1.5">
- <span>✏️ Persona / Role AI Khusus Video Ini</span>
+ <span>✏️ {t("customRolePOVTitle")}</span>
  </span>
  <span className="text-[10px] text-blue-600/80 dark:text-blue-400/80 bg-blue-100/70 dark:bg-blue-900/40 px-2 py-0.5 rounded-full font-normal">
- Prioritas #1 Override
+ {t("customRolePOVOverrideBadge")}
  </span>
  </div>
  <textarea
  value={customRolePOV}
  onChange={(e) => setCustomRolePOV(e.target.value)}
- placeholder="Tulis persona khusus untuk video ini... Contoh: Dokter Spesialis Anak yang ramah dan menenangkan orang tua, atau Mekanik Senior dengan tips to-the-point..."
+ placeholder={t("customRolePOVPlaceholder")}
  rows={2}
  maxLength={300}
  className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-800 border pg-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-slate-800 dark:text-slate-100 placeholder:text-slate-400 resize-none transition-all shadow-sm"
  />
  <div className="flex items-center justify-between text-[10px] pg-text-muted">
- <span>💡 Persona ini hanya berlaku untuk video ini tanpa mengubah profil permanen channel.</span>
+ <span>{t("customRolePOVFootnote")}</span>
  <span>{customRolePOV.length}/300</span>
  </div>
  </div>
@@ -1604,8 +1620,8 @@ export default function GeneratorForm({
  {/* Default Channel Fallback Indicator */}
  {rolePOV === "default" && currentChannel?.personaPov && (
  <p className="text-[10px] pg-text-muted mt-1 flex items-center gap-1.5 px-0.5">
- <span className="text-slate-400">ℹ️ Mengikuti Persona Channel:</span>
- <span className="font-medium text-slate-700 dark:text-slate-300 truncate max-w-[280px] sm:max-w-md">"{currentChannel.personaPov}"</span>
+ <span className="pg-text-muted">{t("channelPersonaFallback")}</span>
+ <span className="font-medium pg-text-sub truncate max-w-[280px] sm:max-w-md">&ldquo;{currentChannel.personaPov}&rdquo;</span>
  </p>
  )}
  </div>
@@ -1628,17 +1644,17 @@ export default function GeneratorForm({
  {visualStyleKey === "__custom__" && (
  <div className="mt-2">
  <label className="block text-xs font-medium pg-text-sub mb-1">
- ✏️ Deskripsikan Gaya Visual Custom
+ {t("customVisualStyleLabel")}
  </label>
  <textarea
  value={visualStyleCustom}
  onChange={(e) => setVisualStyleCustom(e.target.value)}
  rows={4}
- placeholder="Contoh: semi-realistic digital illustration, gouache-like painterly texture, bold soft ink outlines, warm muted color palette, gentle directional lighting..."
+ placeholder={t("customVisualStylePlaceholder")}
  className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white resize-none"
  />
  <p className="text-xs pg-text-muted mt-1">
- Deskripsi ini akan diinjeksi langsung ke panduan Visual Prompt setiap scene. Tulis sedetail mungkin — semakin presisi, semakin konsisten gaya visual yang dihasilkan AI.
+ {t("customVisualStyleHelp")}
  </p>
  </div>
  )}
@@ -1851,7 +1867,7 @@ export default function GeneratorForm({
           <button
             type="button"
             disabled
-            title="Voice Over dinonaktifkan oleh Mode Narasi yang aktif (Diegetic / Silent)"
+            title={t("voDisabledByNarrationMode")}
             className="flex items-center justify-center gap-1.5 px-2 py-2 text-xs font-medium rounded-lg border pg-surface-dim pg-border opacity-50 cursor-not-allowed text-slate-400"
           >
             <span>✗</span>
@@ -2246,7 +2262,7 @@ export default function GeneratorForm({
       <span>🖼️</span>
       <span>{t("thumbnailStylePresetTitle")}</span>
      </label>
-     <p className="text-[10px] pg-text-muted mt-0.5">Template 1-3 kata huruf kapital punchy dengan contrast tinggi & curiosity gap.</p>
+     <p className="text-[10px] pg-text-muted mt-0.5">{t("thumbnailStyleAntiGagalDesc")}</p>
     </div>
    </div>
 
@@ -2489,7 +2505,7 @@ export default function GeneratorForm({
  </div>
  {affiliateMarketplaces.includes("custom") && (
  <div className="mt-1.5">
- <p className="text-[10px] pg-text-muted mb-1">Base URL pencarian (contoh: https://bukalapak.com/products?search=)</p>
+ <p className="text-[10px] pg-text-muted mb-1">{t("affiliateCustomUrlPlaceholder")}</p>
  <input
  type="url"
  id="affiliateCustomUrl"

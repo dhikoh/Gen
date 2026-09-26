@@ -169,9 +169,10 @@ export async function callGeminiTts(
   text: string,
   voice: string,
   model: string,
-  speakingRate = 1.0,
+  _speakingRate = 1.0,
   attemptTimeoutMs = 25_000
 ): Promise<TtsCallResult> {
+  void _speakingRate;
   const url = `${GEMINI_BASE_URL}/models/${model}:generateContent`;
 
   const requestBody = {

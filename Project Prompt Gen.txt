@@ -1,3 +1,24 @@
+# =====================================================================
+# PANDUAN SKEMA PENOMORAN KANONIKAL & PEMETAAN HISTORIS PROYEK
+# =====================================================================
+# Dokumen otoritatif proyek ini menggunakan sistem ID kanonikal terpadu:
+# 1. Periode Audit Awal (2026-09-18): Batch #55 s/d #61 (Audit Keamanan & Keuangan)
+# 2. Periode Pengembangan Fitur (2026-09-21 s/d 2026-09-25): Fitur/Fix #56 s/d #85
+#    - Bagian 29: Bugfix #57 (AIDA CTA Leakage Fix v1)
+#    - Bagian 30: Fitur #63 (Voice Studio TTS via Gemini API)
+#    - Bagian 31: Fitur #64-#66 (Voice Studio Tab, Preview & Voice Discovery)
+#    - Bagian 32: Fitur #67 (Multi-Profile State Sync channelFormStates)
+#    - Bagian 33: Fitur #68 (History to Studio Handover ?draftId=...)
+#    - Bagian 34: Fitur #69 (Last Parse Memory & 10-Item History Selector)
+#    - Bagian 35: Fitur #70 (Overlay Style Selector & Auto-Chapter Grouping)
+#    - Bagian 36: Fitur #71 (CTA Leakage Prevention v2 & Negative Directives)
+#    - Bagian 37: Fix #72 (Creator Persona & POV Coupling)
+#    - Bagian 38: Fitur #73 (YouTube 2026 Strategy Engine)
+#    - Addendum Lanjutan: Fitur #74 s/d #85 (State Sync, SEO 3-Tier, Speech Rate Timing)
+# 3. Periode Audit & Remediasi P0-P3 (2026-09-27): [#86 / Audit Final v2]
+#    - Type safety total (zero any), zero orphan endpoints/models, 100% i18n parity.
+# =====================================================================
+
 0. PERAN, MANDAT, DAN ATURAN KERJA AGENT
 
 Anda adalah Lead Full-Stack Engineer + QA Engineer yang bertanggung jawab penuh membangun sebuah produk SaaS dari nol hingga siap produksi. Dokumen ini adalah spesifikasi tunggal dan otoritatif. Anda bekerja secara fase-per-fase (lihat Bagian 8), dan wajib menyelesaikan serta memverifikasi satu fase sebelum berpindah ke fase berikutnya.
@@ -1349,57 +1370,6 @@ Ini menimbulkan dua masalah nyata:
 
 **Tujuan addendum ini:** menjadikan seluruh parameter struktural (emotional arc, mode narasi, wajib-tidaknya Hook/CTA, cara hitung durasi) sebagai **data di database yang bisa ditambah lewat panel admin**, bukan logika yang ditulis tetap di kode/system prompt. Dengan begitu, aplikasi bisa melayani "model konten apa pun" (marketing, edukasi, storytelling, faceless reconstruction, ASMR, dll.) tanpa perlu deploy ulang kode setiap kali ada gaya konten baru.
 
-**Temuan tambahan (audit ulang penuh 1063 baris, bukan cuma bagian yang dicek sebelumnya):** Form Generator di Bagian 5.4 ternyata **sudah** punya mekanisme untuk sebagian masalah ini — field *"bagian naskah yang di-include (Hook/CTA/Caption/Thumbnail)"* memungkinkan user mencentang/tidak-mencentang bagian mana yang ingin dimasukkan ke naskah. Masalahnya, toggle ini **tidak dibaca secara konsisten** oleh dua tempat lain di kode yang sama-sama menyuntik instruksi ke system prompt:
-
-1. Bagian 13.2 poin 7 — menyuntik `Emotional Arc: Hook -> Problem -> Solution -> CTA` tanpa syarat apa pun.
-2. Bagian 18 (log fitur "Viral Generation Parameters") — menyebutkan eksplisit bahwa system prompt di-augment dengan *"mandatory retention loops and hooks"*. Kata **mandatory** di situ berarti retention loop dan hook tetap disuntikkan meski user sudah **meng-uncheck** Hook di toggle 5.4.
-
-Jadi akar masalahnya bukan "fitur belum ada", melainkan **satu sumber kebenaran (`includedSections` dari toggle 5.4) yang dilanggar diam-diam oleh dua code path lain** — pelanggaran langsung terhadap Bagian 0.2 poin 5 yang sudah ditetapkan sejak awal proyek ("Dilarang menduplikasi sumber kebenaran data"). Addendum ini karena itu **tidak menambah toggle baru untuk Hook/CTA** — toggle itu sudah ada dan sudah benar secara desain. Addendum ini menambal dua tempat yang melanggarnya, plus menambah lapisan `ContentArchetype` untuk mengatur *default* toggle tersebut per gaya konten, dan untuk parameter lain (narrationMode, emotional arc template, cara hitung durasi) yang memang belum punya sumber data sama sekali.
-
-## 23.1 Model Data Baru: `ContentArchetype`
-
-Buat model Prisma baru (atau perluas `NicheCategoryPreset` yang sudah disebut di Bagian 12.11 — pilih salah satu, jangan duplikasi tabel preset). Field wajib:
-
-- `id`, `name` (contoh: "Marketing/Edukasi Standar", "Nostalgia Reconstruction / Faceless", atau nama custom lain yang dibuat admin kapan saja)
-- `narrationMode`: enum `VOICE_OVER | DIEGETIC_ONLY | SILENT_TEXT_ONLY | HYBRID` — default `VOICE_OVER` (backward compatible)
-- `emotionalArcTemplate`: text bebas, default `"Hook -> Problem -> Solution -> CTA"`, tapi bisa diisi ulang apa pun oleh admin/user (mis. `"Setup -> Recognition -> Emotional Payoff"`)
-- `defaultIncludedSections`: JSON `{ hook: boolean, cta: boolean, caption: boolean, thumbnail: boolean }` — **bukan field baru yang menduplikasi validasi**, melainkan nilai default yang meng-auto-check/uncheck toggle "bagian naskah yang di-include" yang **sudah ada** di Bagian 5.4, ketika archetype dipilih. Contoh: archetype "Nostalgia Reconstruction / Faceless" defaultnya `{ hook: false, cta: false, caption: true, thumbnail: true }`.
-- `compositionCategories`: JSON array `{ label: string, required: boolean }[]` — menggantikan enum tetap Edukasi/Hiburan/Marketing. Validasi jumlah wajib 100% **hanya** berlaku untuk kategori yang `required: true`; jika array kosong, validasi komposisi dilewati sepenuhnya.
-- `durationCalcMode`: enum `NARRATION_WORDCOUNT | SEGMENT_SELF_ESTIMATE | HYBRID` — default `HYBRID`
-- `cameraMovementRoleMap`: JSON opsional, override daftar pemetaan peran-scene → gerakan kamera; jika `null`, sistem pakai pool generic tanpa asumsi peran Hook/CTA
-
-Seed minimal 2 baris data saat migrasi:
-1. `"Marketing/Edukasi Standar"` — sama persis dengan perilaku lama saat ini (tidak ada breaking change untuk channel existing).
-2. `"Nostalgia Reconstruction / Faceless"` — `narrationMode: DIEGETIC_ONLY`, `hookRequired: false`, `ctaRequired: false`, `compositionCategories: []`, `emotionalArcTemplate: "Setup -> Recognition -> Emotional Payoff"`.
-
-## 23.2 Perubahan pada `ProfileChannel` dan `GeneratorForm.tsx`
-
-- Tambahkan `ProfileChannel.contentArchetypeId` (FK opsional), auto-fill ke `GeneratorForm` ketika channel dipilih — pola yang sama dengan `personaPov`/`speechRate` di Bagian 12.11.
-- Field **Hook Style** dan **Komposisi Naskah %** hanya dirender jika archetype aktif punya `hookRequired: true` / ada `compositionCategories` dengan `required: true`. Jika tidak, field ini **disembunyikan dari UI dan dilewati dari skema zod** — bukan sekadar disabled dengan nilai kosong (nilai kosong yang tetap divalidasi = bug yang sama muncul lagi dalam bentuk lain).
-- Tambahkan indikator read-only "Mode Narasi: <narrationMode>" yang auto-terisi dari archetype, dengan opsi override manual per sesi generate (untuk fleksibilitas kasus khusus).
-
-## 23.3 Perbaikan `promptGenerator.ts`
-
-0. **Prioritas paling tinggi — cari dan satukan dua pelanggaran sumber kebenaran yang sudah teridentifikasi di 23.0:**
-   - Titik injeksi `Emotional Arc: Hook -> Problem -> Solution -> CTA` (Bagian 13.2 poin 7).
-   - Titik injeksi *"mandatory retention loops and hooks"* pada fitur "Viral Generation Parameters" (Bagian 18).
-   
-   Kedua titik ini **wajib** dibungkus kondisi `if (includedSections.hook)` yang membaca nilai yang SAMA dengan yang disimpan toggle "bagian naskah yang di-include" di 5.4 — bukan nilai terpisah, bukan diasumsikan `true` secara default di kode. Tulis (atau kalau sudah ada, refactor ke) satu fungsi terpusat, misalnya `buildStructuralInstructions(includedSections, archetype)`, yang dipanggil oleh **kedua** code path (5.4 lama dan 13.2 Push-engine) supaya tidak ada lagi drift antara dua tempat ini di masa depan.
-# Addendum — Bagian 23: Universal / Model-Agnostic Content Structure Engine
-
-> **Cara pakai:** Tempelkan seluruh isi file ini persis di bawah Bagian 22 pada dokumen `Project_Prompt_Gen.txt` yang sudah ada, lalu berikan ke agent AI yang sama yang mengerjakan proyek ini. Prinsip kerja di Bagian 0 (Peran, Mandat, Aturan Kerja Agent) tetap berlaku penuh untuk addendum ini — termasuk larangan placeholder, larangan hardcode duplikat, dan siklus Rancang → Implementasikan → Uji nyata → Verifikasi statis → Audit-diri → Catat log.
-
-## 23.0 Latar Belakang & Tujuan
-
-Audit menemukan bahwa Studio Generator saat ini (Bagian 5.4, 5.5, 13.2, dan 21) secara diam-diam **hardcode satu model konten saja**: video bernarasi bergaya marketing/edukasi dengan struktur `Hook -> Problem -> Solution -> CTA`, di mana durasi dihitung dari jumlah kata narasi (`wordCount / speakingRate`).
-
-Ini menimbulkan dua masalah nyata:
-
-1. **Bug fungsional** — untuk video tanpa narasi/voice-over (faceless, diegetic-sound-only, reconstruction, dsb.), `wordCount` mendekati nol di hampir semua scene, sehingga fitur pembanding "target durasi vs estimasi durasi" (5.5) selalu memicu peringatan palsu meski video sudah pas durasinya.
-2. **Keterbatasan skalabilitas niche** — field `Hook Style` dan validasi `Komposisi naskah` wajib 100% (Edukasi/Hiburan/Marketing) dipaksakan ke semua channel, padahal tidak semua gaya konten punya Hook atau CTA yang bermakna secara struktural.
-
-**Tujuan addendum ini:** menjadikan seluruh parameter struktural (emotional arc, mode narasi, wajib-tidaknya Hook/CTA, cara hitung durasi) sebagai **data di database yang bisa ditambah lewat panel admin**, bukan logika yang ditulis tetap di kode/system prompt. Dengan begitu, aplikasi bisa melayani "model konten apa pun" (marketing, edukasi, storytelling, faceless reconstruction, ASMR, dll.) tanpa perlu deploy ulang kode setiap kali ada gaya konten baru.
-
 **Temuan tambahan (audit ulang penuh 1063 baris, bukan cuma bagian yang cegak sebelumnya):** Form Generator di Bagian 5.4 ternyata **sudah** punya mekanisme untuk sebagian masalah ini — field *"bagian naskah yang di-include (Hook/CTA/Caption/Thumbnail)"* memungkinkan user mencentang/tidak-mencentang bagian mana yang ingin dimasukkan ke naskah. Masalahnya, toggle ini **tidak dibaca secara konsisten** oleh dua tempat lain di kode yang sama-sama menyuntik instruksi ke system prompt:
 
 1. Bagian 13.2 poin 7 — menyuntik `Emotional Arc: Hook -> Problem -> Solution -> CTA` tanpa syarat apa pun.
@@ -1792,7 +1762,7 @@ Entry baru di `KNOWN_PLAN_FEATURES` (`src/lib/planFeatures.ts`):
 
 ### 31.4 Server-side Audio Concatenation (Full VO Merge) (#64)
 - Endpoint baru: `POST /api/tts/merge` untuk menggabungkan potongan audio WAV per-scene menjadi satu file audio voiceover utuh (Full VO) via `mergeWavBuffers()` di `src/lib/geminiTts.ts`.
-- Rate limiting: 10 req/menit per user.
+- Dilengkapi guard otentikasi, pengecekan hak fitur langganan 	extToSpeechStudio, dan rate limiting: 10 req/menit per user.
 
 ### 31.5 Remediasi Skema Payload & Error Classifier (#65)
 - Dihapusnya parameter `speakingRate` dari dalam `speechConfig` JSON payload karena ditolak oleh Google API dengan error HTTP 400 (`Invalid JSON payload received`).

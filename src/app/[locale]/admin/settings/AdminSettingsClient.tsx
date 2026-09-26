@@ -335,7 +335,7 @@ export default function AdminSettingsClient({
  min={1}
  className="w-full px-4 py-2 pg-bg-page border pg-border rounded-lg focus:ring-2 focus:ring-[var(--pg-brand)] outline-none pg-text-heading text-sm"
  />
- <p className="text-xs pg-text-muted mt-1">Jumlah maksimal aksi yang diizinkan per user/IP dalam satu jendela waktu.</p>
+ <p className="text-xs pg-text-muted mt-1">{t("rateLimitMaxActionHelp")}</p>
  </div>
  <div>
  <label className="block text-sm font-medium pg-text-sub mb-1">Jendela Waktu (Milidetik)</label>
@@ -348,7 +348,7 @@ export default function AdminSettingsClient({
  step={1000}
  className="w-full px-4 py-2 pg-bg-page border pg-border rounded-lg focus:ring-2 focus:ring-[var(--pg-brand)] outline-none pg-text-heading text-sm"
  />
- <p className="text-xs pg-text-muted mt-1">Contoh: 60000 = 1 menit.</p>
+ <p className="text-xs pg-text-muted mt-1">{t("rateLimitWindowPlaceholder")}</p>
  </div>
  </div>
  </div>
@@ -379,7 +379,7 @@ export default function AdminSettingsClient({
  rows={4}
  value={promptFormData.videoSystemInstruction}
  onChange={handlePromptChange}
- placeholder="Tambahkan instruksi sistem tambahan untuk Video Master Prompt generator..."
+ placeholder={t("videoSystemInstructionPlaceholder")}
  className="w-full px-4 py-2 pg-bg-page border pg-border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none pg-text-heading text-sm"
  />
  <p className="text-xs pg-text-muted mt-1">{t("videoSystemInstructionHelp")}</p>
@@ -392,7 +392,7 @@ export default function AdminSettingsClient({
  rows={4}
  value={promptFormData.imageSystemInstruction}
  onChange={handlePromptChange}
- placeholder="Tambahkan instruksi sistem tambahan untuk Image Prompt generator..."
+ placeholder={t("imageSystemInstructionPlaceholder")}
  className="w-full px-4 py-2 pg-bg-page border pg-border rounded-lg focus:ring-2 focus:ring-[var(--pg-brand)] outline-none pg-text-heading text-sm"
  />
  <p className="text-xs pg-text-muted mt-1">{t("imageSystemInstructionHelp")}</p>

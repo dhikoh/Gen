@@ -38,6 +38,7 @@ export default function InvoiceHistoryClient({
  bankAccountName?: string | null;
 }) {
  const t = useTranslations("Billing");
+ const tInvoices = useTranslations("Invoices");
  const [invoices, setInvoices] = useState<Invoice[]>([]);
  const [loading, setLoading] = useState(true);
  const [filter, setFilter] = useState("ALL");
@@ -83,7 +84,7 @@ export default function InvoiceHistoryClient({
  onChange={(e) => setFilter(e.target.value)}
  className="text-sm px-3 py-1.5 border pg-border rounded pg-surface pg-text-heading focus:outline-none focus:ring-2 focus:ring-blue-500"
  >
- <option value="ALL">Semua Transaksi</option>
+ <option value="ALL">{tInvoices("allTransactions")}</option>
  <option value="PENDING">Menunggu (Pending)</option>
  <option value="APPROVED">Disetujui (Approved)</option>
  <option value="REJECTED">Ditolak (Rejected)</option>

@@ -20,6 +20,17 @@ interface TtsKeyInfo {
   createdAt: string;
 }
 
+function formatRelativeTime(dateStr: string | null, justNowLabel: string): string {
+  if (!dateStr) return "—";
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return justNowLabel;
+  if (mins < 60) return `${mins}m`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h`;
+  return `${Math.floor(hrs / 24)}d`;
+}
+
 export default function SettingsClient() {
   const t = useTranslations("Settings");
   const [name, setName] = useState("");
@@ -46,7 +57,22 @@ export default function SettingsClient() {
     } catch {} finally { setTtsLoading(false); }
   }, []);
 
-  useEffect(() => { fetchKeys(); }, [fetchKeys]);
+  useEffect(() => {
+    let ignore = false;
+    async function load() {
+      try {
+        const res = await fetch("/api/user/tts-keys");
+        const data = await res.json();
+        if (!ignore && data.success) setTtsKeys(data.keys || []);
+      } catch {} finally {
+        if (!ignore) setTtsLoading(false);
+      }
+    }
+    void load();
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   const handleAddKey = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -136,17 +162,6 @@ export default function SettingsClient() {
       setTestingKeyId(null);
       fetchKeys();
     }
-  };
-
-  const formatRelativeTime = (dateStr: string | null) => {
-    if (!dateStr) return "—";
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return t("ttsJustNow");
-    if (mins < 60) return `${mins}m`;
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs}h`;
-    return `${Math.floor(hrs / 24)}d`;
   };
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
@@ -317,7 +332,7 @@ export default function SettingsClient() {
                     <div className="flex items-center gap-3 text-[10px] pg-text-muted flex-wrap">
                       <span>✅ {key.totalSuccessCount}</span>
                       <span>❌ {key.totalFailureCount}</span>
-                      <span>{t("ttsLastUsed")}: {formatRelativeTime(key.lastUsedAt)}</span>
+                      <span>{t("ttsLastUsed")}: {formatRelativeTime(key.lastUsedAt, t("ttsJustNow"))}</span>
                     </div>
                     {key.lastErrorMessage && (
                       <p className="text-[10px] text-red-500 dark:text-red-400 truncate max-w-xs" title={key.lastErrorMessage}>

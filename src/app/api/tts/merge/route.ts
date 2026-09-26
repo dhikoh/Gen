@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
+import { prisma } from "@/lib/db";
 import { applyRateLimit } from "@/lib/rateLimit";
 import { mergeWavBuffers } from "@/lib/geminiTts";
+import { hasFeature } from "@/lib/planFeatures";
 
 const mergeSchema = z.object({
   audioBase64: z
@@ -25,6 +27,27 @@ export async function POST(req: Request) {
     return NextResponse.json(
       { error: "Terlalu banyak permintaan merge. Coba lagi dalam 1 menit." },
       { status: 429 }
+    );
+  }
+
+  // Feature gate: textToSpeechStudio
+  const dbUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      role: true,
+      currentPlan: { select: { features: true } },
+    },
+  });
+  if (!dbUser) {
+    return NextResponse.json({ error: "User tidak ditemukan" }, { status: 404 });
+  }
+
+  const isSuperadmin = dbUser.role === "SUPERADMIN";
+  const rawFeatures = (dbUser.currentPlan?.features as Record<string, boolean>) ?? {};
+  if (!hasFeature(rawFeatures, "textToSpeechStudio", isSuperadmin)) {
+    return NextResponse.json(
+      { error: "Fitur Voice Studio tidak tersedia di plan Anda. Upgrade untuk mengakses." },
+      { status: 403 }
     );
   }
 

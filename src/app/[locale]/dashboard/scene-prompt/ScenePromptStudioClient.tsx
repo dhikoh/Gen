@@ -1,12 +1,10 @@
 "use client";
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import toast from "react-hot-toast";
 import sanitizeHtml from "sanitize-html";
 import {
-  extractAudioCues,
-  cleanParsedValue,
-  parseVoiceGuidelines,
   extractTitles,
   extractChosenTitle,
   extractThumbnailData,
@@ -273,27 +271,29 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
     if (initialDraft?.rawJson && lastLoadedDraftIdRef.current !== (initialDraft.id || null)) {
       lastLoadedDraftIdRef.current = initialDraft.id || null;
       const raw = initialDraft.rawJson;
-      setRawText(raw);
-      if (initialDraft.title) setDraftTitle(initialDraft.title);
-      if (initialDraft.channelId && channels.some((c) => c.id === initialDraft.channelId)) {
-        setSelectedChannelId(initialDraft.channelId);
-      }
-      const parsed = parseScenes(raw);
-      setScenes(parsed);
-      setSelectedSceneIds(new Set(parsed.map((s) => s.id)));
-      setCaption(extractCaption(raw));
-      setHashtags(extractHashtags(raw));
-      setThumbnailData(extractThumbnailData(raw));
-      setThreeTierSeo(extractThreeTierSeo(raw));
-      const titles = extractTitles(raw);
-      setParsedTitles(titles);
-      if (!initialDraft.title) {
-        const chosen = extractChosenTitle(raw) || titles[0] || "";
-        if (chosen) setDraftTitle(chosen);
-      }
-      setHtmlBlog(extractHtmlBlog(raw));
-      setAffiliateRecs(extractAffiliateRecommendations(raw));
-      toast.success(t("draftLoadedSuccess"));
+      queueMicrotask(() => {
+        setRawText(raw);
+        if (initialDraft.title) setDraftTitle(initialDraft.title);
+        if (initialDraft.channelId && channels.some((c) => c.id === initialDraft.channelId)) {
+          setSelectedChannelId(initialDraft.channelId);
+        }
+        const parsed = parseScenes(raw);
+        setScenes(parsed);
+        setSelectedSceneIds(new Set(parsed.map((s) => s.id)));
+        setCaption(extractCaption(raw));
+        setHashtags(extractHashtags(raw));
+        setThumbnailData(extractThumbnailData(raw));
+        setThreeTierSeo(extractThreeTierSeo(raw));
+        const titles = extractTitles(raw);
+        setParsedTitles(titles);
+        if (!initialDraft.title) {
+          const chosen = extractChosenTitle(raw) || titles[0] || "";
+          if (chosen) setDraftTitle(chosen);
+        }
+        setHtmlBlog(extractHtmlBlog(raw));
+        setAffiliateRecs(extractAffiliateRecommendations(raw));
+        toast.success(t("draftLoadedSuccess"));
+      });
     }
   }, [initialDraft, channels, t]);
 
@@ -547,17 +547,18 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
     // 1. Local Storage load (deferred to avoid cascading render during effect mount)
     const saved = localStorage.getItem("scenePromptState");
     const savedFavorites = localStorage.getItem("promptgen_favorite_voices");
-    if (savedFavorites) {
-      try {
-        const favs = JSON.parse(savedFavorites);
-        if (Array.isArray(favs) && favs.length > 0) setFavoriteVoices(favs);
-      } catch {}
-    }
-    if (saved) {
-      try {
-        const p = JSON.parse(saved);
-        queueMicrotask(() => {
-          if (!ignore) {
+    if (saved || savedFavorites) {
+      queueMicrotask(() => {
+        if (!ignore) {
+          if (savedFavorites) {
+            try {
+              const favs = JSON.parse(savedFavorites);
+              if (Array.isArray(favs) && favs.length > 0) setFavoriteVoices(favs);
+            } catch {}
+          }
+          if (saved) {
+            try {
+              const p = JSON.parse(saved);
             // Only restore rawText from localStorage if neither initialDraft nor initialParsedOutputs was loaded
             if (!hasLoadedSource && p.rawText) {
               setRawText(p.rawText);
@@ -589,10 +590,11 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
             if (Array.isArray(p.favoriteVoices) && p.favoriteVoices.length > 0) {
               setFavoriteVoices(p.favoriteVoices);
             }
-          }
-        });
-      } catch {}
-    }
+          } catch {}
+        }
+      }
+    });
+  }
 
     // 2. Server load (overrides local)
     fetch("/api/user/preferences")
@@ -1137,7 +1139,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
             type="button"
             onClick={copyAllNarration}
             className="inline-flex items-center gap-1.5 text-xs font-semibold h-9 px-3.5 rounded-l-lg bg-[var(--pg-brand)] hover:bg-[var(--pg-brand-hover)] text-white transition-all active:scale-95 shadow-sm"
-            title="Salin semua narasi bersih (siap TTS, tanpa instruksi/tanda kutip)"
+            title={t("copyAllCleanNarrationTitle")}
           >
             <span>🎤</span>
             {copiedId === "all-narration" ? `✓ ${t("allNarasiCopied")}` : t("copyAllNarasi")}
@@ -1146,7 +1148,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
             type="button"
             onClick={copyAllNarrationRaw}
             className="inline-flex items-center text-xs font-semibold h-9 px-3 rounded-r-lg bg-[var(--pg-brand-hover)] hover:bg-[#d96500] text-white border-l border-white/20 transition-all active:scale-95 shadow-sm"
-            title="Salin semua narasi mentah / raw (dengan catatan sutradara & tanda kutip untuk pertimbangan)"
+            title={t("copyAllRawNarrationTitle")}
           >
             {copiedId === "all-narration-raw" ? "✓ Raw" : "Raw"}
           </button>
@@ -1240,7 +1242,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
                     type="button"
                     onClick={() => copy(`nar-raw-${scene.id}`, scene.narasi)}
                     className="text-xs px-2 py-0.5 rounded border pg-border pg-surface-dim pg-text-sub hover:pg-text-heading transition-colors"
-                    title="Salin narasi mentah (dengan catatan sutradara)"
+                    title={t("copySceneRawNarrationTitle")}
                   >
                     {copiedId === `nar-raw-${scene.id}` ? "✓ Raw" : "Raw"}
                   </button>
@@ -1249,7 +1251,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
                   type="button"
                   onClick={() => copy(`nar-${scene.id}`, cleanSpoken || scene.narasi)}
                   className="text-xs px-2.5 py-0.5 rounded font-semibold bg-[var(--pg-brand)]/10 text-[var(--pg-brand)] hover:bg-[var(--pg-brand)] hover:text-white transition-all shadow-xs"
-                  title="Salin narasi bersih (siap TTS, tanpa instruksi/tanda kutip)"
+                  title={t("copyAllCleanNarrationTitle")}
                 >
                   {copiedId === `nar-${scene.id}` ? "✓ " + t("copied") : `📋 ${t("copy")}`}
                 </button>
@@ -1760,7 +1762,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
                 toast.success("Tag YouTube Studio disalin (Maks 500 Char)!");
               }}
               className="px-3.5 py-2 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-medium text-xs transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
-              title="Gabungkan Tier 1 + Tier 2 + Tier 3 menjadi format koma tanpa #, otomatis dibatasi maksimal 500 karakter untuk Tag Box YouTube Studio"
+              title={t("combinedTagsBoxTitle")}
             >
               <span>⚡</span>
               {copiedId === "all-yt-tags" ? "✓ Tags Studio Disalin" : "Salin Tag Studio (500 Char)"}
@@ -1809,7 +1811,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
                   }
                 }}
                 className="text-[11px] font-medium px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 cursor-pointer transition-colors"
-                title="Salin sebagai keyword dengan koma untuk Tag Box YouTube Studio"
+                title={t("copyAsCommaKeywords")}
               >
                 {copiedId === "tag-spec-yt" ? "✓ Tags" : "📋 Tags"}
               </button>
@@ -1823,7 +1825,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
                   }
                 }}
                 className="text-[11px] font-medium px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 cursor-pointer transition-colors"
-                title="Salin sebagai #Hashtag tanpa spasi untuk Deskripsi Video"
+                title={t("copyAsHashtagsDesc")}
               >
                 {copiedId === "tag-spec-hash" ? "✓ #Hashtag" : "🏷️ #Hashtag"}
               </button>
@@ -1844,7 +1846,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
                   </span>
                 ))
             ) : (
-              <span className="text-slate-400 italic">Tidak ada tag spesifik</span>
+              <span className="text-slate-400 italic">{t("noSpecificTags")}</span>
             )}
           </div>
         </div>
@@ -1869,7 +1871,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
                   }
                 }}
                 className="text-[11px] font-medium px-2 py-0.5 rounded bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/50 cursor-pointer transition-colors"
-                title="Salin sebagai keyword dengan koma untuk Tag Box YouTube Studio"
+                title={t("copyAsCommaKeywords")}
               >
                 {copiedId === "tag-gen-yt" ? "✓ Tags" : "📋 Tags"}
               </button>
@@ -1883,7 +1885,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
                   }
                 }}
                 className="text-[11px] font-medium px-2 py-0.5 rounded bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/50 cursor-pointer transition-colors"
-                title="Salin sebagai #Hashtag tanpa spasi untuk Deskripsi Video"
+                title={t("copyAsHashtagsDesc")}
               >
                 {copiedId === "tag-gen-hash" ? "✓ #Hashtag" : "🏷️ #Hashtag"}
               </button>
@@ -1904,7 +1906,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
                   </span>
                 ))
             ) : (
-              <span className="text-slate-400 italic">Tidak ada tag umum</span>
+              <span className="text-slate-400 italic">{t("noGeneralTags")}</span>
             )}
           </div>
         </div>
@@ -1929,7 +1931,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
                   }
                 }}
                 className="text-[11px] font-medium px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 cursor-pointer transition-colors"
-                title="Salin sebagai keyword dengan koma untuk Tag Box YouTube Studio"
+                title={t("copyAsCommaKeywords")}
               >
                 {copiedId === "tag-long-yt" ? "✓ Tags" : "📋 Tags"}
               </button>
@@ -1943,7 +1945,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
                   }
                 }}
                 className="text-[11px] font-medium px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 cursor-pointer transition-colors"
-                title="Salin sebagai #Hashtag tanpa spasi untuk Deskripsi Video"
+                title={t("copyAsHashtagsDesc")}
               >
                 {copiedId === "tag-long-hash" ? "✓ #Hashtag" : "🏷️ #Hashtag"}
               </button>
@@ -1964,7 +1966,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
                   </span>
                 ))
             ) : (
-              <span className="text-slate-400 italic">Tidak ada tag majemuk</span>
+              <span className="text-slate-400 italic">{t("noCompoundTags")}</span>
             )}
           </div>
         </div>
@@ -2100,9 +2102,9 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
        <div className="text-4xl">🔒</div>
        <h3 className="text-lg font-bold pg-text-heading">{t("voiceStudioTitle")}</h3>
        <p className="text-sm pg-text-muted max-w-sm mx-auto">{t("voiceStudioLocked")}</p>
-       <a href="/dashboard/billing" className="inline-block px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold rounded-lg transition-colors">
+       <Link href="/dashboard/billing" className="inline-block px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold rounded-lg transition-colors">
          {t("voiceStudioUpgrade")}
-       </a>
+       </Link>
      </div>
    ) : (
      <div className="glass-panel rounded-xl p-6 border border-indigo-200/60 dark:border-indigo-800/60 space-y-5">

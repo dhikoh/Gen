@@ -180,7 +180,7 @@ export default function NotificationsClient() {
  }}
  className="px-3 py-1.5 text-xs font-medium border pg-border rounded-lg bg-white pg-text-heading"
  >
- <option value="0">Semua Waktu</option>
+ <option value="0">{t("allTime")}</option>
  <option value="7">7 Hari Terakhir</option>
  <option value="30">30 Hari Terakhir</option>
  </select>

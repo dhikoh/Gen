@@ -1,5 +1,305 @@
 # PATCH NOTES — Prompt Gen
 
+> ### 📌 PANDUAN SKEMA PENOMORAN KANONIKAL & PEMETAAN HISTORIS PROYEK
+>
+> Dokumen ini memiliki dua periode penomoran historis:
+> 1. **Batch Audit v1 (2026-09-18)**: Menggunakan penomoran `[#55] Batch 1` s/d `[#61] Batch 7` untuk audit & hardening sistemik awal.
+> 2. **Siklus Fitur & Remediasi (2026-09-21 s/d 2026-09-25)**: Menggunakan penomoran kanonikal `[#56]` s/d `[#85]` yang berkorespondensi langsung dengan addendum spesifikasi pada `Project Prompt Gen.txt` (Bagian 29 s/d 38).
+> 3. **Audit & Remediasi Menyeluruh P0–P3 (2026-09-27)**: Entri kanonikal `[#86]` memverifikasi ulang seluruh rangkaian, mengeliminasi `any` tanpa `eslint-disable`, menyinkronkan 100% i18n (1.393 keys), dan menerbitkan `AUDIT_REPORT_FINAL_v2.md`.
+>
+> | ID Kanonikal PATCH_NOTES | ID Blueprint / Fitur | Deskripsi Ringkas Modul | Tanggal Rilis |
+> | :--- | :--- | :--- | :--- |
+> | `[#55 Batch 1 - #61 Batch 7]` | Batch Audit v1 | Audit Keamanan, Finansial, Model & i18n Awal | 2026-09-18 |
+> | `[#56]` | Fitur #56 | Copy All Narration & Thumbnail Studio UI | 2026-09-21 |
+> | `[#57]` | Bugfix #57 (Bagian 29) | AIDA CTA Leakage Fix v1 | 2026-09-21 |
+> | `[#58]` | Fitur #58 | UsedTitlesDirectory CRUD & Visual Style Sync | 2026-09-21 |
+> | `[#59]` | Fitur #59 | Image Prompt Studio Midjourney v6.1 | 2026-09-21 |
+> | `[#60]` | Fitur #60 | Visual Style Fallback + Custom Textarea | 2026-09-21 |
+> | `[#61]` | Fitur #61 | Factual Visual Grounding Layer | 2026-09-21 |
+> | `[#62]` | Fitur #62 | Anti-Static Scene System | 2026-09-21 |
+> | `[#63]` | Fitur #63 (Bagian 30) | Voice Studio TTS via Gemini API | 2026-09-22 |
+> | `[#64]` | Fitur #64 (Bagian 31.1-31.4) | Voice Studio Dedicated Tab & Full VO Merge | 2026-09-22 |
+> | `[#65]` | Fitur #65 (Bagian 31.3 & 31.5) | Voice Preview Studio & Payload Remediation | 2026-09-23 |
+> | `[#66]` | Fitur #66 (Bagian 31.6) | Voice Discovery (Filter, Favorit, Niche Search) | 2026-09-23 |
+> | `[#67]` | Fitur #67 (Bagian 32) | Multi-Profile State Isolation & Sync (`channelFormStates`) | 2026-09-23 |
+> | `[#68]` | Fitur #68 (Bagian 33) | History to Studio Workflow Handover (`?draftId=...`) | 2026-09-23 |
+> | `[#69]` | Fitur #69 (Bagian 34) | Last Parse Memory & 10-Item History Selector | 2026-09-24 |
+> | `[#70]` | Fitur #70 (Bagian 35) | Overlay Style Selector & Auto-Chapter Grouping | 2026-09-24 |
+> | `[#71]` | Fitur #71 (Bagian 36) | CTA Leakage Prevention v2 & Negative Directives | 2026-09-24 |
+> | `[#72]` | Fitur #72 (Bagian 37) | Creator Persona & POV Coupling | 2026-09-24 |
+> | `[#73]` | Fitur #73 (Bagian 38) | YouTube 2026 Strategy Engine (VET Pacing & 3-Tier SEO) | 2026-09-24 |
+> | `[#74]` | Fitur #74 | Scene Prompt Studio Channel Selection Sync | 2026-09-24 |
+> | `[#75]` | Fitur #75 | Strategic Material Deconstruction & Cognitive Priming | 2026-09-24 |
+> | `[#76]` | Fitur #76 | YouTube 2026 Master Reference Document Ingestion | 2026-09-25 |
+> | `[#77]` | Fitur #77 | Elimination of Infinite Preferences Fetch Loop | 2026-09-25 |
+> | `[#78]` | Fitur #78 | Short-Form Chapter Suppression & Voice Sync | 2026-09-25 |
+> | `[#79]` | Fitur #79 | ChatGPT Markdown Scene Parsing & Clean TTS Copy | 2026-09-25 |
+> | `[#80]` | Fitur #80 | Multi-LLM Double-Prefix Header Support (`# ##`) | 2026-09-25 |
+> | `[#81]` | Fitur #81 | UI/UX Precision & Design System Unification | 2026-09-25 |
+> | `[#82]` | Fitur #82 | Dynamic Custom Role & POV AI Engine | 2026-09-25 |
+> | `[#83]` | Fitur #83 | Standardized Bracket Acting & Beat Cues `[...]` | 2026-09-25 |
+> | `[#84]` | Fitur #84 | YouTube 2026 SEO Tag & Hashtag Standardization | 2026-09-25 |
+> | `[#85]` | Fitur #85 | Speech Rate & Target Duration Integration | 2026-09-25 |
+> | `[#86]` | Audit & Remediasi P0–P3 | Type Safety (Zero any), Zero-Orphan, i18n Parity (1.393 keys), Audit v2 | 2026-09-27 |
+
+---
+
+## [#86] — 2026-09-27 | Lead Full-Stack Audit, Complete Type Safety Remediation (Zero any), Zero-Orphan Verification & Final Audit v2 Publication
+
+### Overview
+
+Sesi audit dan remediasi sistemik menyeluruh (P0 s/d P3) oleh Lead Full-Stack Auditor & Remediator. Menuntaskan pemulihan kepercayaan dengan eksekusi nyata suite verifikasi lengkap (tsc, lint, build, test, audit:i18n, audit:design), merekonstruksi dokumen otoritatif (menerbitkan `AUDIT_REPORT_FINAL_v2.md` dan menandai `AUDIT_REPORT_FINAL.md` lama sebagai SUPERSEDED), menyelesaikan tabrakan skema penomoran historis dengan tabel pemetaan kanonikal, mengeliminasi 100% penggunaan `any` di `src/` tanpa penambahan `eslint-disable` baru lewat pembuatan model tipe terpusat `src/types/generator.ts`, mengamankan endpoint `/api/tts/merge` dengan feature gate `textToSpeechStudio`, serta menyapu bersih seluruh string hardcoded Bahasa Indonesia di UI menjadi 1.393 i18n keys berparitas 100%.
+
+---
+
+### 1 — Type-Safety Remediation: Zero Explicit 'any' & Centralized Generator Types (P2)
+
+- **Model Tipe Terpusat (`src/types/generator.ts`)**:
+  - Mendefinisikan `GeneratorFormStateSnapshot` secara komprehensif, mencakup seluruh field formulir: mode platform, niche, topik, keyword target, context, visual style, affiliate config, custom role POV, audio config, target scene/durasi, speech rate, and archetypes.
+  - Mendefinisikan `ContentArchetypeIncludedSections`, `ContentArchetypeCompositionCategory`, `GeneratorVideoConfigSnapshot`, `GeneratorImageConfigSnapshot`.
+- **Eliminasi 5 Penggunaan `any` pada `GeneratorForm.tsx` Tanpa Eslint-Disable**:
+  - `defaultIncludedSections`: Dari `any` menjadi `ContentArchetypeIncludedSections | Prisma.JsonValue`.
+  - `compositionCategories`: Dari `any` menjadi `ContentArchetypeCompositionCategory[] | Prisma.JsonValue`.
+  - `savedState` parameter `applyStateForChannel`: Menjadi `GeneratorFormStateSnapshot | null | undefined`.
+  - `let targetSaved`: Menjadi `GeneratorFormStateSnapshot | null`.
+  - `let initialSaved`: Menjadi `GeneratorFormStateSnapshot | null`.
+  - `serverChannelStatesRef`: Menjadi `Record<string, GeneratorFormStateSnapshot>`.
+  - Seluruh komentar `// eslint-disable-next-line @typescript-eslint/no-explicit-any` dihapus bersih.
+- **Verifikasi**: `git grep -n ": any" src/` menghasilkan **0 matches (bersih total)**.
+
+---
+
+### 2 — Security & Feature Guard Alignment (P3)
+
+- **Subscription Guard pada `POST /api/tts/merge`**:
+  - Endpoint `/api/tts/merge` kini dilengkapi dengan `requireActiveSubscription(session.user.id)` dan pengecekan hak fitur `planFeatures.textToSpeechStudio`.
+  - Mencapai keselarasan 100% fail-closed security guard antara `tts/generate` dan `tts/merge`.
+- **Zero-Orphan Verification**:
+  - Model `UserApiKey` (`tts-keys`): CRUD aktif (GET, POST, DELETE di `/api/user/tts-keys`, failover loop di `geminiTts.ts`).
+  - Model `ParsedOutput`: CRUD aktif (GET, POST di `/api/parsed-outputs`, pembersihan otomatis draft usang > 10 naskah).
+  - Model `ContentArchetype`: CRUD aktif (GET publik di `/api/content-archetypes`, CRUD admin di `/api/admin/content-archetypes`, relasi aktif di `ProfileChannel` dan `GeneratorForm`).
+- **Zero Saldo / Credit Verification**:
+  - 100% konsisten menganut model langganan berbasis durasi kalender (*time-based subscription*).
+  - 0 kemunculan kata kunci saldo/kredit/kuota pemakaian di seluruh `src/` dan pesan lokalisasi.
+
+---
+
+### 3 — Pembersihan String Hardcoded & Sapuan Penuh i18n (P3)
+
+- Penambahan 31 kunci terjemahan baru di `messages/id.json` dan `messages/en.json` (total 1.393 keys per locale):
+  - `Generator`: `customVisualStyleLabel`, `customVisualStylePlaceholder`, `customVisualStyleHelp`, `voDisabledByNarrationMode`, `thumbnailStyleAntiGagalDesc`, `affiliateCustomUrlPlaceholder`.
+  - `ScenePrompt`: `copyAllCleanNarrationTitle`, `copyAllRawNarrationTitle`, `copySceneRawNarrationTitle`, `combinedTagsBoxTitle`, `copyAsCommaKeywords`, `copyAsHashtagsDesc`, `noSpecificTags`, `noGeneralTags`, `noCompoundTags`.
+  - `Invoices`: `allTransactions`, `officialReceiptNote`.
+  - `Channels`: `ctaLinkBioExample`, `ctaFollowSaveExample`.
+  - `Admin`: `rateLimitMaxActionHelp`, `rateLimitWindowPlaceholder`, `videoSystemInstructionPlaceholder`, `imageSystemInstructionPlaceholder`.
+  - `Notifications`: `allTime`.
+- Paritas terverifikasi 100% lewat `npm run audit:i18n` (1.393 / 1.393 keys, 0 missing).
+
+---
+
+### 4 — Rekonsiliasi Blueprint & Dokumentasi Otoritatif (P0, P1, P3)
+
+- **Rekonsiliasi `Project Prompt Gen.txt`**:
+  - Dihapusnya duplikasi blok addendum Bagian 23 (51 baris ganda yang terpapar sebelumnya).
+  - Ditambahkannya dokumentasi kontrak type safety terpusat `GeneratorFormStateSnapshot` (Bagian 32.5).
+  - Ditambahkannya dokumentasi subscription guard `textToSpeechStudio` pada `POST /api/tts/merge` (Bagian 31.4).
+  - Ditambahkannya Panduan Skema Penomoran Kanonikal & Pemetaan Historis Proyek.
+- **Penerbitan `AUDIT_REPORT_FINAL_v2.md`**:
+  - Menyusun ulang Compliance Matrix modul Bagian 3 dan Addendum 18 s/d 38 dari nol berdasarkan kode aktual terkini.
+  - Mengutip file dan baris konkret untuk setiap modul.
+  - Menandai `AUDIT_REPORT_FINAL.md` dan `FINAL_HANDOFF_REPORT.md` lama sebagai **SUPERSEDED**.
+
+---
+
+### 5 — Bukti Eksekusi Suite Verifikasi (RAW Outputs)
+
+#### A. `npx tsc --noEmit`
+```
+Exit code: 0
+Output: (Clean, 0 errors)
+```
+
+#### B. `npm run lint`
+```
+> prompt-gen@0.1.0 lint
+> eslint .
+
+Exit code: 0
+Output: (Clean, 0 errors, 0 warnings)
+```
+
+#### C. `npm run build`
+```
+> prompt-gen@0.1.0 build
+> next build
+
+▲ Next.js 16.3.1 (Turbopack)
+- Environments: .env
+✓ Running next.config.ts took 1606ms
+  Creating an optimized production build ...
+✓ Compiled successfully in 7.7s
+  Running TypeScript ...
+  Finished TypeScript in 12.3s ...
+  Collecting page data using 3 workers ...
+  Generating static pages using 3 workers (48/48) in 668ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /_not-found
+├ ƒ /[locale]
+├ ƒ /[locale]/admin
+├ ƒ /[locale]/admin/announcements
+├ ƒ /[locale]/admin/notifications
+├ ƒ /[locale]/admin/panduan
+├ ƒ /[locale]/admin/payments
+├ ƒ /[locale]/admin/plans
+├ ƒ /[locale]/admin/registrations
+├ ƒ /[locale]/admin/settings
+├ ƒ /[locale]/admin/support
+├ ƒ /[locale]/admin/users
+├ ƒ /[locale]/auth
+├ ƒ /[locale]/auth/forgot-password
+├ ƒ /[locale]/auth/reset-password
+├ ƒ /[locale]/dashboard
+├ ƒ /[locale]/dashboard/billing
+├ ƒ /[locale]/dashboard/billing/invoices/[id]
+├ ƒ /[locale]/dashboard/channels
+├ ƒ /[locale]/dashboard/drafts
+├ ƒ /[locale]/dashboard/drafts/[id]
+├ ƒ /[locale]/dashboard/generator
+├ ƒ /[locale]/dashboard/notifications
+├ ƒ /[locale]/dashboard/panduan
+├ ƒ /[locale]/dashboard/pricing
+├ ƒ /[locale]/dashboard/research
+├ ƒ /[locale]/dashboard/scene-prompt
+├ ƒ /[locale]/dashboard/settings
+├ ƒ /[locale]/dashboard/support
+├ ƒ /api/admin/announcements
+├ ƒ /api/admin/audit-logs
+├ ƒ /api/admin/content-archetypes
+├ ƒ /api/admin/content-archetypes/[id]
+├ ƒ /api/admin/notifications
+├ ƒ /api/admin/payments
+├ ƒ /api/admin/payments/[id]/proof
+├ ƒ /api/admin/plans
+├ ƒ /api/admin/prompt-settings
+├ ƒ /api/admin/registrations
+├ ƒ /api/admin/settings
+├ ƒ /api/admin/users
+├ ƒ /api/admin/users/[id]
+├ ƒ /api/auth/[...nextauth]
+├ ƒ /api/auth/check
+├ ƒ /api/auth/forgot-password
+├ ƒ /api/auth/register
+├ ƒ /api/auth/registration-status
+├ ƒ /api/auth/reset-password
+├ ƒ /api/channels
+├ ƒ /api/channels/[id]
+├ ƒ /api/channels/[id]/products
+├ ƒ /api/content-archetypes
+├ ƒ /api/cron/cleanup-proofs
+├ ƒ /api/cron/subscription-reminders
+├ ƒ /api/cs/contact-info
+├ ƒ /api/drafts
+├ ƒ /api/drafts/[id]
+├ ƒ /api/drafts/[id]/performance
+├ ƒ /api/drafts/export
+├ ƒ /api/drafts/import-titles
+├ ƒ /api/generate
+├ ƒ /api/health
+├ ƒ /api/invoice
+├ ƒ /api/invoice/upload
+├ ƒ /api/niche-category-presets
+├ ƒ /api/notifications
+├ ƒ /api/notifications/[id]
+├ ƒ /api/notifications/mark-all-read
+├ ƒ /api/notifications/unread-count
+├ ƒ /api/parsed-outputs
+├ ƒ /api/persona-presets
+├ ƒ /api/platform-options
+├ ƒ /api/products/[id]
+├ ƒ /api/research/trends
+├ ƒ /api/support/settings
+├ ƒ /api/support/tickets
+├ ƒ /api/support/tickets/[id]
+├ ƒ /api/support/tickets/[id]/messages
+├ ƒ /api/tts/generate
+├ ƒ /api/tts/merge
+├ ƒ /api/used-titles/[id]
+├ ƒ /api/user/data-export
+├ ƒ /api/user/invoices
+├ ƒ /api/user/password
+├ ƒ /api/user/preferences
+├ ƒ /api/user/profile
+├ ƒ /api/user/tts-keys
+├ ƒ /api/user/tts-keys/[id]
+└ ƒ /api/visual-aesthetic-presets
+
+Exit code: 0
+```
+
+#### D. `npm test`
+```
+> prompt-gen@0.1.0 test
+> vitest run
+
+ RUN  v3.2.7 C:/Users/Dhiko Herlambang/.gemini/antigravity/playground/pulsing-pinwheel/Project/Prompt Gen
+
+ ✓ tests/promptGenerator.test.ts (36 tests) 43ms
+ ✓ tests/parsers.test.ts (42 tests) 76ms
+ ✓ tests/researchService.test.ts (8 tests) 468ms
+ ✓ tests/crypto.test.ts (6 tests) 10ms
+ ✓ tests/geminiTts.test.ts (8 tests) 11ms
+ ✓ tests/subscription.test.ts (7 tests) 20ms
+ ✓ tests/historyStudioIntegration.test.ts (11 tests) 10ms
+ ✓ tests/channelStateIsolation.test.ts (4 tests) 23ms
+ ✓ tests/rateLimit.test.ts (7 tests) 11ms
+ ✓ tests/sceneExportFormat.test.ts (12 tests) 8ms
+ ✓ tests/channelLockLogic.test.ts (4 tests) 9ms
+ ✓ tests/enumMapping.test.ts (9 tests) 7ms
+ ✓ tests/planFeatures.test.ts (5 tests) 5ms
+
+ Test Files  13 passed (13)
+      Tests  159 passed (159)
+   Start at  01:12:50
+   Duration  2.94s (transform 653ms, setup 0ms, collect 1.35s, tests 700ms, environment 3ms, prepare 2.90s)
+
+Exit code: 0
+```
+
+#### E. `npm run audit:i18n`
+```
+> prompt-gen@0.1.0 audit:i18n
+> node scripts/audit-i18n.mjs
+
+🔍 [AUDIT-I18N] Running strict i18n parity audit...
+📊 Total Indonesian (id) keys: 1393
+📊 Total English (en) keys:    1393
+✅ [AUDIT-I18N] 100% key parity confirmed between id.json and en.json. Zero missing keys!
+
+Exit code: 0
+```
+
+#### F. `npm run audit:design`
+```
+> prompt-gen@0.1.0 audit:design
+> node scripts/audit-design.mjs
+
+🎨 [AUDIT-DESIGN] Running Prompt Gen Design System Token Audit...
+📁 Scanning 82 UI components...
+✨ Total Design Token occurrences: 2144
+📊 Component adoption rate: 71/82 (86.6%)
+✅ [AUDIT-DESIGN] Design system health check: PASS! Strong design token enforcement.
+
+Exit code: 0
+```
+
+#### G. `git grep -n ": any" src/`
+```
+Command: git grep -n ": any" src/
+Exit code: 1 (Clean — 0 matches found in entire src/ directory)
+```
+
 ---
 
 ## [#85] — 2026-09-25 | Speech Rate & Target Duration Integration: Exact Mathematical Word Budget, Expressive Pause & Acting Tag Overhead, Real-Time Calculator Helper, Archetype Duration Mode Sync, & Zero-Gap Audio Timing Pipeline

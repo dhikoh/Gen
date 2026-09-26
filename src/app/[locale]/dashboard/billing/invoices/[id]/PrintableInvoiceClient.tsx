@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { getPaymentStatusBadge } from "@/lib/enumMapping";
 
 interface InvoiceData {
@@ -31,6 +32,7 @@ export default function PrintableInvoiceClient({
   invoice: InvoiceData;
   locale: string;
 }) {
+  const t = useTranslations("Invoices");
   const statusBadge = getPaymentStatusBadge(invoice.status);
 
   const handlePrint = () => {
@@ -184,7 +186,7 @@ export default function PrintableInvoiceClient({
 
         {/* Footer Note */}
         <div className="mt-12 pt-6 border-t pg-border text-center text-xs pg-text-muted">
-          <p>Kuitansi ini dibuat secara otomatis oleh sistem Prompt Gen dan sah tanpa tanda tangan basah.</p>
+          <p>{t("officialReceiptNote")}</p>
           <p className="mt-1">Pertanyaan seputar tagihan? Hubungi layanan bantuan di menu Pusat Dukungan.</p>
         </div>
       </div>

@@ -176,7 +176,9 @@
     "pendingBadgeOver": "Menunggu > {hours} Jam",
     "rejectedEscalationTitle": "Pembayaran Tagihan Ditolak",
     "rejectedReasonPrefix": "Alasan Penolakan:",
-    "contactCsBtn": "Hubungi CS via WhatsApp"
+    "contactCsBtn": "Hubungi CS via WhatsApp",
+    "allTransactions": "Semua Transaksi",
+    "officialReceiptNote": "Kuitansi ini dibuat secara otomatis oleh sistem Prompt Gen dan sah tanpa tanda tangan basah."
   },
   "Channels": {
     "title": "Pengaturan Channel",
@@ -242,7 +244,9 @@
     "speechRateFast": "0.30 s/kata (Cepat)",
     "speechRateNormal": "0.35 s/kata (Normal / Standar)",
     "speechRateRelaxed": "0.40 s/kata (Santai)",
-    "speechRateSlow": "0.50 s/kata (Lambat)"
+    "speechRateSlow": "0.50 s/kata (Lambat)",
+    "ctaLinkBioExample": "e.g. Klik link di bio untuk info selengkapnya!",
+    "ctaFollowSaveExample": "e.g. Follow & Simpan video ini agar tidak lupa!"
   },
   "Generator": {
     "pageTitle": "Studio Generator",
@@ -426,7 +430,20 @@
     "audioBeatSyncLabel": "Visual Beat Sync",
     "audioBeatSyncDesc": "Instruksikan pemotongan klip selaras dengan irama ketukan musik BGM",
     "youtubeLongStudioLocked": "Fitur YouTube Long-Form Studio terkunci untuk paket Anda. Silakan upgrade ke paket PRO atau ULTRA.",
-    "youtubeLongAutoPresetNotice": "Mode YouTube Long-Form aktif: Rasio aspek otomatis 16:9 widescreen, durasi bab tematik, dan thumbnail horizontal."
+    "youtubeLongAutoPresetNotice": "Mode YouTube Long-Form aktif: Rasio aspek otomatis 16:9 widescreen, durasi bab tematik, dan thumbnail horizontal.",
+    "removeKeywordTitle": "Hapus keyword",
+    "allProductsOption": "-- Semua Produk / Tanpa Produk Spesifik --",
+    "customRolePOVTitle": "Persona / Role AI Khusus Video Ini",
+    "customRolePOVOverrideBadge": "Prioritas #1 Override",
+    "customRolePOVPlaceholder": "Tulis persona khusus untuk video ini... Contoh: Dokter Spesialis Anak yang ramah dan menenangkan orang tua, atau Mekanik Senior dengan tips to-the-point...",
+    "customRolePOVFootnote": "💡 Persona ini hanya berlaku untuk video ini tanpa mengubah profil permanen channel.",
+    "channelPersonaFallback": "ℹ️ Mengikuti Persona Channel:",
+    "customVisualStylePlaceholder": "Contoh: semi-realistic digital illustration, gouache-like painterly texture, bold soft ink outlines, warm muted color palette, gentle directional lighting...",
+    "voDisabledByNarrationMode": "Voice Over dinonaktifkan oleh Mode Narasi yang aktif (Diegetic / Silent)",
+    "thumbnailStyleAntiGagalDesc": "Template 1-3 kata huruf kapital punchy dengan contrast tinggi & curiosity gap.",
+    "affiliateCustomUrlPlaceholder": "Base URL pencarian (contoh: https://bukalapak.com/products?search=)",
+    "customVisualStyleLabel": "✏️ Deskripsikan Gaya Visual Custom",
+    "customVisualStyleHelp": "Deskripsi ini akan diinjeksi langsung ke panduan Visual Prompt setiap scene. Tulis sedetail mungkin — semakin presisi, semakin konsisten gaya visual yang dihasilkan AI."
   },
   "Drafts": {
     "pageTitleTab": "Riwayat Prompt",
@@ -744,7 +761,11 @@
     "bannedWordsHelp": "Pisahkan dengan tanda koma (,). Input prompt yang mengandung kata ini akan ditolak.",
     "promptUpdateSuccess": "Pengaturan prompt berhasil diperbarui!",
     "tabArchetypes": "Model Konten (Archetypes)",
-    "tabAuditLogs": "Riwayat Audit"
+    "tabAuditLogs": "Riwayat Audit",
+    "rateLimitMaxActionHelp": "Jumlah maksimal aksi yang diizinkan per user/IP dalam satu jendela waktu.",
+    "rateLimitWindowPlaceholder": "Contoh: 60000 = 1 menit.",
+    "videoSystemInstructionPlaceholder": "Tambahkan instruksi sistem tambahan untuk Video Master Prompt generator...",
+    "imageSystemInstructionPlaceholder": "Tambahkan instruksi sistem tambahan untuk Image Prompt generator..."
   },
   "API": {
     "unauthorized": "Unauthorized",
@@ -869,7 +890,8 @@
     "filterSupportReplied": "Jawaban Tiket Support",
     "filterExpiringSoon": "Langganan Segera Expired",
     "filterExpired": "Langganan Expired",
-    "filterSystemAnnouncement": "Pengumuman Sistem"
+    "filterSystemAnnouncement": "Pengumuman Sistem",
+    "allTime": "Semua Waktu"
   },
   "Guide": {
     "userTitle": "Panduan Pengguna Prompt Gen",
@@ -1120,9 +1142,17 @@
     "ttsNoMatchingVoices": "Tidak ada suara yang cocok dengan filter.",
     "ttsGroupFavorites": "⭐ Suara Favorit",
     "ttsGroupAll": "🎙️ Semua Suara",
-    "ttsRecommendedForChannel": "Cocok untuk niche channel Anda"
+    "ttsRecommendedForChannel": "Cocok untuk niche channel Anda",
+    "copyAllCleanNarrationTitle": "Salin semua narasi bersih (siap TTS, tanpa instruksi/tanda kutip)",
+    "copyAllRawNarrationTitle": "Salin semua narasi mentah / raw (dengan catatan sutradara & tanda kutip untuk pertimbangan)",
+    "copySceneRawNarrationTitle": "Salin narasi mentah (dengan catatan sutradara)",
+    "combinedTagsBoxTitle": "Gabungkan Tier 1 + Tier 2 + Tier 3 menjadi format koma tanpa #, otomatis dibatasi maksimal 500 karakter untuk Tag Box YouTube Studio",
+    "copyAsCommaKeywords": "Salin sebagai keyword dengan koma untuk Tag Box YouTube Studio",
+    "copyAsHashtagsDesc": "Salin sebagai #Hashtag tanpa spasi untuk Deskripsi Video",
+    "noSpecificTags": "Tidak ada tag spesifik",
+    "noGeneralTags": "Tidak ada tag umum",
+    "noCompoundTags": "Tidak ada tag majemuk"
   },
-
   "ForgotPassword": {
     "title": "Lupa Password?",
     "subtitle": "Masukkan email atau username Anda. Kami akan mengirimkan tautan untuk mengatur ulang password Anda.",

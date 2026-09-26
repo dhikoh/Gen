@@ -351,7 +351,7 @@ export default function EditChannelClient({
               name="cta1"
               value={formData.cta1}
               onChange={handleChange}
-              placeholder="e.g. Klik link di bio untuk info selengkapnya!"
+              placeholder={t("ctaLinkBioExample")}
               className="w-full p-2.5 pg-surface-dim border pg-border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none pg-text-heading"
             />
           </div>
@@ -365,7 +365,7 @@ export default function EditChannelClient({
               name="cta2"
               value={formData.cta2}
               onChange={handleChange}
-              placeholder="e.g. Follow & Simpan video ini agar tidak lupa!"
+              placeholder={t("ctaFollowSaveExample")}
               className="w-full p-2.5 pg-surface-dim border pg-border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none pg-text-heading"
             />
           </div>
