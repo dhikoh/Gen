@@ -517,25 +517,25 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
 
  // ── Batch Export Functions (Fitur 2 & 3) ──
  const handleCopyOverlayVisual = useCallback((scene: Scene) => {
-   const text = buildOverlayVisualCopyText(scene as SceneForExport);
+   const text = buildOverlayVisualCopyText(scene as SceneForExport, locale);
    if (!text) { toast.error(t("generalError")); return; }
    navigator.clipboard.writeText(text).then(() => {
      setCopiedId(`ov-vis-${scene.id}`);
      setTimeout(() => setCopiedId(null), 2000);
      toast.success(t("copyOverlayVisualSuccess"));
    });
- }, [t]);
+ }, [t, locale]);
 
  const handleCopyBatchExport = useCallback(() => {
    const selected = scenes.filter(s => selectedSceneIds.has(s.id));
    if (!selected.length) { toast.error(t("selectAtLeastOneScene")); return; }
-   const text = buildBatchExportText(selected as SceneForExport[], batchFilter);
+   const text = buildBatchExportText(selected as SceneForExport[], batchFilter, locale);
    navigator.clipboard.writeText(text).then(() => {
      setCopiedId("batch-export");
      setTimeout(() => setCopiedId(null), 2000);
      toast.success(t("batchExportCopied"));
    });
- }, [scenes, selectedSceneIds, batchFilter, t]);
+ }, [scenes, selectedSceneIds, batchFilter, t, locale]);
 
  const toggleAllScenes = useCallback(() => {
    if (selectedSceneIds.size === scenes.length) {
@@ -1059,7 +1059,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
  if (tab === "htmlBlog" && !htmlBlog) return null;
  return (
  <button key={tab} onClick={() => setActiveTab(tab)} className={btn(activeTab === tab)}>
- {tab === "scenes" ? `🎬 ${t("sceneViewerTab")} (${scenes.length})` : tab === "thumbnail" ? `🖼️ ${t("thumbnailTab")}` : tab === "seo2026" ? `🎯 SEO 2026` : tab === "htmlBlog" ? `📝 HTML Blog` : tab === "voiceStudio" ? `🎙️ ${t("voiceStudioTab")}` : `📱 ${t("platformTab")}`}
+ {tab === "scenes" ? `🎬 ${t("sceneViewerTab")} (${scenes.length})` : tab === "thumbnail" ? `🖼️ ${t("thumbnailTab")}` : tab === "seo2026" ? t("seo2026Tab") : tab === "htmlBlog" ? t("htmlBlogTab") : tab === "voiceStudio" ? `🎙️ ${t("voiceStudioTab")}` : `📱 ${t("platformTab")}`}
  </button>
  );
  })}
@@ -1068,9 +1068,9 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
  {affiliateRecs.length > 0 && (
  <div className="glass-panel rounded-xl p-5 border border-emerald-200 dark:border-emerald-800 shadow-sm">
  <h2 className="text-sm font-bold text-emerald-700 dark:text-emerald-300 mb-3 flex items-center gap-2">
- 🛒 Rekomendasi Produk Affiliate
+ 🛒 {t("affiliateRecommendationsTitle")}
  <span className="text-[10px] font-normal bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-full">
- {affiliateRecs.length} produk
+ {affiliateRecs.length} {t("productsCount")}
  </span>
  </h2>
  <div className="space-y-4">
@@ -1143,7 +1143,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
          </button>
        )}
        {/* Copy */}
-       <button onClick={() => copy(`t-${i}`, title)} className="text-[10px] text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">{copiedId === `t-${i}` ? "✓" : "Copy"}</button>
+       <button onClick={() => copy(`t-${i}`, title)} className="text-[10px] text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">{copiedId === `t-${i}` ? "✓" : t("copy")}</button>
      </div>
      {/* Save to Used Titles Directory — explicit separate action */}
      {isMarked ? (
@@ -1288,7 +1288,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
               className="inline-flex items-center text-xs font-semibold h-9 px-3 rounded-r-lg bg-[var(--pg-brand-hover)] hover:bg-[#d96500] text-white border-l border-white/20 transition-all active:scale-95 shadow-sm"
               title={t("copyAllRawNarrationTitle")}
             >
-              {copiedId === "all-narration-raw" ? "✓ Raw" : "Raw"}
+              {copiedId === "all-narration-raw" ? "✓ " + t("raw") : t("raw")}
             </button>
           </div>
         </div>
@@ -1481,7 +1481,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
                     className="text-xs px-2 py-0.5 rounded border pg-border pg-surface-dim pg-text-sub hover:pg-text-heading transition-colors"
                     title={t("copySceneRawNarrationTitle")}
                   >
-                    {copiedId === `nar-raw-${scene.id}` ? "✓ Raw" : "Raw"}
+                    {copiedId === `nar-raw-${scene.id}` ? "✓ " + t("raw") : t("raw")}
                   </button>
                 )}
                 <button
@@ -1537,10 +1537,10 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
       {/* Panduan Suara / Voice Guidelines */}
       {scene.voiceGuidelines && (
         <div className="pg-surface-dim border pg-border/60 rounded-xl p-3 text-xs pg-text-sub space-y-1">
-          {scene.voiceGuidelines.sampleContext && <p>📍 <span className="font-medium pg-text-heading">Context:</span> {scene.voiceGuidelines.sampleContext}</p>}
-          {scene.voiceGuidelines.directorsNote && <p>🎬 <span className="font-medium pg-text-heading">Note:</span> {scene.voiceGuidelines.directorsNote}</p>}
-          {scene.voiceGuidelines.traits && <p>🎙️ <span className="font-medium pg-text-heading">Traits:</span> {scene.voiceGuidelines.traits}</p>}
-          {scene.voiceGuidelines.sync && <p>⏱️ <span className="font-medium pg-text-heading">Sync:</span> {scene.voiceGuidelines.sync}</p>}
+          {scene.voiceGuidelines.sampleContext && <p>📍 <span className="font-medium pg-text-heading">{t("vgContext")}</span> {scene.voiceGuidelines.sampleContext}</p>}
+          {scene.voiceGuidelines.directorsNote && <p>🎬 <span className="font-medium pg-text-heading">{t("vgNote")}</span> {scene.voiceGuidelines.directorsNote}</p>}
+          {scene.voiceGuidelines.traits && <p>🎙️ <span className="font-medium pg-text-heading">{t("vgTraits")}</span> {scene.voiceGuidelines.traits}</p>}
+          {scene.voiceGuidelines.sync && <p>⏱️ <span className="font-medium pg-text-heading">{t("vgSync")}</span> {scene.voiceGuidelines.sync}</p>}
         </div>
       )}
 
@@ -1560,7 +1560,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
                     durasi: scene.durasi,
                     estimatedDurationSec: scene.estimatedDurationSec,
                     sceneContext: scene.sceneContext,
-                  });
+                  }, { locale });
                   copy(`vis-full-${scene.id}`, fullVisual);
                 }}
                 className="text-xs px-2.5 py-1 font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white transition-colors flex items-center gap-1"
@@ -1717,15 +1717,15 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
                 <div className="space-y-1.5 text-xs pg-text-sub flex-1 min-w-[200px]">
                   <div className="flex items-center gap-1.5 text-[11px]">
                     <span className="text-emerald-500 font-bold">✓</span>
-                    <span><strong>Panjang Teks:</strong> {wordCount} kata ({wordCount <= 3 ? "Sangat optimal & tidak menutupi visual" : "Potensi kepenuhan di layar HP"})</span>
+                    <span><strong>{t("shrinkWordLength")}:</strong> {wordCount} {t("wordsUnit")} ({wordCount <= 3 ? t("shrinkOptimal") : t("shrinkTooLong")})</span>
                   </div>
                   <div className="flex items-center gap-1.5 text-[11px]">
                     <span className="text-emerald-500 font-bold">✓</span>
-                    <span><strong>Framing Wajah:</strong> 60–80% frame emosional + 1/3 negative space bersih</span>
+                    <span><strong>{t("shrinkFraming")}:</strong> {t("shrinkFramingDesc")}</span>
                   </div>
                   <div className="flex items-center gap-1.5 text-[11px]">
                     <span className="text-emerald-500 font-bold">✓</span>
-                    <span><strong>A/B Testing Ready:</strong> Formula curiosity gap tinggi memicu Click-Through Rate (CTR)</span>
+                    <span><strong>{t("shrinkAbTesting")}:</strong> {t("shrinkAbTestingDesc")}</span>
                   </div>
                 </div>
               </div>
@@ -1993,13 +1993,13 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
           <div>
             <div className="flex items-center gap-2">
               <span className="text-2xl">🎯</span>
-              <h2 className="text-lg font-bold pg-text-heading">YouTube 2026 SEO & Pre-Flight Studio</h2>
+              <h2 className="text-lg font-bold pg-text-heading">{t("seoStudioTitle")}</h2>
               <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">
                 Algorithm Ready
               </span>
             </div>
             <p className="text-xs pg-text-muted mt-1">
-              Arsitektur Tag 3-Tier, Deskripsi Berempati, & Checklist Anti-Gagal sesuai Panduan Algoritma YouTube 2026.
+              {t("seoStudioSubtitle")}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 shrink-0">
@@ -2017,31 +2017,31 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
                   return;
                 }
                 copy("all-yt-tags", tags500);
-                toast.success("Tag YouTube Studio disalin (Maks 500 Char)!");
+                toast.success(t("ytStudioTagsCopiedToast"));
               }}
               className="px-3.5 py-2 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-medium text-xs transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
               title={t("combinedTagsBoxTitle")}
             >
               <span>⚡</span>
-              {copiedId === "all-yt-tags" ? "✓ Tags Studio Disalin" : "Salin Tag Studio (500 Char)"}
+              {copiedId === "all-yt-tags" ? "✓ " + t("ytStudioTagsCopied") : t("copyYtStudioTags")}
             </button>
             <button
               type="button"
               onClick={() => {
                 const fullSeo = [
                   `=== YOUTUBE 2026 SEO METADATA ===`,
-                  `[TAG SPESIFIK]\n${threeTierSeo.tagSpesifik}`,
-                  `\n[TAG UMUM]\n${threeTierSeo.tagUmum}`,
-                  `\n[TAG MAJEMUK / LONG-TAIL]\n${threeTierSeo.tagMajemuk}`,
-                  `\n[DESKRIPSI YOUTUBE (SEO & EMPATI)]\n${threeTierSeo.deskripsi}`,
-                  `\n[CHECKLIST PRA-UPLOAD]\n` + threeTierSeo.checklist.map((c, i) => `${i + 1}. ${c}`).join("\n"),
+                  locale === "en" ? `[SPECIFIC TAGS]\n${threeTierSeo.tagSpesifik}` : `[TAG SPESIFIK]\n${threeTierSeo.tagSpesifik}`,
+                  locale === "en" ? `\n[GENERAL TAGS]\n${threeTierSeo.tagUmum}` : `\n[TAG UMUM]\n${threeTierSeo.tagUmum}`,
+                  locale === "en" ? `\n[LONG-TAIL TAGS]\n${threeTierSeo.tagMajemuk}` : `\n[TAG MAJEMUK / LONG-TAIL]\n${threeTierSeo.tagMajemuk}`,
+                  locale === "en" ? `\n[YOUTUBE DESCRIPTION (SEO & EMPATHY)]\n${threeTierSeo.deskripsi}` : `\n[DESKRIPSI YOUTUBE (SEO & EMPATI)]\n${threeTierSeo.deskripsi}`,
+                  locale === "en" ? `\n[PRE-UPLOAD CHECKLIST]\n` + threeTierSeo.checklist.map((c, i) => `${i + 1}. ${c}`).join("\n") : `\n[CHECKLIST PRA-UPLOAD]\n` + threeTierSeo.checklist.map((c, i) => `${i + 1}. ${c}`).join("\n"),
                 ].join("\n");
                 copy("all-seo", fullSeo);
               }}
               className="px-3.5 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium text-xs transition-colors shadow-sm flex items-center gap-1.5 cursor-pointer"
             >
               <span>📋</span>
-              {copiedId === "all-seo" ? "✓ Berhasil Disalin" : "Salin Semua Metadata SEO"}
+              {copiedId === "all-seo" ? "✓ " + t("copied") : t("copyAllSeoMetadata")}
             </button>
           </div>
         </div>
@@ -2055,7 +2055,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0"></span>
               <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
-                Tier 1: Tag Spesifik
+                {t("tier1Title")}
               </span>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
@@ -2065,7 +2065,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
                   const val = formatAsYouTubeTags(threeTierSeo.tagSpesifik);
                   if (val) {
                     copy("tag-spec-yt", val);
-                    toast.success("Tags spesifik disalin untuk YouTube Studio!");
+                    toast.success(t("specificTagsCopiedToast"));
                   }
                 }}
                 className="text-[11px] font-medium px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 cursor-pointer transition-colors"
@@ -2079,7 +2079,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
                   const val = formatAsHashtags(threeTierSeo.tagSpesifik);
                   if (val) {
                     copy("tag-spec-hash", val);
-                    toast.success("Hashtag deskripsi disalin!");
+                    toast.success(t("descHashtagsCopiedToast"));
                   }
                 }}
                 className="text-[11px] font-medium px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 cursor-pointer transition-colors"
@@ -2090,7 +2090,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
             </div>
           </div>
           <p className="text-[11px] pg-text-muted leading-relaxed">
-            Brand / Seri / Entitas Utama topik untuk membedakan video secara tepat di Knowledge Graph YouTube.
+            {t("tier1Desc")}
           </p>
           <div className="pg-surface-dim rounded-lg p-3 text-xs font-mono pg-text-sub border border-slate-200/40 dark:border-slate-800/40 min-h-[60px] flex flex-wrap gap-1.5 items-start">
             {threeTierSeo.tagSpesifik ? (
@@ -2115,7 +2115,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-purple-500 shrink-0"></span>
               <span className="text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">
-                Tier 2: Tag Umum
+                {t("tier2Title")}
               </span>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
@@ -2125,7 +2125,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
                   const val = formatAsYouTubeTags(threeTierSeo.tagUmum);
                   if (val) {
                     copy("tag-gen-yt", val);
-                    toast.success("Tags umum disalin untuk YouTube Studio!");
+                    toast.success(t("generalTagsCopiedToast"));
                   }
                 }}
                 className="text-[11px] font-medium px-2 py-0.5 rounded bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/50 cursor-pointer transition-colors"
@@ -2139,7 +2139,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
                   const val = formatAsHashtags(threeTierSeo.tagUmum);
                   if (val) {
                     copy("tag-gen-hash", val);
-                    toast.success("Hashtag deskripsi disalin!");
+                    toast.success(t("descHashtagsCopiedToast"));
                   }
                 }}
                 className="text-[11px] font-medium px-2 py-0.5 rounded bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/50 cursor-pointer transition-colors"
@@ -2150,7 +2150,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
             </div>
           </div>
           <p className="text-[11px] pg-text-muted leading-relaxed">
-            Kategori, Niche & Industri luas untuk menempatkan video dalam klaster rekomendasi penonton relevan.
+            {t("tier2Desc")}
           </p>
           <div className="pg-surface-dim rounded-lg p-3 text-xs font-mono pg-text-sub border border-slate-200/40 dark:border-slate-800/40 min-h-[60px] flex flex-wrap gap-1.5 items-start">
             {threeTierSeo.tagUmum ? (
@@ -2175,7 +2175,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></span>
               <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                Tier 3: Tag Majemuk (Long-Tail)
+                {t("tier3Title")}
               </span>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
@@ -2185,7 +2185,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
                   const val = formatAsYouTubeTags(threeTierSeo.tagMajemuk);
                   if (val) {
                     copy("tag-long-yt", val);
-                    toast.success("Tags long-tail disalin untuk YouTube Studio!");
+                    toast.success(t("longTailTagsCopiedToast"));
                   }
                 }}
                 className="text-[11px] font-medium px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 cursor-pointer transition-colors"
@@ -2199,7 +2199,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
                   const val = formatAsHashtags(threeTierSeo.tagMajemuk);
                   if (val) {
                     copy("tag-long-hash", val);
-                    toast.success("Hashtag deskripsi disalin!");
+                    toast.success(t("descHashtagsCopiedToast"));
                   }
                 }}
                 className="text-[11px] font-medium px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 cursor-pointer transition-colors"
@@ -2210,7 +2210,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
             </div>
           </div>
           <p className="text-[11px] pg-text-muted leading-relaxed">
-            Frasa pencarian alami (3-5 kata) target penonton dengan intensi tinggi untuk mendominasi YouTube Search.
+            {t("tier3Desc")}
           </p>
           <div className="pg-surface-dim rounded-lg p-3 text-xs font-mono pg-text-sub border border-slate-200/40 dark:border-slate-800/40 min-h-[60px] flex flex-wrap gap-1.5 items-start">
             {threeTierSeo.tagMajemuk ? (
@@ -2236,9 +2236,9 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
           <div className="flex items-center gap-2">
             <span className="text-lg">📝</span>
             <div>
-              <h3 className="text-sm font-bold pg-text-heading">Deskripsi Video (SEO Naratif & Empati)</h3>
+              <h3 className="text-sm font-bold pg-text-heading">{t("seoVideoDescTitle")}</h3>
               <p className="text-[11px] pg-text-muted">
-                Didesain dengan pendekatan narasi ramah semantic AI YouTube (Hook Masalah & Empati Penonton).
+                {t("seoVideoDescSubtitle")}
               </p>
             </div>
           </div>
@@ -2248,11 +2248,11 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
             className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-medium pg-text-sub transition-colors flex items-center gap-1.5 cursor-pointer"
           >
             <span>📋</span>
-            {copiedId === "seo-desc" ? "✓ Tersalin" : "Salin Deskripsi"}
+            {copiedId === "seo-desc" ? "✓ " + t("copied") : t("copyDescription")}
           </button>
         </div>
         <div className="pg-surface-dim rounded-lg p-4 text-xs pg-text-sub whitespace-pre-wrap leading-relaxed border border-slate-200/50 dark:border-slate-800/50 max-h-80 overflow-y-auto custom-scrollbar font-sans">
-          {threeTierSeo.deskripsi || <span className="text-slate-400 italic">Deskripsi belum tersedia</span>}
+          {threeTierSeo.deskripsi || <span className="text-slate-400 italic">{t("descNotAvailable")}</span>}
         </div>
       </div>
 
@@ -2262,14 +2262,14 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
           <div className="flex items-center gap-2">
             <span className="text-lg">🛫</span>
             <div>
-              <h3 className="text-sm font-bold pg-text-heading">Checklist Kesiapan Pra-Upload (Anti-Gagal 2026)</h3>
+              <h3 className="text-sm font-bold pg-text-heading">{t("seoChecklistTitle")}</h3>
               <p className="text-[11px] pg-text-muted">
-                Centang setiap poin sebelum menekan tombol Publish di YouTube Studio.
+                {t("seoChecklistSubtitle")}
               </p>
             </div>
           </div>
           <div className="text-xs font-medium px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 shrink-0 self-start sm:self-auto">
-            {Object.values(completedChecklist).filter(Boolean).length} / {threeTierSeo.checklist.length} Selesai
+            {Object.values(completedChecklist).filter(Boolean).length} / {threeTierSeo.checklist.length} {t("completed")}
           </div>
         </div>
 
@@ -2317,9 +2317,9 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
   {activeTab === "seo2026" && !threeTierSeo && (
     <div className="glass-panel rounded-xl p-8 text-center pg-text-muted text-sm space-y-2">
       <div className="text-3xl">🎯</div>
-      <p className="font-semibold pg-text-heading">Metadata SEO 2026 Belum Dihasilkan</p>
+      <p className="font-semibold pg-text-heading">{t("seoNotGeneratedTitle")}</p>
       <p className="text-xs max-w-md mx-auto">
-        Jalankan Generator Studio dengan platform YouTube Shorts atau YouTube Long-Form untuk menghasilkan arsitektur 3-tier tag dan checklist otomatis.
+        {t("seoNotGeneratedDesc")}
       </p>
     </div>
   )}
@@ -2333,7 +2333,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
  <div>
  <div className="flex items-center justify-between mb-1">
  <span className="text-xs font-semibold pg-text-muted">Caption</span>
- <button onClick={() => copy("cap", caption)} className="text-xs text-blue-500 hover:underline">{copiedId === "cap" ? "✓ Copied" : "Copy"}</button>
+ <button onClick={() => copy("cap", caption)} className="text-xs text-blue-500 hover:underline">{copiedId === "cap" ? "✓ " + t("copied") : t("copy")}</button>
  </div>
  <p className="text-sm pg-text-sub pg-surface-dim rounded p-3 whitespace-pre-wrap">{caption}</p>
  </div>
@@ -2342,7 +2342,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
  <div>
  <div className="flex items-center justify-between mb-1">
  <span className="text-xs font-semibold pg-text-muted">Hashtags</span>
- <button onClick={() => copy("htg", hashtags)} className="text-xs text-blue-500 hover:underline">{copiedId === "htg" ? "✓ Copied" : "Copy"}</button>
+ <button onClick={() => copy("htg", hashtags)} className="text-xs text-blue-500 hover:underline">{copiedId === "htg" ? "✓ " + t("copied") : t("copy")}</button>
  </div>
  <p className="text-sm pg-text-sub pg-surface-dim rounded p-3">{hashtags}</p>
  </div>
@@ -2701,7 +2701,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
  <div className="flex items-center justify-between mb-4">
  <h2 className="font-bold pg-text-heading">📝 HTML Blog Article</h2>
  <button onClick={() => copy("blog", htmlBlog)} className="text-xs px-4 py-1.5 pg-surface-dim pg-text-heading rounded transition-colors shadow-sm">
- {copiedId === "blog" ? "✓ Copied!" : "Copy HTML"}
+ {copiedId === "blog" ? "✓ " + t("copied") : t("copyHtml")}
  </button>
  </div>
   {/* P0-1 Security Fix: sanitizeHtml prevents XSS from user-pasted AI output */}

@@ -23,14 +23,23 @@ export interface SceneForExport {
 export interface UnifiedVisualPromptOptions {
   includeDuration?: boolean;
   includeContext?: boolean;
+  locale?: string;
 }
 
 /**
- * Bangun format terpadu 1 kesatuan:
- * [durasi : ...]
+ * Bangun format terpadu 1 kesatuan berbasis locale:
+ * Jika English (en):
+ * [duration : 5s]
  * [scene context]
  * ...
  * [Visual Prompt]
+ * ...
+ *
+ * Jika Indonesian (id):
+ * [durasi : 5 detik]
+ * [konteks adegan]
+ * ...
+ * [Prompt Visual]
  * ...
  */
 export function buildUnifiedVisualPrompt(
@@ -40,8 +49,9 @@ export function buildUnifiedVisualPrompt(
     estimatedDurationSec?: number;
     sceneContext?: string;
   },
-  options: UnifiedVisualPromptOptions = { includeDuration: true, includeContext: true }
+  options: UnifiedVisualPromptOptions = { includeDuration: true, includeContext: true, locale: "id" }
 ): string {
+  const isEn = options.locale === "en";
   const parts: string[] = [];
 
   // 1. Durasi
@@ -51,23 +61,31 @@ export function buildUnifiedVisualPrompt(
     if (rawDurasi && rawDurasi !== "—") {
       durasiStr = rawDurasi;
     } else if (scene.estimatedDurationSec !== undefined && scene.estimatedDurationSec > 0) {
-      durasiStr = `${scene.estimatedDurationSec} detik`;
+      durasiStr = isEn ? `${scene.estimatedDurationSec}s` : `${scene.estimatedDurationSec} detik`;
     }
 
     if (durasiStr) {
-      parts.push(`[durasi : ${durasiStr}]`);
+      if (isEn) {
+        const enDurasi = durasiStr.replace(/\s*detik/gi, "s");
+        parts.push(`[duration : ${enDurasi}]`);
+      } else {
+        const idDurasi = durasiStr.replace(/(\d+)\s*s\b/gi, "$1 detik");
+        parts.push(`[durasi : ${idDurasi}]`);
+      }
     }
   }
 
   // 2. Scene Context
   if (options.includeContext !== false && scene.sceneContext?.trim()) {
-    parts.push(`[scene context]\n${scene.sceneContext.trim()}`);
+    const contextTag = isEn ? "[scene context]" : "[konteks adegan]";
+    parts.push(`${contextTag}\n${scene.sceneContext.trim()}`);
   }
 
   // 3. Visual Prompt
   const visualClean = scene.visual && scene.visual !== "—" ? scene.visual.trim() : "";
   if (visualClean) {
-    parts.push(`[Visual Prompt]\n${visualClean}`);
+    const visualTag = isEn ? "[Visual Prompt]" : "[Prompt Visual]";
+    parts.push(`${visualTag}\n${visualClean}`);
   }
 
   return parts.join("\n");
@@ -79,16 +97,19 @@ export function buildUnifiedVisualPrompt(
  * Gabungkan teks overlay dan visual prompt menjadi satu teks terformat.
  * Dipakai tombol "Copy Overlay + Visual" per scene.
  */
-export function buildOverlayVisualCopyText(scene: SceneForExport): string {
+export function buildOverlayVisualCopyText(scene: SceneForExport, locale: string = "id"): string {
+  const isEn = locale === "en";
   const parts: string[] = [];
 
   if (scene.teksOverlay) {
-    parts.push(`[Teks Overlay Layar]\n${scene.teksOverlay}`);
+    const overlayTag = isEn ? "[Screen Overlay Text]" : "[Teks Overlay Layar]";
+    parts.push(`${overlayTag}\n${scene.teksOverlay}`);
   }
 
   const visual = scene.visual && scene.visual !== "—" ? scene.visual.trim() : "";
   if (visual) {
-    parts.push(`[Visual Prompt]\n${visual}`);
+    const visualTag = isEn ? "[Visual Prompt]" : "[Prompt Visual]";
+    parts.push(`${visualTag}\n${visual}`);
   }
 
   return parts.join("\n\n");
@@ -125,16 +146,17 @@ function sanitizeField(value: string): string {
 }
 
 /**
- * Bangun teks batch export dari array scene yang dipilih dengan opsi filter.
+ * Bangun teks batch export dari array scene yang dipilih dengan opsi filter dan locale.
  *
  * Logika Penyatuan (Fitur #88):
  * - Jika `includeVisual` aktif bersama `includeDurasi` atau `includeContext`:
- *   Kedua elemen tersebut otomatis melebur masuk ke dalam blok `VISUAL:` dalam format 1 kesatuan.
+ *   Kedua elemen tersebut otomatis melebur masuk ke dalam blok `VISUAL:` dalam format 1 kesatuan sesuai locale.
  * - Jika `includeVisual` tidak aktif, elemen `DURASI` dan `SCENE_CONTEXT` yang dicentang akan berdiri sendiri.
  */
 export function buildBatchExportText(
   scenes: SceneForExport[],
-  filter: BatchExportFilterOptions = DEFAULT_BATCH_EXPORT_FILTER
+  filter: BatchExportFilterOptions = DEFAULT_BATCH_EXPORT_FILTER,
+  locale: string = "id"
 ): string {
   const lines: string[] = [BATCH_START, `TOTAL_SCENES:${scenes.length}`];
 
@@ -165,6 +187,7 @@ export function buildBatchExportText(
         const unifiedVisual = buildUnifiedVisualPrompt(scene, {
           includeDuration: filter.includeDurasi,
           includeContext: filter.includeContext,
+          locale,
         });
         lines.push(`VISUAL:\n${unifiedVisual}`);
       } else {

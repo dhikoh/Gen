@@ -43,6 +43,53 @@
 > | `[#86]` | Audit & Remediasi P0–P3 | Type Safety (Zero any), Zero-Orphan, i18n Parity (1.393 keys), Audit v2 | 2026-09-27 |
 > | `[#87]` | Fitur #87 (Bagian 39) | Scene Context, English Acting Cues & Speech-Rate Script Timing Engine | 2026-09-27 |
 > | `[#88]` | Fitur #88 (Bagian 40) | Dual-Action Visual Copy Button & Filtered Batch Export with Context-Duration Fusion | 2026-09-27 |
+> | `[#89]` | Fitur #89 (Bagian 41) | Bilingual Visual Prompt Bundling & Systemic i18n Hardening (Zero-Hardcoding) | 2026-09-27 |
+
+---
+
+## [#89] — 2026-09-27 | Fitur #89: Bilingual Visual Prompt Bundling & Systemic i18n Hardening (Zero-Hardcoding)
+
+### Overview
+
+Penyempurnaan arsitektur lokalisasi dan eliminasi total percampuran bahasa (zero hardcoded strings) di seluruh alur kerja Scene Prompt Studio:
+1. **Locale-Aware Visual Prompt Fusion**:
+   - Menghilangkan anomali percampuran bahasa saat menyalin prompt visual 1 kesatuan.
+   - **Mode Bahasa Inggris (`en`)**:
+     ```text
+     [duration : 5s]
+     [scene context]
+     <English context>
+     [Visual Prompt]
+     <English visual prompt> --ar 9:16
+     ```
+   - **Mode Bahasa Indonesia (`id`)**:
+     ```text
+     [durasi : 5 detik]
+     [konteks adegan]
+     <Konteks adegan Indonesia>
+     [Prompt Visual]
+     <Deskripsi visual prompt> --ar 9:16
+     ```
+   - Konversi unit durasi otomatis: string input `"5 detik"` otomatis dinormalisasi menjadi `"5s"` pada locale `en`, dan `"5s"` dinormalisasi menjadi `"5 detik"` pada locale `id`.
+2. **Penyelarasan Locale Mesin Overlay & Batch Export**:
+   - `buildOverlayVisualCopyText` dan `buildBatchExportText` kini menerima `locale` aktif dari antarmuka pengguna.
+   - Label overlay otomatis beradaptasi: `[Screen Overlay Text]` (en) vs `[Teks Overlay Layar]` (id).
+   - Seluruh blok `VISUAL:` dalam ekspor batch mengikuti format terpadu dwibahasa secara konsisten.
+3. **Pembersihan Menyeluruh Teks Hardcode Antarmuka**:
+   - Menyelaraskan tombol "Raw" narasi dengan kamus i18n: pada bahasa Indonesia kini menampilkan **"Murni"** / **"✓ Murni Disalin"** via `t("raw")` dan `t("rawCopied")`, identik dengan tombol visual prompt.
+   - Menghilangkan hardcoded "Copy" pada kartu pemilihan judul menjadi `t("copy")`.
+   - Mengalihkan tab `🎯 SEO 2026` dan `📝 HTML Blog` ke `t("seo2026Tab")` dan `t("htmlBlogTab")`.
+   - Melokalisasi seluruh header rekomendasi produk affiliate (`🛒 {t("affiliateRecommendationsTitle")}` dan `{t("productsCount")}`).
+   - Melokalisasi label panduan suara sutradara (`vgContext`, `vgNote`, `vgTraits`, `vgSync`).
+   - Melokalisasi seluruh metrik analisis uji susut mobile thumbnail (`shrinkWordLength`, `wordsUnit`, `shrinkOptimal`, `shrinkTooLong`, `shrinkFraming`, `shrinkFramingDesc`, `shrinkAbTesting`, `shrinkAbTestingDesc`).
+   - Melokalisasi seluruh tombol, banner, deskripsi naratif, dan checklist pra-upload YouTube 2026 SEO Studio ke dalam kamus dwibahasa.
+4. **Verifikasi Kualitas Ketat**:
+   - **100% Key Parity**: 1.458 / 1.458 keys di `messages/id.json` dan `messages/en.json`.
+   - **Unit Tests**: 181/181 passed (`vitest`).
+   - **TypeScript**: 0 error (`tsc --noEmit`).
+   - **Lint**: 0 error/warning (`eslint`).
+   - **Design Token Audit**: PASS (86.6% adoption rate).
+   - **Production Build**: 48/48 routes static & dynamic successfully generated (`next build`).
 
 ---
 
