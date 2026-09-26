@@ -25,7 +25,14 @@ import {
 } from "@/lib/parsers";
 import type { ThumbnailData, AffiliateRecommendation, Scene, ThreeTierSeoData } from "@/lib/parsers";
 import { GEMINI_TTS_VOICES, GEMINI_TTS_MODELS, DEFAULT_TTS_VOICE, DEFAULT_TTS_MODEL, TTS_PITCH_PRESETS, DEFAULT_TTS_PITCH, type TtsPitchPresetId } from "@/lib/ttsVoices";
-import { buildOverlayVisualCopyText, buildBatchExportText, type SceneForExport } from "@/lib/sceneExportFormat";
+import {
+  buildOverlayVisualCopyText,
+  buildBatchExportText,
+  buildUnifiedVisualPrompt,
+  DEFAULT_BATCH_EXPORT_FILTER,
+  type SceneForExport,
+  type BatchExportFilterOptions,
+} from "@/lib/sceneExportFormat";
 
 export interface SerializedParsedOutput {
   id: string;
@@ -277,6 +284,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
     }
     return new Set();
   });
+  const [batchFilter, setBatchFilter] = useState<BatchExportFilterOptions>(DEFAULT_BATCH_EXPORT_FILTER);
 
   // Click outside to close history dropdown
   useEffect(() => {
@@ -521,13 +529,13 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
  const handleCopyBatchExport = useCallback(() => {
    const selected = scenes.filter(s => selectedSceneIds.has(s.id));
    if (!selected.length) { toast.error(t("selectAtLeastOneScene")); return; }
-   const text = buildBatchExportText(selected as SceneForExport[]);
+   const text = buildBatchExportText(selected as SceneForExport[], batchFilter);
    navigator.clipboard.writeText(text).then(() => {
      setCopiedId("batch-export");
      setTimeout(() => setCopiedId(null), 2000);
      toast.success(t("batchExportCopied"));
    });
- }, [scenes, selectedSceneIds, t]);
+ }, [scenes, selectedSceneIds, batchFilter, t]);
 
  const toggleAllScenes = useCallback(() => {
    if (selectedSceneIds.size === scenes.length) {
@@ -1235,53 +1243,122 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
     )}
 
     {/* Scene Viewer Actions Toolbar */}
-    <div className="glass-panel rounded-2xl px-4 py-3 border pg-border shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-      <div className="flex items-center gap-2.5">
-        {/* Select All Checkbox */}
-        <input
-          type="checkbox"
-          checked={selectedSceneIds.size === scenes.length && scenes.length > 0}
-          onChange={toggleAllScenes}
-          className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 accent-[var(--pg-brand)] cursor-pointer"
-          title={t("selectAllScenes")}
-        />
-        <span className="text-sm font-bold pg-text-heading flex items-center gap-1.5">
-          <span>🎬</span> {t("sceneViewerTab")}
-        </span>
-        <span className="text-xs pg-surface-dim border pg-border px-2.5 py-0.5 rounded-full pg-text-sub font-medium">
-          {selectedSceneIds.size}/{scenes.length} {t("scenesFound")}
-        </span>
+    <div className="glass-panel rounded-2xl px-4 py-3 border pg-border shadow-sm flex flex-col gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          {/* Select All Checkbox */}
+          <input
+            type="checkbox"
+            checked={selectedSceneIds.size === scenes.length && scenes.length > 0}
+            onChange={toggleAllScenes}
+            className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 accent-[var(--pg-brand)] cursor-pointer"
+            title={t("selectAllScenes")}
+          />
+          <span className="text-sm font-bold pg-text-heading flex items-center gap-1.5">
+            <span>🎬</span> {t("sceneViewerTab")}
+          </span>
+          <span className="text-xs pg-surface-dim border pg-border px-2.5 py-0.5 rounded-full pg-text-sub font-medium">
+            {selectedSceneIds.size}/{scenes.length} {t("scenesFound")}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={handleCopyBatchExport}
+            disabled={selectedSceneIds.size === 0}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold h-9 px-3.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white transition-all shadow-sm active:scale-95 disabled:opacity-40"
+            title={t("copyBatchExport")}
+          >
+            <span>📦</span>
+            {copiedId === "batch-export" ? `✓ ${t("batchExportCopied")}` : t("copyBatchExport")}
+          </button>
+          <div className="inline-flex rounded-lg shadow-sm">
+            <button
+              type="button"
+              onClick={copyAllNarration}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold h-9 px-3.5 rounded-l-lg bg-[var(--pg-brand)] hover:bg-[var(--pg-brand-hover)] text-white transition-all active:scale-95 shadow-sm"
+              title={t("copyAllCleanNarrationTitle")}
+            >
+              <span>🎤</span>
+              {copiedId === "all-narration" ? `✓ ${t("allNarasiCopied")}` : t("copyAllNarasi")}
+            </button>
+            <button
+              type="button"
+              onClick={copyAllNarrationRaw}
+              className="inline-flex items-center text-xs font-semibold h-9 px-3 rounded-r-lg bg-[var(--pg-brand-hover)] hover:bg-[#d96500] text-white border-l border-white/20 transition-all active:scale-95 shadow-sm"
+              title={t("copyAllRawNarrationTitle")}
+            >
+              {copiedId === "all-narration-raw" ? "✓ Raw" : "Raw"}
+            </button>
+          </div>
+        </div>
       </div>
-      <div className="flex items-center gap-2 flex-wrap">
+
+      {/* Option A: Inline Toggle Pills for Batch Export Filter */}
+      <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800/60 flex items-center gap-1.5 flex-wrap">
+        <span className="text-xs font-semibold pg-text-sub flex items-center gap-1 mr-1">
+          <span>⚙️</span> {t("exportFilterLabel")}:
+        </span>
         <button
           type="button"
-          onClick={handleCopyBatchExport}
-          disabled={selectedSceneIds.size === 0}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold h-9 px-3.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white transition-all shadow-sm active:scale-95 disabled:opacity-40"
-          title={t("copyBatchExport")}
+          onClick={() => setBatchFilter(prev => ({ ...prev, includeNarasi: !prev.includeNarasi }))}
+          className={`text-xs px-2.5 py-1 rounded-full border transition-all flex items-center gap-1 font-medium ${
+            batchFilter.includeNarasi
+              ? "bg-purple-600/15 border-purple-500/50 text-purple-300 shadow-xs"
+              : "bg-slate-800/40 border-slate-700/60 text-slate-400 hover:text-slate-300"
+          }`}
         >
-          <span>📦</span>
-          {copiedId === "batch-export" ? `✓ ${t("batchExportCopied")}` : t("copyBatchExport")}
+          <span>{batchFilter.includeNarasi ? "✓" : "○"}</span>
+          <span>{t("filterNarasi")}</span>
         </button>
-        <div className="inline-flex rounded-lg shadow-sm">
-          <button
-            type="button"
-            onClick={copyAllNarration}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold h-9 px-3.5 rounded-l-lg bg-[var(--pg-brand)] hover:bg-[var(--pg-brand-hover)] text-white transition-all active:scale-95 shadow-sm"
-            title={t("copyAllCleanNarrationTitle")}
-          >
-            <span>🎤</span>
-            {copiedId === "all-narration" ? `✓ ${t("allNarasiCopied")}` : t("copyAllNarasi")}
-          </button>
-          <button
-            type="button"
-            onClick={copyAllNarrationRaw}
-            className="inline-flex items-center text-xs font-semibold h-9 px-3 rounded-r-lg bg-[var(--pg-brand-hover)] hover:bg-[#d96500] text-white border-l border-white/20 transition-all active:scale-95 shadow-sm"
-            title={t("copyAllRawNarrationTitle")}
-          >
-            {copiedId === "all-narration-raw" ? "✓ Raw" : "Raw"}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setBatchFilter(prev => ({ ...prev, includeVisual: !prev.includeVisual }))}
+          className={`text-xs px-2.5 py-1 rounded-full border transition-all flex items-center gap-1 font-medium ${
+            batchFilter.includeVisual
+              ? "bg-purple-600/15 border-purple-500/50 text-purple-300 shadow-xs"
+              : "bg-slate-800/40 border-slate-700/60 text-slate-400 hover:text-slate-300"
+          }`}
+        >
+          <span>{batchFilter.includeVisual ? "✓" : "○"}</span>
+          <span>{t("filterVisual")}</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setBatchFilter(prev => ({ ...prev, includeDurasi: !prev.includeDurasi }))}
+          className={`text-xs px-2.5 py-1 rounded-full border transition-all flex items-center gap-1 font-medium ${
+            batchFilter.includeDurasi
+              ? "bg-purple-600/15 border-purple-500/50 text-purple-300 shadow-xs"
+              : "bg-slate-800/40 border-slate-700/60 text-slate-400 hover:text-slate-300"
+          }`}
+        >
+          <span>{batchFilter.includeDurasi ? "✓" : "○"}</span>
+          <span>{t("filterDurasi")}</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setBatchFilter(prev => ({ ...prev, includeContext: !prev.includeContext }))}
+          className={`text-xs px-2.5 py-1 rounded-full border transition-all flex items-center gap-1 font-medium ${
+            batchFilter.includeContext
+              ? "bg-purple-600/15 border-purple-500/50 text-purple-300 shadow-xs"
+              : "bg-slate-800/40 border-slate-700/60 text-slate-400 hover:text-slate-300"
+          }`}
+        >
+          <span>{batchFilter.includeContext ? "✓" : "○"}</span>
+          <span>{t("filterContext")}</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setBatchFilter(prev => ({ ...prev, includeOverlay: !prev.includeOverlay }))}
+          className={`text-xs px-2.5 py-1 rounded-full border transition-all flex items-center gap-1 font-medium ${
+            batchFilter.includeOverlay
+              ? "bg-purple-600/15 border-purple-500/50 text-purple-300 shadow-xs"
+              : "bg-slate-800/40 border-slate-700/60 text-slate-400 hover:text-slate-300"
+          }`}
+        >
+          <span>{batchFilter.includeOverlay ? "✓" : "○"}</span>
+          <span>{t("filterOverlay")}</span>
+        </button>
       </div>
     </div>
 
@@ -1474,12 +1551,33 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
             <span className="text-xs font-bold pg-text-sub uppercase tracking-wide flex items-center gap-1.5">
               <span>🎨</span> {t("visualPrompt")}
             </span>
-            <button
-              onClick={() => copy(`vis-${scene.id}`, buildVisualPrompt(scene.visual))}
-              className="text-xs px-2.5 py-0.5 rounded font-semibold bg-slate-800 text-slate-200 hover:text-white hover:bg-slate-700 transition-colors shadow-xs"
-            >
-              {copiedId === `vis-${scene.id}` ? "✓ " + t("copied") : `📋 ${t("copy")}`}
-            </button>
+            <div className="inline-flex rounded-lg shadow-xs overflow-hidden border border-slate-700/60">
+              <button
+                type="button"
+                onClick={() => {
+                  const fullVisual = buildUnifiedVisualPrompt({
+                    visual: buildVisualPrompt(scene.visual),
+                    durasi: scene.durasi,
+                    estimatedDurationSec: scene.estimatedDurationSec,
+                    sceneContext: scene.sceneContext,
+                  });
+                  copy(`vis-full-${scene.id}`, fullVisual);
+                }}
+                className="text-xs px-2.5 py-1 font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white transition-colors flex items-center gap-1"
+                title={t("copyFullVisualPromptTitle")}
+              >
+                <span>📋</span>
+                {copiedId === `vis-full-${scene.id}` ? `✓ ${t("copied")}` : t("copyFullVisualPrompt")}
+              </button>
+              <button
+                type="button"
+                onClick={() => copy(`vis-raw-${scene.id}`, buildVisualPrompt(scene.visual))}
+                className="text-xs px-2 py-1 font-semibold bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border-l border-slate-700/60 transition-colors"
+                title={t("copyRawVisualPromptTitle")}
+              >
+                {copiedId === `vis-raw-${scene.id}` ? `✓ ${t("rawCopied")}` : t("rawVisualPrompt")}
+              </button>
+            </div>
           </div>
           <div className="rounded-xl p-3.5 bg-slate-950 dark:bg-black/60 border border-slate-800 shadow-inner">
             <p className="text-xs font-mono text-slate-200 leading-relaxed break-words">{buildVisualPrompt(scene.visual)}</p>

@@ -42,6 +42,148 @@
 > | `[#85]` | Fitur #85 | Speech Rate & Target Duration Integration | 2026-09-25 |
 > | `[#86]` | Audit & Remediasi P0–P3 | Type Safety (Zero any), Zero-Orphan, i18n Parity (1.393 keys), Audit v2 | 2026-09-27 |
 > | `[#87]` | Fitur #87 (Bagian 39) | Scene Context, English Acting Cues & Speech-Rate Script Timing Engine | 2026-09-27 |
+> | `[#88]` | Fitur #88 (Bagian 40) | Dual-Action Visual Copy Button & Filtered Batch Export with Context-Duration Fusion | 2026-09-27 |
+
+---
+
+## [#88] — 2026-09-27 | Fitur #88: Dual-Action Visual Copy Button & Filtered Batch Export with Context-Duration Fusion
+
+### Overview
+
+Penyempurnaan alur kerja ekstraksi dan ekspor visual prompt pada Scene Prompt Studio:
+1. **Dual-Action Split Copy Button (Per-Scene)**:
+   - Tombol utama **`📋 Salin Lengkap`**: Menyalin 1 kesatuan utuh mencakup `[durasi : ...]`, `[scene context]`, dan `[Visual Prompt]`, sangat optimal untuk AI video generator generasi baru (Runway Gen-3, Kling AI, Luma Dream Machine).
+   - Tombol sekunder **`Murni`**: Menyalin hanya prompt visual murni beserta parameter rasio aspek (`--ar`), aman dan langsung siap ditempel ke Midjourney bot (`/imagine prompt:...`) tanpa interferensi tag bracket.
+2. **Selective Batch Export dengan Inline Filter Toggle Pills (Option A)**:
+   - Bilah kontrol filter interaktif bergaya kapsul (toggle pills) di bawah tombol `📦 Ekspor Batch` untuk memilih elemen yang ingin diekspor: `[✓ Narasi]`, `[✓ Visual]`, `[✓ Durasi]`, `[✓ Konteks]`, `[✓ Overlay]`.
+3. **Peleburan Cerdas Visual Block (Rule 2.1)**:
+   - Ketika `Visual Prompt` dicentang bersama `Durasi` atau `Scene Context`, kedua elemen tersebut **melebur masuk ke dalam blok `VISUAL:`** menjadi 1 kesatuan rapi, tanpa menghasilkan baris `DURASI:` atau `SCENE_CONTEXT:` terpisah yang berulang.
+   - Jika `Visual Prompt` tidak dicentang, maka `DURASI` dan `SCENE_CONTEXT` yang dicentang akan berdiri sendiri sebagai baris field mandiri.
+4. **Deduplikasi Mutlak (Single Source of Truth)**:
+   - Seluruh logika penggabungan format visual dipusatkan pada fungsi tunggal `buildUnifiedVisualPrompt` di `src/lib/sceneExportFormat.ts`, digunakan bersama oleh client UI dan ekspor batch.
+5. **Paritas i18n Penuh**:
+   - 11 kunci lokalisasi baru disinkronkan ke `messages/id.json` dan `messages/en.json` (1.415 keys per bahasa, 100% key parity).
+
+---
+
+### 1 — Implementasi Format Terpadu & Filter Ekspor (`src/lib/sceneExportFormat.ts`)
+
+- **Fungsi Pembangun `buildUnifiedVisualPrompt`**:
+  ```ts
+  export function buildUnifiedVisualPrompt(
+    scene: {
+      visual: string;
+      durasi?: string;
+      estimatedDurationSec?: number;
+      sceneContext?: string;
+    },
+    options: UnifiedVisualPromptOptions = { includeDuration: true, includeContext: true }
+  ): string;
+  ```
+  Menghasilkan teks berformat:
+  ```text
+  [durasi : 8 detik]
+  [scene context]
+  Seorang astronaut melayang di luar stasiun...
+  [Visual Prompt]
+  Cinematic wide shot... --ar 9:16
+  ```
+- **Tipe & Default Filter `BatchExportFilterOptions`**:
+  ```ts
+  export interface BatchExportFilterOptions {
+    includeNarasi: boolean;
+    includeVisual: boolean;
+    includeDurasi: boolean;
+    includeContext: boolean;
+    includeOverlay: boolean;
+  }
+  ```
+- **Penyelarasan `buildBatchExportText(scenes, filter)`**:
+  - Menerapkan aturan peleburan Rule 2.1 jika `includeVisual` bernilai `true`.
+  - Mempertahankan sanitasi newline untuk field teks satu baris dan mendukung blok visual terpadu multi-baris yang rapi.
+
+---
+
+### 2 — UI Studio Integration (`ScenePromptStudioClient.tsx`)
+
+- **Dual-Action Split Button**:
+  - Menggantikan tombol salin tunggal lama di setiap kartu adegan dengan tombol split bergaya glassmorphism border slate.
+  - Membantu kreator beralih secara instan antara salin lengkap (untuk AI Video) atau salin murni (untuk Midjourney).
+- **Inline Filter Pills Bar**:
+  - Ditempatkan tepat di bawah toolbar aksi adegan.
+  - State `batchFilter` reaktif: Mengaktifkan atau menonaktifkan elemen seketika tanpa perlu membuka modal/dropdown terpisah.
+
+---
+
+### 3 — Bukti Eksekusi Suite Verifikasi (RAW Outputs)
+
+#### A. `npx vitest run`
+```
+ Test Files  13 passed (13)
+      Tests  177 passed (177)
+   Duration  3.11s
+Exit code: 0
+```
+
+#### B. `npx tsc --noEmit`
+```
+Exit code: 0
+Output: (Clean, 0 errors)
+```
+
+#### C. `npm run lint`
+```
+> prompt-gen@0.1.0 lint
+> eslint .
+
+Exit code: 0
+Output: (Clean, 0 errors, 0 warnings)
+```
+
+#### D. `npm run audit:i18n`
+```
+> prompt-gen@0.1.0 audit:i18n
+> node scripts/audit-i18n.mjs
+
+🔍 [AUDIT-I18N] Running strict i18n parity audit...
+📊 Total Indonesian (id) keys: 1415
+📊 Total English (en) keys:    1415
+✅ [AUDIT-I18N] 100% key parity confirmed between id.json and en.json. Zero missing keys!
+Exit code: 0
+```
+
+#### E. `npm run audit:design`
+```
+> prompt-gen@0.1.0 audit:design
+> node scripts/audit-design.mjs
+
+🎨 [AUDIT-DESIGN] Running Prompt Gen Design System Token Audit...
+📁 Scanning 82 UI components...
+✨ Total Design Token occurrences: 2160
+📊 Component adoption rate: 71/82 (86.6%)
+✅ [AUDIT-DESIGN] Design system health check: PASS! Strong design token enforcement.
+Exit code: 0
+```
+
+#### F. `npm run build`
+```
+> prompt-gen@0.1.0 build
+> next build
+
+▲ Next.js 16.3.1 (Turbopack)
+- Environments: .env
+✓ Running next.config.ts took 2.5s
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 7.9s
+  Running TypeScript ...
+  Finished TypeScript in 10.3s ...
+  Collecting page data using 3 workers ...
+  Generating static pages using 3 workers (0/48) ...
+✓ Generating static pages using 3 workers (48/48) in 415ms
+  Finalizing page optimization ...
+Exit code: 0
+```
 
 ---
 

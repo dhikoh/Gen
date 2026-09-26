@@ -2123,3 +2123,64 @@ Dalam produksi video pendek maupun panjang berbasis AI, terdapat tiga celah krit
 - **Audit Design System**: `npm run audit:design` mengonfirmasi 86.6% token adoption rate (2.159 token occurrences).
 - **Next.js Production Build**: `npm run build` sukses mengompilasi 48/48 routes static & dynamic dengan status clean exit code 0.
 
+---
+
+### BAGIAN 40: ADDENDUM FITUR #88 — DUAL-ACTION VISUAL COPY BUTTON & FILTERED BATCH EXPORT DENGAN PELEBURAN KONTEKS-DURASI
+
+#### 40.1 Latar Belakang & Kebutuhan Fitur
+
+1. **Kebutuhan Format 1 Kesatuan untuk AI Video Generator**:
+   - Model video generatif mutakhir (seperti Runway Gen-3, Kling AI, Luma Dream Machine) membutuhkan parameter durasi klip dan konteks naratif yang terikat langsung dengan deskripsi visual prompt agar pergerakan temporal dan komposisi kamera tidak menyimpang.
+   - Menggabungkan elemen tersebut ke dalam satu format baku:
+     ```text
+     [durasi : 8 detik]
+     [scene context]
+     <aksi kejadian adegan>
+     [Visual Prompt]
+     <prompt visual dengan parameter --ar>
+     ```
+2. **Fleksibilitas Penggunaan Midjourney (Tombol Split)**:
+   - Bot Midjourney di Discord (`/imagine prompt:...`) tidak memerlukan tag kurung siku `[durasi : ...]` karena dapat disalahartikan sebagai teks gambar.
+   - Solusi: Menyediakan tombol split `📋 Salin Lengkap` (format 1 kesatuan) dan `Murni` (teks prompt visual murni).
+3. **Ekspor Selektif Berbasis Centang (Batch Export Filter)**:
+   - Pengguna membutuhkan fleksibilitas memilih data apa saja yang ingin diekspor dari naskah massal (Narasi, Visual Prompt, Durasi, Konteks, Overlay).
+   - Aturan Penyatuan Cerdas (Rule 2.1): Jika Visual Prompt dicentang bersama Durasi dan/atau Konteks, kedua elemen tersebut **melebur masuk ke dalam blok `VISUAL:`**, sehingga hasil ekspor rapi tanpa baris field terpisah yang berulang.
+
+#### 40.2 Detail Arsitektur & Implementasi Teknis
+
+1. **Mesin Format Terpusat (`src/lib/sceneExportFormat.ts`)**:
+   - Menambahkan fungsi pembangun terpadu:
+     ```ts
+     export function buildUnifiedVisualPrompt(
+       scene: {
+         visual: string;
+         durasi?: string;
+         estimatedDurationSec?: number;
+         sceneContext?: string;
+       },
+       options?: UnifiedVisualPromptOptions
+     ): string;
+     ```
+   - Mendefinisikan antarmuka `BatchExportFilterOptions` dan konstanta `DEFAULT_BATCH_EXPORT_FILTER`.
+   - Mengintegrasikan aturan peleburan Rule 2.1 pada `buildBatchExportText(scenes, filter)`:
+     - Jika `filter.includeVisual` aktif dan (`filter.includeDurasi || filter.includeContext`): Meleburkan ke `VISUAL:\n[durasi : ...]\n[scene context]...\n[Visual Prompt]...`.
+     - Jika `filter.includeVisual` tidak aktif: `DURASI` dan `SCENE_CONTEXT` dicetak sebagai baris terpisah mandiri.
+2. **Scene Prompt Studio Client (`ScenePromptStudioClient.tsx`)**:
+   - Menambahkan barisan **Inline Toggle Pills (Option A)** tepat di bawah toolbar aksi adegan:
+     `[✓ Narasi] [✓ Visual] [✓ Durasi] [✓ Konteks] [✓ Overlay]`.
+   - Mengubah tombol salin kartu adegan menjadi **Dual-Action Split Button**:
+     - `📋 Salin Lengkap`: Menggunakan `buildUnifiedVisualPrompt` untuk menghasilkan format 1 kesatuan.
+     - `Murni`: Menyalin prompt visual teks murni.
+3. **Paritas Lokalisasi (`messages/id.json` & `messages/en.json`)**:
+   - Penambahan 11 kunci baru: `copyFullVisualPrompt`, `copyFullVisualPromptTitle`, `rawVisualPrompt`, `copyRawVisualPromptTitle`, `rawCopied`, `exportFilterLabel`, `filterNarasi`, `filterVisual`, `filterDurasi`, `filterContext`, `filterOverlay`.
+   - Paritas terverifikasi 100% (1.415 / 1.415 keys).
+
+#### 40.3 Hasil Verifikasi & Jaminan Kualitas
+- **TypeScript Typecheck**: `npx tsc --noEmit` lolos 100% dengan 0 error.
+- **ESLint**: `npm run lint` lolos dengan 0 error dan 0 warning.
+- **Vitest Unit Tests**: 177/177 test passed pada 13 file pengujian (`tests/sceneExportFormat.test.ts`, dll.).
+- **Audit Paritas i18n**: `npm run audit:i18n` mengonfirmasi 100% paritas (1.415 keys).
+- **Audit Design System**: `npm run audit:design` mengonfirmasi 86.6% adoption rate.
+- **Next.js Production Build**: `npm run build` lolos 100% (48/48 routes static & dynamic).
+
+
