@@ -1788,13 +1788,6 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
                       >
                         {copiedId === "o1p-raw" ? "✓" : t("copyPromptRaw")}
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => copy("o1p", buildThumbnailPrompt(thumbnailData.opsi1Prompt))}
-                        className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
-                      >
-                        {copiedId === "o1p" ? "✓" : t("copyPromptWithParams")}
-                      </button>
                     </div>
                   </div>
                   <p className="text-xs font-mono pg-text-sub pg-surface-dim rounded-lg p-3 leading-relaxed break-words border border-slate-200/50 dark:border-slate-700/50">
@@ -1827,11 +1820,14 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
               <div className="pt-2">
                 <button
                   type="button"
-                  onClick={() => copy("o1p-full", buildThumbnailPrompt(thumbnailData.opsi1Prompt))}
+                  onClick={() => {
+                    const formatted = `[Visual Prompt]\n${buildThumbnailPrompt(thumbnailData.opsi1Prompt)}\n\n[Overlay Text]\n${thumbnailData.opsi1Overlay || "—"}`;
+                    copy("o1-all", formatted);
+                  }}
                   className="w-full py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-medium text-xs transition-colors shadow-sm flex items-center justify-center gap-1.5"
                 >
                   <span>📋</span>
-                  {copiedId === "o1p-full" ? t("promptWithParamsCopied") : t("copyPromptWithParams")}
+                  {copiedId === "o1-all" ? t("copyOverlayVisualSuccess") : t("copyOverlayVisual")}
                 </button>
               </div>
             </div>
@@ -1888,13 +1884,6 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
                       >
                         {copiedId === "o2p-raw" ? "✓" : t("copyPromptRaw")}
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => copy("o2p", buildThumbnailPrompt(thumbnailData.opsi2Prompt))}
-                        className="text-xs font-medium text-purple-600 dark:text-purple-400 hover:underline"
-                      >
-                        {copiedId === "o2p" ? "✓" : t("copyPromptWithParams")}
-                      </button>
                     </div>
                   </div>
                   <p className="text-xs font-mono pg-text-sub pg-surface-dim rounded-lg p-3 leading-relaxed break-words border border-slate-200/50 dark:border-slate-700/50">
@@ -1927,11 +1916,14 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
               <div className="pt-2">
                 <button
                   type="button"
-                  onClick={() => copy("o2p-full", buildThumbnailPrompt(thumbnailData.opsi2Prompt))}
+                  onClick={() => {
+                    const formatted = `[Visual Prompt]\n${buildThumbnailPrompt(thumbnailData.opsi2Prompt)}\n\n[Overlay Text]\n${thumbnailData.opsi2Overlay || "—"}`;
+                    copy("o2-all", formatted);
+                  }}
                   className="w-full py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-medium text-xs transition-colors shadow-sm flex items-center justify-center gap-1.5"
                 >
                   <span>📋</span>
-                  {copiedId === "o2p-full" ? t("promptWithParamsCopied") : t("copyPromptWithParams")}
+                  {copiedId === "o2-all" ? t("copyOverlayVisualSuccess") : t("copyOverlayVisual")}
                 </button>
               </div>
             </div>
