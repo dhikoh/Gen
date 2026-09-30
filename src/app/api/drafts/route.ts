@@ -270,51 +270,56 @@ export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
-      return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
+      return NextResponse.json({ status: "error", error: t("unauthorized") }, { status: 401 });
     }
 
     const ip = getClientIp(req);
     const isAllowed = await applyRateLimit(`drafts_get_${session.user.id}_${ip}`, 60, 60);
     if (!isAllowed) {
-      return NextResponse.json({ error: t("tooManyRequests") }, { status: 429 });
+      return NextResponse.json({ status: "error", error: t("tooManyRequests") }, { status: 429 });
     }
 
-    const { searchParams } = new URL(req.url);
-    const channelId = searchParams.get('channelId');
-    const typeParam = searchParams.get('type')?.toUpperCase();
-    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
-    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "50", 10) || 50));
-    const skip = (page - 1) * limit;
+    const drafts = await prisma.draft.findMany({
+      where: { userId: session.user.id, isStub: false },
+      orderBy: { createdAt: "desc" },
+      include: { channel: true },
+    });
 
-    const whereClause: Prisma.DraftWhereInput = { userId: session.user.id };
-    if (channelId) whereClause.channelId = channelId;
+    const data = drafts.map((d) => {
+      let totalScenes = d.targetSceneCount || 0;
 
-    // P1-13: Strict enum validation for type query parameter
-    if (typeParam && (typeParam === "VIDEO" || typeParam === "IMAGE")) {
-      whereClause.type = typeParam as DraftType;
-    }
-
-    const [total, drafts] = await Promise.all([
-      prisma.draft.count({ where: whereClause }),
-      prisma.draft.findMany({
-        where: whereClause,
-        skip,
-        take: limit,
-        orderBy: { createdAt: "desc" },
-      })
-    ]);
-
-    return NextResponse.json({
-      drafts,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit)
+      if (!totalScenes && d.parsedData && typeof d.parsedData === "object" && !Array.isArray(d.parsedData)) {
+        const pd = d.parsedData as Record<string, any>;
+        if (Array.isArray(pd.scenes)) {
+          totalScenes = pd.scenes.length;
+        } else if (Array.isArray(pd.segments)) {
+          totalScenes = pd.segments.length;
+        }
       }
-    }, { status: 200 });
+
+      return {
+        draft_id: d.id,
+        channel_profile: d.channel?.channelName || "Unknown Channel",
+        format_type: d.type === "VIDEO" ? "short" : d.type.toLowerCase(),
+        judul_terpilih: d.title || "Untitled Draft",
+        total_scenes: totalScenes,
+        project_data: d.parsedData || {},
+        created_at: d.createdAt.toISOString(),
+      };
+    });
+
+    return NextResponse.json(
+      {
+        status: "success",
+        data: data,
+      },
+      { status: 200 }
+    );
   } catch (error) {
     console.error("GET drafts API error:", error);
-    return NextResponse.json({ error: t("serverError") }, { status: 500 });
+    return NextResponse.json(
+      { status: "error", error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }
