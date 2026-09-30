@@ -1780,6 +1780,7 @@ Entry baru di `KNOWN_PLAN_FEATURES` (`src/lib/planFeatures.ts`):
 
 ### 32.1 Arsitektur Isolasi State Per-Channel (`channelFormStates`)
 - Setiap channel/profil creator (`ProfileChannel`) kini memiliki partisi memori form tersendiri di sisi client (`localStorage.getItem("generatorFormState_" + channelId)`) dan sisi database (`user.generatorPreferences.channelFormStates[channelId]`).
+- **Cross-Device Sync (Bugfix #90)**: Sisi server (database) bertindak sebagai *Source of Truth* (sumber kebenaran). Saat komponen dimuat awal, data dari server akan secara mutlak menimpa penyimpanan lokal (`localStorage`) untuk mencegah mandeknya sinkronisasi ketika berpindah antar-laptop/perangkat.
 - Pointer `generatorLastActiveChannelId` melacak channel terakhir yang aktif, sehingga Generator Studio otomatis membuka profil terakhir tanpa mengorbankan isolasi antar-profil.
 - Mengeliminasi problem state global tunggal di mana perpindahan channel sebelumnya saling menimpa atau membawa sisa input channel lain.
 

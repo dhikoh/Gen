@@ -44,6 +44,17 @@
 > | `[#87]` | Fitur #87 (Bagian 39) | Scene Context, English Acting Cues & Speech-Rate Script Timing Engine | 2026-09-27 |
 > | `[#88]` | Fitur #88 (Bagian 40) | Dual-Action Visual Copy Button & Filtered Batch Export with Context-Duration Fusion | 2026-09-27 |
 > | `[#89]` | Fitur #89 (Bagian 41) | Bilingual Visual Prompt Bundling & Systemic i18n Hardening (Zero-Hardcoding) | 2026-09-27 |
+> | `[#90]` | Bugfix #90 | Fix: Cross-Device State Sync Resolution & Server Source-of-Truth | 2026-09-30 |
+
+---
+
+## [#90] — 2026-09-30 | Bugfix #90: Cross-Device State Sync Resolution & Server Source-of-Truth
+
+### Overview
+
+Penyelesaian masalah sinkronisasi *state* persisten (`channelFormStates`) pada form generator (`GeneratorForm.tsx`) antar perangkat:
+1. **Server as Source of Truth**: Menghapus kondisi blokir `!initialSaved` saat komponen pertama kali dimuat. Server state kini secara mutlak menimpa (override) penyimpanan lokal (LocalStorage) sesaat setelah data preferensi berhasil diunduh dari server.
+2. **Cross-Device Continuity**: Memastikan pengguna yang melanjutkan pekerjaan dari laptop/browser berbeda mendapatkan data isian terakhir yang valid dari server, alih-alih tertahan pada data lokal (LocalStorage) usang yang sebelumnya menghambat sinkronisasi.
 
 ---
 

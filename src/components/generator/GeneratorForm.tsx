@@ -624,17 +624,18 @@ export default function GeneratorForm({
           if (prefs.channelFormStates) {
             serverChannelStatesRef.current = prefs.channelFormStates;
           }
-          if (!initialSaved) {
-            const serverSaved =
-              prefs.channelFormStates?.[initialChannelId] ||
-              (prefs.generatorFormState?.channelId === initialChannelId ? prefs.generatorFormState : null);
-            if (serverSaved) {
-              applyStateForChannel(initialChannelId, serverSaved);
-              if (topicParam) setTopic(topicParam);
-              if (keywordsParam) {
-                const parsed = keywordsParam.split(",").map((k) => k.trim()).filter(Boolean);
-                if (parsed.length > 0) setTargetKeywords(parsed);
-              }
+          
+          // Server state acts as Source of Truth and overrides local storage on mount
+          const serverSaved =
+            prefs.channelFormStates?.[initialChannelId] ||
+            (prefs.generatorFormState?.channelId === initialChannelId ? prefs.generatorFormState : null);
+            
+          if (serverSaved) {
+            applyStateForChannel(initialChannelId, serverSaved);
+            if (topicParam) setTopic(topicParam);
+            if (keywordsParam) {
+              const parsed = keywordsParam.split(",").map((k) => k.trim()).filter(Boolean);
+              if (parsed.length > 0) setTargetKeywords(parsed);
             }
           }
         }
