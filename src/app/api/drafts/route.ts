@@ -269,18 +269,35 @@ export async function GET(req: Request) {
   const t = await getApiTranslator();
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
+    let userId = session?.user?.id;
+
+    // --- HERMES API KEY BYPASS ---
+    // Memungkinkan robot Hermes untuk mengambil data tanpa harus login via web (Playwright)
+    const authHeader = req.headers.get("authorization");
+    if (!userId && authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.split(" ")[1];
+      if (process.env.HERMES_SECRET_KEY && token === process.env.HERMES_SECRET_KEY) {
+        // Otomatis mengikat ke akun SUPERADMIN pertama (Pemilik Sistem)
+        const adminUser = await prisma.user.findFirst({
+          where: { role: "SUPERADMIN" },
+          orderBy: { createdAt: "asc" },
+        });
+        if (adminUser) userId = adminUser.id;
+      }
+    }
+
+    if (!userId) {
       return NextResponse.json({ status: "error", error: t("unauthorized") }, { status: 401 });
     }
 
     const ip = getClientIp(req);
-    const isAllowed = await applyRateLimit(`drafts_get_${session.user.id}_${ip}`, 60, 60);
+    const isAllowed = await applyRateLimit(`drafts_get_${userId}_${ip}`, 60, 60);
     if (!isAllowed) {
       return NextResponse.json({ status: "error", error: t("tooManyRequests") }, { status: 429 });
     }
 
     const drafts = await prisma.draft.findMany({
-      where: { userId: session.user.id, isStub: false },
+      where: { userId: userId, isStub: false },
       orderBy: { createdAt: "desc" },
       include: { channel: true },
     });
