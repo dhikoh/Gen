@@ -17,6 +17,9 @@
 #    - Addendum Lanjutan: Fitur #74 s/d #85 (State Sync, SEO 3-Tier, Speech Rate Timing)
 # 3. Periode Audit & Remediasi P0-P3 (2026-09-27): [#86 / Audit Final v2]
 #    - Type safety total (zero any), zero orphan endpoints/models, 100% i18n parity.
+# 4. Periode Integrasi Robot Lokal (2026-09-30): [#87 / Hermes Autobot API Sync]
+#    - Fitur #87a: Penambahan endpoint `GET /api/drafts` dengan bypass otentikasi `HERMES_SECRET_KEY` untuk sinkronisasi robot.
+#    - Fitur #87b: Perombakan Modul 3 (03_flow.py) beralih ke API Murni dan peningkatan selektor klik Playwright (Google Flow).
 # =====================================================================
 
 0. PERAN, MANDAT, DAN ATURAN KERJA AGENT
