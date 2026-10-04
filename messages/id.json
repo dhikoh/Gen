@@ -1316,7 +1316,13 @@
     "editSuccess": "Judul berhasil diperbarui",
     "duplicateTitle": "Judul sudah ada di daftar",
     "deleteFailed": "Gagal menghapus judul",
-    "editFailed": "Gagal memperbarui judul"
+    "editFailed": "Gagal memperbarui judul",
+    "searchPlaceholder": "Cari judul terpakai...",
+    "clearSearch": "Hapus pencarian",
+    "showingCount": "Menampilkan {count} dari {total} judul",
+    "totalCount": "{count} judul terdaftar",
+    "noSearchMatches": "Tidak ada judul yang cocok dengan pencarian.",
+    "resetSearch": "Reset Pencarian"
   },
   "Settings": {
     "profileTitle": "Profil Pengguna",

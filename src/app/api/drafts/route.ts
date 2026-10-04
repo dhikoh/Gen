@@ -212,8 +212,9 @@ export async function POST(req: Request) {
         orderBy: { createdAt: "desc" }
       });
 
+      let savedDraft;
       if (existingStub) {
-        return tx.draft.update({
+        savedDraft = await tx.draft.update({
           where: { id: existingStub.id },
           data: {
             rawJson: rawJson,
@@ -230,27 +231,55 @@ export async function POST(req: Request) {
             isTemplate: existingStub.isTemplate
           }
         });
+      } else {
+        savedDraft = await tx.draft.create({
+          data: {
+            userId: session.user.id,
+            channelId: channel.id,
+            type: type,
+            title: String(title),
+            rawJson: rawJson,
+            parsedData: parsedData as Prisma.InputJsonValue,
+            wordCount: wordCount,
+            estimatedDurationSec: estimatedDurationSec,
+            durationSource: durationSource,
+            targetDurationSec: targetDurationSec || 0,
+            targetSceneCount: targetSceneCount || null,
+            narrativeLoopStyle: narrativeLoopStyle || null,
+            visualLoopStyle: visualLoopStyle || null,
+            isStub: false,
+            isTemplate: false
+          }
+        });
       }
 
-      return tx.draft.create({
-        data: {
-          userId: session.user.id,
-          channelId: channel.id,
-          type: type,
-          title: String(title),
-          rawJson: rawJson,
-          parsedData: parsedData as Prisma.InputJsonValue,
-          wordCount: wordCount,
-          estimatedDurationSec: estimatedDurationSec,
-          durationSource: durationSource,
-          targetDurationSec: targetDurationSec || 0,
-          targetSceneCount: targetSceneCount || null,
-          narrativeLoopStyle: narrativeLoopStyle || null,
-          visualLoopStyle: visualLoopStyle || null,
-          isStub: false,
-          isTemplate: false
+      // Auto-sync ke UsedTitle: pastikan judul tersimpan di Used Titles Directory secara permanen
+      if (channel.id && title && String(title).trim()) {
+        const cleanTitle = String(title)
+          .replace(/[\u0000-\u001F\u007F-\u009F]/g, "")
+          .trim()
+          .substring(0, 500);
+        if (cleanTitle) {
+          await tx.usedTitle.upsert({
+            where: {
+              channelId_type_title: {
+                channelId: channel.id,
+                type: type,
+                title: cleanTitle,
+              },
+            },
+            create: {
+              userId: session.user.id,
+              channelId: channel.id,
+              type: type,
+              title: cleanTitle,
+            },
+            update: {},
+          });
         }
-      });
+      }
+
+      return savedDraft;
     });
 
     return NextResponse.json({ success: true, draftId: draft.id }, { status: 201 });
@@ -318,6 +347,7 @@ export async function GET(req: Request) {
         draft_id: d.id,
         channel_profile: d.channel?.channelName || "Unknown Channel",
         format_type: d.type === "VIDEO" ? "short" : d.type.toLowerCase(),
+        target_platform: d.channel?.targetPlatform || "short",
         judul_terpilih: d.title || "Untitled Draft",
         total_scenes: totalScenes,
         project_data: d.parsedData || {},

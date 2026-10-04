@@ -45,6 +45,39 @@
 > | `[#88]` | Fitur #88 (Bagian 40) | Dual-Action Visual Copy Button & Filtered Batch Export with Context-Duration Fusion | 2026-09-27 |
 > | `[#89]` | Fitur #89 (Bagian 41) | Bilingual Visual Prompt Bundling & Systemic i18n Hardening (Zero-Hardcoding) | 2026-09-27 |
 > | `[#90]` | Bugfix #90 | Fix: Cross-Device State Sync Resolution & Server Source-of-Truth | 2026-09-30 |
+> | `[#91]` | Audit & Remediasi #91 | Sinkronisasi End-to-End Draft, Selected Title, Auto-Sync UsedTitle & Search Engine Direktori | 2026-10-04 |
+
+---
+
+## [#91] — 2026-10-04 | Audit & Remediasi #91: Sinkronisasi End-to-End Draft, Selected Title, Auto-Sync UsedTitle & Search Engine Direktori
+
+### Overview
+
+Penyelesaian mendalam dan menyeluruh pada rantai data dan antarmuka pengguna seputar pengelolaan draf konten, pemilihan judul (*Selected Title*), penyimpanan direktori, serta sistem pencarian dan pengurutan kronologis pada *Used Titles Directory*:
+
+1. **Auto-Sync Pembuatan & Pembaruan Draf ke UsedTitle**:
+   - Menghubungkan mutasi `POST /api/drafts` dan `PUT /api/drafts/[id]` secara langsung ke tabel permanen `UsedTitle` via atomic transaction (`tx.usedTitle.upsert`).
+   - Setiap kali draf disimpan (baik dari Generator Form maupun Scene Prompt Studio) atau judul draf diedit, judul tersebut secara otomatis dan permanen tersimpan di tabel `UsedTitle` untuk channel terkait.
+   - Mengeliminasi desinkronisasi historis di mana judul draf hanya ada di tabel `Draft` dan berisiko hilang saat draf dihapus.
+
+2. **Auto-Heal & Strict Chronological Date Sorting (`/api/drafts/export`)**:
+   - Menghapus sorting bug di mana penggabungan data `usedTitles` dan `draftTitles` tidak diurutkan ulang berdasarkan waktu pembuatan.
+   - Seluruh daftar kini secara tegas diurutkan menurun (`createdAt: desc` — judul terbaru selalu paling atas).
+   - Menambahkan mekanisme *auto-heal/auto-migrate*: draf historis yang belum terdaftar di tabel `UsedTitle` secara otomatis di-upsert ke `UsedTitle` dengan ID resmi saat diambil, sehingga tombol **Hapus** dan **Edit** di antarmuka pengguna tidak lagi mengalami *error 404 (Not Found)*.
+   - Menghapus pembatasan filter `wordCount: { gt: 0 }` agar draf gambar dan draf tanpa narasi suara tetap tersimpan rapi di direktori.
+
+3. **Mesin Pencarian Real-Time di Used Titles Directory**:
+   - Menambahkan kolom pencarian modern interaktif pada komponen `UsedTitlesDirectory.tsx` lengkap dengan ikon pencarian, tombol pembersih cepat (`✕`), dan penghitung dinamis (*"Menampilkan X dari Y judul"*).
+   - Filter dilakukan secara *case-insensitive* dan *whitespace-trimmed* untuk memudahkan kreator meninjau apakah suatu judul sudah pernah terpakai.
+   - Menambahkan status kosong informatif (*"Tidak ada judul yang cocok dengan pencarian"* beserta tombol *Reset Pencarian*).
+
+4. **Integrasi Alur Studio (`ScenePromptStudioClient.tsx`)**:
+   - Menambahkan *listener* sinkronisasi otomatis: saat channel dipilih atau diganti, daftar judul terpakai channel tersebut langsung diunduh untuk menginisialisasi status `markedTitles`.
+   - Tombol judul yang sudah terdaftar di direktori langsung menampilkan indikator status `✅ Tersimpan di Direktori`, mencegah redundansi klik dan kebingungan pengguna.
+   - Saat pengguna memilih judul (*Selected Title*) dan menekan *Simpan Draft*, judul draf terpilih tersebut otomatis ditambahkan ke `markedTitles` dan ditandai tersimpan ke direktori.
+
+5. **Paritas Internasionalisasi (i18n)**:
+   - Menambahkan seluruh key terjemahan pencarian (`searchPlaceholder`, `clearSearch`, `showingCount`, `totalCount`, `noSearchMatches`, `resetSearch`) secara konsisten pada kamus `messages/id.json` dan `messages/en.json`.
 
 ---
 

@@ -582,6 +582,45 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
     setDraftTitle(title);
   };
 
+  // Sinkronisasi otomatis judul terpakai channel aktif ke markedTitles
+  useEffect(() => {
+    if (!selectedChannelId) return;
+    let ignore = false;
+    async function loadChannelUsedTitles() {
+      try {
+        const res = await fetch(
+          `/api/drafts/export?channelId=${selectedChannelId}&type=VIDEO&format=json&_t=${Date.now()}`
+        );
+        if (res.ok && !ignore) {
+          const data = await res.json();
+          if (Array.isArray(data.titles)) {
+            const existing = data.titles
+              .map((item: { title: string }) => item.title)
+              .filter(Boolean);
+            setMarkedTitles((prev) => {
+              const seen = new Set(prev.map((t) => t.trim().toLowerCase()));
+              const next = [...prev];
+              for (const title of existing) {
+                const key = title.trim().toLowerCase();
+                if (!seen.has(key)) {
+                  seen.add(key);
+                  next.push(title);
+                }
+              }
+              return next;
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load used titles for channel:", err);
+      }
+    }
+    loadChannelUsedTitles();
+    return () => {
+      ignore = true;
+    };
+  }, [selectedChannelId]);
+
   // Server-Side Sync & LocalStorage Persistence (Run strictly once on mount)
   useEffect(() => {
     let ignore = false;
@@ -916,7 +955,19 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
       }),
     });
     const data = await res.json();
-    setSaveMsg(res.ok ? t("draftSaved") : (data.error || t("draftError")));
+    if (res.ok) {
+      if (draftTitle && draftTitle.trim()) {
+        const clean = draftTitle.trim();
+        setMarkedTitles((prev) =>
+          prev.some((t) => t.trim().toLowerCase() === clean.toLowerCase())
+            ? prev
+            : [...prev, clean]
+        );
+      }
+      setSaveMsg(t("draftSaved"));
+    } else {
+      setSaveMsg(data.error || t("draftError"));
+    }
   } catch {
     setSaveMsg(t("draftError"));
   } finally {
@@ -1112,8 +1163,8 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
    </div>
   <div className="space-y-2">
   {parsedTitles.map((title, i) => {
-  const isActiveDraft = title === draftTitle;
-  const isMarked = markedTitles.includes(title);
+  const isActiveDraft = title.trim().toLowerCase() === draftTitle.trim().toLowerCase();
+  const isMarked = markedTitles.some((mt) => mt.trim().toLowerCase() === title.trim().toLowerCase());
   return (
   <div
      key={i}

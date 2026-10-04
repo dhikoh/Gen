@@ -19,6 +19,7 @@ export default function UsedTitlesDirectory({ channelId }: UsedTitlesDirectoryPr
   const [titles, setTitles] = useState<TitleInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [type, setType] = useState<"VIDEO" | "IMAGE">("VIDEO");
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Import modal
   const [importModal, setImportModal] = useState(false);
@@ -216,17 +217,24 @@ export default function UsedTitlesDirectory({ channelId }: UsedTitlesDirectoryPr
   const actionBtnCls =
     "px-2 py-0.5 text-xs font-medium rounded transition-colors";
 
+  const filteredTitles = titles.filter((t) =>
+    t.title.toLowerCase().includes(searchQuery.trim().toLowerCase())
+  );
+
   return (
     <div className="neu-flat p-6 rounded-xl">
       {/* Header */}
-      <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
+      <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
         <h3 className="text-lg font-bold" style={{ color: "var(--pg-text)" }}>
           {t("title")}
         </h3>
         <div className="flex flex-wrap gap-2">
           <select
             value={type}
-            onChange={(e) => setType(e.target.value as "VIDEO" | "IMAGE")}
+            onChange={(e) => {
+              setType(e.target.value as "VIDEO" | "IMAGE");
+              setSearchQuery("");
+            }}
             className="px-3 py-1.5 text-xs rounded-lg outline-none neu-input"
           >
             <option value="VIDEO">{t("videoDrafts")}</option>
@@ -255,6 +263,37 @@ export default function UsedTitlesDirectory({ channelId }: UsedTitlesDirectoryPr
         </div>
       </div>
 
+      {/* Search & Counter Bar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-4">
+        <div className="relative flex-1 max-w-md">
+          <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 text-xs">
+            🔍
+          </span>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={t("searchPlaceholder")}
+            className="w-full pl-8 pr-8 py-1.5 text-xs rounded-lg outline-none neu-input"
+            style={{ color: "var(--pg-text)" }}
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-xs text-slate-400 hover:text-slate-600 transition-colors"
+              title={t("clearSearch")}
+            >
+              ✕
+            </button>
+          )}
+        </div>
+        <div className="text-xs shrink-0 font-medium" style={{ color: "var(--pg-text-muted)" }}>
+          {searchQuery.trim()
+            ? t("showingCount", { count: filteredTitles.length, total: titles.length })
+            : t("totalCount", { count: titles.length })}
+        </div>
+      </div>
+
       {/* Table */}
       <div
         className="overflow-x-auto max-h-96 rounded-xl"
@@ -273,6 +312,17 @@ export default function UsedTitlesDirectory({ channelId }: UsedTitlesDirectoryPr
             style={{ color: "var(--pg-text-muted)" }}
           >
             {t("noTitles")}
+          </div>
+        ) : filteredTitles.length === 0 ? (
+          <div className="p-6 text-center text-sm space-y-2" style={{ color: "var(--pg-text-muted)" }}>
+            <p>{t("noSearchMatches")}</p>
+            <button
+              onClick={() => setSearchQuery("")}
+              className="px-3 py-1 text-xs font-medium rounded-lg neu-btn"
+              style={{ color: "var(--pg-brand)" }}
+            >
+              {t("resetSearch")}
+            </button>
           </div>
         ) : (
           <table className="w-full text-sm text-left">
@@ -302,7 +352,7 @@ export default function UsedTitlesDirectory({ channelId }: UsedTitlesDirectoryPr
               </tr>
             </thead>
             <tbody>
-              {titles.map((tData) => (
+              {filteredTitles.map((tData) => (
                 <tr
                   key={tData.id}
                   className="transition-colors"

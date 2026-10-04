@@ -85,6 +85,31 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       data: updatePayload
     });
 
+    if (parsedData.data.title && existingDraft.channelId) {
+      const cleanTitle = parsedData.data.title
+        .replace(/[\u0000-\u001F\u007F-\u009F]/g, "")
+        .trim()
+        .substring(0, 500);
+      if (cleanTitle) {
+        await prisma.usedTitle.upsert({
+          where: {
+            channelId_type_title: {
+              channelId: existingDraft.channelId,
+              type: existingDraft.type,
+              title: cleanTitle,
+            },
+          },
+          create: {
+            userId: session.user.id,
+            channelId: existingDraft.channelId,
+            type: existingDraft.type,
+            title: cleanTitle,
+          },
+          update: {},
+        });
+      }
+    }
+
     return NextResponse.json({ success: true, draft: updatedDraft }, { status: 200 });
 
   } catch (error) {

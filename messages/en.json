@@ -1316,7 +1316,13 @@
     "editSuccess": "Title updated successfully",
     "duplicateTitle": "Title already exists in the list",
     "deleteFailed": "Failed to delete title",
-    "editFailed": "Failed to update title"
+    "editFailed": "Failed to update title",
+    "searchPlaceholder": "Search used titles...",
+    "clearSearch": "Clear search",
+    "showingCount": "Showing {count} of {total} titles",
+    "totalCount": "{count} titles listed",
+    "noSearchMatches": "No titles match your search criteria.",
+    "resetSearch": "Reset Search"
   },
   "Settings": {
     "profileTitle": "User Profile",
