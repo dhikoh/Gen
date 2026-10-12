@@ -46,6 +46,101 @@
 > | `[#89]` | Fitur #89 (Bagian 41) | Bilingual Visual Prompt Bundling & Systemic i18n Hardening (Zero-Hardcoding) | 2026-09-27 |
 > | `[#90]` | Bugfix #90 | Fix: Cross-Device State Sync Resolution & Server Source-of-Truth | 2026-09-30 |
 > | `[#91]` | Audit & Remediasi #91 | Sinkronisasi End-to-End Draft, Selected Title, Auto-Sync UsedTitle & Search Engine Direktori | 2026-10-04 |
+> | `[#92]` | Fitur #92 (Fase 0 s/d 2B) | Storyboard Studio (Style Bible, Image Panels, ZIP Export), Setting Kamera, Snapshot Konfigurasi & Fail-Closed Cron | 2026-10-12 |
+
+---
+
+## [#92] — 2026-10-12 | Fitur #92: Storyboard Studio, Setting Kamera, Snapshot Konfigurasi & Pengerasan Keamanan Cron (Fase 0 s/d 2B)
+
+### Overview
+
+Pembaruan arsitektur dan fungsionalitas end-to-end menyeluruh pada aplikasi SaaS **Prompt Gen**, menghadirkan **Storyboard Studio** (pembuatan prompt panel bergambar per-scene, penguncian konsistensi visual via Style Bible, manajemen file lokal panel WebP dengan Sharp, ekspor ZIP), penambahan **Setting Kamera** pada generator dan parser naskah video, penyimpanan **Snapshot Konfigurasi** pada draf, serta pengerasan keamanan **Fail-Closed Cron Authorization**:
+
+---
+
+### 1. FASE 0 — PENGARASAN KEAMANAN CRON & PERBAIKAN AUTH REDIRECT
+- **Otorisasi Cron Fail-Closed (`src/lib/cronAuth.ts`)**:
+  - Implementasi validasi bearer token berbasis `crypto.timingSafeEqual` (mencegah timing attack).
+  - Jika environment variable `CRON_SECRET` kosong/tidak disetel, seluruh rute cron otomatis menolak eksekusi (fail-closed, HTTP 401).
+- **Refactoring Rute Cron**:
+  - `src/app/api/cron/cleanup-proofs/route.ts` dan `src/app/api/cron/subscription-reminders/route.ts` kini menggunakan `isCronAuthorized(req)`.
+- **Perbaikan Rute Redirect Unauthenticated**:
+  - Halaman `src/app/[locale]/dashboard/scene-prompt/page.tsx` memperbaiki redirect dari rute lama yang tidak ada (`/login`) ke rute kanonikal (`/auth`).
+- **Dokumentasi & Git Configuration**:
+  - Pembaruan `.env.example` dengan variabel `CRON_SECRET` dan `STORAGE_DIR`.
+  - Penambahan `/storage` pada `.gitignore` untuk mencegah file gambar user masuk ke repositori git.
+
+---
+
+### 2. FASE 1 — SETTING KAMERA PADA SCENE PROMPT STUDIO & SNAPSHOT KONFIGURASI
+- **Setting Kamera pada Prompt Generator (`src/lib/promptGenerator.ts`)**:
+  - Menambahkan baris instruksi `SETTING KAMERA: <Shot Size> | <Angle> | <Lens> | <Depth of Field> | <Camera Movement> | <Composition>` pada prompt sistem Scene Prompt Studio.
+  - Opsi pergerakan kamera diselaraskan dengan preferensi toggle pengguna dan tipe shot.
+- **Ekstraksi Parser (`src/lib/parsers.ts`)**:
+  - Parser `parseScenePromptsFromAIResponse` secara andal mengekstrak baris `SETTING KAMERA:` ke dalam atribut `settingKamera` pada tiap scene.
+- **Antarmuka Scene Prompt Studio (`ScenePromptStudioClient.tsx`)**:
+  - Menampilkan chip informasi kamera (badge kamera) pada kartu editor scene di dashboard.
+- **Skema & Snapshot Konfigurasi Draf**:
+  - Penambahan kolom `generationConfig Json?` pada model `Draft` di Prisma schema.
+  - Migrasi SQL: `prisma/migrations/20261012_add_draft_generation_config/migration.sql`.
+  - Pustaka `src/lib/generationConfig.ts` membuat snapshot immutable saat draf disimpan dari Generator Form maupun Scene Prompt Studio (menyimpan aspect ratio, durasi, target words, niche, dan preferensi kamera).
+
+---
+
+### 3. FASE 2A — FONDASI STORYBOARD: DATABASE, PENYIMPANAN FILE & API
+- **Skema Database (`prisma/schema.prisma`)**:
+  - Penambahan kolom `storyboard Json?` pada model `Draft` untuk menyimpan data Style Bible.
+  - Model baru `StoryboardPanel` dengan unique compound index `@@unique([draftId, sceneNumber])` dan indeks pencarian `@@index([userId])`.
+  - Migrasi SQL: `prisma/migrations/20261013_add_storyboard/migration.sql`.
+- **Penyimpanan File Lokal Aman (`src/lib/storage.ts`)**:
+  - Abstraksi `storagePut`, `storageGet`, `storageDelete`, dan `storageList`.
+  - Validasi ketat terhadap path traversal menggunakan regex dan `path.relative`.
+  - Menggunakan direktori `STORAGE_DIR` (default lokal: `./storage`).
+- **Pemrosesan Gambar Berkinerja Tinggi (`src/lib/imageProcessing.ts` & `imageKind.ts`)**:
+  - Integrasi pustaka `sharp` dengan konfigurasi `serverExternalPackages: ["sharp"]` di `next.config.ts`.
+  - Deteksi format gambar berbasis magic bytes (hanya menerima JPEG, PNG, dan WebP; menolak SVG/GIF).
+  - Konversi otomatis gambar utama ke format WebP (maks 1280px) dan thumbnail WebP (maks 360px), menghapus metadata EXIF/GPS sensitif.
+- **Limit & Feature Flag Paket**:
+  - Konstanta batas di `storyboardLimits.ts` (maks 8 MB per file, maks 30 panel per draf, maks 300 MB per user).
+  - Flag fitur paket baru: `storyboardStudio` (fail-closed, hanya untuk paket yang diaktifkan oleh Admin; Superadmin otomatis memiliki akses).
+- **Rute API Storyboard**:
+  - `POST /api/drafts/[id]/storyboard/panels`: Upload/replace panel (rate-limited, nama file acak via server, cek kepemilikan draf tipe VIDEO).
+  - `GET /api/storyboard/panels/[panelId]`: Menyajikan gambar panel utama atau thumbnail dengan header caching privat.
+  - `DELETE /api/storyboard/panels/[panelId]`: Menghapus baris panel dan file fisik dari disk.
+  - `PUT /api/drafts/[id]/storyboard`: Menyimpan pengaturan Style Bible ke dalam draf.
+  - Hook penghapusan `deleteDraftStoryboardFiles` di `DELETE /api/drafts/[id]`.
+  - Rute cron pembersih yatim: `POST /api/cron/cleanup-storyboard-orphans` (membersihkan file orphan > 24 jam dan file `.tmp` > 1 jam).
+  - Ekspor data GDPR/User Data: Menyertakan metadata `storyboardPanels` di `GET /api/user/data-export`.
+
+---
+
+### 4. FASE 2B — ANTARMUKA STORYBOARD UI & EKSPOR ZIP
+- **Pustaka Pembuat Prompt (`src/lib/storyboardPromptBuilder.ts`)**:
+  - `buildStyleBiblePrompt`: Menyusun prompt pengunci gaya & karakter untuk AI eksternal (Midjourney/ChatGPT/Flux).
+  - `buildPanelPrompt`: Menyusun prompt per-scene yang memadukan visual bersih (menghapus parameter video seperti `--ar`, `[SFX]`, narasi audio) dengan rincian setting kamera dan aspect ratio.
+  - `assignFilesToScenes`: Mengurutkan nama file secara natural (*natural sort*: panel2 < panel10) untuk pemasangan otomatis multi-upload.
+- **Pembaca Data Draf (`src/lib/storyboardData.ts`)**:
+  - Fungsi murni untuk mengekstrak scene, Style Bible, aspect ratio, dan status camera movement dari data draf.
+- **Lokalisasi Menyeluruh (i18n)**:
+  - Penambahan namespace baru `Storyboard` dengan 59 key identik di `messages/id.json` dan `messages/en.json` (100% paritas, total 1.524 key).
+- **Komponen Storyboard UI (`StoryboardSection.tsx`)**:
+  - Dipasang pada halaman detail draf (`src/app/[locale]/dashboard/drafts/[id]/page.tsx`) untuk draf bertipe `VIDEO`.
+  - Formulir interaktif **Style Bible** (pilihan gaya artistik, karakter berulang, palet warna, lokasi, aturan tambahan) dengan tombol simpan dan salin 1-klik.
+  - Daftar panel per-scene dengan pratinjau thumbnail, tombol salin prompt panel, upload tunggal, ganti gambar, dan hapus gambar.
+  - Fitur **Unggah Banyak Sekaligus (Bulk Upload)** dengan pratinjau pemasangan scene otomatis dan progress bar upload real-time.
+- **Rute Ekspor ZIP (`GET /api/drafts/[id]/storyboard/export`)**:
+  - Menghasilkan file ZIP berisikan dokumen instruksi `storyboard.md` (lengkap dengan Style Bible dan prompt seluruh panel) serta seluruh gambar panel (`panel_01.webp`, `panel_02.webp`, dst.).
+
+---
+
+### HASIL AUDIT & VERIFIKASI AKHIR
+- **TypeScript**: `npx tsc --noEmit` → Exit 0 (Zero errors)
+- **Lint**: `npm run lint` → Exit 0 (Zero warnings, Zero errors across entire repository)
+- **i18n Parity**: `npm run audit:i18n` → Exit 0 (100% key parity, 1.524 keys)
+- **Unit & Integration Tests**: `npm test` → Exit 0 (**23 test files, 234 unit tests passed 100%**)
+- **Build Produksi**: `npm run build` → Exit 0 (Next.js 16.3.1 Turbopack static & dynamic routes build bersih)
+- **Keamanan Client Filename**: Tidak ada nama file dari client yang digunakan di server (`grep` bersih).
+- **Keamanan XSS**: Bebas dari `dangerouslySetInnerHTML` pada komponen Storyboard.
 
 ---
 
