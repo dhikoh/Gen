@@ -12,7 +12,8 @@ const withPWA = withPWAInit({
 });
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // sharp memakai binary native; jangan di-bundle oleh Next
+  serverExternalPackages: ["sharp"],
 };
 
 export default withPWA(withNextIntl(nextConfig));
