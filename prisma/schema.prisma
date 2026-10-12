@@ -136,6 +136,7 @@ model User {
   notifications         Notification[]
   supportTickets        SupportTicket[]
   draftPerformances     DraftPerformance[]
+  storyboardPanels      StoryboardPanel[]
 }
 
 model Plan {
@@ -233,6 +234,8 @@ model Draft {
   rawJson              String    @db.Text
   parsedData           Json?
   generationConfig     Json?     // Snapshot pengaturan Generator Studio saat disimpan
+  storyboard           Json?              // Style bible storyboard { styleBible, updatedAt }
+  storyboardPanels     StoryboardPanel[]
   targetDurationSec    Int?
   targetSceneCount     Int?
   narrativeLoopStyle   String?
@@ -492,3 +495,23 @@ model UserApiKey {
   @@index([userId, provider, isActive])
 }
 
+model StoryboardPanel {
+  id          String   @id @default(cuid())
+  draftId     String
+  draft       Draft    @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sceneNumber Int
+  storageKey  String   @unique
+  thumbKey    String
+  mime        String   @default("image/webp")
+  bytes       Int
+  width       Int
+  height      Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([draftId, sceneNumber])
+  @@index([draftId])
+  @@index([userId])
+}
