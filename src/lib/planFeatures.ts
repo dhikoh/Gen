@@ -44,6 +44,11 @@ export const KNOWN_PLAN_FEATURES: PlanFeatureDefinition[] = [
     key: "retentionPacingPro",
     labelKey: "featureRetentionPacingPro",
     defaultValue: false   // fail-closed: PRO tier retention & editing rhythm
+  },
+  {
+    key: "storyboardStudio",
+    labelKey: "featureStoryboardStudio",
+    defaultValue: false   // fail-closed: fitur premium, harus diaktifkan di paket oleh admin
   }
 ];
 
