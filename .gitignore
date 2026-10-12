@@ -47,3 +47,5 @@ Project Prompt Gen.txt
 # tests and internal scripts (local only)
 /tests/
 /scripts/
+
+/storage

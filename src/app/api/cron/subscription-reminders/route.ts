@@ -5,6 +5,7 @@ import { getBaseEmailTemplate, escapeHtml } from "@/lib/emailTemplates";
 import { notifyUser } from "@/lib/notifications";
 import { logEmailDelivery } from "@/lib/emailLog";
 import { NotificationType } from "@prisma/client";
+import { isCronAuthorized } from "@/lib/cronAuth";
 
 export async function POST(req: Request) {
   return handleCron(req);
@@ -15,12 +16,7 @@ export async function GET(req: Request) {
 }
 
 async function handleCron(req: Request) {
-  const authHeader = req.headers.get("authorization") || "";
-  const { searchParams } = new URL(req.url);
-  const secret = searchParams.get("secret") || authHeader.replace(/^Bearer\s+/i, "").trim();
-
-  const expectedSecret = process.env.CRON_SECRET || "promptgen_cron_internal_secret";
-  if (secret !== expectedSecret && process.env.NODE_ENV === "production") {
+  if (!isCronAuthorized(req)) {
     return NextResponse.json({ error: "Unauthorized cron execution" }, { status: 401 });
   }
 

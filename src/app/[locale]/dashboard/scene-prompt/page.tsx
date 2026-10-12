@@ -24,7 +24,7 @@ export default async function ScenePromptPage({ params, searchParams }: PageProp
   const { locale } = await params;
   const { draftId } = await searchParams;
   const session = await getServerSession(authOptions);
-  if (!session) redirect(`/${locale}/login`);
+  if (!session) redirect(`/${locale}/auth`);
 
   const [channels, dbUser, initialDraft, rawParsedOutputs] = await Promise.all([
     prisma.profileChannel.findMany({

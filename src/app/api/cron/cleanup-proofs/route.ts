@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { isCronAuthorized } from "@/lib/cronAuth";
 
 export async function POST(req: Request) {
   return handleCleanup(req);
@@ -10,14 +11,10 @@ export async function GET(req: Request) {
 }
 
 async function handleCleanup(req: Request) {
-  const authHeader = req.headers.get("authorization") || "";
-  const { searchParams } = new URL(req.url);
-  const secret = searchParams.get("secret") || authHeader.replace(/^Bearer\s+/i, "").trim();
-
-  const expectedSecret = process.env.CRON_SECRET || "promptgen_cron_internal_secret";
-  if (secret !== expectedSecret && process.env.NODE_ENV === "production") {
+  if (!isCronAuthorized(req)) {
     return NextResponse.json({ error: "Unauthorized cron execution" }, { status: 401 });
   }
+  const { searchParams } = new URL(req.url);
 
   try {
     const rawDays = parseInt(searchParams.get("days") || "180", 10);
