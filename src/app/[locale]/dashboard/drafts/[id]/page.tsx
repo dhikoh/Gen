@@ -10,6 +10,14 @@ import DraftPerformanceForm from "./DraftPerformanceForm";
 import { getTranslations } from "next-intl/server";
 import CopyButton from "@/components/dashboard/CopyButton";
 import sanitizeHtml from "sanitize-html";
+import StoryboardSection from "./StoryboardSection";
+import { hasFeature } from "@/lib/planFeatures";
+import {
+  extractStoryboardScenes,
+  readAspectRatio,
+  readCameraMovementEnabled,
+  readStyleBible,
+} from "@/lib/storyboardData";
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
  const { locale } = await params;
  const t = await getTranslations({ locale, namespace: 'Drafts' });
@@ -109,6 +117,30 @@ export default async function DraftDetailPage({
   const parsedData = (draft.parsedData && typeof draft.parsedData === "object"
     ? draft.parsedData
     : {}) as DraftParsedData;
+
+  // ── Storyboard: akses fitur, panel yang sudah diunggah, dan data scene ──
+  const planUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { role: true, currentPlan: { select: { features: true } } },
+  });
+  const storyboardUnlocked = hasFeature(
+    (planUser?.currentPlan?.features as Record<string, boolean>) ?? {},
+    "storyboardStudio",
+    planUser?.role === "SUPERADMIN"
+  );
+  const storyboardPanelRows = await prisma.storyboardPanel.findMany({
+    where: { draftId: draft.id, userId: session.user.id },
+    orderBy: { sceneNumber: "asc" },
+    select: { id: true, sceneNumber: true, width: true, height: true, updatedAt: true },
+  });
+  const storyboardPanels = storyboardPanelRows.map((p) => ({
+    id: p.id,
+    sceneNumber: p.sceneNumber,
+    width: p.width,
+    height: p.height,
+    updatedAt: p.updatedAt.toISOString(),
+  }));
+  const storyboardScenes = extractStoryboardScenes(draft.parsedData);
 
   const isDiegetic =
     draft.channel?.contentArchetype?.narrationMode === "DIEGETIC_ONLY" ||
@@ -529,6 +561,20 @@ export default async function DraftDetailPage({
  </div>
  </div>
  )}
+
+        {draft.type === "VIDEO" && (
+          <StoryboardSection
+            draftId={draft.id}
+            locale={locale}
+            locked={!storyboardUnlocked}
+            topic={draft.title || ""}
+            aspectRatio={readAspectRatio(draft.generationConfig)}
+            cameraMovementEnabled={readCameraMovementEnabled(draft.generationConfig)}
+            scenes={storyboardScenes}
+            initialStyleBible={readStyleBible(draft.storyboard)}
+            panels={storyboardPanels}
+          />
+        )}
  </div>
  </div>
  );
