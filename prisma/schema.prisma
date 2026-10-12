@@ -232,6 +232,7 @@ model Draft {
   title                String?
   rawJson              String    @db.Text
   parsedData           Json?
+  generationConfig     Json?     // Snapshot pengaturan Generator Studio saat disimpan
   targetDurationSec    Int?
   targetSceneCount     Int?
   narrativeLoopStyle   String?

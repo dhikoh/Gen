@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
-import { Prisma, DraftType } from "@prisma/client";
+import { Prisma } from "@prisma/client";
+import { buildGenerationConfigSnapshot } from "@/lib/generationConfig";
 import { z } from "zod";
 import { requireActiveSubscription, SubscriptionInactiveError } from "@/lib/subscription";
 import { getClientIp, applyRateLimit } from "@/lib/rateLimit";
@@ -91,6 +92,13 @@ export async function POST(req: Request) {
     if (channel.isLocked) {
       return NextResponse.json({ error: t("channelLocked") }, { status: 403 });
     }
+
+    // Snapshot pengaturan Generator Studio (best-effort; null jika tidak ada)
+    const prefsRow = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { generatorPreferences: true },
+    });
+    const generationConfig = buildGenerationConfigSnapshot(prefsRow?.generatorPreferences, channel.id);
 
     // Helper: parse durasi string/number ke detik (Bagian 23.3 poin 3)
     const parseSec = (val: unknown): number | null => {
@@ -226,6 +234,7 @@ export async function POST(req: Request) {
             targetSceneCount: targetSceneCount || null,
             narrativeLoopStyle: narrativeLoopStyle || null,
             visualLoopStyle: visualLoopStyle || null,
+            generationConfig: generationConfig ?? undefined,
             isStub: false,
             // Preserve isTemplate state from existing draft
             isTemplate: existingStub.isTemplate
@@ -247,6 +256,7 @@ export async function POST(req: Request) {
             targetSceneCount: targetSceneCount || null,
             narrativeLoopStyle: narrativeLoopStyle || null,
             visualLoopStyle: visualLoopStyle || null,
+            generationConfig: generationConfig ?? undefined,
             isStub: false,
             isTemplate: false
           }
@@ -335,7 +345,7 @@ export async function GET(req: Request) {
       let totalScenes = d.targetSceneCount || 0;
 
       if (!totalScenes && d.parsedData && typeof d.parsedData === "object" && !Array.isArray(d.parsedData)) {
-        const pd = d.parsedData as Record<string, any>;
+        const pd = d.parsedData as Record<string, unknown>;
         if (Array.isArray(pd.scenes)) {
           totalScenes = pd.scenes.length;
         } else if (Array.isArray(pd.segments)) {
