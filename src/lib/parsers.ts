@@ -667,6 +667,7 @@ export interface Scene {
   voiceGuidelines?: VoiceGuidelines;
   targetEmosi?: string;
   teknikPacing?: string;
+  settingKamera?: string; // Baris SETTING KAMERA dari output AI
 }
 
 export function parseOverlayType(raw: string): { text: string; type?: "chapter_title" | "key_point" } {
@@ -864,7 +865,7 @@ export function parseScenes(text: string, speechRateSec: number = 0.35): Scene[]
   const splitter = /(?:^|\r?\n)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:Scene|Adegan|Bagian|Part)\s*([a-zA-Z0-9_\-]+)(?:[:\s\*\-=_]*)(?=\r?\n|$)/gi;
   const parts = text.split(splitter);
   const scenes: Scene[] = [];
-  const delimiters = "(?:Konteks\\s*Scene|Konteks\\s*Adegan|Scene\\s*Context|Konteks|Context|Narasi|Dialog|Voice\\s*Over|VO|Audio|Target\\s*Emosi(?:\\s*\\(VET\\))?|Emosi|Teknik\\s*(?:Editing(?:\\s*&\\s*Pacing)?|Pacing)|Pacing|Teks\\s*Overlay|Text\\s*Overlay|Overlay|Panduan\\s*Suara|Voice\\s*Guidelines|Visual\\s*Prompt|Visual|Deskripsi\\s*Visual|Prompt|Durasi|Time|Duration)";
+  const delimiters = "(?:Konteks\\s*Scene|Konteks\\s*Adegan|Scene\\s*Context|Konteks|Context|Narasi|Dialog|Voice\\s*Over|VO|Audio|Target\\s*Emosi(?:\\s*\\(VET\\))?|Emosi|Teknik\\s*(?:Editing(?:\\s*&\\s*Pacing)?|Pacing)|Pacing|Teks\\s*Overlay|Text\\s*Overlay|Overlay|Panduan\\s*Suara|Voice\\s*Guidelines|Setting\\s*Kamera|Camera\\s*Setup|Visual\\s*Prompt|Visual|Deskripsi\\s*Visual|Prompt|Durasi|Time|Duration)";
   const delimLookahead = `(?=(?:\\r?\\n)+(?:\\*\\*)?${delimiters}(?::\\s*\\*\\*|\\*\\*\\s*:|:)|\\r?\\n+[-*_]{3,}|\\r?\\n+(?:#{1,6}\\s*|\\*{2,3}\\s*|={2,4}\\s*)*(?:Scene|Adegan|Bagian|Part)\\s+[a-zA-Z0-9_\\-]+|\\r?\\n+(?:#{1,6}\\s*|\\*{2,3}\\s*|={2,4}\\s*)*(?:TOTAL|THUMBNAIL|METADATA|RINGKASAN|HASHTAG|CAPTION)|$)`;
 
   // Helper: find which chapter a given text offset belongs to
@@ -909,6 +910,7 @@ export function parseScenes(text: string, speechRateSec: number = 0.35): Scene[]
       const vis = matchField("Visual\\s*Prompt|Visual|Deskripsi\\s*Visual|Prompt");
       const dur = matchField("Durasi|Time|Duration");
       const voi = matchField("Panduan\\s*Suara|Voice\\s*Guidelines");
+      const cam = matchField("Setting\\s*Kamera|Camera\\s*Setup");
 
       let contextVal = context ? cleanParsedValue(context[1]) : "";
       if (contextVal.startsWith("[") && contextVal.endsWith("]")) {
@@ -920,6 +922,7 @@ export function parseScenes(text: string, speechRateSec: number = 0.35): Scene[]
       const rawOverlay = overlay ? cleanParsedValue(overlay[1]).replace(/^["']|["']$/g, "").trim() : "";
       let visVal = vis ? cleanParsedValue(vis[1]) : "";
       const durVal = dur ? normalizeDurasi(dur[1]) : "5s";
+      const camVal = cam ? cleanParsedValue(cam[1]) : "";
 
       // Fallback: If context wasn't parsed as an explicit field, check if visual prompt started with [Scene: ...] or [Konteks: ...]
       if (!contextVal && visVal) {
@@ -959,6 +962,7 @@ export function parseScenes(text: string, speechRateSec: number = 0.35): Scene[]
           voiceGuidelines: voi ? parseVoiceGuidelines(cleanParsedValue(voi[1])) : undefined,
           targetEmosi: emosiVal && emosiVal !== "—" ? emosiVal : undefined,
           teknikPacing: pacingVal && pacingVal !== "—" ? pacingVal : undefined,
+          settingKamera: camVal && camVal !== "—" ? camVal : undefined,
         });
         count++;
       }

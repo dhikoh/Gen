@@ -1459,7 +1459,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
         </div>
 
         {/* Emotion / Pacing / Diegetic Tags Row */}
-        {(scene.isDiegetic || scene.targetEmosi || scene.teknikPacing) && (
+        {(scene.isDiegetic || scene.targetEmosi || scene.teknikPacing || scene.settingKamera) && (
           <div className="flex flex-wrap items-center gap-1.5 pl-6 sm:pl-6.5">
             {scene.isDiegetic && (
               <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 flex items-center gap-1">
@@ -1474,6 +1474,11 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
             {scene.teknikPacing && (
               <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center gap-1" title="Teknik Editing & Pacing">
                 <span>⚡</span> {scene.teknikPacing}
+              </span>
+            )}
+            {scene.settingKamera && (
+              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 flex items-center gap-1" title="Camera Setting">
+                <span>🎥</span> {scene.settingKamera}
               </span>
             )}
           </div>

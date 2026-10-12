@@ -51,6 +51,30 @@ describe("parseScenes (baseline perilaku saat ini)", () => {
 
   it("scene tanpa baris SETTING KAMERA tidak punya settingKamera (kompatibel dengan data lama)", () => {
     const scenes = parseScenes(SAMPLE);
-    expect((scenes[0] as { settingKamera?: string }).settingKamera).toBeUndefined();
+    expect(scenes[0].settingKamera).toBeUndefined();
+  });
+});
+
+describe("parseScenes — SETTING KAMERA", () => {
+  const WITH_CAM = SAMPLE.replace(
+    "VISUAL PROMPT:",
+    "SETTING KAMERA: ECU | low angle | 50mm | shallow DOF | slow push-in | rule of thirds\nVISUAL PROMPT:"
+  );
+
+  it("membaca SETTING KAMERA pada scene yang memilikinya", () => {
+    const scenes = parseScenes(WITH_CAM);
+    expect(scenes).toHaveLength(2);
+    expect(scenes[0].settingKamera).toBe("ECU | low angle | 50mm | shallow DOF | slow push-in | rule of thirds");
+  });
+
+  it("SETTING KAMERA tidak bocor ke field visual", () => {
+    const scenes = parseScenes(WITH_CAM);
+    expect(scenes[0].visual).not.toContain("SETTING KAMERA");
+    expect(scenes[0].visual).toContain("slow push-in");
+  });
+
+  it("scene lain tanpa baris kamera tetap undefined", () => {
+    const scenes = parseScenes(WITH_CAM);
+    expect(scenes[1].settingKamera).toBeUndefined();
   });
 });

@@ -48,6 +48,7 @@ interface SceneItem {
   };
   targetEmosi?: string;
   teknikPacing?: string;
+  settingKamera?: string;
 }
 
 interface ImageVariation {
@@ -457,6 +458,12 @@ export default async function DraftDetailPage({
  <p className="text-xs font-bold pg-text-muted mb-1">🎨 Visual Prompt</p>
  <p className="text-sm pg-text-heading font-mono text-xs">{scene.visual}</p>
  </div>
+ )}
+ {scene.settingKamera && (
+   <div className="pg-bg-page p-3 rounded border pg-border">
+     <p className="text-xs font-bold pg-text-muted mb-1">🎥 Camera</p>
+     <p className="text-sm pg-text-heading font-mono text-xs">{scene.settingKamera}</p>
+   </div>
  )}
  </div>
  </div>
