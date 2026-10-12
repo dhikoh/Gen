@@ -21,7 +21,7 @@ export async function GET(req: Request) {
 
     const userId = session.user.id;
 
-    const [user, channels, drafts, invoices, usedTitles, supportTickets] = await Promise.all([
+    const [user, channels, drafts, invoices, usedTitles, supportTickets, storyboardPanels] = await Promise.all([
       prisma.user.findUnique({
         where: { id: userId },
         select: {
@@ -65,6 +65,10 @@ export async function GET(req: Request) {
         include: { messages: true },
         orderBy: { createdAt: "desc" },
       }),
+      prisma.storyboardPanel.findMany({
+        where: { userId },
+        select: { id: true, draftId: true, sceneNumber: true, bytes: true, width: true, height: true, createdAt: true },
+      }),
     ]);
 
     const exportBundle = {
@@ -75,6 +79,7 @@ export async function GET(req: Request) {
       invoices,
       usedTitles,
       supportTickets,
+      storyboardPanels,
     };
 
     const filename = `promptgen-export-${user?.username || userId}-${Date.now()}.json`;

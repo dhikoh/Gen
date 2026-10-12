@@ -7,6 +7,7 @@ import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
 import { applyRateLimit } from "@/lib/rateLimit";
+import { deleteDraftStoryboardFiles } from "@/lib/storyboardCleanup";
 
 const updateDraftSchema = z.object({
   isTemplate: z.boolean().optional(),
@@ -144,6 +145,13 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
     if (existingDraft.userId !== session.user.id) {
       return NextResponse.json({ error: t("forbidden") }, { status: 403 });
+    }
+
+    // Hapus file gambar storyboard dulu. Gagal tidak boleh menggagalkan penghapusan draft.
+    try {
+      await deleteDraftStoryboardFiles(id);
+    } catch (err) {
+      console.error("[drafts] gagal hapus file storyboard:", err);
     }
 
     await prisma.draft.delete({
