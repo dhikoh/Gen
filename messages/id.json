@@ -1782,6 +1782,15 @@
     "renderSuccess": "Video berhasil dirender dan diunduh ke komputer Anda!",
     "renderError": "Gagal merender video. Pastikan browser mendukung perekaman video.",
     "previewResult": "Hasil Video Jadi",
-    "downloadAgain": "⬇️ Unduh Ulang Video"
+    "downloadAgain": "⬇️ Unduh Ulang Video",
+    "exportZipButton": "💾 Unduh Paket Render (.zip)",
+    "exportingZip": "Menyiapkan paket ZIP...",
+    "zipSuccess": "Paket render lokal berhasil diunduh!",
+    "uploadToDrive": "Simpan ke Google Drive",
+    "uploadingToDrive": "Mengunggah ke Drive...",
+    "uploadDriveSuccess": "Video berhasil disimpan ke Google Drive!",
+    "uploadDriveFailed": "Gagal mengunggah video ke Google Drive.",
+    "openInDrive": "Buka di Google Drive",
+    "driveFeatureLocked": "Fitur Google Drive memerlukan upgrade paket."
   }
 }

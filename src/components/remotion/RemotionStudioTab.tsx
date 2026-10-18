@@ -29,11 +29,13 @@ import {
   type RemotionRenderProgress,
   type RemotionRenderResult,
 } from "@/lib/remotionVideoAssembler";
+import { exportRemotionZip } from "@/lib/remotionZipExporter";
 
 export interface RemotionStudioTabProps {
   timeline: VideoTimeline | null;
   scenesCount: number;
   draftTitle: string;
+  canUploadToDrive?: boolean;
 }
 
 type SubTab = "prompt" | "boilerplate" | "validator";
@@ -154,7 +156,12 @@ function IssueList({ issues }: { issues: readonly RemotionIssue[] }) {
   );
 }
 
-export function RemotionStudioTab({ timeline, scenesCount, draftTitle }: RemotionStudioTabProps) {
+export function RemotionStudioTab({
+  timeline,
+  scenesCount,
+  draftTitle,
+  canUploadToDrive = false,
+}: RemotionStudioTabProps) {
   const t = useTranslations("RemotionStudio");
 
   const [aspectRatio, setAspectRatio] = useState<RemotionAspectRatio>("16:9");
@@ -179,6 +186,11 @@ export function RemotionStudioTab({ timeline, scenesCount, draftTitle }: Remotio
   const [renderProgress, setRenderProgress] = useState<RemotionRenderProgress | null>(null);
   const [renderedResult, setRenderedResult] = useState<RemotionRenderResult | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // ZIP Export & Google Drive States
+  const [isExportingZip, setIsExportingZip] = useState<boolean>(false);
+  const [isUploadingDrive, setIsUploadingDrive] = useState<boolean>(false);
+  const [driveLink, setDriveLink] = useState<string | null>(null);
 
   useEffect(() => {
     return () => {
@@ -232,6 +244,61 @@ export function RemotionStudioTab({ timeline, scenesCount, draftTitle }: Remotio
 
   const handleValidate = (): void => {
     setValidation(validateRemotionCode(pastedCode));
+  };
+
+  // Unduh paket ZIP proyek Remotion siap render lokal
+  const handleExportZip = async (): Promise<void> => {
+    if (!timeline || isExportingZip) return;
+    setIsExportingZip(true);
+    try {
+      const zipBlob = await exportRemotionZip(timeline, options);
+      downloadBlob(zipBlob, `${sanitizeComponentName(componentName)}-remotion-project.zip`);
+      showStatus(t("zipSuccess"));
+    } catch (err) {
+      console.error("Gagal mengekspor paket ZIP:", err);
+    } finally {
+      setIsExportingZip(false);
+    }
+  };
+
+  // Unggah video hasil render ke Google Drive
+  const handleUploadToDrive = async (): Promise<void> => {
+    if (!renderedResult || isUploadingDrive) return;
+    if (!canUploadToDrive) {
+      showStatus(t("driveFeatureLocked"));
+      return;
+    }
+
+    setIsUploadingDrive(true);
+    setDriveLink(null);
+
+    try {
+      const file = new File([renderedResult.blob], renderedResult.filename, {
+        type: renderedResult.mimeType,
+      });
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("filename", renderedResult.filename);
+      if (timeline?.draftId) {
+        formData.append("draftId", timeline.draftId);
+      }
+
+      const res = await fetch("/api/user/google-drive/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || t("uploadDriveFailed"));
+      }
+      setDriveLink(data.webViewLink || null);
+      showStatus(t("uploadDriveSuccess"));
+    } catch (err) {
+      console.error("Gagal mengunggah video ke Drive:", err);
+      showStatus(err instanceof Error ? err.message : t("uploadDriveFailed"));
+    } finally {
+      setIsUploadingDrive(false);
+    }
   };
 
   // Gambar frame preview ke canvas
@@ -562,19 +629,41 @@ export function RemotionStudioTab({ timeline, scenesCount, draftTitle }: Remotio
             </div>
           )}
 
-          {/* Render Result Success Notice */}
+          {/* Render Result Success Notice & Action Buttons */}
           {renderedResult && !isRendering && (
             <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3 flex flex-wrap items-center justify-between gap-3 text-sm">
               <span className="text-emerald-300 font-medium flex items-center gap-2">
                 <span>✅</span> {t("renderSuccess")}
               </span>
-              <button
-                type="button"
-                onClick={() => downloadBlob(renderedResult.blob, renderedResult.filename)}
-                className={pill(true)}
-              >
-                {t("downloadAgain")}
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => downloadBlob(renderedResult.blob, renderedResult.filename)}
+                  className={pill(true)}
+                >
+                  {t("downloadAgain")}
+                </button>
+                {canUploadToDrive && (
+                  <button
+                    type="button"
+                    disabled={isUploadingDrive}
+                    onClick={handleUploadToDrive}
+                    className={pill(false)}
+                  >
+                    ☁️ {isUploadingDrive ? t("uploadingToDrive") : t("uploadToDrive")}
+                  </button>
+                )}
+                {driveLink && (
+                  <a
+                    href={driveLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-sky-400 hover:underline flex items-center gap-1 font-medium px-2 py-1"
+                  >
+                    <span>↗️</span> {t("openInDrive")}
+                  </a>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -630,6 +719,14 @@ export function RemotionStudioTab({ timeline, scenesCount, draftTitle }: Remotio
             </button>
             <button type="button" className={pill(false)} onClick={handleDownload}>
               {t("downloadTsx")}
+            </button>
+            <button
+              type="button"
+              className={pill(false)}
+              disabled={isExportingZip}
+              onClick={handleExportZip}
+            >
+              {isExportingZip ? t("exportingZip") : t("exportZipButton")}
             </button>
           </div>
         </div>

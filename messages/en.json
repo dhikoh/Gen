@@ -1782,6 +1782,15 @@
     "renderSuccess": "Video successfully rendered and downloaded to your computer!",
     "renderError": "Failed to render video. Make sure your browser supports video recording.",
     "previewResult": "Rendered Video Result",
-    "downloadAgain": "⬇️ Download Video Again"
+    "downloadAgain": "⬇️ Download Video Again",
+    "exportZipButton": "💾 Download Render Package (.zip)",
+    "exportingZip": "Preparing ZIP package...",
+    "zipSuccess": "Local render package downloaded successfully!",
+    "uploadToDrive": "Save to Google Drive",
+    "uploadingToDrive": "Uploading to Drive...",
+    "uploadDriveSuccess": "Video successfully saved to Google Drive!",
+    "uploadDriveFailed": "Failed to upload video to Google Drive.",
+    "openInDrive": "Open in Google Drive",
+    "driveFeatureLocked": "Google Drive feature requires a plan upgrade."
   }
 }

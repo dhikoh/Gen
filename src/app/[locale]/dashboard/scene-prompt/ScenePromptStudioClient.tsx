@@ -2894,6 +2894,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
  timeline={currentTimeline}
  scenesCount={scenes.length}
  draftTitle={draftTitle || initialDraft?.title || ""}
+ canUploadToDrive={planFeatures.googleDriveUpload}
  />
  ) : (
  <RemotionUpgradeCard />
