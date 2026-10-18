@@ -49,6 +49,16 @@ export const KNOWN_PLAN_FEATURES: PlanFeatureDefinition[] = [
     key: "storyboardStudio",
     labelKey: "featureStoryboardStudio",
     defaultValue: false   // fail-closed: fitur premium, harus diaktifkan di paket oleh admin
+  },
+  {
+    key: "fullVideoStudio",
+    labelKey: "featureFullVideoStudio",
+    defaultValue: false   // fail-closed: premium feature
+  },
+  {
+    key: "googleDriveUpload",
+    labelKey: "featureGoogleDriveUpload",
+    defaultValue: false   // fail-closed: premium feature, requires Google OAuth config
   }
 ];
 

@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { z } from "zod";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
-import { applyRateLimit } from "@/lib/rateLimit";
+import { applyRateLimit, getClientIp } from "@/lib/rateLimit";
 
 const resetPasswordSchema = z.object({
   token: z.string().min(1),
@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     
     const body = await req.json();
     const tokenStr = typeof body.token === 'string' ? body.token.substring(0, 15) : 'unknown';
-    const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
+    const ip = getClientIp(req);
     const isAllowed = await applyRateLimit(`reset_pw_${ip}_${tokenStr}`, 5, 60 * 15);
     if (!isAllowed) {
       return NextResponse.json({ error: t("authRateLimit") }, { status: 429 });

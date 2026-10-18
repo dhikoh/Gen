@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
-import { applyRateLimit } from "@/lib/rateLimit";
+import { applyRateLimit, getClientIp } from "@/lib/rateLimit";
 import { z } from "zod";
 
 const productSchema = z.object({
@@ -20,7 +20,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
 
-    const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
+    const ip = getClientIp(req);
     const isAllowed = await applyRateLimit(`put_product_${session.user.id}_${ip}`, 20, 60);
     if (!isAllowed) {
       return NextResponse.json({ error: t("rateLimit") }, { status: 429 });
@@ -61,7 +61,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
 
-    const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
+    const ip = getClientIp(req);
     const isAllowed = await applyRateLimit(`del_product_${session.user.id}_${ip}`, 10, 60);
     if (!isAllowed) {
       return NextResponse.json({ error: t("rateLimit") }, { status: 429 });

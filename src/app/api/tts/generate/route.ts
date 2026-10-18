@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { applyRateLimit } from "@/lib/rateLimit";
-import { decryptSecret } from "@/lib/crypto";
+import { decryptSecret, encryptSecret, isLegacyPayload, apiKeyAad } from "@/lib/crypto";
 import { callGeminiTts, type TtsErrorCode } from "@/lib/geminiTts";
 import { hasFeature } from "@/lib/planFeatures";
 
@@ -147,7 +147,7 @@ export async function POST(req: Request) {
 
     let rawKey: string;
     try {
-      rawKey = decryptSecret(keyRecord.encryptedKey);
+      rawKey = decryptSecret(keyRecord.encryptedKey, apiKeyAad(session.user.id, "GEMINI"));
     } catch {
       // Key corrupt / secret berubah — skip dan log
       attemptsLog.push({
@@ -158,6 +158,17 @@ export async function POST(req: Request) {
         success: false,
       });
       continue;
+    }
+
+    if (isLegacyPayload(keyRecord.encryptedKey)) {
+      try {
+        await prisma.userApiKey.updateMany({
+          where: { id: keyRecord.id, userId: session.user.id },
+          data: { encryptedKey: encryptSecret(rawKey, apiKeyAad(session.user.id, "GEMINI")) },
+        });
+      } catch {
+        // upgrade gagal tidak boleh menggagalkan request
+      }
     }
 
     const result = await callGeminiTts(rawKey, finalText, voice, model);

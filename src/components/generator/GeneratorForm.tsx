@@ -13,6 +13,17 @@ import type {
   ContentArchetypeIncludedSections,
   ContentArchetypeCompositionCategory,
 } from "@/types/generator";
+import { getUserItem, setUserItem, useStorageGuard } from "@/lib/clientStorage";
+import {
+  MAX_SCENE_COUNT,
+  MIN_SCENE_COUNT,
+  DEFAULT_SCENE_COUNT,
+  MIN_TARGET_DURATION_SEC,
+  MAX_TARGET_DURATION_SEC,
+  DEFAULT_TARGET_DURATION_SEC,
+  autoSceneCount,
+  clampSceneCount,
+} from "@/lib/sceneLimits";
 
 interface ProductItem {
  id: string;
@@ -52,15 +63,16 @@ interface PromptSettingsDto {
 }
 
 interface GeneratorFormProps {
- channels: GeneratorFormChannel[];
- promptSettings?: PromptSettingsDto | null;
- planFeatures?: {
- imagePromptStudio?: boolean;
- htmlBlogExport?: boolean;
- cameraMovementPro?: boolean; // PRO tier camera movement
- youtubeLongStudio?: boolean;
- retentionPacingPro?: boolean;
- };
+  channels: GeneratorFormChannel[];
+  promptSettings?: PromptSettingsDto | null;
+  planFeatures?: {
+    imagePromptStudio?: boolean;
+    htmlBlogExport?: boolean;
+    cameraMovementPro?: boolean; // PRO tier camera movement
+    youtubeLongStudio?: boolean;
+    retentionPacingPro?: boolean;
+  };
+  userId: string;
 }
 
 const MARKETPLACE_OPTIONS = [
@@ -74,9 +86,10 @@ const MARKETPLACE_OPTIONS = [
 const ALL_MARKETPLACE_KEYS = MARKETPLACE_OPTIONS.map((m) => m.key);
 
 export default function GeneratorForm({
- channels,
- promptSettings,
- planFeatures = { imagePromptStudio: true, htmlBlogExport: true, cameraMovementPro: false, youtubeLongStudio: false, retentionPacingPro: false }
+  channels,
+  promptSettings,
+  planFeatures = { imagePromptStudio: true, htmlBlogExport: true, cameraMovementPro: false, youtubeLongStudio: false, retentionPacingPro: false },
+  userId,
 }: GeneratorFormProps) {
  const router = useRouter();
  const searchParams = useSearchParams();
@@ -257,6 +270,12 @@ export default function GeneratorForm({
  marketing: 20
  }
  });
+
+ const [sceneCountMode, setSceneCountMode] = useStorageGuard<"auto" | "manual">(
+   "sceneCountMode",
+   "auto",
+   userId
+ );
 
  // Image specific fields
  const [imageConfig, setImageConfig] = useState({
@@ -536,21 +555,17 @@ export default function GeneratorForm({
     // 1. Save current channel's state into localStorage before switching
     if (channelId) {
       const currentState = getCurrentStateSnapshot();
-      try {
-        localStorage.setItem(`generatorFormState_${channelId}`, JSON.stringify(currentState));
-      } catch {}
+      setUserItem(userId, `generatorFormState_${channelId}`, JSON.stringify(currentState));
     }
 
     // 2. Set new active channel ID
     setChannelId(newChannelId);
-    try {
-      localStorage.setItem("generatorLastActiveChannelId", newChannelId);
-    } catch {}
+    setUserItem(userId, "generatorLastActiveChannelId", newChannelId);
 
     // 3. Retrieve saved state for target channel
     let targetSaved: GeneratorFormStateSnapshot | null = null;
     try {
-      const local = localStorage.getItem(`generatorFormState_${newChannelId}`);
+      const local = getUserItem(userId, `generatorFormState_${newChannelId}`);
       if (local) targetSaved = JSON.parse(local);
     } catch {}
 
@@ -560,7 +575,7 @@ export default function GeneratorForm({
 
     // 4. Apply clean/saved state for the new channel
     applyStateForChannel(newChannelId, targetSaved);
-  }, [channelId, getCurrentStateSnapshot, applyStateForChannel]);
+  }, [channelId, getCurrentStateSnapshot, applyStateForChannel, userId]);
 
   // Mount effect: Resolve active channel, load per-channel state, fetch server preferences
   useEffect(() => {
@@ -576,7 +591,7 @@ export default function GeneratorForm({
       initialChannelId = channelParam;
     } else {
       try {
-        const lastActive = localStorage.getItem("generatorLastActiveChannelId");
+        const lastActive = getUserItem(userId, "generatorLastActiveChannelId");
         if (lastActive && channels.some((c) => c.id === lastActive)) {
           initialChannelId = lastActive;
         }
@@ -586,11 +601,11 @@ export default function GeneratorForm({
     // Load initial channel state
     let initialSaved: GeneratorFormStateSnapshot | null = null;
     try {
-      const savedCh = localStorage.getItem(`generatorFormState_${initialChannelId}`);
+      const savedCh = getUserItem(userId, `generatorFormState_${initialChannelId}`);
       if (savedCh) {
         initialSaved = JSON.parse(savedCh);
       } else {
-        const legacySaved = localStorage.getItem("generatorFormState");
+        const legacySaved = getUserItem(userId, "generatorFormState");
         if (legacySaved) {
           const parsed = JSON.parse(legacySaved);
           if (parsed.channelId === initialChannelId) {
@@ -645,18 +660,16 @@ export default function GeneratorForm({
     return () => {
       ignore = true;
     };
-  }, [channels, channelId, searchParams, applyStateForChannel]);
+  }, [channels, channelId, searchParams, applyStateForChannel, userId]);
 
   // Auto-Save: Persist to per-channel localStorage immediately & debounced server sync
   useEffect(() => {
     if (!channelId || !isInitializedRef.current) return;
     const stateObj = getCurrentStateSnapshot();
 
-    try {
-      localStorage.setItem("generatorLastActiveChannelId", channelId);
-      localStorage.setItem(`generatorFormState_${channelId}`, JSON.stringify(stateObj));
-      localStorage.setItem("generatorFormState", JSON.stringify(stateObj)); // fallback
-    } catch {}
+    setUserItem(userId, "generatorLastActiveChannelId", channelId);
+    setUserItem(userId, `generatorFormState_${channelId}`, JSON.stringify(stateObj));
+    setUserItem(userId, "generatorFormState", JSON.stringify(stateObj)); // fallback
 
     const timeoutId = setTimeout(() => {
       fetch("/api/user/preferences", {
@@ -672,7 +685,7 @@ export default function GeneratorForm({
     }, 3000); // 3 seconds debounce
 
     return () => clearTimeout(timeoutId);
-  }, [channelId, getCurrentStateSnapshot]);
+  }, [channelId, getCurrentStateSnapshot, userId]);
 
  // Fetch presets on mount
  useEffect(() => {
@@ -893,6 +906,13 @@ export default function GeneratorForm({
  additionalContext,
  videoConfig: type === "VIDEO" ? {
  ...videoConfig,
+ sceneCountMode,
+ targetSceneCount: sceneCountMode === "auto"
+   ? autoSceneCount(
+       videoConfig.targetDurationSec ?? DEFAULT_TARGET_DURATION_SEC,
+       videoConfig.speechRate ?? "medium"
+     )
+   : (videoConfig.targetSceneCount ?? DEFAULT_SCENE_COUNT),
  targetKeywords: targetKeywords.length > 0 ? targetKeywords : undefined,
  socialCaption: videoConfig.includeCaption,
  thumbnailIdea: videoConfig.includeThumbnail,
@@ -993,7 +1013,14 @@ export default function GeneratorForm({
  rawJson: aiResultJson,
  speechRate: rateValue,
  targetDurationSec: type === "VIDEO" ? Number(videoConfig.targetDurationSec) : undefined,
- targetSceneCount: type === "VIDEO" ? Number(videoConfig.targetSceneCount) : undefined,
+ targetSceneCount: type === "VIDEO"
+   ? (sceneCountMode === "auto"
+       ? autoSceneCount(
+           videoConfig.targetDurationSec ?? DEFAULT_TARGET_DURATION_SEC,
+           videoConfig.speechRate ?? "medium"
+         )
+       : (Number(videoConfig.targetSceneCount) || DEFAULT_SCENE_COUNT))
+   : undefined,
  narrativeLoopStyle: type === "VIDEO" ? videoConfig.narrativeLoopStyle : undefined,
  visualLoopStyle: type === "VIDEO" ? videoConfig.visualLoopStyle : undefined,
  };
@@ -1383,12 +1410,18 @@ export default function GeneratorForm({
  <div className="flex items-center gap-1">
  <input
  type="number"
- min="5"
- max="600"
- value={videoConfig.targetDurationSec}
- onChange={(e) =>
- handleVideoConfigChange("targetDurationSec", parseInt(e.target.value, 10) || 0)
- }
+ min={MIN_TARGET_DURATION_SEC}
+ max={MAX_TARGET_DURATION_SEC}
+ value={videoConfig.targetDurationSec ?? DEFAULT_TARGET_DURATION_SEC}
+ onChange={(e) => {
+   const val = parseInt(e.target.value, 10);
+   if (Number.isFinite(val)) {
+     handleVideoConfigChange(
+       "targetDurationSec",
+       Math.max(MIN_TARGET_DURATION_SEC, Math.min(MAX_TARGET_DURATION_SEC, val))
+     );
+   }
+ }}
  className="w-20 px-2 py-1 text-xs bg-white dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white"
  />
  <span className="text-xs pg-text-muted">detik</span>
@@ -1400,18 +1433,53 @@ export default function GeneratorForm({
  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
  <div>
  <label className="block text-xs font-medium pg-text-sub mb-1">
- Target Jumlah Scene
+ {t("sceneCountLabel")}
  </label>
+ <div className="flex items-center gap-2 mb-2">
+ <button
+ type="button"
+ onClick={() => setSceneCountMode("auto")}
+ className={`px-2.5 py-1 rounded text-xs font-semibold transition-all ${
+   sceneCountMode === "auto" ? "neu-btn-brand" : "neu-btn"
+ }`}
+ >
+ {t("sceneCountAuto")}
+ </button>
+ <button
+ type="button"
+ onClick={() => setSceneCountMode("manual")}
+ className={`px-2.5 py-1 rounded text-xs font-semibold transition-all ${
+   sceneCountMode === "manual" ? "neu-btn-brand" : "neu-btn"
+ }`}
+ >
+ {t("sceneCountManual")}
+ </button>
+ </div>
+ {sceneCountMode === "manual" && (
  <input
  type="number"
- min="1"
- max="30"
- value={videoConfig.targetSceneCount}
- onChange={(e) =>
- handleVideoConfigChange("targetSceneCount", parseInt(e.target.value, 10) || 1)
- }
+ min={MIN_SCENE_COUNT}
+ max={MAX_SCENE_COUNT}
+ value={videoConfig.targetSceneCount ?? DEFAULT_SCENE_COUNT}
+ onChange={(e) => {
+   const clamped = clampSceneCount(e.target.value);
+   if (clamped !== null) {
+     handleVideoConfigChange("targetSceneCount", clamped);
+   }
+ }}
  className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
  />
+ )}
+ {sceneCountMode === "auto" && (
+ <p className="pg-text-muted text-xs leading-relaxed">
+ {t("sceneCountAutoHint", {
+   count: autoSceneCount(
+     videoConfig.targetDurationSec ?? DEFAULT_TARGET_DURATION_SEC,
+     videoConfig.speechRate ?? "medium"
+   ),
+ })}
+ </p>
+ )}
  </div>
 
  <div>
@@ -1448,7 +1516,9 @@ export default function GeneratorForm({
  {type === "VIDEO" && (() => {
  const dur = Number(videoConfig.targetDurationSec) || 60;
  const rate = Number(videoConfig.speechRate) || 0.35;
- const scenes = Math.max(1, Number(videoConfig.targetSceneCount) || 6);
+ const scenes = sceneCountMode === "auto"
+   ? autoSceneCount(dur, rate)
+   : Math.max(1, Number(videoConfig.targetSceneCount) || 6);
  const totalWords = Math.round(dur / rate);
  const wordsPerScene = Math.max(1, Math.round(totalWords / scenes));
  const wpm = Math.round(60 / rate);
@@ -2781,9 +2851,7 @@ export default function GeneratorForm({
  selectedChannelId: channelId,
  ar: videoConfig.aspectRatio || "9:16",
  };
- try {
- localStorage.setItem("scenePromptState", JSON.stringify(scenePromptPayload));
- } catch {}
+ setUserItem(userId, "scenePromptState", JSON.stringify(scenePromptPayload));
  await fetch("/api/user/preferences", {
  method: "PUT",
  headers: { "Content-Type": "application/json" },

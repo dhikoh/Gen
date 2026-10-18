@@ -10,6 +10,10 @@ import { requireActiveSubscription, SubscriptionInactiveError } from "@/lib/subs
 import { getClientIp, applyRateLimit } from "@/lib/rateLimit";
 import sanitizeHtml from "sanitize-html";
 import { cleanNarasiForTts, countWords, estimateExpressivePauseSeconds } from "@/lib/parsers";
+import { isBearerTokenValid } from "@/lib/serviceToken";
+import { logAdminAction } from "@/lib/auditLog";
+
+let lastHermesAuditAt = 0;
 
 const saveDraftSchema = z.object({
   channelId: z.string(),
@@ -313,15 +317,37 @@ export async function GET(req: Request) {
     // --- HERMES API KEY BYPASS ---
     // Memungkinkan robot Hermes untuk mengambil data tanpa harus login via web (Playwright)
     const authHeader = req.headers.get("authorization");
-    if (!userId && authHeader && authHeader.startsWith("Bearer ")) {
-      const token = authHeader.split(" ")[1];
-      if (process.env.HERMES_SECRET_KEY && token === process.env.HERMES_SECRET_KEY) {
+    if (!userId && authHeader) {
+      const hermesIp = getClientIp(req);
+      const isHermesAllowed = await applyRateLimit(`hermes_${hermesIp}`, 30, 60);
+      if (!isHermesAllowed) {
+        return NextResponse.json({ status: "error", error: t("tooManyRequests") }, { status: 429 });
+      }
+
+      if (isBearerTokenValid(authHeader, process.env.HERMES_SECRET_KEY)) {
         // Otomatis mengikat ke akun SUPERADMIN pertama (Pemilik Sistem)
         const adminUser = await prisma.user.findFirst({
           where: { role: "SUPERADMIN" },
           orderBy: { createdAt: "asc" },
         });
-        if (adminUser) userId = adminUser.id;
+        if (adminUser) {
+          userId = adminUser.id;
+
+          const now = Date.now();
+          if (now - lastHermesAuditAt > 5 * 60 * 1000) {
+            lastHermesAuditAt = now;
+            try {
+              await logAdminAction({
+                actorId: adminUser.id,
+                action: "SERVICE_TOKEN_DRAFTS_READ",
+                targetType: "Draft",
+                ip: hermesIp,
+              });
+            } catch {
+              // kegagalan log tidak boleh menggagalkan request
+            }
+          }
+        }
       }
     }
 

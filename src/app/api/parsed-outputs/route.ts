@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
-import { applyRateLimit } from "@/lib/rateLimit";
+import { applyRateLimit, getClientIp } from "@/lib/rateLimit";
 
 const postSchema = z.object({
   rawInput: z.string().min(1, "rawInput wajib diisi"),
@@ -40,7 +40,7 @@ export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
+    const ip = getClientIp(req);
     const isAllowed = await applyRateLimit(`parsed_output_${session.user.id}_${ip}`, 30, 60);
     if (!isAllowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 

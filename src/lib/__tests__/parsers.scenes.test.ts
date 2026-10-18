@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseScenes } from "@/lib/parsers";
+import { MAX_SCENE_COUNT } from "@/lib/sceneLimits";
 
 const SAMPLE = `JUDUL TERPILIH: This Pig's Tusks Grow Straight Through Its Own Face - Babirusa
 
@@ -78,3 +79,22 @@ describe("parseScenes — SETTING KAMERA", () => {
     expect(scenes[1].settingKamera).toBeUndefined();
   });
 });
+
+describe("parseScenes overflow guard", () => {
+  it("stops parsing at MAX_SCENE_COUNT even if AI returns more", () => {
+    const lines: string[] = [];
+    for (let i = 1; i <= 200; i++) {
+      lines.push(`## SCENE ${i}`);
+      lines.push(`NARASI: Scene ${i} narration text.`);
+      lines.push(`VISUAL PROMPT: Scene ${i} visual.`);
+      lines.push(`DURASI: 5s`);
+      lines.push("");
+    }
+    const fakeOutput = lines.join("\n");
+
+    const result = parseScenes(fakeOutput);
+    expect(result.length).toBe(MAX_SCENE_COUNT);
+    expect(result[result.length - 1].id).toBe(MAX_SCENE_COUNT);
+  });
+});
+

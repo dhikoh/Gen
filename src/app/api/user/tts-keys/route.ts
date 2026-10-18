@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { applyRateLimit } from "@/lib/rateLimit";
-import { encryptSecret, maskApiKey, getKeyFingerprint } from "@/lib/crypto";
+import { encryptSecret, maskApiKey, getKeyFingerprint, apiKeyAad } from "@/lib/crypto";
 import { validateGeminiApiKey } from "@/lib/geminiTts";
 import { MAX_TTS_API_KEYS } from "@/lib/ttsVoices";
 
@@ -89,7 +89,7 @@ export async function POST(req: Request) {
   }
 
   // Enkripsi dan simpan
-  const encryptedKey = encryptSecret(apiKey);
+  const encryptedKey = encryptSecret(apiKey, apiKeyAad(session.user.id, "GEMINI"));
   const keyFingerprint = getKeyFingerprint(apiKey);
   const maskedKey = maskApiKey(apiKey);
 

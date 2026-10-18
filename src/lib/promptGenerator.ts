@@ -1,4 +1,5 @@
 import { resolveVisualStyle } from "./visualStyleMap";
+import { DEFAULT_SCENE_COUNT } from "./sceneLimits";
 
 export interface ContentArchetypeData {
   id?: string;
@@ -932,7 +933,7 @@ Sangat ilustratif, dinamis, metaforis (HINDARI penerjemahan literal). Contoh yan
 
     // ── Overlay Style & Chapter Structure ──────────────────────────────────
     const overlayStyle = videoConfig.overlayStyle || "auto";
-    const sceneCount = videoConfig.targetSceneCount;
+    const sceneCount = videoConfig.targetSceneCount ?? DEFAULT_SCENE_COUNT;
 
     // Deteksi apakah konten adalah Short-Form (Shorts / Reels / TikTok / vertikal 9:16 / durasi <= 90 detik)
     const normPlatform = (videoConfig.targetPlatform || "").toUpperCase();
@@ -1040,7 +1041,11 @@ Jumlah bab ditentukan secara natural berdasarkan alur konten (biasanya 3-6 bab u
       ? "SCENE CONTEXT: [Concise narrative action/event of scene 2]"
       : "KONTEKS SCENE: [Konteks kejadian/aksi adegan kedua]";
 
-    formatOutputWajib += `${syntaxGuide}\n## SCENE 1\n${scene1Context}\nNARASI: [${narasiExample}]\nTARGET EMOSI (VET): [Target emosi spesifik penonton: misal Rasa Ingin Tahu / Shock / Empati / Kelegaan / Urgensi]\nTEKNIK EDITING & PACING: [Instruksi pacing: misal Jump Cut (0s dead-air) / B-Roll Cutaway Overlay / Visual Beat Sync / Stabilized Flow]\nTEKS OVERLAY: [${overlayInstruction}]\nPANDUAN SUARA: [${panduanSuaraExample}]\nSETTING KAMERA: [${cameraSettingFieldHint}]\nVISUAL PROMPT: [${visualPromptInstruction}]${arSuffix}\nDURASI: [Estimasi durasi adegan dalam detik, contoh: 5 detik]\n`;
+    const sceneLimitInstruction = isEnglishOutput
+      ? `\nSCENE LIMIT: Create EXACTLY ${sceneCount} scenes (SCENE 1 to SCENE ${sceneCount}). DO NOT create more than ${sceneCount} scenes. If content is insufficient, merge into existing scenes. If content is too long, prioritize the most important.\n`
+      : `\nBATAS SCENE: Buat TEPAT ${sceneCount} scene (SCENE 1 sampai SCENE ${sceneCount}). DILARANG membuat lebih dari ${sceneCount} scene. Jika konten tidak cukup, gabungkan ke scene yang ada. Jika konten terlalu banyak, pilih yang paling penting.\n`;
+
+    formatOutputWajib += `${syntaxGuide}${sceneLimitInstruction}\n## SCENE 1\n${scene1Context}\nNARASI: [${narasiExample}]\nTARGET EMOSI (VET): [Target emosi spesifik penonton: misal Rasa Ingin Tahu / Shock / Empati / Kelegaan / Urgensi]\nTEKNIK EDITING & PACING: [Instruksi pacing: misal Jump Cut (0s dead-air) / B-Roll Cutaway Overlay / Visual Beat Sync / Stabilized Flow]\nTEKS OVERLAY: [${overlayInstruction}]\nPANDUAN SUARA: [${panduanSuaraExample}]\nSETTING KAMERA: [${cameraSettingFieldHint}]\nVISUAL PROMPT: [${visualPromptInstruction}]${arSuffix}\nDURASI: [Estimasi durasi adegan dalam detik, contoh: 5 detik]\n`;
     formatOutputWajib += `\n## SCENE 2\n${scene2Context}\nNARASI: [Narasi / dialog adegan kedua dengan tanda kurung siku cue akting bahasa Inggris [...] (contoh wajib bahasa Inggris: [beat], [pause], [sigh], [whisper], [gasp], [chuckle])]\nTARGET EMOSI (VET): [Target emosi adegan kedua]\nTEKNIK EDITING & PACING: [Instruksi pacing adegan kedua]\nTEKS OVERLAY: [${overlayStyle === "minimal" ? 'Overlay hanya jika sangat diperlukan, strip "—" jika tidak' : 'Teks overlay sesuai jenis yang dipilih di atas'}]\nPANDUAN SUARA: [${panduanSuaraExample}]\nSETTING KAMERA: [Setting kamera adegan kedua, format sama seperti SCENE 1]\nVISUAL PROMPT: [Tulis prompt visual adegan kedua secara TEMPORAL (klip berjalan, bukan snapshot): deskripsikan Subject Micro-Action, Environment Dynamics, dan Camera Movement + Timing, bahasa Inggris.]${arSuffix}\nDURASI: [Estimasi durasi]\n`;
 
     if (sceneCount && sceneCount > 2) {

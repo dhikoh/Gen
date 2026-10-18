@@ -6,6 +6,7 @@ import LanguageSwitcher from "@/components/layout/LanguageSwitcher";
 import MobileDashboardNav from "@/components/layout/MobileDashboardNav";
 import LogoutButton from "@/components/auth/LogoutButton";
 import DashboardSidebarNav from "@/components/layout/DashboardSidebarNav";
+import StorageGuard from "@/components/layout/StorageGuard";
 
 export default async function DashboardLayout({
   children,
@@ -135,6 +136,7 @@ export default async function DashboardLayout({
           className="flex-1 overflow-y-auto custom-scrollbar pb-safe-nav md:pb-8"
         >
           <div className="py-6 px-4 md:px-8 pg-fade-in">
+            <StorageGuard userId={session.user.id} />
             {children}
           </div>
         </main>

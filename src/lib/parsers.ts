@@ -5,6 +5,8 @@
  * All functions are client-safe (no server-only imports).
  */
 
+import { MAX_SCENE_COUNT } from "@/lib/sceneLimits";
+
 // ── Markdown / Value Cleaning ─────────────────────────────────────────────
 
 /** Strip Markdown link wrappers, returning only the raw URL. */
@@ -888,6 +890,7 @@ export function parseScenes(text: string, speechRateSec: number = 0.35): Scene[]
     let count = 1;
     let charOffset = parts[0].length;
     for (let i = 1; i < parts.length; i += 2) {
+      if (scenes.length >= MAX_SCENE_COUNT) break;
       const sceneNum = parts[i], content = parts[i + 1] || "";
       charOffset += sceneNum.length;
       const sceneStartOffset = charOffset;

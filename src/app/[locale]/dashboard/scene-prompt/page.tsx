@@ -64,6 +64,8 @@ export default async function ScenePromptPage({ params, searchParams }: PageProp
   const rawFeatures = (dbUser?.currentPlan?.features as Record<string, boolean>) ?? {};
   const planFeatures = {
     textToSpeechStudio: hasFeature(rawFeatures, "textToSpeechStudio", isSuperadmin),
+    fullVideoStudio: hasFeature(rawFeatures, "fullVideoStudio", isSuperadmin),
+    googleDriveUpload: hasFeature(rawFeatures, "googleDriveUpload", isSuperadmin),
   };
 
   return (
@@ -73,6 +75,7 @@ export default async function ScenePromptPage({ params, searchParams }: PageProp
       planFeatures={planFeatures}
       initialDraft={initialDraft || undefined}
       initialParsedOutputs={initialParsedOutputs}
+      userId={session.user.id}
     />
   );
 }

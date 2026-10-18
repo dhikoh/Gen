@@ -33,6 +33,10 @@ import {
   type SceneForExport,
   type BatchExportFilterOptions,
 } from "@/lib/sceneExportFormat";
+import { getUserItem, setUserItem } from "@/lib/clientStorage";
+import VideoTimelineTab from "@/components/video/VideoTimelineTab";
+import { buildTimeline, validateTimeline } from "@/lib/timelineBuilder";
+import type { VideoTimeline } from "@/types/videoTimeline";
 
 export interface SerializedParsedOutput {
   id: string;
@@ -74,7 +78,7 @@ interface Channel {
 interface Props {
   channels: Channel[];
   locale: string;
-  planFeatures: { textToSpeechStudio: boolean };
+  planFeatures: { textToSpeechStudio: boolean; fullVideoStudio?: boolean; googleDriveUpload?: boolean };
   initialDraft?: {
     id?: string;
     title?: string | null;
@@ -85,6 +89,7 @@ interface Props {
     wordCount?: number | null;
   };
   initialParsedOutputs?: SerializedParsedOutput[];
+  userId: string;
 }
 
 interface TtsResult {
@@ -96,8 +101,9 @@ interface TtsResult {
 }
 
 
-export default function ScenePromptStudioClient({ channels, locale, planFeatures, initialDraft, initialParsedOutputs = [] }: Props) {
+export default function ScenePromptStudioClient({ channels, locale, planFeatures, initialDraft, initialParsedOutputs = [], userId }: Props) {
   const t = useTranslations("ScenePromptStudio");
+  const tVideo = useTranslations("VideoStudio");
 
   const initialSpeechRate = useMemo(() => {
     if (initialDraft?.parsedData && typeof initialDraft.parsedData === "object" && "speechRate" in (initialDraft.parsedData as Record<string, unknown>)) {
@@ -171,7 +177,8 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"scenes"|"thumbnail"|"platform"|"voiceStudio"|"htmlBlog"|"seo2026">("scenes");
+  const [activeTab, setActiveTab] = useState<"scenes"|"thumbnail"|"platform"|"voiceStudio"|"htmlBlog"|"seo2026"|"fullVideo">("scenes");
+  const [currentTimeline, setCurrentTimeline] = useState<VideoTimeline | null>(null);
   const [markedTitles, setMarkedTitles] = useState<string[]>([]);
   const [htmlBlog, setHtmlBlog] = useState(() => (defaultSource?.raw ? extractHtmlBlog(defaultSource.raw) : ""));
   const [affiliateRecs, setAffiliateRecs] = useState<AffiliateRecommendation[]>(() => (defaultSource?.raw ? extractAffiliateRecommendations(defaultSource.raw) : []));
@@ -202,15 +209,13 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
 
   // ── Voice Filter, Search & Favorite State ──
   const [favoriteVoices, setFavoriteVoices] = useState<string[]>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const saved = localStorage.getItem("promptgen_favorite_voices");
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) return parsed;
-        }
-      } catch {}
-    }
+    try {
+      const saved = getUserItem(userId, "promptgen_favorite_voices");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {}
     return [];
   });
   const [ttsVoiceFilter, setTtsVoiceFilter] = useState<"all" | "favorites" | "male" | "female">("all");
@@ -219,12 +224,10 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
   const toggleFavoriteVoice = useCallback((voiceId: string) => {
     setFavoriteVoices(prev => {
       const next = prev.includes(voiceId) ? prev.filter(id => id !== voiceId) : [...prev, voiceId];
-      try {
-        localStorage.setItem("promptgen_favorite_voices", JSON.stringify(next));
-      } catch {}
+      setUserItem(userId, "promptgen_favorite_voices", JSON.stringify(next));
       return next;
     });
-  }, []);
+  }, [userId]);
 
   const filteredVoices = React.useMemo(() => {
     let list = [...GEMINI_TTS_VOICES];
@@ -621,14 +624,112 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
     };
   }, [selectedChannelId]);
 
+  // Audio map from Voice Studio TTS results
+  const audioMap = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const [sceneIdStr, result] of Object.entries(ttsResults)) {
+      if (result?.status === "done" && result.audioBase64) {
+        map.set(Number(sceneIdStr), `data:${result.mimeType || "audio/wav"};base64,${result.audioBase64}`);
+      }
+    }
+    return map;
+  }, [ttsResults]);
+
+  // Full Video Studio: Build timeline from parsed scenes + UsedTitle
+  useEffect(() => {
+    let cancelled = false;
+
+    if (scenes.length === 0) {
+      queueMicrotask(() => {
+        if (!cancelled) {
+          setCurrentTimeline(null);
+        }
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    async function build() {
+      let usedTitleIds: string[] = [];
+      let usedTitleTexts: string[] = [];
+      if (selectedChannelId) {
+        try {
+          const res = await fetch(`/api/used-titles?channelId=${selectedChannelId}`);
+          if (res.ok) {
+            const titles = (await res.json()) as { id: string; title: string }[];
+            usedTitleIds = titles.map((item) => item.id);
+            usedTitleTexts = titles.map((item) => item.title);
+          }
+        } catch {
+          // Non-fatal: timeline tetap dibuat tanpa used titles
+        }
+      }
+
+      if (cancelled) return;
+
+      const tl = buildTimeline(scenes as SceneForExport[], {
+        draftId: initialDraft?.id ?? "",
+        channelId: selectedChannelId ?? null,
+        usedTitleIds,
+        usedTitleTexts,
+        defaultDurationSec: 4,
+      });
+
+      if (audioMap && audioMap.size > 0) {
+        tl.scenes = tl.scenes.map((s) => ({
+          ...s,
+          audioRef: audioMap.get(s.sceneNumber) ?? null,
+        }));
+      }
+
+      setCurrentTimeline(tl);
+    }
+
+    build();
+    return () => {
+      cancelled = true;
+    };
+  }, [scenes, initialDraft?.id, selectedChannelId, audioMap]);
+
+  // Manifest JSON export handler
+  const handleExportManifest = useCallback(() => {
+    if (!currentTimeline) return;
+    const errors = validateTimeline(currentTimeline);
+    if (errors.length > 0) {
+      toast.error(tVideo("manifestValidationError"));
+      console.error("Timeline validation errors:", errors);
+      return;
+    }
+    const blob = new Blob([JSON.stringify(currentTimeline, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `timeline-${currentTimeline.draftId || "draft"}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(tVideo("manifestExported"));
+  }, [currentTimeline, tVideo]);
+
+  // Scroll to scene in viewer
+  const scrollToScene = useCallback((sceneNumber: number) => {
+    setActiveTab("scenes");
+    setTimeout(() => {
+      const el = document.getElementById(`scene-card-${sceneNumber}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 100);
+  }, []);
+
   // Server-Side Sync & LocalStorage Persistence (Run strictly once on mount)
   useEffect(() => {
     let ignore = false;
     const hasLoadedSource = Boolean(defaultSource);
 
-    // 1. Local Storage load (deferred to avoid cascading render during effect mount)
-    const saved = localStorage.getItem("scenePromptState");
-    const savedFavorites = localStorage.getItem("promptgen_favorite_voices");
+    // 1. User-scoped Storage load (deferred to avoid cascading render during effect mount)
+    const saved = getUserItem(userId, "scenePromptState");
+    const savedFavorites = getUserItem(userId, "promptgen_favorite_voices");
     if (saved || savedFavorites) {
       queueMicrotask(() => {
         if (!ignore) {
@@ -747,7 +848,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
       ttsVoiceFilter,
       favoriteVoices,
     };
-    localStorage.setItem("scenePromptState", JSON.stringify(stateObj));
+    setUserItem(userId, "scenePromptState", JSON.stringify(stateObj));
 
     const timeoutId = setTimeout(() => {
       if (rawText || draftTitle || sref || cref || ttsVoice !== DEFAULT_TTS_VOICE) {
@@ -774,6 +875,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
     ttsStyleInstruction,
     ttsVoiceFilter,
     favoriteVoices,
+    userId,
   ]);
 
  // sref/cref are manual inputs — no channel default sync needed
@@ -1105,12 +1207,12 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
  {scenes.length > 0 && (
  <>
  <div className="glass-panel p-1.5 rounded-2xl border pg-border flex gap-1.5 overflow-x-auto whitespace-nowrap custom-scrollbar shadow-sm">
- {(["scenes","thumbnail","seo2026","platform","voiceStudio","htmlBlog"] as const).map(tab => {
+ {(["scenes","thumbnail","seo2026","platform","voiceStudio","htmlBlog","fullVideo"] as const).map(tab => {
  if (tab === "seo2026" && !threeTierSeo) return null;
  if (tab === "htmlBlog" && !htmlBlog) return null;
  return (
  <button key={tab} onClick={() => setActiveTab(tab)} className={btn(activeTab === tab)}>
- {tab === "scenes" ? `🎬 ${t("sceneViewerTab")} (${scenes.length})` : tab === "thumbnail" ? `🖼️ ${t("thumbnailTab")}` : tab === "seo2026" ? t("seo2026Tab") : tab === "htmlBlog" ? t("htmlBlogTab") : tab === "voiceStudio" ? `🎙️ ${t("voiceStudioTab")}` : `📱 ${t("platformTab")}`}
+ {tab === "scenes" ? `🎬 ${t("sceneViewerTab")} (${scenes.length})` : tab === "thumbnail" ? `🖼️ ${t("thumbnailTab")}` : tab === "seo2026" ? t("seo2026Tab") : tab === "htmlBlog" ? t("htmlBlogTab") : tab === "voiceStudio" ? `🎙️ ${t("voiceStudioTab")}` : tab === "fullVideo" ? `🎞️ ${t("tabFullVideo")}` : `📱 ${t("platformTab")}`}
  </button>
  );
  })}
@@ -1418,7 +1520,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
     const prevScene = sceneIdx > 0 ? scenes[sceneIdx - 1] : null;
     const isNewChapter = scene.chapter !== undefined && (prevScene?.chapter !== scene.chapter);
     return (
-    <div key={scene.id}>
+    <div key={scene.id} id={`scene-card-${scene.id}`}>
     {isNewChapter && (
       <div className="flex items-center gap-3 py-3">
         <div className="flex-1 h-px bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent" />
@@ -2754,6 +2856,31 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
  </div>
   {/* P0-1 Security Fix: sanitizeHtml prevents XSS from user-pasted AI output */}
  <div className="pg-surface p-6 rounded-lg border pg-border shadow-inner overflow-y-auto max-h-[60vh] prose dark:prose-invert max-w-none text-sm" dangerouslySetInnerHTML={{ __html: sanitizeHtml(htmlBlog, { allowedTags: ['h1','h2','h3','h4','h5','h6','p','ul','ol','li','strong','em','b','i','a','br','hr','blockquote','pre','code'], allowedAttributes: { a: ['href', 'target', 'rel'] } }) }} />
+ </div>
+ )}
+
+ {/* ── Full Video Studio Tab ── */}
+ {activeTab === "fullVideo" && (
+ <div className="space-y-5">
+ {!planFeatures.fullVideoStudio ? (
+ <div className="glass-panel rounded-xl p-8 border border-amber-200/60 dark:border-amber-800/60 text-center space-y-4">
+ <div className="text-4xl">🔒</div>
+ <h3 className="text-lg font-bold pg-text-heading">{tVideo("timelineTitle")}</h3>
+ <p className="text-sm pg-text-muted max-w-sm mx-auto">{tVideo("featureNotAvailable")}</p>
+ <Link href="/dashboard/billing" className="inline-block px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold rounded-lg transition-colors">
+ {tVideo("upgradePlan")}
+ </Link>
+ </div>
+ ) : (
+ <div className="glass-panel rounded-xl p-6 border pg-border space-y-5">
+ <VideoTimelineTab
+ timeline={currentTimeline}
+ onExportManifest={handleExportManifest}
+ onSceneClick={(n) => scrollToScene(n)}
+ canUploadToDrive={planFeatures.googleDriveUpload}
+ />
+ </div>
+ )}
  </div>
  )}
 

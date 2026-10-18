@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
-import { applyRateLimit } from "@/lib/rateLimit";
+import { applyRateLimit, getClientIp } from "@/lib/rateLimit";
 import { requireActiveSubscription } from "@/lib/subscription";
 
 const productSchema = z.object({
@@ -56,7 +56,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ error: t("inactiveSub") }, { status: 403 });
     }
 
-    const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
+    const ip = getClientIp(req);
     const isAllowed = await applyRateLimit(`create_product_${session.user.id}_${ip}`, 15, 60 * 15); // 15 products per 15 minutes
     if (!isAllowed) {
       return NextResponse.json({ error: t("rateLimitProduct") }, { status: 429 });

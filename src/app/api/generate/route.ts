@@ -4,15 +4,18 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
-import { applyRateLimit } from "@/lib/rateLimit";
+import { applyRateLimit, getClientIp } from "@/lib/rateLimit";
 import { requireActiveSubscription } from "@/lib/subscription";
 import { generateMasterPrompt, ProfileChannelData, ContentArchetypeData, TopPerformingDraftSummary } from "@/lib/promptGenerator";
 import { generateImagePrompt } from "@/lib/imagePromptGenerator";
 import { hasFeature } from "@/lib/planFeatures";
+import { MAX_SCENE_COUNT, DEFAULT_SCENE_COUNT, clampSceneCount } from "@/lib/sceneLimits";
+
 const videoConfigSchema = z.object({
   targetPlatform: z.string().optional().nullable(),
   targetDurationSec: z.coerce.number().optional().nullable(),
-  targetSceneCount: z.coerce.number().optional().nullable(),
+  sceneCountMode: z.enum(["auto", "manual"]).default("auto"),
+  targetSceneCount: z.coerce.number().int().min(1).max(MAX_SCENE_COUNT).default(DEFAULT_SCENE_COUNT),
   aspectRatio: z.string().optional().nullable(),
   narrativeLoopStyle: z.string().optional().nullable(),
   visualLoopStyle: z.string().optional().nullable(),
@@ -108,7 +111,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
     }
 
-    const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
+    const ip = getClientIp(req);
     const isAllowed = await applyRateLimit(`generate_${session.user.id}_${ip}`, 10, 60); 
     if (!isAllowed) {
       return NextResponse.json({ error: t("rateLimit") }, { status: 429 });
@@ -385,8 +388,11 @@ export async function POST(req: Request) {
           }
         : null;
 
+      const validatedSceneCount = clampSceneCount(videoConfig.targetSceneCount) ?? DEFAULT_SCENE_COUNT;
+
       const fullVideoConfig = {
         ...videoConfig,
+        targetSceneCount: validatedSceneCount,
         pov: videoConfig.pov || channel.personaPov || null,
         contentArchetype: typedArchetype,
         narrationMode: videoConfig.narrationMode || effectiveArchetype?.narrationMode,

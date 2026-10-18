@@ -54,7 +54,7 @@ export default async function GeneratorPage({ params }: { params: Promise<{ loca
       </div>
 
       <Suspense fallback={<div className="p-8 text-center text-sm pg-text-muted">{t('loadingStudio')}</div>}>
-        <GeneratorForm channels={channels} promptSettings={promptSettings} planFeatures={planFeatures} />
+        <GeneratorForm channels={channels} promptSettings={promptSettings} planFeatures={planFeatures} userId={session.user.id} />
       </Suspense>
     </div>
   );

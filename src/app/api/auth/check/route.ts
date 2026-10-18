@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
-import { applyRateLimit } from "@/lib/rateLimit";
+import { applyRateLimit, getClientIp } from "@/lib/rateLimit";
 
 const checkSchema = z.object({
   email: z.string().email().optional(),
@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     
     const body = await req.json();
     const identifierStr = (typeof body.email === 'string' ? body.email : typeof body.username === 'string' ? body.username : 'unknown').toLowerCase();
-    const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
+    const ip = getClientIp(req);
     const isAllowed = await applyRateLimit(`check_${ip}_${identifierStr}`, 20, 60);
     if (!isAllowed) {
       return NextResponse.json({ error: t("rateLimit") }, { status: 429 });

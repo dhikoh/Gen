@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { applyRateLimit } from "@/lib/rateLimit";
+import { applyRateLimit, getClientIp } from "@/lib/rateLimit";
 import { formatWaLink } from "@/lib/csContact";
 
 export async function GET(req: NextRequest) {
   try {
     // Rate limiting (10 requests per 60s per IP)
-    const clientIp = req.headers.get("x-forwarded-for") || "anonymous";
+    const clientIp = getClientIp(req);
     const allowed = await applyRateLimit(`reg-status:${clientIp}`, 10, 60);
     if (!allowed) {
       return NextResponse.json(

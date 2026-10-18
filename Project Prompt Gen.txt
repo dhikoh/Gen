@@ -2241,5 +2241,239 @@ Dalam produksi video pendek maupun panjang berbasis AI, terdapat tiga celah krit
 - **Audit Design System**: `npm run audit:design` mengonfirmasi 86.6% adoption rate.
 - **Next.js Production Build**: `npm run build` lolos 100% (48/48 routes static & dynamic).
 
+---
+
+### BAGIAN 42: REKONSILIASI & BACKFILL FITUR #90 — #92
+
+#### 42.1 Ringkasan Backfill Rilis #90 — #92
+1. **Fitur #90: Cross-Device State Sync Resolution & Server Source-of-Truth**:
+   - Menghilangkan race condition penulisan form state antar-tab dan antar-perangkat.
+   - Mengalihkan server database sebagai Single Source of Truth mutlak, sinkronisasi debounced aman ke tabel preferensi pengguna.
+2. **Fitur #91: Sinkronisasi End-to-End Draft, Selected Title, Auto-Sync UsedTitle & Search Engine Direktori**:
+   - Menyelaraskan status judul yang dipilih di UI langsung terikat pada draft saat disimpan.
+   - Mekanisme auto-upsert judul naskah ke direktori `UsedTitle` untuk mencegah duplikasi konten.
+   - Peningkatan UI direktori judul terpakai dengan pencarian live, paginasi, dan isolasi ketat per-channel.
+3. **Fitur #92: Storyboard Studio (Style Bible, Image Panels, ZIP Export), Setting Kamera, Snapshot Konfigurasi & Fail-Closed Cron**:
+   - Peluncuran Storyboard Studio terintegrasi: pembuatan Style Bible konsisten (karakter, palet warna, lokasi, aturan ekstra), unggah & pratinjau panel gambar WebP per adegan.
+   - Export ZIP bundel naskah dan gambar storyboard.
+   - Snapshot konfigurasi generasi naskah (`generationConfig`) tersimpan permanen pada draft.
+   - Cron endpoint terproteksi token fail-closed dengan pembersihan file yatim di storage persisten.
+
+---
+
+### BAGIAN 43: ADDENDUM FITUR #93 — ISOLASI PER USER & PENGUATAN KEAMANAN SISTEMIK (FASE 1)
+
+#### 43.1 Latar Belakang & Celah Keamanan yang Ditutup
+Fase 1 meletakkan fondasi isolasi data pengguna yang kokoh sebelum implementasi fitur Render Animasi Browser (Fase 4) dan Google Drive User (Fase 5). Enam celah keamanan sistemik ditutup secara tuntas:
+1. **Celah G-03 (AES-GCM v2 dengan AAD)**: Enkripsi secret API key sebelumnya rentan disalin antar-baris database karena tidak menggunakan Additional Authenticated Data (AAD). Format baru `v2:<iv>:<tag>:<cipher>` mengikat ciphertext ke `userId` dan nama provider (`apikey:<userId>:<provider>`). Dekripsi v1 lama tetap didukung (backward-compatible) dan di-upgrade secara lazy saat dibaca.
+2. **Celah G-01 (Pemisahan Client Storage per User)**: Menggantikan pemanggilan langsung `localStorage` di seluruh antarmuka dengan modul terpusat `src/lib/clientStorage.ts` yang mengisolasi key dengan prefix `pg:<userId>:<name>`. Komponen `StorageGuard` membersihkan data pengguna lain saat mount, dan `LogoutButton` membersihkan seluruh data lokal serta cache storage.
+3. **Celah G-02 & G-06 (Isolasi Cache Service Worker & Security Headers)**: Mengonfigurasi `next.config.ts` dengan aturan `runtimeCaching: NetworkOnly` untuk semua endpoint `/api/*` dan rute berotentikasi dashboard/admin agar service worker next-pwa tidak menyajikan cache pengguna lain. Menambahkan HTTP security headers (`X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy`, `Permissions-Policy`).
+4. **Celah G-04 (Penetralan Spoofing IP Rate-Limit)**: Mengeliminasi pemanggilan langsung `x-forwarded-for` di 19 rute API, beralih ke helper terstandarisasi `getClientIp(req)` yang memvalidasi header proxy hanya jika `TRUSTED_PROXY="true"`.
+5. **Celah G-05 (Pengerasan Token Layanan Hermes)**: Mengamankan bypass service token Hermes pada GET `/api/drafts` dengan perbandingan constant-time `crypto.timingSafeEqual`, rate limiting terdedikasi per IP, dan audit logging ter-throttle 5 menit.
+6. **Celah G-14 (Larangan Shared AI Key)**: Menegakkan aturan arsitektur bahwa semua fitur AI pengguna wajib menggunakan API key milik pengguna sendiri (`UserApiKey`), dilarang keras mengambil key AI bersama dari `process.env`.
+
+#### 43.2 Detail Arsitektur & Modul Baru
+- `src/lib/crypto.ts`: Mesin enkripsi/dekripsi AES-256-GCM v2 dengan AAD dan lazy upgrading.
+- `src/lib/clientStorage.ts`: Gerbang tunggal akses localStorage dengan namespacing `pg:<userId>:...`.
+- `src/components/layout/StorageGuard.tsx`: Komponen pelindung pembersihan cache lokal pengguna asing.
+- `src/lib/clearSensitiveCaches.ts`: Pembersihan Cache Storage saat logout.
+- `src/lib/serviceToken.ts`: Verifikasi token otentikasi constant-time anti timing-attack.
+- `src/lib/__tests__/noUnscopedLocalStorage.test.ts`: Guard test penegak nol localStorage tak ber-namespace.
+- `src/lib/__tests__/noRawForwardedFor.test.ts`: Guard test penegak sanitasi IP.
+- `src/lib/__tests__/noSharedAiKeys.test.ts`: Guard test penegak kepemilikan AI key pengguna.
+- `src/lib/__tests__/crypto.test.ts`: Pengujian unit enkripsi v2, deteksi modifikasi/tampering, dan kompatibilitas v1.
+- `src/lib/__tests__/clientStorage.test.ts`: Pengujian unit isolasi data antar pengguna dan pembersihan sesi.
+- `src/lib/__tests__/serviceToken.test.ts`: Pengujian unit validasi bearer token.
+
+#### 43.3 Hasil Verifikasi & Jaminan Kualitas
+- **TypeScript Typecheck**: `npx tsc --noEmit` lolos 100% dengan 0 error.
+- **ESLint**: `npm run lint` lolos dengan 0 error dan 0 warning.
+- **Vitest Unit Tests**: Seluruh test suite lolos 100%.
+- **Audit Paritas i18n**: Paritas 100% terverifikasi.
+- **Audit Design System**: Adopsi token design system terkonfirmasi PASS.
+- **Next.js Production Build**: `npm run build` lolos 100%.
+
+---
+
+### BAGIAN 44: FITUR #94 — BATAS 120 SCENE, MODE PENGHITUNGAN OTOMATIS & PERLINDUNGAN PARSER OVERFLOW (FASE 2)
+
+#### 44.1 Latar Belakang & Kebutuhan Video Berdurasi Panjang (Long-Form)
+Sebelumnya, sistem tidak memiliki batasan global yang eksplisit untuk jumlah adegan yang dapat dibuat oleh AI, serta membatasi beberapa komponen pada angka rendah (seperti storyboard 30 panel). Dalam produksi konten long-form YouTube (6–10 menit), kreator membutuhkan hingga 120 scene per video (rata-rata 3–5 detik per scene). Selain itu, kreator sering kali kesulitan menentukan secara manual berapa scene yang ideal untuk durasi target tertentu. Fitur #94 menghadirkan fleksibilitas pembuatan naskah hingga 120 scene lengkap dengan mode penghitungan adegan otomatis (Auto Mode) berdasarkan durasi target dan kecepatan bicara, serta proteksi ketat di layer generator prompt dan parser adegan agar tidak terjadi memory exhaustion atau UI hanging.
+
+#### 44.2 Spesifikasi Konstanta Batas Scene & Rumus Mode Auto
+Modul `src/lib/sceneLimits.ts` mendefinisikan standar batas scene aplikasi:
+- `MAX_SCENE_COUNT = 120`: Batas maksimal scene naskah yang boleh diminta ke AI dan diproses parser.
+- `MIN_SCENE_COUNT = 1`: Batas minimum scene naskah.
+- `DEFAULT_SCENE_COUNT = 10`: Standar jumlah scene default.
+- `MIN_TARGET_DURATION_SEC = 10`, `MAX_TARGET_DURATION_SEC = 600` (10 menit), `DEFAULT_TARGET_DURATION_SEC = 60`.
+- Rumus `autoSceneCount(targetDurationSec, speechRate)`:
+  - Rata-rata detik per scene dihitung berdasarkan kecepatan suara: Slow = 6 detik, Medium = 4 detik, Fast = 3 detik (atau nilai numerik 2–10 detik).
+  - Jumlah scene = `ceil(targetDurationSec / avgSecPerScene)`, di-clamp ke rentang `[1, 120]`.
+- Fungsi pembantu `clampSceneCount(input)` untuk sanitasi input angka dari user atau API.
+
+#### 44.3 Integrasi GeneratorForm & Scoped State
+Pada antarmuka `GeneratorForm.tsx`:
+- Toggle pilihan mode jumlah scene: **Auto (Otomatis)** vs **Manual**.
+- State mode `sceneCountMode` ("auto" | "manual") disimpan persisten menggunakan storage berscope per-user via `useStorageGuard` agar preferensi pengguna tidak hilang saat reload atau berpindah tab.
+- Input durasi target terintegrasi dengan validasi rentang 10–600 detik (`targetDurationSec`).
+- Mode Auto menampilkan petunjuk dinamis perkiraan scene yang akan dihasilkan AI secara real-time.
+- Mode Manual menyediakan input angka ter-clamp 1–120.
+
+#### 44.4 Pengamanan Endpoint `/api/generate` & Injeksi Prompt AI
+- Endpoint `/api/generate` memvalidasi payload menggunakan skema Zod:
+  - `sceneCountMode`: enum ["auto", "manual"], default "auto".
+  - `targetSceneCount`: Zod coercion integer min 1 max 120, disanitasi berlapis dengan `clampSceneCount()`.
+- Modul `src/lib/promptGenerator.ts` menginjeksi batasan tegas ke AI prompt:
+  `BATAS SCENE: Buat TEPAT ${sceneCount} scene (SCENE 1 sampai SCENE ${sceneCount}). DILARANG membuat lebih dari ${sceneCount} scene. Jika konten tidak cukup, gabungkan ke scene yang ada. Jika konten terlalu banyak, pilih yang paling penting.`
+
+#### 44.5 Perlindungan Parser Loop Overflow (`MAX_SCENE_COUNT = 120`)
+- Modul parser `src/lib/parsers.ts` pada fungsi `parseScenes` dilengkapi proteksi loop overflow: jika scene yang terurai telah mencapai `MAX_SCENE_COUNT` (120), loop pemrosesan langsung berhenti (`break`). Hal ini memberikan jaminan fail-safe terhadap AI model yang menghasilkan iterasi berlebihan di luar batas toleransi.
+
+#### 44.6 Jaminan Kualitas & Pengujian Terpadu
+- Unit test komprehensif pada `src/lib/__tests__/sceneLimits.test.ts` (10 skenario pengujian kalkulasi durasi, pembulatan ceil, batas clamp min/max, dan variasi speechRate).
+- Unit test parser overflow pada `src/lib/__tests__/parsers.test.ts` untuk memastikan parser memotong tepat di 120 scene jika model mengeluarkan 200+ scene.
+- Sinkronisasi key i18n untuk `messages/id.json` dan `messages/en.json` guna menjamin paritas multibahasa 100%.
+- Verifikasi lengkap 7 perintah arsitektur (lint, test, build, audit design, audit i18n, prisma, tsc).
+
+---
+
+### BAGIAN 45: FITUR #95 — TAB FULL VIDEO, TIMELINE VISUAL ENGINE & MANIFEST EXPORT (FASE 3)
+
+#### 45.1 Latar Belakang & Kebutuhan Integrasi Multi-Scene Timeline
+Setelah fase sebelumnya menetapkan batas hingga 120 scene dan Mode Auto, kreator membutuhkan ruang kerja terpadu untuk meninjau keseluruhan alur video secara runtut sebelum proses render animasi atau pengunduhan. Fitur #95 meluncurkan Tab "Full Video" di Scene Prompt Studio yang menyajikan visualisasi timeline berbasis blok waktu kumulatif, pemetaan status kesiapan audio per adegan (Audio Sync), dan ekspor spesifikasi video lengkap ke manifest JSON (`VideoTimeline`) sebagai jembatan langsung menuju Render Engine Fase 4.
+
+#### 45.2 Feature Gate & Skema Hak Akses
+- Feature flag `fullVideoStudio` didaftarkan pada `src/lib/planFeatures.ts` dalam `KNOWN_PLAN_FEATURES` dengan status default `false` (fail-closed, hanya dapat diakses paket yang memiliki fitur ini).
+- Tab Full Video memeriksa hak akses pengguna via `hasFeature(currentPlanFeatures, "fullVideoStudio")`. Jika paket pengguna belum mencakup fitur ini, UI menampilkan layar promosi upgrade paket secara elegan alih-alih merender tab kosong.
+
+#### 45.3 Struktur Data VideoTimeline & Builder Service
+- `src/types/videoTimeline.ts` mendefinisikan interface data:
+  - `VideoTimelineScene`: nomor scene, teks narasi, durasi detik, offset kumulatif waktu mulai (`startOffsetSec`), prompt visual, konteks adegan, teks overlay, referensi audio (`audioRef`), dan data bab/chapter.
+  - `VideoTimeline`: version, total durasi video, array scenes, array `usedTitleIds` & `usedTitleTexts` (mencegah duplikasi topik naskah), timestamp ekspor, ID draft, dan ID channel.
+- Modul `src/lib/timelineBuilder.ts`:
+  - `buildTimeline(scenes, opts)`: Menghitung offset waktu kumulatif setiap adegan secara matematis dan menyematkan metadata draft serta riwayat judul terpakai.
+  - `validateTimeline(tl)`: Memvalidasi integritas urutan nomor scene, kontinuitas offset waktu, dan kesesuaian total durasi video.
+- Shared utility `src/lib/formatTime.ts`: Memformat detik ke representasi menit-detik (`M:SS`).
+
+#### 45.4 Integrasi Antarmuka ScenePromptStudioClient & VideoTimelineTab
+- Penambahan komponen modular `src/components/video/VideoTimelineTab.tsx` yang menampilkan:
+  - Header ringkasan total durasi video dan total scene.
+  - Bar timeline interaktif dengan lebar proporsional terhadap durasi masing-masing scene dan pewarnaan tematik per bab.
+  - Kartu daftar adegan (*Scene Cards*) dengan penanda rentang waktu mulai/selesai, cuplikan narasi, teks overlay, dan indikator kesiapan audio TTS.
+  - Fitur navigasi cepat: klik pada bar timeline atau kartu langsung menggulirkan layar (*scroll*) ke editor adegan yang dipilih.
+- Fungsi ekspor manifest JSON (`handleExportManifest`) yang memvalidasi integritas timeline terlebih dahulu sebelum mengunduh berkas manifest.
+
+#### 45.5 Endpoint Riwayat Judul Terpakai (`/api/used-titles`)
+- Penyediaan endpoint terproteksi otentikasi sesi dan isolasi kepemilikan channel untuk mengambil daftar judul yang sudah pernah dipakai (`UsedTitle`), sehingga manifest video menyimpan riwayat judul terpakai secara akurat.
+
+#### 45.6 Jaminan Kualitas & Paritas Multibahasa
+- Unit test komprehensif `src/lib/__tests__/timelineBuilder.test.ts` (pengujian kalkulasi offset, validasi kontinuitas, penanganan array kosong, scene maksimal, dan propagasi judul terpakai).
+- Paritas 100% key i18n pada namespace `Admin` (`featureFullVideoStudio`) dan namespace baru `VideoStudio` di `messages/id.json` serta `messages/en.json`.
+- Validasi 7 perintah arsitektur (lint, test, build, audit design, audit i18n, prisma, tsc).
+
+## 46. Engine Kode Animasi HTML & Render Deterministik Iframe Sandbox (2026-10-18)
+
+### Latar Belakang & Filosofi Arsitektur
+Untuk menghadirkan studio pembuatan video terpadu tanpa membebani server backend dengan beban komputasi rendering video yang mahal (seperti instance GPU atau FFmpeg server), platform **Prompt Gen** mengadopsi arsitektur rendering berbasis browser client-side yang deterministik:
+1. **AI Eksternal Sebagai Animator**: Model AI eksternal (seperti Claude, GPT, atau Gemini) menghasilkan satu berkas HTML mandiri (*self-contained*) yang memuat seluruh logika visual animasi Canvas 2D berbasis naskah skrip.
+2. **Browser Sebagai Render Farm Deterministik**: Aplikasi Prompt Gen mengeksekusi kode HTML animasi di dalam lingkungan sandbox yang terisolasi ketat, mengontrol waktu animasi secara presisi via metode `seek(t)`, dan merekam frame video per frame secara sekuensial.
+
+### Spesifikasi Teknis & Komponen
+
+#### 46.1 Kontrak Kode Animasi & Proteksi Iframe Sandbox (`src/lib/animationContract.ts`)
+- Standarisasi antarmuka global `window.__anim`:
+  - `seek(timeSec: number): void`: Melompat dan merender frame pada waktu tertentu secara sinkron.
+  - `getDuration(): number`: Mengembalikan total durasi video dalam satuan detik.
+  - `getReadyPromise(): Promise<void>`: Menyelesaikan promise saat seluruh aset grafis internal selesai dimuat.
+- Ketentuan Canvas:
+  - Wajib menargetkan `<canvas id="anim-canvas">` dengan dimensi default 1920x1080 pada 30 FPS.
+- Validasi Keamanan Non-Stateful Regex:
+  - Seluruh ekspresi reguler validasi menggunakan flag `i` tanpa flag `g` guna mencegah bug stateful pada method `.test()` (`lastIndex`).
+  - Larangan ketat akses jaringan: `fetch()`, `XMLHttpRequest`, `WebSocket`, dynamic `import()`, static `import`, serta sumber daya eksternal `src="http..."` atau `href="http..."`.
+  - Larangan manipulasi penyimpanan lokal: `localStorage`, `sessionStorage`, `indexedDB`.
+  - Larangan interupsi dialog pengguna: `alert()`, `confirm()`, `prompt()`.
+  - Pembatasan ukuran kode HTML maksimal 2 MB (`MAX_HTML_SIZE = 2 * 1024 * 1024`).
+
+#### 46.2 Generator Prompt Pembuatan Animasi AI (`src/lib/animationPromptBuilder.ts`)
+- Fungsi `buildAnimationPrompt(timeline, opts)` menyusun instruksi lengkap bagi AI eksternal:
+  - Kontrak teknis wajib dan larangan jaringan/penyimpanan.
+  - Rincian linimasa per adegan: nomor scene, offset waktu mulai, durasi detik, visual prompt, konteks visual, teks overlay, dan metadata bab.
+  - Daftar hitam topik & judul terpakai (`usedTitleTexts`) agar AI tidak membuat animasi yang menduplikasi konten terdahulu.
+  - Instruksi kustom tambahan dari kreator.
+  - Penegasan format luaran murni berupa satu blok HTML utuh tanpa format markdown.
+
+#### 46.3 Renderer Sandbox Terisolasi (`src/components/video/AnimationRenderer.tsx`)
+- Pemanfaatan elemen `<iframe>` dengan atribut `sandbox="allow-scripts"` (tanpa `allow-same-origin`) sehingga kode yang dieksekusi terputus total dari DOM aplikasi induk, cookie, sesi autentikasi, dan memori browser.
+- Pemasangan bridge komunikasi dua arah berbasis `window.postMessage` untuk menangani sinyal `seek`, capture frame via `canvas.toDataURL("image/png")`, pengecekan durasi, dan konfirmasi kesiapan render (`ready`).
+
+#### 46.4 Perekam Video Sekuensial Deterministik (`src/lib/videoAssembler.ts`)
+- Pengambilan frame dilakukan secara **sekuensial blocking**: mengirim `seek(t)` ke iframe, menunggu respons frame `postMessage` selesai dikirim balik, menggambar ke offscreen canvas, lalu melanjutkan ke frame berikutnya (bukan loop animasi tak terkendali).
+- Offscreen canvas dihubungkan ke `MediaRecorder` dengan format `video/webm;codecs=vp9` pada bitrate 8 Mbps untuk menghasilkan video hasil render berkualitas tinggi.
+
+#### 46.5 Audio Mixer Narasi WebAudio (`src/lib/audioMixer.ts`)
+- Penggabungan seluruh berkas audio narasi per adegan (dari hasil Voice Studio TTS) ke dalam satu linimasa menggunakan `OfflineAudioContext`.
+- Tiap segmen audio ditempatkan tepat pada posisi `startOffsetSec`.
+- Encoder audio mandiri `audioBufferToWav()` yang menyusun file biner WAV 16-bit PCM tanpa memerlukan pustaka eksternal.
+
+#### 46.6 Integrasi Pengguna pada Tab Full Video (`VideoTimelineTab.tsx`)
+- Formulir penempelan kode HTML animasi dengan counter ukuran berkas dan validasi batas 2 MB.
+- Tombol aksi "Salin Prompt untuk AI" dengan umpan balik clipboard.
+- Jendela pratinjau animasi live berskala proporsional.
+- Tombol "Mulai Render" lengkap dengan bilah persentase kemajuan (*progress bar*).
+- Opsi pengunduhan mandiri untuk berkas video WebM dan berkas audio WAV.
+
+## 47. Integrasi Google Drive Upload, Manajemen Token Terenkripsi AAD & Resumable Upload (2026-10-18)
+
+### Latar Belakang & Filosofi Arsitektur
+Sebagai penutup siklus pipeline produksi video, platform **Prompt Gen** memberikan opsi pengunggahan berkas video dan audio hasil render langsung ke penyimpanan Google Drive pengguna:
+1. **Kepemilikan Mandiri Pengguna (Zero Shared Tokens)**: Seluruh kredensial Google Drive adalah milik akun pengguna masing-masing, bukan token bersama milik aplikasi.
+2. **Kriptografi Terisolasi (AES-256-GCM + AAD)**: Token akses dan refresh disimpan di database secara terenkripsi menggunakan fungsi `googleDriveAad(userId)`, memastikan ciphertext tidak dapat ditransplantasikan ke pengguna lain.
+3. **Penyimpanan Terorganisir Otomatis**: Berkas video dan audio secara otomatis dimasukkan ke dalam folder khusus `"Prompt Gen Videos"` di Drive pengguna.
+
+### Spesifikasi Teknis & Komponen
+
+#### 47.1 Model Data & Skema Prisma (`UserGoogleDriveToken`)
+- Tabel `UserGoogleDriveToken`:
+  - `id`: CUID identifier.
+  - `userId`: Relasi 1-to-1 dengan tabel `User` (onDelete: Cascade).
+  - `encryptedAccess` & `encryptedRefresh`: String terenkripsi AES-256-GCM.
+  - `expiresAt`: Waktu kedaluwarsa token akses.
+  - `scopes`: Scope akses terisolasi (`https://www.googleapis.com/auth/drive.file`).
+  - `folderId`: Cache ID folder aplikasi di Google Drive.
+- Migrasi SQL idempotent `20261018_add_google_drive_token/migration.sql`.
+
+#### 47.2 Alur Otorisasi OAuth2 & Proteksi Anti-CSRF
+- Endpoint `/api/auth/google-drive`:
+  - Menginisiasi alur persetujuan OAuth2 Google dengan random UUID yang disimpan pada `httpOnly` cookie `gdrive_csrf` (bukan userId yang dapat ditebak).
+- Endpoint Callback `/api/auth/google-drive/callback`:
+  - Memverifikasi kecocokan nilai `state` dengan cookie `gdrive_csrf`, lalu segera menghapus cookie (one-time use).
+  - Menukar kode otorisasi menjadi access dan refresh token, mengenkripsi dengan AAD userId, dan menyimpannya di DB via upsert.
+
+#### 47.3 Service Google Drive & Resumable Upload (`src/lib/googleDrive.ts`)
+- `getValidAccessToken(userId)`: Mengambil token yang valid atau melakukan auto-refresh secara transparan jika token mendekati kedaluwarsa (< 5 menit).
+- `getOrCreateAppFolder(userId, accessToken)`: Mencari atau membuat folder `"Prompt Gen Videos"` dan menyimpan ID folder di DB untuk menghindari overhead API.
+- `uploadToDrive(userId, accessToken, file)`: Mengunggah berkas menggunakan Google Drive API v3 Resumable Upload dan mengembalikan URL tinjau (`webViewLink`).
+- `revokeGoogleDriveToken(userId)`: Mengirim permintaan pencabutan token ke endpoint Google OAuth revoke dan menghapus rekaman token dari database.
+
+#### 47.4 Proteksi API & Pembatasan Upload
+- Endpoint `/api/user/google-drive/upload`:
+  - Rate limiting berbasis userId (`gdrive_upload_{userId}`) maksimal 5 unggahan per 60 detik.
+  - Pengecekan fitur paket langganan fail-closed via `hasFeature(plan.features, "googleDriveUpload")`.
+  - Validasi payload Zod dengan batas ukuran file maksimal 100 MB base64.
+- Endpoint `/api/user/google-drive/status` & `/disconnect`.
+
+#### 47.5 Pengamanan Siklus Sesi & Pembersihan Logout
+- Tombol `LogoutButton` memicu pencabutan token Google Drive secara asinkron sebelum pembersihan cache dan pengalihan sesi `signOut`.
+- Endpoint `/api/user/data-export` mengecualikan token terenkripsi agar tidak terekspos dalam arsip data pengguna.
+
+#### 47.6 Integrasi Antarmuka Pengguna & Ketahanan Retry
+- Pengaturan Akun (`SettingsClient.tsx`): Status koneksi Google Drive (Terhubung / Belum Terhubung) serta tombol Hubungkan & Putuskan.
+- Linimasa Studio (`VideoTimelineTab.tsx`): Tombol "Upload ke Google Drive" dengan mekanisme retry otomatis hingga 3x menggunakan exponential backoff.
+
+
+
+
+
+
 
 

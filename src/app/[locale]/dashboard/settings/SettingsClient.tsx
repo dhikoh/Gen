@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
+import Link from "next/link";
 import toast from "react-hot-toast";
 
 interface TtsKeyInfo {
@@ -18,6 +19,14 @@ interface TtsKeyInfo {
   totalSuccessCount: number;
   totalFailureCount: number;
   createdAt: string;
+}
+
+interface GoogleDriveStatus {
+  connected: boolean;
+  expiresAt: string | null;
+  scopes: string | null;
+  folderId: string | null;
+  updatedAt: string | null;
 }
 
 function formatRelativeTime(dateStr: string | null, justNowLabel: string): string {
@@ -48,6 +57,67 @@ export default function SettingsClient() {
   const [newKeyLabel, setNewKeyLabel] = useState("");
   const [addingKey, setAddingKey] = useState(false);
   const [testingKeyId, setTestingKeyId] = useState<string | null>(null);
+
+  // ── Google Drive state ──
+  const [driveStatus, setDriveStatus] = useState<GoogleDriveStatus | null>(null);
+  const [driveLoading, setDriveLoading] = useState(true);
+  const [disconnectingDrive, setDisconnectingDrive] = useState(false);
+
+  useEffect(() => {
+    let ignore = false;
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const gdriveParam = params.get("gdrive");
+      if (gdriveParam === "connected") {
+        toast.success(t("driveConnectedSuccess"));
+        window.history.replaceState({}, "", window.location.pathname);
+      } else if (gdriveParam === "error") {
+        toast.error(t("driveConnectFailed"));
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+    }
+
+    async function loadDrive() {
+      try {
+        const res = await fetch("/api/user/google-drive/status");
+        const data = await res.json();
+        if (!ignore) setDriveStatus(data);
+      } catch {
+        // ignore
+      } finally {
+        if (!ignore) setDriveLoading(false);
+      }
+    }
+
+    void loadDrive();
+    return () => {
+      ignore = true;
+    };
+  }, [t]);
+
+  const handleDisconnectDrive = async () => {
+    if (!confirm(t("googleDriveDisconnectConfirm"))) return;
+    setDisconnectingDrive(true);
+    try {
+      const res = await fetch("/api/user/google-drive/disconnect", { method: "POST" });
+      if (res.ok) {
+        toast.success(t("driveDisconnectedSuccess"));
+        setDriveStatus({
+          connected: false,
+          expiresAt: null,
+          scopes: null,
+          folderId: null,
+          updatedAt: null,
+        });
+      } else {
+        toast.error(t("generalError"));
+      }
+    } catch {
+      toast.error(t("generalError"));
+    } finally {
+      setDisconnectingDrive(false);
+    }
+  };
 
   const fetchKeys = useCallback(async () => {
     try {
@@ -402,6 +472,74 @@ export default function SettingsClient() {
             {addingKey ? t("ttsValidating") : t("ttsAddKeyBtn")}
           </button>
         </form>
+      </section>
+
+      {/* Google Drive Integration Section */}
+      <section className="pg-surface border pg-border rounded-2xl p-6 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <span className="text-xl">📁</span>
+              <h2 className="text-xl font-semibold pg-text-heading">{t("googleDriveTitle")}</h2>
+              {driveStatus && !driveLoading && (
+                <span
+                  className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${
+                    driveStatus.connected
+                      ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300"
+                      : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400"
+                  }`}
+                >
+                  {driveStatus.connected ? t("googleDriveConnected") : t("googleDriveDisconnected")}
+                </span>
+              )}
+            </div>
+            <p className="text-xs pg-text-sub mt-1 leading-relaxed">
+              {t("googleDriveDesc")}
+            </p>
+          </div>
+
+          <div>
+            {driveLoading ? (
+              <span className="text-xs pg-text-muted">{t("loading")}...</span>
+            ) : driveStatus?.connected ? (
+              <button
+                type="button"
+                onClick={handleDisconnectDrive}
+                disabled={disconnectingDrive}
+                className="px-3.5 py-1.5 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 text-red-700 dark:text-red-300 text-xs font-semibold rounded-xl disabled:opacity-50 transition-colors"
+              >
+                {disconnectingDrive ? t("loading") : t("googleDriveDisconnectBtn")}
+              </button>
+            ) : (
+              <Link
+                href="/api/auth/google-drive"
+                prefetch={false}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-sm transition-colors inline-flex items-center gap-1.5"
+              >
+                <span>🔗</span> {t("googleDriveConnectBtn")}
+              </Link>
+            )}
+          </div>
+        </div>
+
+        {driveStatus?.connected && (
+          <div className="mt-4 pt-4 border-t pg-border text-xs space-y-1.5 pg-text-sub">
+            <div className="flex items-center gap-2">
+              <span className="font-medium pg-text-heading">{t("googleDriveFolderLabel")}:</span>
+              <span className="font-mono bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded">
+                Prompt Gen Videos
+              </span>
+            </div>
+            {driveStatus.expiresAt && (
+              <div className="flex items-center gap-2">
+                <span className="font-medium pg-text-heading">{t("googleDriveExpiresLabel")}:</span>
+                <span className="font-mono">
+                  {new Date(driveStatus.expiresAt).toLocaleString()}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
       </section>
     </div>
   );

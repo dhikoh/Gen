@@ -41,3 +41,13 @@ if (!envParsed.success) {
 }
 
 export const env = envParsed.data;
+
+// Google Drive (opsional)
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ?? "";
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? "";
+const GOOGLE_DRIVE_REDIRECT_URI = process.env.GOOGLE_DRIVE_REDIRECT_URI ?? "";
+
+export function isGoogleDriveConfigured(): boolean {
+  return !!(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET && GOOGLE_DRIVE_REDIRECT_URI);
+}
+
