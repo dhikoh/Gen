@@ -1680,6 +1680,24 @@
     "uploadDriveFailed": "Gagal mengunggah video ke Google Drive.",
     "openInDrive": "Buka di Google Drive",
     "uploadAudioToDrive": "Backup Audio ke Drive",
-    "driveFeatureLocked": "Fitur Google Drive Backup memerlukan paket langganan yang mendukung."
+    "driveFeatureLocked": "Fitur Google Drive Backup memerlukan paket langganan yang mendukung.",
+    "modeCanvasRender": "🌐 Render Animasi Web",
+    "modeAiPrompt": "🤖 Prompt AI Video Generator",
+    "modeCanvasRenderDesc": "Buat animasi berbasis kode HTML5 Canvas dan render menjadi video WebM langsung di browser.",
+    "modeAiPromptDesc": "Rangkai Scene 1 sampai scene terakhir menjadi 1 prompt video utuh untuk AI Video Generator eksternal (Sora, Runway, Kling, InVideo).",
+    "targetAiFormat": "Format AI Target",
+    "formatCinematic": "Sinematik Multi-Scene (Sora, Runway Gen-3, Kling, Luma)",
+    "formatScriptToVideo": "Script to Video (InVideo AI, CapCut Script-to-Video)",
+    "formatStory": "Alur Cerita Berkelanjutan (Story / Drama)",
+    "copyFullPrompt": "Salin Prompt 1 Video Utuh",
+    "fullPromptCopied": "Prompt 1 video utuh disalin ke clipboard!",
+    "includeTimestamps": "Timestamp Durasi",
+    "includeNarration": "Naskah Narasi",
+    "includeOverlay": "Teks Overlay",
+    "includeTransitions": "Panduan Transisi",
+    "aspectRatioLabel": "Aspek Rasio",
+    "additionalPromptInstructions": "Instruksi Khusus Tambahan (Opsional)...",
+    "promptSummaryInfo": "{count} Scene dirangkum · Total durasi {duration} ({words} kata)",
+    "recommendedToolsTitle": "Cocok untuk Tools AI Video:"
   }
 }

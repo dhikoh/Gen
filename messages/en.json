@@ -1680,6 +1680,24 @@
     "uploadDriveFailed": "Failed to upload video to Google Drive.",
     "openInDrive": "Open in Google Drive",
     "uploadAudioToDrive": "Backup Audio to Drive",
-    "driveFeatureLocked": "Google Drive Backup feature requires a supporting subscription plan."
+    "driveFeatureLocked": "Google Drive Backup feature requires a supporting subscription plan.",
+    "modeCanvasRender": "🌐 Web Animation Render",
+    "modeAiPrompt": "🤖 AI Video Generator Prompt",
+    "modeCanvasRenderDesc": "Generate HTML5 Canvas code animations and render into WebM video directly in your browser.",
+    "modeAiPromptDesc": "Compile Scene 1 to the final scene into 1 full continuous video prompt for external AI Video Generators (Sora, Runway, Kling, InVideo).",
+    "targetAiFormat": "Target AI Format",
+    "formatCinematic": "Cinematic Multi-Scene (Sora, Runway Gen-3, Kling, Luma)",
+    "formatScriptToVideo": "Script to Video (InVideo AI, CapCut Script-to-Video)",
+    "formatStory": "Continuous Narrative Arc (Story / Drama)",
+    "copyFullPrompt": "Copy 1 Full Video Prompt",
+    "fullPromptCopied": "Full 1-video prompt copied to clipboard!",
+    "includeTimestamps": "Duration Timestamps",
+    "includeNarration": "Narration Script",
+    "includeOverlay": "Text Overlay",
+    "includeTransitions": "Transition Directions",
+    "aspectRatioLabel": "Aspect Ratio",
+    "additionalPromptInstructions": "Additional Custom Directives (Optional)...",
+    "promptSummaryInfo": "{count} Scenes compiled · Total duration {duration} ({words} words)",
+    "recommendedToolsTitle": "Recommended for AI Video Tools:"
   }
 }

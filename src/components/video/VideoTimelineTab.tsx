@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import toast from "react-hot-toast";
 import { formatTime } from "@/lib/formatTime";
@@ -8,6 +8,7 @@ import type { VideoTimeline, VideoTimelineScene } from "@/types/videoTimeline";
 import AnimationRenderer from "@/components/video/AnimationRenderer";
 import { assembleVideo, type RenderProgress } from "@/lib/videoAssembler";
 import { buildAnimationPrompt } from "@/lib/animationPromptBuilder";
+import { buildFullVideoAiPrompt, type FullVideoPromptFormat } from "@/lib/fullVideoPromptBuilder";
 import { mixAudio, audioBufferToWav } from "@/lib/audioMixer";
 import { MAX_HTML_SIZE } from "@/lib/animationContract";
 
@@ -16,6 +17,8 @@ interface Props {
   onExportManifest: () => void;
   onSceneClick: (sceneNumber: number) => void;
   canUploadToDrive?: boolean;
+  aspectRatio?: string;
+  defaultMode?: "canvasRender" | "aiPrompt";
 }
 
 export default function VideoTimelineTab({
@@ -23,8 +26,22 @@ export default function VideoTimelineTab({
   onExportManifest,
   onSceneClick,
   canUploadToDrive = true,
+  aspectRatio = "16:9",
+  defaultMode = "canvasRender",
 }: Props) {
   const t = useTranslations("VideoStudio");
+
+  // Mode Selection: Web Animation Canvas Render vs AI Video Generator Prompt
+  const [activeMode, setActiveMode] = useState<"canvasRender" | "aiPrompt">(defaultMode);
+
+  // Mode 2: AI Video Generator Prompt Studio States
+  const [aiFormat, setAiFormat] = useState<FullVideoPromptFormat>("cinematic");
+  const [includeTimestamps, setIncludeTimestamps] = useState(true);
+  const [includeNarration, setIncludeNarration] = useState(true);
+  const [includeOverlay, setIncludeOverlay] = useState(true);
+  const [includeTransitions, setIncludeTransitions] = useState(true);
+  const [aiAdditionalInstructions, setAiAdditionalInstructions] = useState("");
+  const [aiPromptCopied, setAiPromptCopied] = useState(false);
 
   // Animation & Rendering States
   const [animationHtml, setAnimationHtml] = useState<string | null>(null);
@@ -52,6 +69,46 @@ export default function VideoTimelineTab({
       toast.error(t("renderError"));
     }
   }, [timeline, additionalInstructions, t]);
+
+  // Compute Full AI Video Prompt (Mode 2)
+  const fullAiVideoPrompt = useMemo(() => {
+    if (!timeline) return "";
+    return buildFullVideoAiPrompt(timeline, {
+      format: aiFormat,
+      aspectRatio,
+      includeTimestamps,
+      includeNarration,
+      includeOverlay,
+      includeTransitions,
+      additionalInstructions: aiAdditionalInstructions.trim() || undefined,
+    });
+  }, [
+    timeline,
+    aiFormat,
+    aspectRatio,
+    includeTimestamps,
+    includeNarration,
+    includeOverlay,
+    includeTransitions,
+    aiAdditionalInstructions,
+  ]);
+
+  const fullPromptWordCount = useMemo(() => {
+    if (!fullAiVideoPrompt) return 0;
+    return fullAiVideoPrompt.trim().split(/\s+/).length;
+  }, [fullAiVideoPrompt]);
+
+  const handleCopyFullAiPrompt = useCallback(async () => {
+    if (!fullAiVideoPrompt) return;
+    try {
+      await navigator.clipboard.writeText(fullAiVideoPrompt);
+      toast.success(t("fullPromptCopied"));
+      setAiPromptCopied(true);
+      setTimeout(() => setAiPromptCopied(false), 2000);
+    } catch {
+      toast.error(t("renderError"));
+    }
+  }, [fullAiVideoPrompt, t]);
 
   // Start sequential video render
   const handleRender = useCallback(async () => {
@@ -355,161 +412,365 @@ export default function VideoTimelineTab({
         ))}
       </div>
 
-      {/* ── Animation Code & Render Section ── */}
-      <div className="glass-panel rounded-2xl p-5 border pg-border space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <h4 className="text-sm font-bold pg-text-heading flex items-center gap-2">
-            <span>🎨</span> {t("pasteAnimationCode")}
-          </h4>
-          <span className="text-[11px] font-mono pg-text-muted">
-            {t("htmlSizeInfo", { current: htmlSizeKb, max: maxMb })}
-          </span>
+      {/* ── Mode Switcher Pills (Opsi 2) ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-2.5 rounded-2xl pg-surface-dim border pg-border shadow-xs">
+        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-200/60 dark:bg-slate-800/80">
+          <button
+            type="button"
+            onClick={() => setActiveMode("canvasRender")}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+              activeMode === "canvasRender"
+                ? "bg-white dark:bg-slate-900 text-[var(--pg-brand)] shadow-sm"
+                : "pg-text-muted hover:pg-text-heading"
+            }`}
+          >
+            <span>🌐</span> {t("modeCanvasRender")}
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveMode("aiPrompt")}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+              activeMode === "aiPrompt"
+                ? "bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-sm"
+                : "pg-text-muted hover:pg-text-heading"
+            }`}
+          >
+            <span>🤖</span> {t("modeAiPrompt")}
+            <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-purple-500/15 text-purple-600 dark:text-purple-300">
+              1 Video Utuh
+            </span>
+          </button>
         </div>
+        <p className="text-[11px] pg-text-muted px-2">
+          {activeMode === "canvasRender" ? t("modeCanvasRenderDesc") : t("modeAiPromptDesc")}
+        </p>
+      </div>
 
-        {/* Optional custom instructions for prompt */}
-        <div className="space-y-1">
-          <input
-            type="text"
-            value={additionalInstructions}
-            onChange={(e) => setAdditionalInstructions(e.target.value)}
-            placeholder="Instruksi kustom AI (opsional, disematkan ke prompt)..."
-            className="w-full px-3 py-1.5 rounded-lg neu-pressed pg-text-heading text-xs focus:outline-none focus:ring-1 focus:ring-[var(--pg-brand)]"
-          />
-        </div>
+      {/* ── Mode 1: Web Animation Canvas Render Engine ── */}
+      {activeMode === "canvasRender" && (
+        <div className="glass-panel rounded-2xl p-5 border pg-border space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <h4 className="text-sm font-bold pg-text-heading flex items-center gap-2">
+              <span>🎨</span> {t("pasteAnimationCode")}
+            </h4>
+            <span className="text-[11px] font-mono pg-text-muted">
+              {t("htmlSizeInfo", { current: htmlSizeKb, max: maxMb })}
+            </span>
+          </div>
 
-        {/* Textarea for animation code */}
-        <div className="space-y-1.5">
-          <textarea
-            value={animationHtml ?? ""}
-            onChange={(e) => {
-              const val = e.target.value;
-              if (val.length > MAX_HTML_SIZE) {
-                toast.error(t("htmlTooLarge"));
-                return;
-              }
-              setAnimationHtml(val || null);
-            }}
-            placeholder={t("pasteAnimationCodeHint")}
-            rows={5}
-            className="w-full px-3 py-2 rounded-xl neu-pressed pg-text-heading text-xs font-mono resize-y focus:outline-none focus:ring-1 focus:ring-[var(--pg-brand)]"
-          />
-        </div>
-
-        {/* Interactive Sandbox Preview */}
-        {animationHtml && (
-          <div className="space-y-2 pt-2 border-t pg-border/40">
-            <h5 className="text-xs font-semibold pg-text-heading flex items-center gap-1.5">
-              <span>👁️</span> {t("previewTitle")}
-            </h5>
-            <AnimationRenderer
-              htmlCode={animationHtml}
-              onReady={() => {}}
-              onError={(err) => toast.error(err)}
-              onIframeRef={setIframeEl}
+          {/* Optional custom instructions for prompt */}
+          <div className="space-y-1">
+            <input
+              type="text"
+              value={additionalInstructions}
+              onChange={(e) => setAdditionalInstructions(e.target.value)}
+              placeholder="Instruksi kustom AI (opsional, disematkan ke prompt)..."
+              className="w-full px-3 py-1.5 rounded-lg neu-pressed pg-text-heading text-xs focus:outline-none focus:ring-1 focus:ring-[var(--pg-brand)]"
             />
           </div>
-        )}
 
-        {/* Render Controls & Progress */}
-        <div className="space-y-3 pt-2 border-t pg-border/40">
-          <div className="flex items-center gap-3 flex-wrap">
-            <button
-              type="button"
-              onClick={handleRender}
-              disabled={!animationHtml || isRendering || !iframeEl}
-              className="neu-btn-brand px-5 py-2 text-sm font-semibold rounded-xl disabled:opacity-50 transition-all flex items-center gap-2"
-            >
-              <span>⚡</span>
-              {isRendering
-                ? t("rendering", { percent: renderProgress?.percent ?? 0 })
-                : t("startRender")}
-            </button>
-
-            {videoBlob && (
-              <>
-                <button
-                  type="button"
-                  onClick={handleDownloadVideo}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-colors flex items-center gap-1.5"
-                >
-                  <span>🎥</span> {t("downloadVideo")}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleUploadToDrive}
-                  disabled={isUploadingDrive}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-sm disabled:opacity-50 transition-colors flex items-center gap-1.5"
-                >
-                  <span>☁️</span> {isUploadingDrive ? t("uploadingToDrive") : t("uploadToDrive")}
-                </button>
-
-                {driveLink && (
-                  <a
-                    href={driveLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3 py-2 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm font-semibold rounded-xl border border-blue-200 dark:border-blue-800 hover:bg-blue-100 transition-colors flex items-center gap-1.5"
-                  >
-                    <span>↗️</span> {t("openInDrive")}
-                  </a>
-                )}
-              </>
-            )}
-
-            {timeline.scenes.some((s) => s.audioRef) && (
-              <>
-                <button
-                  type="button"
-                  onClick={handleDownloadAudio}
-                  disabled={isMixingAudio}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-sm disabled:opacity-50 transition-colors flex items-center gap-1.5"
-                >
-                  <span>🎙️</span> {isMixingAudio ? t("loading") : t("downloadAudio")}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleUploadAudioToDrive}
-                  disabled={isUploadingAudioDrive || isMixingAudio}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-sm disabled:opacity-50 transition-colors flex items-center gap-1.5"
-                >
-                  <span>☁️</span> {isUploadingAudioDrive ? t("uploadingToDrive") : t("uploadAudioToDrive")}
-                </button>
-
-                {audioDriveLink && (
-                  <a
-                    href={audioDriveLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3 py-2 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm font-semibold rounded-xl border border-blue-200 dark:border-blue-800 hover:bg-blue-100 transition-colors flex items-center gap-1.5"
-                  >
-                    <span>↗️</span> {t("openInDrive")}
-                  </a>
-                )}
-              </>
-            )}
+          {/* Textarea for animation code */}
+          <div className="space-y-1.5">
+            <textarea
+              value={animationHtml ?? ""}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val.length > MAX_HTML_SIZE) {
+                  toast.error(t("htmlTooLarge"));
+                  return;
+                }
+                setAnimationHtml(val || null);
+              }}
+              placeholder={t("pasteAnimationCodeHint")}
+              rows={5}
+              className="w-full px-3 py-2 rounded-xl neu-pressed pg-text-heading text-xs font-mono resize-y focus:outline-none focus:ring-1 focus:ring-[var(--pg-brand)]"
+            />
           </div>
 
-          {/* Progress bar */}
-          {isRendering && renderProgress && (
-            <div className="space-y-1">
-              <div className="w-full h-2.5 rounded-full neu-pressed overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all duration-150"
-                  style={{
-                    width: `${renderProgress.percent}%`,
-                    backgroundColor: "var(--pg-brand)",
-                  }}
-                />
-              </div>
-              <p className="text-[11px] pg-text-muted text-right font-mono">
-                {renderProgress.currentFrame} / {renderProgress.totalFrames} frames ({renderProgress.percent}%)
-              </p>
+          {/* Interactive Sandbox Preview */}
+          {animationHtml && (
+            <div className="space-y-2 pt-2 border-t pg-border/40">
+              <h5 className="text-xs font-semibold pg-text-heading flex items-center gap-1.5">
+                <span>👁️</span> {t("previewTitle")}
+              </h5>
+              <AnimationRenderer
+                htmlCode={animationHtml}
+                onReady={() => {}}
+                onError={(err) => toast.error(err)}
+                onIframeRef={setIframeEl}
+              />
             </div>
           )}
+
+          {/* Render Controls & Progress */}
+          <div className="space-y-3 pt-2 border-t pg-border/40">
+            <div className="flex items-center gap-3 flex-wrap">
+              <button
+                type="button"
+                onClick={handleRender}
+                disabled={!animationHtml || isRendering || !iframeEl}
+                className="neu-btn-brand px-5 py-2 text-sm font-semibold rounded-xl disabled:opacity-50 transition-all flex items-center gap-2"
+              >
+                <span>⚡</span>
+                {isRendering
+                  ? t("rendering", { percent: renderProgress?.percent ?? 0 })
+                  : t("startRender")}
+              </button>
+
+              {videoBlob && (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleDownloadVideo}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-colors flex items-center gap-1.5"
+                  >
+                    <span>🎥</span> {t("downloadVideo")}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleUploadToDrive}
+                    disabled={isUploadingDrive}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-sm disabled:opacity-50 transition-colors flex items-center gap-1.5"
+                  >
+                    <span>☁️</span> {isUploadingDrive ? t("uploadingToDrive") : t("uploadToDrive")}
+                  </button>
+
+                  {driveLink && (
+                    <a
+                      href={driveLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-2 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm font-semibold rounded-xl border border-blue-200 dark:border-blue-800 hover:bg-blue-100 transition-colors flex items-center gap-1.5"
+                    >
+                      <span>↗️</span> {t("openInDrive")}
+                    </a>
+                  )}
+                </>
+              )}
+
+              {timeline.scenes.some((s) => s.audioRef) && (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleDownloadAudio}
+                    disabled={isMixingAudio}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-sm disabled:opacity-50 transition-colors flex items-center gap-1.5"
+                  >
+                    <span>🎙️</span> {isMixingAudio ? t("loading") : t("downloadAudio")}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleUploadAudioToDrive}
+                    disabled={isUploadingAudioDrive || isMixingAudio}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-sm disabled:opacity-50 transition-colors flex items-center gap-1.5"
+                  >
+                    <span>☁️</span> {isUploadingAudioDrive ? t("uploadingToDrive") : t("uploadAudioToDrive")}
+                  </button>
+
+                  {audioDriveLink && (
+                    <a
+                      href={audioDriveLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-2 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm font-semibold rounded-xl border border-blue-200 dark:border-blue-800 hover:bg-blue-100 transition-colors flex items-center gap-1.5"
+                    >
+                      <span>↗️</span> {t("openInDrive")}
+                    </a>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Progress bar */}
+            {isRendering && renderProgress && (
+              <div className="space-y-1">
+                <div className="w-full h-2.5 rounded-full neu-pressed overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-150"
+                    style={{
+                      width: `${renderProgress.percent}%`,
+                      backgroundColor: "var(--pg-brand)",
+                    }}
+                  />
+                </div>
+                <p className="text-[11px] pg-text-muted text-right font-mono">
+                  {renderProgress.currentFrame} / {renderProgress.totalFrames} frames ({renderProgress.percent}%)
+                </p>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* ── Mode 2: AI Video Generator Prompt Studio (Opsi 2) ── */}
+      {activeMode === "aiPrompt" && (
+        <div className="glass-panel rounded-2xl p-5 border border-purple-500/20 dark:border-purple-800/30 bg-gradient-to-b from-purple-500/5 via-transparent to-transparent space-y-5">
+          {/* Header & Quick Action */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b pg-border/40">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🤖</span>
+                <h4 className="text-sm font-bold pg-text-heading">{t("modeAiPrompt")}</h4>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
+                  1 Video Utuh
+                </span>
+              </div>
+              <p className="text-xs pg-text-muted mt-0.5">
+                {t("promptSummaryInfo", {
+                  count: timeline.scenes.length,
+                  duration: formatTime(timeline.totalDurationSec),
+                  words: fullPromptWordCount,
+                })}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleCopyFullAiPrompt}
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-1.5"
+            >
+              <span>{aiPromptCopied ? "✓" : "📋"}</span>
+              {aiPromptCopied ? t("fullPromptCopied") : t("copyFullPrompt")}
+            </button>
+          </div>
+
+          {/* Format Selection & Options */}
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-bold pg-text-sub flex items-center gap-1 mb-2">
+                <span>🎯</span> {t("targetAiFormat")}:
+              </label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                {[
+                  { id: "cinematic", label: t("formatCinematic"), icon: "🎥", desc: "Sora, Runway Gen-3, Kling, Luma" },
+                  { id: "script_to_video", label: t("formatScriptToVideo"), icon: "📝", desc: "InVideo AI, CapCut Script to Video" },
+                  { id: "story", label: t("formatStory"), icon: "📖", desc: "Continuous Narrative Arc" },
+                ].map((fmt) => (
+                  <button
+                    key={fmt.id}
+                    type="button"
+                    onClick={() => setAiFormat(fmt.id as FullVideoPromptFormat)}
+                    className={`p-3 rounded-xl border text-left transition-all ${
+                      aiFormat === fmt.id
+                        ? "border-purple-500 bg-purple-50/80 dark:bg-purple-950/40 ring-1 ring-purple-500/50"
+                        : "pg-surface-dim pg-border hover:border-purple-300 dark:hover:border-purple-800"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span>{fmt.icon}</span>
+                      <span className="text-xs font-bold pg-text-heading">{fmt.label}</span>
+                    </div>
+                    <p className="text-[10px] pg-text-muted mt-1">{fmt.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Filter Checkboxes / Elements Toggle */}
+            <div className="flex items-center gap-4 flex-wrap pt-1 text-xs">
+              <label className="inline-flex items-center gap-1.5 cursor-pointer pg-text-sub select-none font-medium">
+                <input
+                  type="checkbox"
+                  checked={includeTimestamps}
+                  onChange={(e) => setIncludeTimestamps(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded border-slate-300 dark:border-slate-600 accent-purple-600 cursor-pointer"
+                />
+                <span>⏱️ {t("includeTimestamps")}</span>
+              </label>
+
+              <label className="inline-flex items-center gap-1.5 cursor-pointer pg-text-sub select-none font-medium">
+                <input
+                  type="checkbox"
+                  checked={includeNarration}
+                  onChange={(e) => setIncludeNarration(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded border-slate-300 dark:border-slate-600 accent-purple-600 cursor-pointer"
+                />
+                <span>🎤 {t("includeNarration")}</span>
+              </label>
+
+              <label className="inline-flex items-center gap-1.5 cursor-pointer pg-text-sub select-none font-medium">
+                <input
+                  type="checkbox"
+                  checked={includeOverlay}
+                  onChange={(e) => setIncludeOverlay(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded border-slate-300 dark:border-slate-600 accent-purple-600 cursor-pointer"
+                />
+                <span>💬 {t("includeOverlay")}</span>
+              </label>
+
+              <label className="inline-flex items-center gap-1.5 cursor-pointer pg-text-sub select-none font-medium">
+                <input
+                  type="checkbox"
+                  checked={includeTransitions}
+                  onChange={(e) => setIncludeTransitions(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded border-slate-300 dark:border-slate-600 accent-purple-600 cursor-pointer"
+                />
+                <span>🔄 {t("includeTransitions")}</span>
+              </label>
+
+              <span className="text-[11px] font-mono pg-text-muted ml-auto">
+                {t("aspectRatioLabel")}: <strong>{aspectRatio}</strong>
+              </span>
+            </div>
+
+            {/* Additional Directives */}
+            <input
+              type="text"
+              value={aiAdditionalInstructions}
+              onChange={(e) => setAiAdditionalInstructions(e.target.value)}
+              placeholder={t("additionalPromptInstructions")}
+              className="w-full px-3 py-1.5 rounded-lg neu-pressed pg-text-heading text-xs focus:outline-none focus:ring-1 focus:ring-purple-500"
+            />
+          </div>
+
+          {/* Full Prompt Display Textarea */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold pg-text-muted uppercase tracking-wider">
+                PROMPT 1 VIDEO UTUH
+              </span>
+              <button
+                type="button"
+                onClick={handleCopyFullAiPrompt}
+                className="text-xs text-purple-600 dark:text-purple-400 hover:underline font-semibold flex items-center gap-1"
+              >
+                {aiPromptCopied ? "✓ " + t("copied") : "📋 " + t("copyFullPrompt")}
+              </button>
+            </div>
+
+            <textarea
+              readOnly
+              value={fullAiVideoPrompt}
+              rows={12}
+              className="w-full px-4 py-3 rounded-xl neu-pressed pg-text-heading text-xs font-mono resize-y focus:outline-none focus:ring-1 focus:ring-purple-500 custom-scrollbar leading-relaxed"
+            />
+          </div>
+
+          {/* Recommended Tools Guide */}
+          <div className="p-4 rounded-xl border border-slate-200/50 dark:border-slate-800/50 bg-slate-50/50 dark:bg-slate-900/30 text-xs space-y-2">
+            <h5 className="font-bold pg-text-heading flex items-center gap-1.5">
+              <span>💡</span> {t("recommendedToolsTitle")}
+            </h5>
+            <p className="pg-text-muted leading-relaxed">
+              {aiFormat === "script_to_video" ? (
+                <>
+                  Format <strong>Script to Video</strong> sangat ideal untuk <strong>InVideo AI</strong>, <strong>CapCut Script to Video</strong>, atau <strong>Pictory</strong>. Tempel teks di atas sebagai naskah lengkap, AI tersebut akan otomatis memilih visual b-roll dan memotong durasi per adegan.
+                </>
+              ) : aiFormat === "cinematic" ? (
+                <>
+                  Format <strong>Sinematik Multi-Scene</strong> menyertakan arahan kontinuitas kamera dan timestamp transisi yang presisi, dirancang untuk model video generatif lanjutan seperti <strong>OpenAI Sora</strong>, <strong>Runway Gen-3 Alpha</strong>, <strong>Kling AI</strong>, atau <strong>Luma Dream Machine</strong>.
+                </>
+              ) : (
+                <>
+                  Format <strong>Alur Cerita Berkelanjutan</strong> menyajikan alur naratif sinematik langsung mengalir dari awal hingga akhir, cocok untuk AI video generator berbasis cerita dramatik dan explainer.
+                </>
+              )}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

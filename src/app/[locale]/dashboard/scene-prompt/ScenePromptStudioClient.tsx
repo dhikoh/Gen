@@ -2878,6 +2878,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
  onExportManifest={handleExportManifest}
  onSceneClick={(n) => scrollToScene(n)}
  canUploadToDrive={planFeatures.googleDriveUpload}
+ aspectRatio={ar}
  />
  </div>
  )}
