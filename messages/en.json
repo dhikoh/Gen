@@ -1770,6 +1770,18 @@
     "validatorIssue_springUnguarded": "A spring call does not use Math.max(0, frame - delay). A negative frame can produce NaN.",
     "validatorIssue_externalUrl": "An external URL was found. Network assets can fail during rendering; use staticFile.",
     "validatorIssue_interpolateClampUnverifiable": "The interpolate options cannot be verified automatically. Please check manually.",
-    "validatorIssue_noSequenceOrAbsoluteFill": "No AbsoluteFill or Sequence was found. Make sure the component structure is correct."
+    "validatorIssue_noSequenceOrAbsoluteFill": "No AbsoluteFill or Sequence was found. Make sure the component structure is correct.",
+    "playerTitle": "Remotion Animation Player",
+    "play": "Play",
+    "pause": "Pause",
+    "restart": "Restart",
+    "frameLabel": "Frame {current} / {total}",
+    "renderButton": "🎬 Render Video on This Computer",
+    "rendering": "Rendering video... {percent}% ({current}/{total} frames)",
+    "cancelRender": "Cancel",
+    "renderSuccess": "Video successfully rendered and downloaded to your computer!",
+    "renderError": "Failed to render video. Make sure your browser supports video recording.",
+    "previewResult": "Rendered Video Result",
+    "downloadAgain": "⬇️ Download Video Again"
   }
 }

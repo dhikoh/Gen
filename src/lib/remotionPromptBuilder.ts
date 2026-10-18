@@ -258,7 +258,7 @@ export const SAFE_ZONES: Readonly<
   "9:16": { top: 100, right: 120, bottom: 240, left: 60 },
 };
 
-interface ThemeStyle {
+export interface ThemeStyle {
   background: string;
   textColor: string;
   accentColor: string;
@@ -268,7 +268,7 @@ interface ThemeStyle {
   description: string;
 }
 
-const THEME_STYLES: Readonly<Record<RemotionTheme, ThemeStyle>> = {
+export const THEME_STYLES: Readonly<Record<RemotionTheme, ThemeStyle>> = {
   modern: {
     background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
     textColor: "#f8fafc",
