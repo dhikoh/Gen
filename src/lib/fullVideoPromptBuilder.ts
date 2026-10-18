@@ -70,7 +70,6 @@ export function buildFullVideoAiPrompt(
     lines.push("");
 
     timeline.scenes.forEach((scene, idx) => {
-      const isFirst = idx === 0;
       const isLast = idx === sceneCount - 1;
       const nextScene = !isLast ? timeline.scenes[idx + 1] : null;
 

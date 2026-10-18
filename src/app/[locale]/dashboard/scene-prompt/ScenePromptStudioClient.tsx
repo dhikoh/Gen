@@ -35,6 +35,8 @@ import {
 } from "@/lib/sceneExportFormat";
 import { getUserItem, setUserItem } from "@/lib/clientStorage";
 import VideoTimelineTab from "@/components/video/VideoTimelineTab";
+import { RemotionStudioTab } from "@/components/remotion/RemotionStudioTab";
+import { RemotionUpgradeCard } from "@/components/remotion/RemotionUpgradeCard";
 import { buildTimeline, validateTimeline } from "@/lib/timelineBuilder";
 import type { VideoTimeline } from "@/types/videoTimeline";
 
@@ -78,7 +80,7 @@ interface Channel {
 interface Props {
   channels: Channel[];
   locale: string;
-  planFeatures: { textToSpeechStudio: boolean; fullVideoStudio?: boolean; googleDriveUpload?: boolean };
+  planFeatures: { textToSpeechStudio: boolean; fullVideoStudio?: boolean; remotionStudio?: boolean; googleDriveUpload?: boolean };
   initialDraft?: {
     id?: string;
     title?: string | null;
@@ -177,7 +179,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"scenes"|"thumbnail"|"platform"|"voiceStudio"|"htmlBlog"|"seo2026"|"fullVideo">("scenes");
+  const [activeTab, setActiveTab] = useState<"scenes"|"thumbnail"|"platform"|"voiceStudio"|"htmlBlog"|"seo2026"|"fullVideo"|"remotionStudio">("scenes");
   const [currentTimeline, setCurrentTimeline] = useState<VideoTimeline | null>(null);
   const [markedTitles, setMarkedTitles] = useState<string[]>([]);
   const [htmlBlog, setHtmlBlog] = useState(() => (defaultSource?.raw ? extractHtmlBlog(defaultSource.raw) : ""));
@@ -1207,12 +1209,12 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
  {scenes.length > 0 && (
  <>
  <div className="glass-panel p-1.5 rounded-2xl border pg-border flex gap-1.5 overflow-x-auto whitespace-nowrap custom-scrollbar shadow-sm">
- {(["scenes","thumbnail","seo2026","platform","voiceStudio","htmlBlog","fullVideo"] as const).map(tab => {
+ {(["scenes","thumbnail","seo2026","platform","voiceStudio","htmlBlog","fullVideo","remotionStudio"] as const).map(tab => {
  if (tab === "seo2026" && !threeTierSeo) return null;
  if (tab === "htmlBlog" && !htmlBlog) return null;
  return (
  <button key={tab} onClick={() => setActiveTab(tab)} className={btn(activeTab === tab)}>
- {tab === "scenes" ? `🎬 ${t("sceneViewerTab")} (${scenes.length})` : tab === "thumbnail" ? `🖼️ ${t("thumbnailTab")}` : tab === "seo2026" ? t("seo2026Tab") : tab === "htmlBlog" ? t("htmlBlogTab") : tab === "voiceStudio" ? `🎙️ ${t("voiceStudioTab")}` : tab === "fullVideo" ? `🎞️ ${t("tabFullVideo")}` : `📱 ${t("platformTab")}`}
+ {tab === "scenes" ? `🎬 ${t("sceneViewerTab")} (${scenes.length})` : tab === "thumbnail" ? `🖼️ ${t("thumbnailTab")}` : tab === "seo2026" ? t("seo2026Tab") : tab === "htmlBlog" ? t("htmlBlogTab") : tab === "voiceStudio" ? `🎙️ ${t("voiceStudioTab")}` : tab === "fullVideo" ? `🎞️ ${t("tabFullVideo")}` : tab === "remotionStudio" ? `⚛️ ${t("tabRemotionStudio")}` : `📱 ${t("platformTab")}`}
  </button>
  );
  })}
@@ -2884,6 +2886,18 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
  )}
  </div>
  )}
+
+ {/* ── Remotion Studio Tab ── */}
+ {activeTab === "remotionStudio" &&
+ (planFeatures.remotionStudio === true ? (
+ <RemotionStudioTab
+ timeline={currentTimeline}
+ scenesCount={scenes.length}
+ draftTitle={draftTitle || initialDraft?.title || ""}
+ />
+ ) : (
+ <RemotionUpgradeCard />
+ ))}
 
  {/* Save Draft Panel */}
  <div className="glass-panel rounded-xl p-5 space-y-3">

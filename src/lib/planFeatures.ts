@@ -56,6 +56,11 @@ export const KNOWN_PLAN_FEATURES: PlanFeatureDefinition[] = [
     defaultValue: false   // fail-closed: premium feature
   },
   {
+    key: "remotionStudio",
+    labelKey: "featureRemotionStudio",
+    defaultValue: false   // fail-closed: premium feature (React Remotion Studio)
+  },
+  {
     key: "googleDriveUpload",
     labelKey: "featureGoogleDriveUpload",
     defaultValue: false   // fail-closed: premium feature, requires Google OAuth config

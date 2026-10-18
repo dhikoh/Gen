@@ -65,6 +65,7 @@ export default async function ScenePromptPage({ params, searchParams }: PageProp
   const planFeatures = {
     textToSpeechStudio: hasFeature(rawFeatures, "textToSpeechStudio", isSuperadmin),
     fullVideoStudio: hasFeature(rawFeatures, "fullVideoStudio", isSuperadmin),
+    remotionStudio: hasFeature(rawFeatures, "remotionStudio", isSuperadmin),
     googleDriveUpload: hasFeature(rawFeatures, "googleDriveUpload", isSuperadmin),
   };
 
