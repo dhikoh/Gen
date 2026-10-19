@@ -56,6 +56,8 @@
 > | `[#99]` | Audit & Remediasi #92–#98 (Bagian 49) | Remediasi Sistemik 19 Prompt: Keamanan (HSTS/CSP/Drive), Remotion ZIP/WAV, Design Tokens (97.7%), dan TypeGuards | 2026-10-19 |
 > | `[#100]` | Fitur #100 (Bagian 50) | Standalone Remotion Studio, Legacy Cleanup & Setup Toolbar (FPS, Aspect Ratio, Duration) | 2026-10-19 |
 > | `[#101]` | Fitur #101 (Bagian 51) | Channel Ecosystem Bundle (JSON) Export & Import dengan Sinkronisasi Otomatis Generator Studio | 2026-10-19 |
+> | `[#102]` | Fitur #102 | Pop-up Validasi Komposisi & Redesain Docking Tombol Generate Desktop/PWA | 2026-10-19 |
+> | `[#103]` | Fitur #103 | Dedicated Ambient Audio & Foley Natural Sound Layer ([AMBIENT: ...]) | 2026-10-19 |
 
 ---
 
@@ -4917,7 +4919,86 @@ Migrasi menggunakan 3-layer approach:
 - `npx vitest run`: 43 test files passed, 379 tests passed (100% pass rate, termasuk `channelBundle.test.ts`)
 - `node scripts/audit-i18n.mjs`: 1.775 keys id & en (100% key parity)
 - `node scripts/audit-design.mjs`: 95.6% design token adoption (Pass >= 95%)
-- `npm run build`: Exit 0 (57/57 rute statis & dinamis terkompilasi bersih di Next.js 16.3.1 Turbopack)
+---
+
+## [#102] Generator Studio UI/UX: Modal Pop-up Validasi Komposisi & Redesain Penempatan Tombol Generate (Desktop & PWA)
+**Tanggal Rilis**: 2026-10-19
+
+### 1. Perbaikan Interpolasi ICU `{category}` & Pop-up Modal Interaktif
+- **Perbaikan String Interpolasi ICU (`messages/id.json` & `messages/en.json`)**:
+  - Memperbaiki escaping tanda petik tunggal pada format ICU messageformat (`'{category}'` -> `\"{category}\"`). Placeholder kini terinterpolasi dengan benar menjadi nama kategori nyata (contoh: `Kategori komposisi wajib "Marketing/CTA" harus memiliki nilai lebih dari 0%.`).
+  - Memperbaiki juga escaping pada notifikasi `channelLockedMsg` dan `channelUnlockedMsg` (`'{channelName}'` -> `\"{channelName}\"`).
+- **Pop-up Modal Dialog Interaktif (`src/components/generator/GeneratorForm.tsx`)**:
+  - Ketika terjadi kegagalan validasi komposisi (atau validasi channel / input), sistem memunculkan dialog pop-up modal di tengah layar dengan backdrop blur (`backdrop-blur-sm`).
+  - Menampilkan icon peringatan/komposisi ⚖️/⚠️, judul yang jelas, teks pesan lengkap dengan nama kategori yang bermasalah, serta petunjuk komposisi.
+  - Menyediakan tombol aksi utama **"⚙️ Sesuaikan Komposisi"**: ketika diklik, modal tertutup dan pandangan otomatis melakukan smooth-scroll tepat ke slider komposisi (`#composition-slider-group`), disertai animasi highlight glow berkedip agar user langsung tahu slider mana yang perlu digeser.
+- **Validasi Ganda (Client-Side Pre-Validation & Server Fallback)**:
+  - Validasi instan langsung di browser saat tombol Generate ditekan tanpa delay jaringan.
+  - Fallback server API (`/api/generate`) tetap memvalidasi dan memunculkan pop-up modal jika ada response error 400.
+- **Indikator Slider Real-Time (`src/components/generator/CompositionSliderGroup.tsx`)**:
+  - Slider kini menerima `requiredCategories`. Jika kategori wajib bernilai `0%`, badge amber `Wajib > 0%` menyala sebagai panduan visual sebelum user menekan tombol generate.
+
+### 2. Redesain Penempatan Tombol Generate (Desktop & PWA)
+- **Problem Sebelumnya**: Tombol Generate terkubur di bagian paling bawah form input yang sangat panjang (lebih dari 3000px). User harus scroll jauh ke bawah setiap kali mengubah topik atau channel, dan panel hasil di kanan tertinggal di atas.
+- **Solusi Desktop**:
+  - **Coordinated Studio Panels**: Kolom form input dan kolom hasil kini memiliki tinggi seimbang (`lg:h-[calc(100vh-140px)] min-h-[520px]`) dengan scrolling independen. Panel hasil selalu berdampingan dengan panel input.
+  - **Quick Action Header**: Tombol cepat `⚡ Generate` disematkan langsung di header panel sticky atas. Begitu selesai mengetik topik, user bisa langsung generate dengan 1 klik tanpa scroll ke mana pun.
+  - **Docked Footer Action Bar**: Tombol utama `⚡ Generate Prompt` dipin rapi di footer bagian bawah panel form, lengkap dengan indikator channel terpilih dan badge `Total: 100%`. Tombol ini selalu tampak di hadapan user berapapun posisi scroll form-nya.
+  - **Shortcut Keyboard**: Menekan `Ctrl + Enter` atau `Cmd + Enter` pada kolom topik langsung memicu generate secara instan.
+- **Solusi PWA & Mobile**:
+  - Form panel menggunakan tinggi responsif (`h-[78vh] sm:h-[82vh]`) yang sepenuhnya berada di atas bilah navigasi bawah PWA (`MobileDashboardNav`).
+  - Tombol aksi di docked footer berukuran nyaman untuk jempol (min touch-target 44px) dan selalu mudah dijangkau.
+  - Begitu generate selesai, mobile view otomatis melakukan smooth-scroll ke kartu hasil (`#generator-result-panel`) agar user langsung melihat naskah yang terbentuk.
+
+### 3. Verifikasi & Pengujian
+- `npx tsc --noEmit`: Exit 0
+- `node scripts/audit-i18n.mjs`: 100% key parity (1.783 keys id & en)
+- Pengujian visual responsif: Desktop dual-column scroll + PWA Mobile safe-area touch dock.
+
+---
+
+## [#103] DEDICATED AMBIENT AUDIO & FOLEY NATURAL SOUND LAYER ([AMBIENT: ...]) (2026-10-19)
+
+### 1. Arsitektur Audio 3-Lapisan (SFX, Ambient & BGM)
+- **Problem & Motivasi**:
+  - Sebelumnya, sistem hanya mengenal dua kategori audio efek: `[SFX: ...]` (efek suara transisi/aksi) dan `[BGM: ...]` (musik latar belakang).
+  - Untuk konten berbasis video adegan (seperti dokumenter alam *Organictopia*, suasana kafe urban, laboratorium misterius, hujan lebat), kreator membutuhkan lapisan suara lingkungan alami (ambient/foley atmosphere) yang konsisten di balik narasi tanpa disamakan dengan efek kejut aksi SFX.
+- **Implementasi Tag Kanonikal `[AMBIENT: ...]` (Opsi A)**:
+  - Mesin prompt generation (`src/lib/promptGenerator.ts`) kini menyertakan panduan khusus: `SUARA ALAMI/AMBIENT: Sisipkan [AMBIENT: Atmosfer/Suara Lingkungan Alami] (seperti gemerisik daun, rintik hujan, dengungan kafe, angin sejuk) sesuai latar adegan visual`.
+  - Di Visual Prompt, AI diinstruksikan menyematkan akhiran: `immersed in [AMBIENT: ...]`.
+  - Pada petunjuk sinkronisasi audio (`sync`), ambient atmosphere dipadukan secara harmonis dengan SFX dan BGM.
+
+### 2. Antarmuka Generator Studio (`GeneratorForm.tsx`)
+- **Toggle Preferensi Audio Mandiri**:
+  - Bagian **🔊 Audio Preferences** pada Generator Studio dimutakhirkan menjadi kisi responsif 4-kolom: `BGM / Musik`, `SFX / Efek`, `Ambient / Alami`, dan `Voice Over`.
+  - Tombol **`Ambient / Alami`** memungkinkan kreator mengaktifkan atau menonaktifkan suara latar alam secara spesifik per video.
+  - State `ambientPreference` diisolasi dan disimpan secara persisten di `localStorage` per channel (`channelFormStates`) serta dikirim dalam payload generate API.
+
+### 3. Ketahanan Engine Parser & Pembersihan Narasi TTS (`parsers.ts`)
+- **Ekstraksi Audio Cues Terpusat (`extractAudioCues`)**:
+  - Mengenali format `[AMBIENT: ...]`, `[ambient: ...]`, `[foley: ...]`, `[atmos: ...]`, `[atmosphere: ...]`, dan `[suara alami: ...]`.
+  - Menyimpan daftar cue ke dalam `ambientCues: string[]` pada antarmuka `AudioCues` dan `ParsedScene`.
+  - Menghapus tag ambient dari `cleanNarasi` secara bersih sehingga narasi tetap rapi.
+- **Pembersihan Suara Bicara TTS (`cleanNarasiForTts`)**:
+  - Menjamin narator TTS Text-to-Speech (Google Gemini TTS / ElevenLabs) hanya melafalkan kata-kata dialog/narasi murni tanpa membaca instruksi bracket teknis `[AMBIENT: ...]`.
+- **Ketepatan Estimasi Durasi Jeda (`estimateExpressivePauseSeconds`)**:
+  - Mengecualikan `ambient|foley|atmos|atmosphere` dari penghitungan jeda akting dead-air (seperti `[beat]`, `[sigh]`, `[pause]`), sehingga tag ambient tidak menambah jeda hening artifisial pada durasi video.
+- **Storyboard Still Image Hygiene (`storyboardPromptBuilder.ts`)**:
+  - Fungsi `cleanVisualForStill()` secara otomatis membersihkan tag `[AMBIENT: ...]`, `[FOLEY: ...]`, `[ATMOS: ...]`, frasa `immersed in`, dan `no ambient sound` saat menyusun prompt gambar still storyboard.
+
+### 4. Visual Cues Badging di Antarmuka Pengguna
+- **Scene Prompt Studio (`ScenePromptStudioClient.tsx`)**:
+  - Adegan yang memiliki ambient cues menampilkan badge hijau alami: `🌿 {ambientCue}` berdampingan dengan badge musik `🎵 {bgmCue}` dan badge efek `🔊 {sfxCue}`.
+- **Drafts Viewer (`drafts/[id]/page.tsx`)**:
+  - Menampilkan badge `🌿` teal untuk ambient cues yang terdeteksi di setiap scene.
+
+### 5. Portabilitas Ekosistem Bundle (`channelBundle.ts`)
+- Skema bundle v1.0 menyertakan `audioAmbient: boolean` pada profil channel dan `ambientPreference: boolean` pada snapshot generator state, menjamin ekspor-impor profil channel mempertahankan preferensi suara alam secara utuh.
+
+### 6. Verifikasi & Pengujian
+- `npx tsc --noEmit`: Exit 0 (Zero TypeScript errors)
+- `npm run audit:i18n`: Exit 0 (100% key parity, 1.785 keys id & en)
+- `npm run test`: 43 test suites passed, 388 tests passed (100% pass rate)
 
 
 

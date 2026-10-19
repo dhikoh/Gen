@@ -120,7 +120,7 @@ describe("promptGenerator", () => {
         }
       );
 
-      expect(masterPrompt).toContain("[PANDUAN AUDIO, SFX & BGM]");
+      expect(masterPrompt).toContain("[PANDUAN AUDIO, SFX, AMBIENT & BGM]");
       expect(masterPrompt).toContain("DJ Gamon Viral TikTok 2026 - Bass Boosted");
       expect(masterPrompt).toContain("tempo & mood audio tren");
       expect(masterPrompt).toContain("ketukan beat audio tersebut");
@@ -138,6 +138,37 @@ describe("promptGenerator", () => {
       );
 
       expect(masterPrompt).not.toContain("SOUND / AUDIO TREN:");
+    });
+
+    it("injects ambient audio instructions when ambientPreference is true", () => {
+      const { masterPrompt } = generateMasterPrompt(
+        dummyChannel,
+        "Video Alam",
+        "",
+        {
+          targetPlatform: "TIKTOK",
+          aspectRatio: "9:16",
+          ambientPreference: true,
+        }
+      );
+
+      expect(masterPrompt).toContain("SUARA ALAMI/AMBIENT: Sisipkan [AMBIENT: Atmosfer/Suara Lingkungan Alami]");
+      expect(masterPrompt).toContain('immersed in [AMBIENT: ...]');
+    });
+
+    it("forbids ambient cues when ambientPreference is explicitly false", () => {
+      const { masterPrompt } = generateMasterPrompt(
+        dummyChannel,
+        "Video Tanpa Ambient",
+        "",
+        {
+          targetPlatform: "TIKTOK",
+          aspectRatio: "9:16",
+          ambientPreference: false,
+        }
+      );
+
+      expect(masterPrompt).toContain("DILARANG menyisipkan [AMBIENT: ...] dalam narasi.");
     });
   });
 

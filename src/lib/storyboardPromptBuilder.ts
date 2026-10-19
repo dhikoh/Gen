@@ -76,8 +76,8 @@ export function describeAspectRatio(ar: string): string {
 export function cleanVisualForStill(visual: string): string {
   return visual
     .replace(/--ar\s+\d+:\d+/gi, "")
-    .replace(/\[(?:SFX|BGM)[^\]]*\]/gi, "")
-    .replace(/\b(?:accompanied by|as background music|no sound effects|no background music|no voice[- ]?over)\b/gi, "")
+    .replace(/\[(?:SFX|BGM|AMBIENT|FOLEY|ATMOS)[^\]]*\]/gi, "")
+    .replace(/\b(?:accompanied by|immersed in|as background music|no sound effects|no ambient sound|no background music|no voice[- ]?over)\b/gi, "")
     .replace(/\bwith\s*(?=[,.]|$)/gi, "")
     .replace(/\s{2,}/g, " ")
     .replace(/\s+,/g, ",")

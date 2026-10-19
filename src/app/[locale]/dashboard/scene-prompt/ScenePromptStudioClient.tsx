@@ -1714,12 +1714,17 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
         </div>
       )}
 
-      {/* Audio Cues (SFX & BGM) — Selalu tampil jika ada cue */}
-      {(scene.bgmCues?.length || scene.sfxCues?.length) ? (
+      {/* Audio Cues (SFX, Ambient & BGM) — Selalu tampil jika ada cue */}
+      {(scene.bgmCues?.length || scene.sfxCues?.length || scene.ambientCues?.length) ? (
         <div className="flex flex-wrap gap-1.5 pt-0.5">
           {scene.bgmCues?.map((c, i) => (
             <span key={i} className="text-[11px] font-medium px-2.5 py-0.5 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 rounded-full flex items-center gap-1">
               <span>🎵</span> {c}
+            </span>
+          ))}
+          {scene.ambientCues?.map((c, i) => (
+            <span key={i} className="text-[11px] font-medium px-2.5 py-0.5 bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 rounded-full flex items-center gap-1">
+              <span>🌿</span> {c}
             </span>
           ))}
           {scene.sfxCues?.map((c, i) => (

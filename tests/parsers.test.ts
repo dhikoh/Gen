@@ -17,6 +17,8 @@ import {
   formatAsYouTubeTags,
   formatAsHashtags,
   buildCombinedYouTubeTags,
+  extractAudioCues,
+  extractVisualAudioHint,
 } from "@/lib/parsers";
 
 describe("parsers", () => {
@@ -954,6 +956,62 @@ DURASI: 5s
       expect(scenes).toHaveLength(1);
       expect(scenes[0].sceneContext).toBe("Seorang detektif menyalakan lentera di jalanan berbatu berkabut London");
       expect(scenes[0].visual).toBe("Cinematic atmospheric wide shot, gas lamps glowing softly.");
+    });
+  });
+
+  describe("Ambient & Audio Cues Extraction", () => {
+    it("extracts SFX, BGM, and AMBIENT cues correctly and cleans narration", () => {
+      const narasi = "Malam itu begitu sunyi. [AMBIENT: Hujan rintik di atap seng] Tiba-tiba terdengar ketukan keras. [SFX: Knocking on wood] [BGM: Suspense strings]";
+      const res = extractAudioCues(narasi);
+
+      expect(res.bgmCues).toEqual(["Suspense strings"]);
+      expect(res.sfxCues).toEqual(["Knocking on wood"]);
+      expect(res.ambientCues).toEqual(["Hujan rintik di atap seng"]);
+      expect(res.cleanNarasi).toBe("Malam itu begitu sunyi. Tiba-tiba terdengar ketukan keras.");
+    });
+
+    it("supports synonyms for ambient like foley, atmos, atmosphere, and suara alami", () => {
+      const narasi = "Langkah pelan di lorong. [foley: Sepatu di lantai marmer] Suasana mencekam. [atmos: Angin malam berhembus]";
+      const res = extractAudioCues(narasi);
+
+      expect(res.ambientCues).toEqual(["Sepatu di lantai marmer", "Angin malam berhembus"]);
+      expect(res.cleanNarasi).toBe("Langkah pelan di lorong. Suasana mencekam.");
+    });
+
+    it("extractVisualAudioHint parses Ambient hints from visual prompts", () => {
+      const visualPrompt = "Medium shot of detective reading newspaper, immersed in [AMBIENT: Rain on cafe window], accompanied by [SFX: Page Turn], with [BGM: Noir Jazz] as background music";
+      const hint = extractVisualAudioHint(visualPrompt);
+
+      expect(hint).toContain("Ambient: Rain on cafe window");
+      expect(hint).toContain("SFX: Page Turn");
+      expect(hint).toContain("BGM: Noir Jazz");
+    });
+
+    it("cleanNarasiForTts purges [AMBIENT: ...] without trace", () => {
+      const narasi = "Perhatikan baik-baik. [AMBIENT: Angin gunung menderu] Ini rahasianya!";
+      const spoken = cleanNarasiForTts(narasi);
+      expect(spoken).toBe("Perhatikan baik-baik. Ini rahasianya!");
+    });
+
+    it("estimateExpressivePauseSeconds ignores [AMBIENT: ...] technical cues", () => {
+      const text = "Halo teman-teman. [AMBIENT: Suara ombak pantai] [beat] Selamat datang kembali!";
+      const pause = estimateExpressivePauseSeconds(text);
+      // Only [beat] contributes 0.5s pause; ambient cue is ignored
+      expect(pause).toBe(0.5);
+    });
+
+    it("parseScenes populates ambientCues in ParsedScene", () => {
+      const script = `
+## SCENE 1
+NARASI: Di tengah hutan tropis yang lebat. [AMBIENT: Kicauan burung & gemerisik ranting] [SFX: Ranting patah]
+VISUAL PROMPT: Wide angle shot of lush rainforest.
+DURASI: 5s
+      `;
+      const scenes = parseScenes(script);
+      expect(scenes).toHaveLength(1);
+      expect(scenes[0].ambientCues).toEqual(["Kicauan burung & gemerisik ranting"]);
+      expect(scenes[0].sfxCues).toEqual(["Ranting patah"]);
+      expect(scenes[0].narasi).toBe("Di tengah hutan tropis yang lebat.");
     });
   });
 });

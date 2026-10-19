@@ -20,6 +20,7 @@ describe("Channel Bundle Contract & Validation", () => {
         cta2: "Read guides at organictopia.blogspot.com",
         audioBGM: true,
         audioSFX: true,
+        audioAmbient: true,
         audioVO: true,
         socialLinks: {
           blog: "https://organictopia.blogspot.com",
@@ -84,6 +85,7 @@ describe("Channel Bundle Contract & Validation", () => {
         niche: "Exotic Animals",
         audioBGM: true,
         audioSFX: true,
+        audioAmbient: true,
         audioVO: true,
       },
       products: [],

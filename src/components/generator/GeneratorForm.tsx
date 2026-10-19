@@ -44,6 +44,7 @@ interface GeneratorFormChannel {
   visualAesthetic?: string | null;
   audioBGM?: boolean | null;
   audioSFX?: boolean | null;
+  audioAmbient?: boolean | null;
   audioVO?: boolean | null;
   contentArchetypeId?: string | null;
   contentArchetype?: {
@@ -106,6 +107,11 @@ export default function GeneratorForm({
  const [additionalContext, setAdditionalContext] = useState("");
  const [loading, setLoading] = useState(false);
  const [error, setError] = useState<string | null>(null);
+ const [errorModal, setErrorModal] = useState<{
+   title: string;
+   message: string;
+   isComposition?: boolean;
+ } | null>(null);
 
  const [step, setStep] = useState<1 | 2>(1);
  const [generatedPrompt, setGeneratedPrompt] = useState<string>("");
@@ -129,6 +135,7 @@ export default function GeneratorForm({
  const [customHookText, setCustomHookText] = useState<string>("");
  const [musicPreference, setMusicPreference] = useState<boolean>(true);
  const [sfxPreference, setSfxPreference] = useState<boolean>(true);
+ const [ambientPreference, setAmbientPreference] = useState<boolean>(true);
  const [voPreference, setVoPreference] = useState<boolean>(true);
  const [narrationModeOverride, setNarrationModeOverride] = useState<string>("auto");
  const [trendingAudio, setTrendingAudio] = useState<string>("");
@@ -315,6 +322,7 @@ export default function GeneratorForm({
       customHookText,
       musicPreference,
       sfxPreference,
+      ambientPreference,
       voPreference,
       narrationModeOverride,
       trendingAudio,
@@ -361,6 +369,7 @@ export default function GeneratorForm({
     customHookText,
     musicPreference,
     sfxPreference,
+    ambientPreference,
     voPreference,
     narrationModeOverride,
     trendingAudio,
@@ -447,9 +456,10 @@ export default function GeneratorForm({
       }
 
       // Audio: prioritize channel defaults unless user explicitly set preferences in this channel's state
-      setMusicPreference(savedState.musicPreference !== undefined ? savedState.musicPreference : (ch.audioBGM !== false));
-      setSfxPreference(savedState.sfxPreference !== undefined ? savedState.sfxPreference : (ch.audioSFX !== false));
-      setVoPreference(isNoVoMode ? false : (savedState.voPreference !== undefined ? savedState.voPreference : (ch.audioVO !== false)));
+      setMusicPreference(savedState.musicPreference !== undefined ? Boolean(savedState.musicPreference) : (ch.audioBGM !== false));
+      setSfxPreference(savedState.sfxPreference !== undefined ? Boolean(savedState.sfxPreference) : (ch.audioSFX !== false));
+      setAmbientPreference(savedState.ambientPreference !== undefined ? Boolean(savedState.ambientPreference) : (ch.audioAmbient !== false));
+      setVoPreference(isNoVoMode ? false : (savedState.voPreference !== undefined ? Boolean(savedState.voPreference) : (ch.audioVO !== false)));
 
       // VideoConfig: Core channel settings from DB always take precedence (Single Source of Truth)
       setVideoConfig((prev) => ({
@@ -527,6 +537,7 @@ export default function GeneratorForm({
 
       setMusicPreference(ch.audioBGM !== false);
       setSfxPreference(ch.audioSFX !== false);
+      setAmbientPreference(ch.audioAmbient !== false);
       setVoPreference(isNoVoMode ? false : (ch.audioVO !== false));
 
       setVideoConfig((prev) => ({
@@ -893,16 +904,78 @@ export default function GeneratorForm({
  const handleGenerate = async (e?: React.FormEvent) => {
  if (e) e.preventDefault();
  if (!channelId) {
- setError(t("channelError"));
- return;
+   const msg = t("channelError");
+   setError(msg);
+   setErrorModal({
+     title: t("validationErrorTitle") || "Pilih Channel",
+     message: msg,
+     isComposition: false,
+   });
+   toast.error(msg);
+   return;
+ }
+
+ const selectedChannel = channels.find((c) => c.id === channelId);
+ const effectiveTopic = topic.trim() ? topic.trim() : (selectedChannel?.niche || "Topik Umum");
+ const arch = selectedChannel?.contentArchetype;
+ const archCompCategories = Array.isArray(arch?.compositionCategories)
+   ? (arch.compositionCategories as ContentArchetypeCompositionCategory[])
+   : [];
+ const archHasRequiredComp =
+   !arch ||
+   (archCompCategories.length > 0 &&
+     archCompCategories.some((cat) => Boolean(cat && cat.required)));
+
+ // Pre-validation komposisi kategori pada sisi client
+ if (type === "VIDEO" && archHasRequiredComp && archCompCategories.length > 0) {
+   for (const cat of archCompCategories) {
+     if (cat && cat.required) {
+       const labelLower = (cat.label || "").toLowerCase();
+       const val = videoConfig.composition
+         ? (labelLower.includes("edukasi") || labelLower.includes("education") || labelLower.includes("informasi") || labelLower.includes("info")
+             ? videoConfig.composition.education
+             : labelLower.includes("hiburan") || labelLower.includes("entertainment") || labelLower.includes("story") || labelLower.includes("cerita")
+               ? videoConfig.composition.entertainment
+               : labelLower.includes("marketing") || labelLower.includes("promosi") || labelLower.includes("cta") || labelLower.includes("jualan")
+                 ? videoConfig.composition.marketing
+                 : 0)
+         : 0;
+       if (val <= 0) {
+         const errMsg = t("compositionCategoryRequired", { category: cat.label });
+         setError(errMsg);
+         setErrorModal({
+           title: t("compValidationTitle") || "Validasi Komposisi Konten",
+           message: errMsg,
+           isComposition: true,
+         });
+         toast.error(errMsg);
+         return;
+       }
+     }
+   }
+
+   if (videoConfig.composition) {
+     const { education = 0, entertainment = 0, marketing = 0 } = videoConfig.composition;
+     if (education > 0 || entertainment > 0 || marketing > 0) {
+       if (education + entertainment + marketing !== 100) {
+         const errMsg = t("compError");
+         setError(errMsg);
+         setErrorModal({
+           title: t("compValidationTitle") || "Validasi Komposisi Konten",
+           message: errMsg,
+           isComposition: true,
+         });
+         toast.error(errMsg);
+         return;
+       }
+     }
+   }
  }
 
  setLoading(true);
  setError(null);
+ setErrorModal(null);
  setManualTitle("");
-
- const selectedChannel = channels.find((c) => c.id === channelId);
- const effectiveTopic = topic.trim() ? topic.trim() : (selectedChannel?.niche || "Topik Umum");
 
  try {
  const payload = {
@@ -938,6 +1011,7 @@ export default function GeneratorForm({
  isVideoLoop: videoConfig.visualLoopStyle === "Seamless Video Loop",
  musicPreference,
  sfxPreference,
+ ambientPreference,
  voPreference,
  cameraMovementEnabled,
  cameraMovementPresets: (cameraMovementEnabled && !cameraMovementProMode) ? cameraMovementPresets : [],
@@ -980,22 +1054,43 @@ export default function GeneratorForm({
  const data = await res.json();
 
  if (!res.ok) {
- setError(data.error || t("generateError"));
+   const errMsg = data.error || t("generateError");
+   setError(errMsg);
+   const isCompErr = errMsg.toLowerCase().includes("komposisi") || errMsg.toLowerCase().includes("composition");
+   setErrorModal({
+     title: isCompErr ? (t("compValidationTitle") || "Validasi Komposisi Konten") : (t("validationErrorTitle") || "Perhatian Validasi"),
+     message: errMsg,
+     isComposition: isCompErr,
+   });
+   toast.error(errMsg);
  } else {
- if (type === "IMAGE" && data.data.finalJson) {
- setGeneratedPrompt(data.data.master_prompt);
- setAiResultJson(data.data.finalJson);
- setStep(2);
- } else {
- const fullText = `${data.data.system_instruction}\n\n${data.data.master_prompt}`;
- setGeneratedPrompt(fullText);
- setStep(2);
- }
+   if (type === "IMAGE" && data.data.finalJson) {
+     setGeneratedPrompt(data.data.master_prompt);
+     setAiResultJson(data.data.finalJson);
+     setStep(2);
+   } else {
+     const fullText = `${data.data.system_instruction}\n\n${data.data.master_prompt}`;
+     setGeneratedPrompt(fullText);
+     setStep(2);
+   }
+   if (typeof window !== "undefined" && window.innerWidth < 1024) {
+     setTimeout(() => {
+       const resEl = document.getElementById("generator-result-panel");
+       resEl?.scrollIntoView({ behavior: "smooth" });
+     }, 150);
+   }
  }
  } catch {
- setError(t("networkError"));
+   const netErr = t("networkError");
+   setError(netErr);
+   setErrorModal({
+     title: t("validationErrorTitle") || "Kesalahan Jaringan",
+     message: netErr,
+     isComposition: false,
+   });
+   toast.error(netErr);
  } finally {
- setLoading(false);
+   setLoading(false);
  }
  };
 
@@ -1118,19 +1213,85 @@ export default function GeneratorForm({
  return (
  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
  {/* Kolom Form Input */}
- <div className="glass-panel shadow-lg rounded-xl p-6 max-md:h-[85vh] min-h-[50vh] overflow-y-auto custom-scrollbar">
- <h2 className="text-xl font-bold pg-text-heading mb-6 sticky top-0 pg-surface z-10 py-2 border-b pg-border">
- {t("paramTitle")}
- </h2>
+ <div
+   id="generator-form-panel"
+   className="glass-panel shadow-lg rounded-xl flex flex-col h-[78vh] sm:h-[82vh] lg:h-[calc(100vh-140px)] min-h-[520px] overflow-hidden"
+ >
+   {/* Panel Header */}
+   <div className="flex-shrink-0 px-6 py-3.5 border-b pg-border flex items-center justify-between gap-3 bg-white/70 dark:bg-slate-800/70 backdrop-blur-md z-10">
+     <div className="min-w-0">
+       <h2 className="text-lg sm:text-xl font-bold pg-text-heading truncate">
+         {t("paramTitle")}
+       </h2>
+     </div>
 
- {error && (
- <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-lg text-sm">
- {error}
- </div>
- )}
+     <div className="flex items-center gap-2 flex-shrink-0">
+       {step === 1 ? (
+         <button
+           type="button"
+           onClick={(e) => handleGenerate(e)}
+           disabled={loading}
+           className="min-h-[36px] py-1.5 px-3.5 pg-btn-primary font-semibold rounded-lg shadow-sm transition-all disabled:opacity-50 flex items-center justify-center text-xs gap-1.5 hover:scale-[1.02] active:scale-[0.98]"
+           title={t("generateBtn")}
+         >
+           {loading ? (
+             <>
+               <span className="inline-block animate-spin border-2 border-white/20 border-t-white rounded-full w-3.5 h-3.5" />
+               <span>{t("processing")}</span>
+             </>
+           ) : (
+             <>
+               <span>⚡</span>
+               <span>{t("quickGenerate") || "Generate"}</span>
+             </>
+           )}
+         </button>
+       ) : (
+         <div className="flex items-center gap-1.5">
+           <button
+             type="button"
+             onClick={() => {
+               setStep(1);
+               setGeneratedPrompt("");
+               setAiResultJson("");
+             }}
+             className="min-h-[34px] py-1 px-2.5 pg-surface-dim pg-text-heading font-medium rounded-lg border pg-border shadow-sm text-xs hover:bg-black/5 dark:hover:bg-white/5"
+           >
+             {t("backToEdit")}
+           </button>
+           <button
+             type="button"
+             onClick={() => handleGenerate()}
+             disabled={loading}
+             className="min-h-[34px] py-1 px-3 bg-[var(--pg-brand)] text-white font-semibold rounded-lg shadow-sm text-xs disabled:opacity-50"
+           >
+             {loading ? t("processing") : t("regenerateBtn")}
+           </button>
+         </div>
+       )}
+     </div>
+   </div>
 
- <form autoComplete="off" onSubmit={handleGenerate}>
- <fieldset disabled={loading || step === 2} className="space-y-6">
+   {/* Scrollable Form Body */}
+   <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
+     {error && (
+       <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-lg text-sm flex items-start justify-between gap-3">
+         <div className="flex items-start gap-2.5">
+           <span className="text-base mt-0.5">⚠️</span>
+           <span>{error}</span>
+         </div>
+         <button
+           type="button"
+           onClick={() => setError(null)}
+           className="text-red-400 hover:text-red-600 text-xs font-bold"
+         >
+           ✕
+         </button>
+       </div>
+     )}
+
+     <form autoComplete="off" onSubmit={handleGenerate} id="generator-form">
+     <fieldset disabled={loading || step === 2} className="space-y-6">
  {/* General Settings */}
  <div className="space-y-4">
  <div>
@@ -1248,6 +1409,12 @@ export default function GeneratorForm({
  <textarea
  value={topic}
  onChange={(e) => setTopic(e.target.value)}
+ onKeyDown={(e) => {
+   if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+     e.preventDefault();
+     handleGenerate();
+   }
+ }}
  onInput={(e) => { const el = e.currentTarget; el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }}
  placeholder={t("mainTopicPlaceholder")}
  rows={2}
@@ -2020,12 +2187,12 @@ export default function GeneratorForm({
     )}
   </div>
 
- {/* ── Push Enrichment: Audio Preferences ── */}
- <div className="space-y-2 pt-2 border-t pg-border">
- <label className="block text-xs font-semibold pg-text-sub">
- 🔊 Audio Preferences
- </label>
- <div className="grid grid-cols-3 gap-2">
+  {/* ── Push Enrichment: Audio Preferences ── */}
+  <div className="space-y-2 pt-2 border-t pg-border">
+  <label className="block text-xs font-semibold pg-text-sub">
+  🔊 Audio Preferences
+  </label>
+  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
     <button
       type="button"
       onClick={() => setMusicPreference(!musicPreference)}
@@ -2050,6 +2217,19 @@ export default function GeneratorForm({
     >
       <span>{sfxPreference ? "✓" : "✗"}</span>
       <span>SFX / Efek</span>
+    </button>
+
+    <button
+      type="button"
+      onClick={() => setAmbientPreference(!ambientPreference)}
+      className={`flex items-center justify-center gap-1.5 px-2 py-2 text-xs font-medium rounded-lg border transition-colors ${
+        ambientPreference
+          ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 text-emerald-700 dark:text-emerald-300"
+          : "pg-surface-dim pg-border pg-text-muted"
+      }`}
+    >
+      <span>{ambientPreference ? "✓" : "✗"}</span>
+      <span>{t("ambientAudio")}</span>
     </button>
 
     {(() => {
@@ -2578,6 +2758,7 @@ export default function GeneratorForm({
    <CompositionSliderGroup
      value={videoConfig.composition}
      onChange={(val) => handleVideoConfigChange("composition", val)}
+     requiredCategories={compCategories.filter((c) => Boolean(c && c.required)).map((c) => c.label)}
    />
  ) : (
    <div className="p-3 bg-slate-50 dark:bg-slate-800/60 border pg-border rounded-lg text-xs pg-text-muted">
@@ -2877,52 +3058,89 @@ export default function GeneratorForm({
  </div>
  )}
 
- {step === 1 && (
- <button
- type="submit"
- className="w-full min-h-[44px] py-3 px-5 pg-btn-primary font-semibold rounded-xl shadow-md transition-all disabled:opacity-50 disabled:cursor-wait flex items-center justify-center mt-6 text-sm"
- >
- {loading ? (
- <>
- <span className="inline-block animate-spin mr-2 border-2 border-white/20 border-t-white rounded-full w-5 h-5" />
- {t("processing")}
- </>
- ) : (
- t("generateBtn")
- )}
- </button>
- )}
  </fieldset>
-
- {step === 2 && (
- <div className="grid grid-cols-2 gap-3 mt-6">
- <button
- type="button"
- onClick={() => {
- setStep(1);
- setGeneratedPrompt("");
- setAiResultJson("");
- }}
- className="w-full min-h-[44px] py-3 px-4 pg-surface-dim pg-text-heading font-medium rounded-xl border pg-border shadow-sm transition-all hover:bg-black/5 dark:hover:bg-white/5 flex items-center justify-center text-sm"
- >
- {t("backToEdit")}
- </button>
- <button
- type="button"
- onClick={() => handleGenerate()}
- disabled={loading}
- className="w-full min-h-[44px] py-3 px-4 bg-[var(--pg-brand)]/15 text-[var(--pg-brand)] hover:bg-[var(--pg-brand)] hover:text-white font-semibold rounded-xl shadow-sm transition-all disabled:opacity-50 flex items-center justify-center text-sm"
- >
- {t("regenerateBtn")}
- </button>
- </div>
- )}
  </form>
  </div>
 
+ {/* Docked Footer Action Bar (Desktop & Mobile / PWA) */}
+ <div className="flex-shrink-0 p-3.5 sm:p-4 border-t pg-border bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-b-xl shadow-[0_-4px_16px_rgba(0,0,0,0.12)] z-10 flex items-center justify-between gap-3">
+   {/* Left status pill */}
+   <div className="hidden sm:flex items-center gap-2 min-w-0">
+     {channelId ? (
+       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200/50 dark:border-blue-800/50 truncate max-w-[200px]">
+         <span>📺</span>
+         <span className="truncate">{currentChannel?.channelName}</span>
+       </span>
+     ) : (
+       <span className="text-xs pg-text-muted italic">
+         {t("selectChannelPlaceholder")}
+       </span>
+     )}
+     {type === "VIDEO" && hasRequiredComposition && (
+       <span className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${
+         (videoConfig.composition?.education ?? 0) + (videoConfig.composition?.entertainment ?? 0) + (videoConfig.composition?.marketing ?? 0) === 100
+           ? "bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 border-green-200 dark:border-green-900"
+           : "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900"
+       }`}>
+         Total: {(videoConfig.composition?.education ?? 0) + (videoConfig.composition?.entertainment ?? 0) + (videoConfig.composition?.marketing ?? 0)}%
+       </span>
+     )}
+   </div>
+
+   {/* Action button(s) */}
+   <div className="flex-1 sm:flex-initial flex items-center justify-end gap-2">
+     {step === 1 ? (
+       <button
+         type="submit"
+         form="generator-form"
+         disabled={loading}
+         className="w-full sm:w-auto min-h-[44px] py-2.5 px-6 pg-btn-primary font-bold rounded-xl shadow-md transition-all disabled:opacity-50 disabled:cursor-wait flex items-center justify-center text-sm gap-2 hover:scale-[1.01] active:scale-[0.99]"
+       >
+         {loading ? (
+           <>
+             <span className="inline-block animate-spin border-2 border-white/20 border-t-white rounded-full w-4 h-4" />
+             <span>{t("processing")}</span>
+           </>
+         ) : (
+           <>
+             <span>⚡</span>
+             <span>{t("generateBtn")}</span>
+           </>
+         )}
+       </button>
+     ) : (
+       <div className="grid grid-cols-2 gap-2 w-full sm:w-auto">
+         <button
+           type="button"
+           onClick={() => {
+             setStep(1);
+             setGeneratedPrompt("");
+             setAiResultJson("");
+           }}
+           className="min-h-[44px] py-2.5 px-4 pg-surface-dim pg-text-heading font-medium rounded-xl border pg-border shadow-sm text-sm hover:bg-black/5 dark:hover:bg-white/5 flex items-center justify-center"
+         >
+           {t("backToEdit")}
+         </button>
+         <button
+           type="button"
+           onClick={() => handleGenerate()}
+           disabled={loading}
+           className="min-h-[44px] py-2.5 px-4 bg-[var(--pg-brand)]/15 text-[var(--pg-brand)] hover:bg-[var(--pg-brand)] hover:text-white font-semibold rounded-xl shadow-sm text-sm disabled:opacity-50 flex items-center justify-center"
+         >
+           {t("regenerateBtn")}
+         </button>
+       </div>
+     )}
+   </div>
+ </div>
+ </div>
+
  {/* Kolom Hasil */}
- <div className="glass-panel shadow-lg rounded-xl p-6 flex flex-col md:h-[85vh] min-h-[50vh]">
- <div className="flex justify-between items-center mb-4">
+ <div
+   id="generator-result-panel"
+   className="glass-panel shadow-lg rounded-xl p-6 flex flex-col h-[78vh] sm:h-[82vh] lg:h-[calc(100vh-140px)] min-h-[520px] overflow-hidden"
+ >
+ <div className="flex justify-between items-center mb-4 flex-shrink-0">
  <h2 className="text-xl font-bold pg-text-heading">
  {step === 1 ? t("resultTitle") : t("resultAndSave")}
  </h2>
@@ -3169,6 +3387,80 @@ export default function GeneratorForm({
  </form>
  </div>
  </div>
+ )}
+
+ {/* ── Error & Composition Validation Pop-up Modal ── */}
+ {errorModal && (
+   <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+     <div
+       className="max-w-md w-full bg-slate-900 border border-slate-700/80 rounded-2xl p-6 shadow-2xl text-white flex flex-col items-center text-center space-y-4"
+       role="alertdialog"
+       aria-modal="true"
+     >
+       {/* Visual Icon */}
+       <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shadow-lg ${
+         errorModal.isComposition
+           ? "bg-amber-500/15 border border-amber-500/40 text-amber-400 shadow-[0_0_24px_rgba(245,158,11,0.25)]"
+           : "bg-red-500/15 border border-red-500/40 text-red-400 shadow-[0_0_24px_rgba(239,68,68,0.25)]"
+       }`}>
+         {errorModal.isComposition ? "⚖️" : "⚠️"}
+       </div>
+
+       <div className="space-y-2 w-full">
+         <h3 className="text-lg font-bold text-white">
+           {errorModal.title}
+         </h3>
+         <div className="p-3.5 rounded-xl bg-slate-800/80 border border-slate-700 text-sm text-slate-200 font-medium leading-relaxed">
+           {errorModal.message}
+         </div>
+         {errorModal.isComposition && (
+           <p className="text-xs text-slate-400 leading-normal px-2">
+             {t("compValidationHint")}
+           </p>
+         )}
+       </div>
+
+       <div className="flex items-center gap-3 w-full pt-2">
+         {errorModal.isComposition ? (
+           <>
+             <button
+               type="button"
+               onClick={() => {
+                 setErrorModal(null);
+                 const el = document.getElementById("composition-slider-group");
+                 if (el) {
+                   el.scrollIntoView({ behavior: "smooth", block: "center" });
+                   el.classList.add("ring-2", "ring-orange-500", "animate-pulse");
+                   setTimeout(() => {
+                     el.classList.remove("ring-2", "ring-orange-500", "animate-pulse");
+                   }, 2500);
+                 }
+               }}
+               className="flex-1 min-h-[44px] py-2.5 px-4 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-semibold rounded-xl shadow-md transition-all text-sm flex items-center justify-center gap-1.5"
+             >
+               <span>⚙️</span>
+               <span>{t("adjustComposition")}</span>
+             </button>
+             <button
+               type="button"
+               onClick={() => setErrorModal(null)}
+               className="px-4 min-h-[44px] py-2.5 border border-slate-700 hover:bg-slate-800 text-slate-300 font-medium rounded-xl text-sm transition-all"
+             >
+               {t("cancelBtn") || "Tutup"}
+             </button>
+           </>
+         ) : (
+           <button
+             type="button"
+             onClick={() => setErrorModal(null)}
+             className="w-full min-h-[44px] py-2.5 px-4 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl shadow-md transition-all text-sm"
+           >
+             {t("understandBtn")}
+           </button>
+         )}
+       </div>
+     </div>
+   </div>
  )}
  </div>
  );

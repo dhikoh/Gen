@@ -28,6 +28,7 @@ export const bundleGeneratorSettingsSchema = z.object({
   customHookText: z.string().max(300).optional(),
   musicPreference: z.boolean().optional(),
   sfxPreference: z.boolean().optional(),
+  ambientPreference: z.boolean().optional(),
   voPreference: z.boolean().optional(),
   narrationModeOverride: z.string().optional().nullable(),
   cameraMovementEnabled: z.boolean().optional(),
@@ -64,6 +65,7 @@ export const channelBundleSchema = z.object({
     cta2: z.string().max(500).optional().nullable(),
     audioBGM: z.boolean().optional().default(true),
     audioSFX: z.boolean().optional().default(true),
+    audioAmbient: z.boolean().optional().default(true),
     audioVO: z.boolean().optional().default(true),
     socialLinks: z.union([
       z.record(z.string(), z.string().max(1000)),
@@ -106,6 +108,7 @@ export function buildChannelBundle(params: {
     cta2?: string | null;
     audioBGM?: boolean;
     audioSFX?: boolean;
+    audioAmbient?: boolean;
     audioVO?: boolean;
     socialLinks?: unknown;
     contentArchetype?: { name: string; narrationMode: string } | null;
@@ -180,6 +183,7 @@ export function buildChannelBundle(params: {
       cta2: params.channel.cta2,
       audioBGM: params.channel.audioBGM ?? true,
       audioSFX: params.channel.audioSFX ?? true,
+      audioAmbient: params.channel.audioAmbient ?? true,
       audioVO: params.channel.audioVO ?? true,
       socialLinks: Object.keys(socialLinksObj).length > 0 ? socialLinksObj : null,
       contentArchetype: params.channel.contentArchetype ? {

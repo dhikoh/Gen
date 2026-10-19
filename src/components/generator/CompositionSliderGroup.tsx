@@ -12,9 +12,10 @@ interface CompositionValues {
 interface Props {
   value: CompositionValues;
   onChange: (val: CompositionValues) => void;
+  requiredCategories?: string[];
 }
 
-export default function CompositionSliderGroup({ value, onChange }: Props) {
+export default function CompositionSliderGroup({ value, onChange, requiredCategories = [] }: Props) {
   const t = useTranslations("Generator");
   const [locked, setLocked] = useState<{
     education: boolean;
@@ -93,8 +94,12 @@ export default function CompositionSliderGroup({ value, onChange }: Props) {
   const total = value.education + value.entertainment + value.marketing;
   const totalOk = total === 100;
 
+  const isEduRequired = requiredCategories.some((c) => /edukasi|education|informasi|info/i.test(c));
+  const isEntRequired = requiredCategories.some((c) => /hiburan|entertainment|story|cerita/i.test(c));
+  const isMktRequired = requiredCategories.some((c) => /marketing|promosi|cta|jualan/i.test(c));
+
   return (
-    <div className="space-y-4 neu-pressed p-4 rounded-xl">
+    <div id="composition-slider-group" className="space-y-4 neu-pressed p-4 rounded-xl transition-all duration-300">
       <div className="flex items-center justify-between">
         <label className="block text-sm font-semibold" style={{ color: 'var(--pg-text)' }}>
           {t('composition')}
@@ -115,6 +120,15 @@ export default function CompositionSliderGroup({ value, onChange }: Props) {
         <div className="flex items-center justify-between text-xs">
           <span className="font-medium flex items-center gap-1.5" style={{ color: 'var(--pg-text-sub)' }}>
             🎓 {t('education')}
+            {isEduRequired && (
+              value.education <= 0 ? (
+                <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                  {t('requiredMinOne') || "Wajib > 0%"}
+                </span>
+              ) : (
+                <span className="text-[10px] text-green-600 dark:text-green-400 font-semibold">✓</span>
+              )
+            )}
             <button
               type="button"
               onClick={() => toggleLock("education")}
@@ -143,6 +157,15 @@ export default function CompositionSliderGroup({ value, onChange }: Props) {
         <div className="flex items-center justify-between text-xs">
           <span className="font-medium flex items-center gap-1.5" style={{ color: 'var(--pg-text-sub)' }}>
             🎭 {t('entertainment')}
+            {isEntRequired && (
+              value.entertainment <= 0 ? (
+                <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                  {t('requiredMinOne') || "Wajib > 0%"}
+                </span>
+              ) : (
+                <span className="text-[10px] text-green-600 dark:text-green-400 font-semibold">✓</span>
+              )
+            )}
             <button
               type="button"
               onClick={() => toggleLock("entertainment")}
@@ -171,6 +194,15 @@ export default function CompositionSliderGroup({ value, onChange }: Props) {
         <div className="flex items-center justify-between text-xs">
           <span className="font-medium flex items-center gap-1.5" style={{ color: 'var(--pg-text-sub)' }}>
             🚀 {t('marketing')}
+            {isMktRequired && (
+              value.marketing <= 0 ? (
+                <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                  {t('requiredMinOne') || "Wajib > 0%"}
+                </span>
+              ) : (
+                <span className="text-[10px] text-green-600 dark:text-green-400 font-semibold">✓</span>
+              )
+            )}
             <button
               type="button"
               onClick={() => toggleLock("marketing")}

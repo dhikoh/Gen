@@ -1,0 +1,84 @@
+{
+  "version": "1.0",
+  "app": "Prompt Gen",
+  "exportedAt": "2026-10-19T21:25:00.000Z",
+  "channel": {
+    "channelName": "Organictopia",
+    "niche": "Urban Organic Gardening & Micro-Farming",
+    "description": "Where small spaces grow big harvests. We help apartment and small-home dwellers grow fresh, organic food anywhere: balconies, windowsills, rooftops, and tiny patios. Every guide is backed by university research — no myths, no guesswork, no clickbait.",
+    "targetPlatform": "TikTok, Instagram Reels, YouTube Shorts",
+    "personaPov": "Urban farming researcher & biological science communicator",
+    "speechRate": 0.35,
+    "visualAesthetic": "Documentary Organic (Warm & Authentic)",
+    "cta1": "Follow @organictopia for daily urban harvest guides",
+    "cta2": "Read our full research guides at organictopia.blogspot.com",
+    "audioBGM": true,
+    "audioSFX": true,
+    "audioAmbient": true,
+    "audioVO": true,
+    "socialLinks": {
+      "blog": "https://organictopia.blogspot.com",
+      "instagram": "https://instagram.com/organictopia",
+      "tiktok": "https://tiktok.com/@organictopia"
+    }
+  },
+  "generatorSettings": {
+    "outputLanguage": "en",
+    "rolePOV": "Urban farming researcher & biological science communicator",
+    "toneOfVoice": "Warm, Educational & Scientifically Grounded",
+    "visualStyleKey": "documentary",
+    "hookStyleType": "pattern_interrupt",
+    "customHookText": "Most people think you need a backyard to grow food. You don't.",
+    "musicPreference": true,
+    "sfxPreference": true,
+    "ambientPreference": true,
+    "voPreference": true,
+    "cameraMovementEnabled": true,
+    "cameraMovementPresets": [
+      "macro_close_up",
+      "slow_dolly_forward",
+      "overhead_flatlay"
+    ],
+    "cameraMovementProMode": false,
+    "videoProductionMode": "REMOTION_CODE",
+    "videoConfig": {
+      "targetPlatform": "YouTube Shorts",
+      "targetDurationSec": 60,
+      "targetSceneCount": 8,
+      "aspectRatio": "9:16",
+      "speechRate": 0.35
+    }
+  },
+  "products": [
+    {
+      "name": "Balcony Micro-Nutrient Starter Pack",
+      "description": "Organic rock dust, worm casting extract, and slow-release organic minerals for container gardening.",
+      "price": 125000,
+      "link": "https://organictopia.blogspot.com/p/starter-pack.html"
+    },
+    {
+      "name": "Self-Watering Sub-Irrigated Planter Kit",
+      "description": "Specialized reservoir planter box designed for small balconies and windowsills.",
+      "price": 185000,
+      "link": "https://organictopia.blogspot.com/p/planter-kit.html"
+    }
+  ],
+  "usedTitles": [
+    {
+      "title": "How to Harvest 5kg Cherry Tomatoes on a 1-Meter Balcony",
+      "type": "VIDEO"
+    },
+    {
+      "title": "The #1 Mistake Apartment Gardeners Make with Pot Drainage",
+      "type": "VIDEO"
+    },
+    {
+      "title": "Why You Should Never Use Garden Soil in Container Pots",
+      "type": "VIDEO"
+    },
+    {
+      "title": "Grow Endless Green Onions on Your Windowsill in Water",
+      "type": "VIDEO"
+    }
+  ]
+}

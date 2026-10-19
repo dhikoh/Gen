@@ -83,6 +83,7 @@ export interface GeneratorFormStateSnapshot {
   customHookText?: string;
   musicPreference?: boolean;
   sfxPreference?: boolean;
+  ambientPreference?: boolean;
   voPreference?: boolean;
   narrationModeOverride?: string | null;
   trendingAudio?: string;

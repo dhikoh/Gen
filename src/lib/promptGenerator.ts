@@ -23,6 +23,7 @@ export interface ProfileChannelData {
   cta2?: string | null;
   audioBGM?: boolean | null;
   audioSFX?: boolean | null;
+  audioAmbient?: boolean | null;
   audioVO?: boolean | null;
   products?: Array<{ name: string; price: number; description?: string | null }>;
   socialLinks?: Array<{ platform: string; url: string }> | null;
@@ -66,6 +67,7 @@ export interface VideoConfigData {
   isVideoLoop?: boolean | null;
   musicPreference?: boolean | null;
   sfxPreference?: boolean | null;
+  ambientPreference?: boolean | null;
   voPreference?: boolean | null;
   selectedSections?: string[] | null;
   isVideoPlatform?: boolean | null;
@@ -552,6 +554,7 @@ DILARANG memberikan instruksi lensa kamera fisik (seperti 200mm, shallow DOF, ph
   // ── Audio Config ───────────────────────────────────────────────────────
   const finalMusic = videoConfig.musicPreference !== undefined ? Boolean(videoConfig.musicPreference) : Boolean(channel.audioBGM !== false);
   const finalSfx   = videoConfig.sfxPreference   !== undefined ? Boolean(videoConfig.sfxPreference)   : Boolean(channel.audioSFX !== false);
+  const finalAmbient = videoConfig.ambientPreference !== undefined ? Boolean(videoConfig.ambientPreference) : Boolean(channel.audioAmbient !== false);
   const finalVo    = (effectiveNarrationMode === "DIEGETIC_ONLY" || effectiveNarrationMode === "SILENT_TEXT_ONLY") ? false : finalVoPreference;
   const isVideoPlat = videoConfig.isVideoPlatform !== false;
 
@@ -651,31 +654,60 @@ DILARANG memberikan instruksi lensa kamera fisik (seperti 200mm, shallow DOF, ph
   } else {
     audioParts.push(`1. DILARANG menyisipkan [SFX: ...] dalam narasi. WAJIB tambahkan "no sound effects" di akhir setiap Visual Prompt.`);
   }
-  if (finalMusic) {
-    audioParts.push(`2. Sisipkan [BGM: Jenis Musik] saat pembuka atau perubahan mood. Cantumkan SAMA PERSIS di akhir Visual Prompt: "with [BGM: ...] as background music".`);
+  if (finalAmbient) {
+    audioParts.push(`2. SUARA ALAMI/AMBIENT: Sisipkan [AMBIENT: Atmosfer/Suara Lingkungan Alami] (seperti gemerisik daun, rintik hujan, dengungan kafe, angin sejuk) sesuai latar adegan visual. Cantumkan di akhir VISUAL PROMPT: "immersed in [AMBIENT: ...]".`);
   } else {
-    audioParts.push(`2. DILARANG menyisipkan [BGM: ...] dalam narasi. WAJIB tambahkan "no background music" di akhir setiap Visual Prompt.`);
+    audioParts.push(`2. DILARANG menyisipkan [AMBIENT: ...] dalam narasi.`);
   }
-  if (!finalVo) audioParts.push(`3. WAJIB tambahkan "no voice over" di akhir setiap Visual Prompt.`);
-  if (!finalSfx && !finalMusic) audioParts.push(`4. Gabungkan: "silent audio, no sound effects, no background music" di akhir setiap Visual Prompt.`);
-  const audioGuidelinesText = `[PANDUAN AUDIO, SFX & BGM]\n${audioParts.join("\n")}`;
+  if (finalMusic) {
+    audioParts.push(`3. Sisipkan [BGM: Jenis Musik] saat pembuka atau perubahan mood. Cantumkan SAMA PERSIS di akhir Visual Prompt: "with [BGM: ...] as background music".`);
+  } else {
+    audioParts.push(`3. DILARANG menyisipkan [BGM: ...] dalam narasi. WAJIB tambahkan "no background music" di akhir setiap Visual Prompt.`);
+  }
+  if (!finalVo) audioParts.push(`4. WAJIB tambahkan "no voice over" di akhir setiap Visual Prompt.`);
+  if (!finalSfx && !finalMusic && !finalAmbient) audioParts.push(`5. Gabungkan: "silent audio, no sound effects, no background music" di akhir setiap Visual Prompt.`);
+  const audioGuidelinesText = `[PANDUAN AUDIO, SFX, AMBIENT & BGM]\n${audioParts.join("\n")}`;
 
   // ── Visual Audio Suffix for examples ──────────────────────────────────
+  const visualAudioComponents: string[] = [];
+  if (finalSfx) {
+    visualAudioComponents.push("accompanied by [SFX: Dramatic Reveal]");
+  } else {
+    visualAudioComponents.push("no sound effects");
+  }
+  if (finalAmbient) {
+    visualAudioComponents.push("immersed in [AMBIENT: Gentle breeze & rustling leaves]");
+  }
+  if (finalMusic) {
+    visualAudioComponents.push("with [BGM: Cinematic orchestral swell] as background music");
+  } else {
+    visualAudioComponents.push("no background music");
+  }
+  if (!finalVo) {
+    visualAudioComponents.push("no voice over");
+  }
+
   let visualAudioSuffix = "";
-  if (finalSfx && finalMusic) visualAudioSuffix = ", accompanied by [SFX: Dramatic Reveal], with [BGM: Cinematic orchestral swell] as background music";
-  else if (finalSfx && !finalMusic) visualAudioSuffix = ", accompanied by [SFX: Dramatic Reveal], no background music";
-  else if (!finalSfx && finalMusic) visualAudioSuffix = ", no sound effects, with [BGM: Cinematic orchestral swell] as background music";
-  else visualAudioSuffix = ", silent audio, no sound effects, no background music";
-  if (!finalVo) visualAudioSuffix += ", no voice over";
+  if (!finalSfx && !finalMusic && !finalAmbient) {
+    visualAudioSuffix = ", silent audio, no sound effects, no background music";
+    if (!finalVo) visualAudioSuffix += ", no voice over";
+  } else {
+    visualAudioSuffix = ", " + visualAudioComponents.join(", ");
+  }
 
   let narasiExample = "Tulis naskah dialog/narasi lengkap dan natural. WAJIB sertakan instruksi intonasi suara, emosi, dan bahasa tubuh di dalam tanda kurung siku '[...]' di awal atau sela-sela kalimat, misal: \"[tersenyum ramah, berbisik] Kamu pasti berpikir...\" atau \"[antusias, tempo cepat] Stop! Perhatikan baik-baik...\" atau \"[beat]\"";
   if (effectiveNarrationMode === "DIEGETIC_ONLY" || effectiveNarrationMode === "SILENT_TEXT_ONLY") {
     narasiExample = "[DIEGETIC - TANPA VOICE-OVER] Dilarang ada narasi/voice-over luar adegan. Hanya suara diegetic/in-scene.";
   } else {
-    if (finalSfx && finalMusic) narasiExample += ". Sisipkan [SFX: Nama Efek Suara] dan [BGM: Jenis Musik] di posisi relevan";
-    else if (finalSfx) narasiExample += ". Sisipkan [SFX: Nama Efek Suara] di posisi relevan. DILARANG [BGM: ...]";
-    else if (finalMusic) narasiExample += ". Sisipkan [BGM: Jenis Musik] saat perubahan mood. DILARANG [SFX: ...]";
-    else narasiExample += ". DILARANG menyisipkan [SFX: ...] atau [BGM: ...]";
+    const allowedCues: string[] = [];
+    if (finalSfx) allowedCues.push("[SFX: Nama Efek Suara]");
+    if (finalAmbient) allowedCues.push("[AMBIENT: Suara Alam/Lingkungan]");
+    if (finalMusic) allowedCues.push("[BGM: Jenis Musik]");
+    if (allowedCues.length > 0) {
+      narasiExample += `. Sisipkan ${allowedCues.join(" dan ")} di posisi relevan`;
+    } else {
+      narasiExample += ". DILARANG menyisipkan [SFX: ...], [AMBIENT: ...], atau [BGM: ...]";
+    }
   }
 
   // ── Loop Guidelines ────────────────────────────────────────────────────
@@ -953,8 +985,8 @@ Sangat ilustratif, dinamis, metaforis (HINDARI penerjemahan literal). Contoh yan
 
     const audioTrendNote = videoConfig.trendingAudio?.trim() ? ` | Audio: ${videoConfig.trendingAudio.trim()}` : "";
     const panduanSuaraExample = (effectiveNarrationMode === "DIEGETIC_ONLY" || effectiveNarrationMode === "SILENT_TEXT_ONLY")
-      ? `Context: <konteks/suasana suara lingkungan adegan> | Note: <petunjuk audio diegetic/SFX/foley — sebutkan di detik ke berapa dalam scene SFX terjadi, misal: "SFX muncul tepat saat kamera settle di mid-scene"> | Traits: <elemen audio in-scene dominan>${audioTrendNote}`
-      : `Context: <konteks/suasana adegan> | Note: <petunjuk intonasi/kecepatan/jeda — misal: "mulai lambat, akselerasi di kalimat ke-3, jeda 0.5 detik sebelum reveal kata kunci"> | Traits: <karakteristik vokal, misal: deep voice, energetic> | Sync: <audio event yang SYNC dengan visual — misal: "[SFX: impact] tepat saat kamera snap-zoom, [BGM] fade in di detik ke-2 bersamaan dengan ambient light warm masuk">${audioTrendNote}`;
+      ? `Context: <konteks/suasana suara lingkungan adegan> | Note: <petunjuk audio diegetic/SFX/foley/ambient — sebutkan di detik ke berapa dalam scene SFX terjadi, misal: "SFX muncul tepat saat kamera settle di mid-scene"> | Traits: <elemen audio in-scene dominan>${audioTrendNote}`
+      : `Context: <konteks/suasana adegan> | Note: <petunjuk intonasi/kecepatan/jeda — misal: "mulai lambat, akselerasi di kalimat ke-3, jeda 0.5 detik sebelum reveal kata kunci"> | Traits: <karakteristik vokal, misal: deep voice, energetic> | Sync: <audio event yang SYNC dengan visual — misal: "[SFX: impact] tepat saat kamera snap-zoom, immersed in [AMBIENT: rain], [BGM] fade in di detik ke-2 bersamaan dengan ambient light warm masuk">${audioTrendNote}`;
 
     // ── Overlay Style & Chapter Structure ──────────────────────────────────
     const overlayStyle = videoConfig.overlayStyle || "auto";

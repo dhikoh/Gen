@@ -36,6 +36,13 @@ describe("cleanVisualForStill", () => {
     expect(out).not.toMatch(/no sound|no voice|--ar/i);
     expect(out).toContain("slow pan left");
   });
+  it("membuang [AMBIENT: ...] dan immersed in", () => {
+    const out = cleanVisualForStill(
+      "Medium shot of a coffee shop, immersed in [AMBIENT: Gentle cafe chatter and rain], accompanied by [SFX: Cup Clink] --ar 16:9"
+    );
+    expect(out).toBe("Medium shot of a coffee shop");
+    expect(out).not.toMatch(/ambient|cafe chatter|sfx|--ar/i);
+  });
 });
 
 describe("buildPanelPrompt", () => {

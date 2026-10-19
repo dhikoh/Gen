@@ -54,6 +54,7 @@ const videoConfigSchema = z.object({
   isVideoLoop: z.boolean().optional().nullable(),
   musicPreference: z.boolean().optional().nullable(),
   sfxPreference: z.boolean().optional().nullable(),
+  ambientPreference: z.boolean().optional().nullable(),
   voPreference: z.boolean().optional().nullable(),
   selectedSections: z.array(z.string()).optional().nullable(),
   isVideoPlatform: z.boolean().optional().nullable(),
@@ -355,11 +356,11 @@ export async function POST(req: Request) {
           if (cat && cat.required) {
             const labelLower = (cat.label || "").toLowerCase();
             const val = videoConfig.composition
-              ? (labelLower.includes("edukasi") || labelLower.includes("education")
+              ? (labelLower.includes("edukasi") || labelLower.includes("education") || labelLower.includes("informasi") || labelLower.includes("info")
                   ? videoConfig.composition.education
-                  : labelLower.includes("hiburan") || labelLower.includes("entertainment")
+                  : labelLower.includes("hiburan") || labelLower.includes("entertainment") || labelLower.includes("story") || labelLower.includes("cerita")
                     ? videoConfig.composition.entertainment
-                    : labelLower.includes("marketing") || labelLower.includes("promosi")
+                    : labelLower.includes("marketing") || labelLower.includes("promosi") || labelLower.includes("cta") || labelLower.includes("jualan")
                       ? videoConfig.composition.marketing
                       : 0)
               : 0;
@@ -421,6 +422,7 @@ export async function POST(req: Request) {
         cta2: channel.cta2,
         audioBGM: channel.audioBGM,
         audioSFX: channel.audioSFX,
+        audioAmbient: true,
         audioVO: channel.audioVO,
         products: channel.products,
         socialLinks: channel.socialLinks as Array<{ platform: string; url: string }> | null,

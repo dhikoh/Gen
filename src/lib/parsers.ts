@@ -138,6 +138,7 @@ export interface AudioCues {
   cleanNarasi: string;
   bgmCues: string[];
   sfxCues: string[];
+  ambientCues: string[];
   isDiegetic?: boolean;
 }
 
@@ -156,20 +157,23 @@ export function normalizeActingCuesToBrackets(text: string): string {
     .trim();
 }
 
-/** Extract [SFX: …] and [BGM: …] cues and diegetic status from narration text. */
+/** Extract [SFX: …], [AMBIENT: …], and [BGM: …] cues and diegetic status from narration text. */
 export function extractAudioCues(text: string): AudioCues {
   const bgmRegex = /\[(?:bgm|backsound):\s*([^\]]+)\]/gi;
   const sfxRegex = /\[(?:sfx|sound):\s*([^\]]+)\]/gi;
+  const ambientRegex = /\[(?:ambient|foley|atmos|atmosphere|suara\s*alami):\s*([^\]]+)\]/gi;
   const diegeticRegex = /\[(?:diegetic|tanpa\s*voice-?over|no\s*voice-?over)(?:\s*-\s*[^\]]+)?\]/gi;
 
   const bgmCues = Array.from(text.matchAll(bgmRegex)).map((m) => m[1].trim());
   const sfxCues = Array.from(text.matchAll(sfxRegex)).map((m) => m[1].trim());
+  const ambientCues = Array.from(text.matchAll(ambientRegex)).map((m) => m[1].trim());
   const isDiegetic = diegeticRegex.test(text) || /diegetic\s*only/i.test(text);
 
   let cleanNarasi = text
     .replace(/\[(?:SFX|sfx)\b[^\]]*\]/gi, "")
     .replace(/\[(?:Sound|sound)\s*[:\-][^\]]*\]/gi, "")
     .replace(/\[(?:BGM|bgm|Backsound|backsound)\b[^\]]*\]/gi, "")
+    .replace(/\[(?:ambient|foley|atmos|atmosphere|suara\s*alami)\b[^\]]*\]/gi, "")
     .replace(/\[(?:diegetic|tanpa\s*voice-?over|no\s*voice-?over)(?:\s*-\s*[^\]]+)?\]/gi, "")
     .replace(/dilarang ada narasi\/voice-over luar adegan[^\n.]*(?:\.|$)/gi, "")
     .replace(/hanya suara diegetic\/in-scene[^\n.]*(?:\.|$)/gi, "")
@@ -184,7 +188,7 @@ export function extractAudioCues(text: string): AudioCues {
     cleanNarasi = "";
   }
 
-  return { cleanNarasi, bgmCues, sfxCues, isDiegetic };
+  return { cleanNarasi, bgmCues, sfxCues, ambientCues, isDiegetic };
 }
 
 /** Detect audio hints embedded in a Visual Prompt string. */
@@ -202,11 +206,13 @@ export function extractVisualAudioHint(visualText: string): string | null {
 
   const sfxRegex = /\[(?:sfx|sound):\s*([^\]]+)\]/gi;
   const bgmRegex = /\[(?:bgm|backsound):\s*([^\]]+)\]/gi;
+  const ambientRegex = /\[(?:ambient|foley|atmos|atmosphere|suara\s*alami):\s*([^\]]+)\]/gi;
 
   const bgmMatches = Array.from(visualText.matchAll(bgmRegex)).map((m) => `BGM: ${m[1].trim()}`);
   const sfxMatches = Array.from(visualText.matchAll(sfxRegex)).map((m) => `SFX: ${m[1].trim()}`);
+  const ambientMatches = Array.from(visualText.matchAll(ambientRegex)).map((m) => `Ambient: ${m[1].trim()}`);
 
-  const combined = [...hints, ...bgmMatches, ...sfxMatches];
+  const combined = [...hints, ...bgmMatches, ...sfxMatches, ...ambientMatches];
   return combined.length > 0 ? combined.join(" | ") : null;
 }
 
@@ -665,6 +671,7 @@ export interface Scene {
   durasi: string;
   bgmCues?: string[];
   sfxCues?: string[];
+  ambientCues?: string[];
   isDiegetic?: boolean;
   voiceGuidelines?: VoiceGuidelines;
   targetEmosi?: string;
@@ -737,8 +744,8 @@ export function estimateExpressivePauseSeconds(text?: string | null): number {
   while ((match = tagRegex.exec(strippedText)) !== null) {
     const rawTag = match[1].trim().toLowerCase();
 
-    // Ignore SFX/BGM technical cues like [SFX: explosion], [BGM: epic]
-    if (/^(?:sfx|bgm|audio|visual|music)\b/i.test(rawTag)) {
+    // Ignore SFX/BGM/Ambient technical cues like [SFX: explosion], [BGM: epic], [AMBIENT: rain]
+    if (/^(?:sfx|bgm|audio|visual|music|ambient|foley|atmos|atmosphere)\b/i.test(rawTag)) {
       continue;
     }
 
@@ -968,6 +975,7 @@ export function parseScenes(text: string, speechRateSec: number = 0.35): Scene[]
           durasi: durVal,
           bgmCues: audio.bgmCues,
           sfxCues: audio.sfxCues,
+          ambientCues: audio.ambientCues,
           isDiegetic: audio.isDiegetic,
           voiceGuidelines: voi ? parseVoiceGuidelines(cleanParsedValue(voi[1])) : undefined,
           targetEmosi: emosiVal && emosiVal !== "—" ? emosiVal : undefined,
@@ -993,6 +1001,7 @@ export function parseScenes(text: string, speechRateSec: number = 0.35): Scene[]
       durasi: "15s",
       bgmCues: audio.bgmCues,
       sfxCues: audio.sfxCues,
+      ambientCues: audio.ambientCues,
       isDiegetic: audio.isDiegetic,
     });
   }
