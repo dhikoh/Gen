@@ -449,7 +449,16 @@
     "thumbnailStyleAntiGagalDesc": "Template 1-3 kata huruf kapital punchy dengan contrast tinggi & curiosity gap.",
     "affiliateCustomUrlPlaceholder": "Base URL pencarian (contoh: https://bukalapak.com/products?search=)",
     "customVisualStyleLabel": "✏️ Deskripsikan Gaya Visual Custom",
-    "customVisualStyleHelp": "Deskripsi ini akan diinjeksi langsung ke panduan Visual Prompt setiap scene. Tulis sedetail mungkin — semakin presisi, semakin konsisten gaya visual yang dihasilkan AI."
+    "customVisualStyleHelp": "Deskripsi ini akan diinjeksi langsung ke panduan Visual Prompt setiap scene. Tulis sedetail mungkin — semakin presisi, semakin konsisten gaya visual yang dihasilkan AI.",
+    "videoProductionMode": "Mode Produksi Video",
+    "videoEngineSubtitle": "Pilih antara AI Video Generator eksternal (difusi) atau Motion Graphics via React Remotion (tanpa biaya video AI)",
+    "modeDiffusionAi": "AI Video Difusi",
+    "modeDiffusionAiDesc": "Format prompt sinematik untuk model difusi seperti Kling, Runway Gen-3, atau Sora (pergerakan kamera fisik, pencahayaan, lensa).",
+    "modeRemotionCode": "Code-as-Video (Remotion)",
+    "modeRemotionCodeDesc": "AI menghasilkan kode animasi React Remotion (motion graphics, kinetic typography, spring physics). Langsung preview & render di studio.",
+    "remotionStudioLocked": "Fitur Remotion Studio tersedia pada paket PRO atau Enterprise. Silakan upgrade paket Anda.",
+    "remotionThemeLabel": "Tema Estetika Remotion",
+    "remotionCameraMovementNote": "Mode Remotion aktif: Visual digerakkan oleh kode komponen React (spring physics, typography, transform SVG) menggantikan pengaturan kamera fisik."
   },
   "Drafts": {
     "pageTitleTab": "Riwayat Prompt",
@@ -1229,7 +1238,11 @@
     "seoNotGeneratedDesc": "Jalankan Generator Studio dengan platform YouTube Shorts atau YouTube Long-Form untuk menghasilkan arsitektur 3-tier tag dan checklist otomatis.",
     "seoStudioTitle": "YouTube 2026 SEO & Pre-Flight Studio",
     "seoStudioSubtitle": "Arsitektur Tag 3-Tier, Deskripsi Berempati, & Checklist Anti-Gagal sesuai Panduan Algoritma YouTube 2026.",
-    "copyHtml": "Salin HTML"
+    "copyHtml": "Salin HTML",
+    "remotionCodeDetectedToast": "Kode Remotion React TSX terdeteksi dan otomatis dimuat ke Remotion Studio!",
+    "remotionCodeDetectedBannerTitle": "Kode Remotion React TSX Terdeteksi",
+    "remotionCodeDetectedBannerDesc": "Hasil generasi AI menyertakan komponen Remotion lengkap. Anda dapat memvalidasi, mempratinjau animasi, atau merender MP4 langsung di Remotion Studio.",
+    "openRemotionStudioButton": "Buka di Remotion Studio"
   },
   "ForgotPassword": {
     "title": "Lupa Password?",

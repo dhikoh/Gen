@@ -71,6 +71,7 @@ interface GeneratorFormProps {
     cameraMovementPro?: boolean; // PRO tier camera movement
     youtubeLongStudio?: boolean;
     retentionPacingPro?: boolean;
+    remotionStudio?: boolean;
   };
   userId: string;
 }
@@ -88,7 +89,7 @@ const ALL_MARKETPLACE_KEYS = MARKETPLACE_OPTIONS.map((m) => m.key);
 export default function GeneratorForm({
   channels,
   promptSettings,
-  planFeatures = { imagePromptStudio: true, htmlBlogExport: true, cameraMovementPro: false, youtubeLongStudio: false, retentionPacingPro: false },
+  planFeatures = { imagePromptStudio: true, htmlBlogExport: true, cameraMovementPro: false, youtubeLongStudio: false, retentionPacingPro: false, remotionStudio: false },
   userId,
 }: GeneratorFormProps) {
  const router = useRouter();
@@ -248,7 +249,9 @@ export default function GeneratorForm({
 
  // Video specific fields
  const [videoConfig, setVideoConfig] = useState({
- pov: "Expert Storyteller (Edukasi & Inspirasi)",
+  videoProductionMode: "DIFFUSION_AI" as "DIFFUSION_AI" | "REMOTION_CODE",
+  remotionTheme: "modern" as "modern" | "cyberpunk" | "documentary" | "kinetic",
+  pov: "Expert Storyteller (Edukasi & Inspirasi)",
  targetPlatform: "TikTok",
  aspectRatio: "9:16",
  targetDurationSec: 60,
@@ -451,6 +454,8 @@ export default function GeneratorForm({
       setVideoConfig((prev) => ({
         ...prev,
         ...(savedState.videoConfig || {}),
+        videoProductionMode: (savedState.videoConfig?.videoProductionMode as "DIFFUSION_AI" | "REMOTION_CODE") ?? prev.videoProductionMode ?? "DIFFUSION_AI",
+        remotionTheme: (savedState.videoConfig?.remotionTheme as "modern" | "cyberpunk" | "documentary" | "kinetic") ?? prev.remotionTheme ?? "modern",
         targetPlatform: ch.targetPlatform || "TikTok",
         pov: ch.personaPov || "Expert Storyteller (Edukasi & Inspirasi)",
         speechRate: ch.speechRate ?? 0.35,
@@ -525,6 +530,8 @@ export default function GeneratorForm({
 
       setVideoConfig((prev) => ({
         ...prev,
+        videoProductionMode: "DIFFUSION_AI",
+        remotionTheme: "modern",
         targetPlatform: ch.targetPlatform || "TikTok",
         pov: ch.personaPov || "Expert Storyteller (Edukasi & Inspirasi)",
         speechRate: ch.speechRate ?? 0.35,
@@ -1327,9 +1334,109 @@ export default function GeneratorForm({
  {/* Video Specific Settings */}
  {type === "VIDEO" && (
  <div className="pt-4 border-t pg-border space-y-5">
- <h3 className="font-semibold pg-text-heading mb-2">
- {t("videoSettings")} & Presisi Presets
- </h3>
+ <div>
+  <h3 className="font-semibold pg-text-heading">
+   {t("videoSettings")} & Presisi Presets
+  </h3>
+  <p className="text-xs pg-text-muted mt-0.5">
+   {t("videoEngineSubtitle")}
+  </p>
+ </div>
+
+ {/* Dual-Engine Video Production Mode Switcher */}
+ <div className="p-4 rounded-xl border pg-border bg-slate-50/70 dark:bg-slate-800/40 space-y-3">
+  <div className="flex items-center justify-between">
+   <label className="text-xs font-semibold pg-text-heading flex items-center gap-1.5">
+    <span>✨</span>
+    <span>{t("videoProductionMode")}</span>
+   </label>
+   <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
+    {videoConfig.videoProductionMode === "REMOTION_CODE" ? "React Video Engine" : "Diffusion Video Engine"}
+   </span>
+  </div>
+
+  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+   {/* Option 1: AI Diffusion */}
+   <button
+    type="button"
+    onClick={() => handleVideoConfigChange("videoProductionMode", "DIFFUSION_AI")}
+    className={`p-3 rounded-lg border text-left transition-all flex flex-col justify-between ${
+     videoConfig.videoProductionMode !== "REMOTION_CODE"
+      ? "border-blue-500 bg-blue-50/80 dark:bg-blue-950/30 ring-1 ring-blue-500"
+      : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 bg-white dark:bg-slate-800"
+    }`}
+   >
+    <div className="flex items-center justify-between">
+     <span className="text-sm font-semibold pg-text-heading flex items-center gap-2">
+      🎬 {t("modeDiffusionAi")}
+     </span>
+     {videoConfig.videoProductionMode !== "REMOTION_CODE" && (
+      <span className="w-2 h-2 rounded-full bg-blue-500" />
+     )}
+    </div>
+    <p className="text-[11px] pg-text-muted mt-1.5 leading-relaxed">
+     {t("modeDiffusionAiDesc")}
+    </p>
+   </button>
+
+   {/* Option 2: Remotion Code */}
+   <button
+    type="button"
+    disabled={!planFeatures?.remotionStudio}
+    onClick={() => {
+     if (!planFeatures?.remotionStudio) {
+      toast.error(t("remotionStudioLocked"));
+      return;
+     }
+     handleVideoConfigChange("videoProductionMode", "REMOTION_CODE");
+    }}
+    className={`p-3 rounded-lg border text-left transition-all flex flex-col justify-between ${
+     !planFeatures?.remotionStudio
+      ? "opacity-60 cursor-not-allowed border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-slate-900/30"
+      : videoConfig.videoProductionMode === "REMOTION_CODE"
+      ? "border-purple-500 bg-purple-50/80 dark:bg-purple-950/30 ring-1 ring-purple-500"
+      : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 bg-white dark:bg-slate-800"
+    }`}
+   >
+    <div className="flex items-center justify-between">
+     <span className="text-sm font-semibold pg-text-heading flex items-center gap-2">
+      ⚛️ {t("modeRemotionCode")}
+      {!planFeatures?.remotionStudio && (
+       <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 font-semibold">
+        PRO 🔒
+       </span>
+      )}
+     </span>
+     {videoConfig.videoProductionMode === "REMOTION_CODE" && (
+      <span className="w-2 h-2 rounded-full bg-purple-500" />
+     )}
+    </div>
+    <p className="text-[11px] pg-text-muted mt-1.5 leading-relaxed">
+     {t("modeRemotionCodeDesc")}
+    </p>
+   </button>
+  </div>
+
+  {/* Remotion Theme Selector (Shown when Remotion mode active) */}
+  {videoConfig.videoProductionMode === "REMOTION_CODE" && (
+   <div className="pt-2 border-t pg-border flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+    <label className="text-xs font-medium pg-text-sub flex items-center gap-1.5">
+     <span>🎨</span>
+     <span>{t("remotionThemeLabel")}:</span>
+    </label>
+    <select
+     value={videoConfig.remotionTheme || "modern"}
+     onChange={(e) => handleVideoConfigChange("remotionTheme", e.target.value)}
+     className="text-xs px-3 py-1.5 bg-white dark:bg-slate-700 border pg-border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none dark:text-white"
+    >
+     <option value="modern">Modern Minimalist (Clean & Elegant)</option>
+     <option value="cyberpunk">Cyberpunk / Neon (Bold & Futuristic)</option>
+     <option value="documentary">Documentary Organic (Warm & Authentic)</option>
+     <option value="kinetic">Kinetic Typography (Fast & Energetic)</option>
+    </select>
+   </div>
+  )}
+ </div>
 
  {/* Platform & Persona PresetSelect */}
  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2028,7 +2135,22 @@ export default function GeneratorForm({
   </div>
 
  {/* ── Camera Movement Section ── */}
- <div className="space-y-3 pt-2 border-t pg-border">
+ {videoConfig.videoProductionMode === "REMOTION_CODE" ? (
+  <div className="pt-2 border-t pg-border">
+   <div className="p-3 rounded-lg bg-purple-50/60 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800 flex items-start gap-2.5">
+    <span className="text-base leading-none">⚛️</span>
+    <div className="space-y-1">
+     <p className="text-xs font-semibold text-purple-900 dark:text-purple-200">
+      {t("modeRemotionCode")}
+     </p>
+     <p className="text-[11px] text-purple-700/90 dark:text-purple-300/90 leading-relaxed">
+      {t("remotionCameraMovementNote")}
+     </p>
+    </div>
+   </div>
+  </div>
+ ) : (
+  <div className="space-y-3 pt-2 border-t pg-border">
  {/* Header + Main Toggle */}
  <div className="flex items-center justify-between">
  <label className="block text-xs font-semibold pg-text-sub">
@@ -2185,6 +2307,7 @@ export default function GeneratorForm({
  </div>
  )}
  </div>
+ )}
 
  {/* ── Retention & Pacing Engine 2026 ── */}
  <div className="space-y-3 pt-2 border-t pg-border">

@@ -76,6 +76,9 @@ const videoConfigSchema = z.object({
   // SEO & Keyword Targets (vidIQ / YouTube Live)
   targetKeywords: z.union([z.array(z.string()), z.string()]).optional().nullable(),
   trendingAudio: z.string().max(200).optional().nullable(),
+  // Production Engine (Diffusion AI vs Remotion Code)
+  videoProductionMode: z.enum(["DIFFUSION_AI", "REMOTION_CODE"]).default("DIFFUSION_AI"),
+  remotionTheme: z.enum(["modern", "cyberpunk", "documentary", "kinetic"]).optional().nullable(),
 });
 
 const imageConfigSchema = z.object({
@@ -201,6 +204,13 @@ export async function POST(req: Request) {
       if (type === "VIDEO" && isTargetingYoutubeLong) {
         if (!getFeatureValue("youtubeLongStudio")) {
           return NextResponse.json({ error: t("youtubeLongStudioLocked") }, { status: 403 });
+        }
+      }
+
+      // Validasi fitur Remotion Studio (Code-as-Video)
+      if (type === "VIDEO" && videoConfig?.videoProductionMode === "REMOTION_CODE") {
+        if (!getFeatureValue("remotionStudio")) {
+          return NextResponse.json({ error: t("remotionStudioLocked") }, { status: 403 });
         }
       }
 

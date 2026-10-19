@@ -1,5 +1,6 @@
 import { resolveVisualStyle } from "./visualStyleMap";
 import { DEFAULT_SCENE_COUNT } from "./sceneLimits";
+import { THEME_STYLES, getRemotionDimensions, type RemotionTheme } from "./remotionPromptBuilder";
 
 export interface ContentArchetypeData {
   id?: string;
@@ -97,6 +98,9 @@ export interface VideoConfigData {
   trendingAudio?: string | null;
   // Overlay Style & Chapter Structure
   overlayStyle?: "auto" | "chapter_titles" | "key_points" | "mixed" | "minimal" | string | null;
+  // Production Engine (Diffusion AI vs Remotion Code)
+  videoProductionMode?: "DIFFUSION_AI" | "REMOTION_CODE" | null;
+  remotionTheme?: "modern" | "cyberpunk" | "documentary" | "kinetic" | null;
 }
 
 export interface PromptSettingsData {
@@ -537,6 +541,14 @@ export function generateMasterPrompt(
     systemInstruction += `\nWAJIB: Mode konten adalah ${effectiveNarrationMode}. DILARANG menyisipkan narator/voice-over luar adegan. Seluruh audio wajib bersumber dari dalam visual adegan (diegetic audio).`;
   }
 
+  const isRemotionMode = videoConfig?.videoProductionMode === "REMOTION_CODE";
+  if (isRemotionMode) {
+    systemInstruction += `\nWAJIB: Mode Produksi Video adalah CODE-AS-VIDEO (REMOTION v4 REACT MOTION GRAPHICS).
+Video ini BUKAN diproduksi menggunakan AI video diffusion/kamera fotorealistik (seperti Kling, Runway, Sora, atau Midjourney).
+Video ini dirender 100% menggunakan kode pemrograman React Remotion v4 dengan komponen grafis, tipografi kinetik, kartu visual, icon SVG, dan animasi spring physics.
+DILARANG memberikan instruksi lensa kamera fisik (seperti 200mm, shallow DOF, photorealistic lighting). Rancanglah visual dan adegan sebagai komponen motion design yang dinamis, modern, dan presisi secara kode.`;
+  }
+
   // ── Audio Config ───────────────────────────────────────────────────────
   const finalMusic = videoConfig.musicPreference !== undefined ? Boolean(videoConfig.musicPreference) : Boolean(channel.audioBGM !== false);
   const finalSfx   = videoConfig.sfxPreference   !== undefined ? Boolean(videoConfig.sfxPreference)   : Boolean(channel.audioSFX !== false);
@@ -752,7 +764,9 @@ WAJIB: Terapkan seluruh 9 prinsip di atas secara konsisten pada SETIAP Visual Pr
 
   // Petunjuk isi baris SETTING KAMERA (mengikuti pengaturan camera movement di Generator Studio)
   const cameraSettingFieldHint =
-    videoConfig.cameraMovementEnabled === false
+    isRemotionMode
+      ? "Komponen UI | Jenis Gerakan Spring | Timing frame | Warna & Palet | Layout & Safe Zone. Satu baris deskripsi motion design berbasis kode. Contoh: KineticCard | spring bounce slide-up | frame 0-20 | dark slate + sky-blue | center-aligned"
+      : videoConfig.cameraMovementEnabled === false
       ? "Shot size | Angle | Lensa mm | Depth of field | static | Komposisi. Satu baris, bahasa Inggris, dipisah tanda '|'. Karena camera movement dimatikan, bagian Gerakan kamera WAJIB diisi static. Contoh: MS | eye-level | 35mm | deep focus | static | centered"
       : "Shot size | Angle | Lensa mm | Depth of field | Gerakan kamera | Komposisi. Satu baris, bahasa Inggris, dipisah tanda '|'. Bagian Gerakan kamera HARUS sama dengan gerakan yang kamu tulis di VISUAL PROMPT scene yang sama. Contoh: ECU | low angle | 50mm | shallow DOF | slow push-in | rule of thirds";
 
@@ -915,8 +929,19 @@ ${structural.hookStrategyDirective}`;
     if (hasHashtag) formatOutputWajib += `HASHTAGS: [Kumpulan hashtag optimasi jangkauan viral]\n`;
   }
 
+  const sceneCount = videoConfig.targetSceneCount ?? DEFAULT_SCENE_COUNT;
+  const remotionThemeName = ((videoConfig.remotionTheme as RemotionTheme) || "modern");
+  const themeMeta = THEME_STYLES[remotionThemeName] || THEME_STYLES.modern;
+
   if (hasScene) {
-    const visualPromptInstruction = isVideoPlat
+    const visualPromptInstruction = isRemotionMode
+      ? `Tulis spesifikasi komponen motion design dan elemen visual Remotion dalam bahasa Inggris. DILARANG menulis deskripsi lensa kamera fotorealistik. Tuliskan dalam struktur 4-bagian yang padu:
+[1. KOMPONEN VISUAL & ELEMEN GRAFIS — nama komponen React dan elemen di layar: KineticTitle, ComparisonCard, StatCounter, InfographicBadge, SvgDiagram, dll.]
+[2. TIPOGRAFI & TEKS KINETIK — animasi teks: per-word reveal, spring scale punch, highlight keywords]
+[3. ANIMASI SPRING & TRANSISI — fisika gerak: spring({ frame, fps, config: { damping: 12 } }), slide-in, bounce pop, fade settle]
+[4. TEMA & WARNA GRAFIS — tema "${remotionThemeName}": ${themeMeta.description}, layout safe-zone ${ar}].
+Contoh yang BENAR: "Kinetic split-screen card with contrasting left (Lemur) and right (Colugo) panels, bold sans-serif header scaling up from 0.8 to 1.0 with bouncy spring physics, red cross icon shaking subtly on the left while green badge pops on the right, dark slate gradient background with sky-blue glowing accents, clean safe-zone margins."`
+      : isVideoPlat
       ? `Tulis prompt video/visual sinematik siap-pakai dalam bahasa Inggris. DILARANG menulis deskripsi statis seperti foto — deskripsikan scene secara TEMPORAL sebagai klip video yang berjalan. Gunakan struktur 5-layer berikut secara terpadu dalam satu paragraf deskriptif:
 [1. SHOT TYPE & OPENING FRAME — jenis shot dan framing awal]
 [2. SUBJECT MICRO-ACTION — apa yang subjek lakukan secara spesifik & berubah selama durasi scene (bukan hanya posisi statis)]
@@ -933,7 +958,6 @@ Sangat ilustratif, dinamis, metaforis (HINDARI penerjemahan literal). Contoh yan
 
     // ── Overlay Style & Chapter Structure ──────────────────────────────────
     const overlayStyle = videoConfig.overlayStyle || "auto";
-    const sceneCount = videoConfig.targetSceneCount ?? DEFAULT_SCENE_COUNT;
 
     // Deteksi apakah konten adalah Short-Form (Shorts / Reels / TikTok / vertikal 9:16 / durasi <= 90 detik)
     const normPlatform = (videoConfig.targetPlatform || "").toUpperCase();
@@ -1065,6 +1089,27 @@ Jumlah bab ditentukan secara natural berdasarkan alur konten (biasanya 3-6 bab u
   // ── Three-Tier YouTube SEO & Pre-Flight Checklist (Strategi YouTube 2026) ──
   if (isYoutube) {
     formatOutputWajib += `\n## METADATA SEO YOUTUBE 2026\nTAG SPESIFIK: [5-8 kata kunci utama topik, pisahkan dengan koma TANPA tanda pagar #, contoh: reptile third eye, parietal eye lizard, tuatara facts]\nTAG UMUM: [3-5 kategori niche luas, pisahkan dengan koma TANPA tanda pagar #, contoh: exotic animals, wildlife facts, animal biology]\nTAG MAJEMUK (LONG-TAIL): [5-8 frasa pencarian alami 3-5 kata berniat tinggi, pisahkan dengan koma, contoh: why do lizards have a third eye, what is a parietal eye]\nDESKRIPSI YOUTUBE (SEO & EMPATI): [2-3 paragraf deskripsi video yang kaya kata kunci alami, ramah pembaca manusia, menyertakan ringkasan Value Promise video]\nCHECKLIST KESIAPAN AKHIR:\n- [ ] Audio bersih dari noise dengan Fade-in/Fade-out yang halus\n- [ ] Judul mengandung Long-tail Keyword yang dicari orang\n- [ ] Teks thumbnail (maks 1-3 kata) dan ekspresi wajah 60-80% terbaca jelas di layar HP kecil\n- [ ] Hook 3 detik pertama telah menyampaikan Janji Nilai (Value Promise) yang kuat\n`;
+  }
+
+  // ── Remotion Code Output (Code-as-Video Paradigm) ──
+  if (isRemotionMode && hasScene) {
+    const { width, height } = getRemotionDimensions(ar === "16:9" ? "16:9" : "9:16");
+    formatOutputWajib += `\n## KODE REMOTION LENGKAP (REACT TSX)
+Di akhir naskah, kamu WAJIB menyertakan SATU BLOK KODE LENGKAP TypeScript (.tsx) siap pakai untuk Remotion v4 yang mengimplementasikan seluruh ${sceneCount} adegan di atas:
+\`\`\`tsx
+import React from 'react';
+import { AbsoluteFill, Sequence, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
+
+// Resolusi: ${width}x${height} (${ar}), FPS: 30
+// Tema Grafis: ${remotionThemeName} (${themeMeta.description})
+// Setiap adegan diimplementasikan dalam komponen terpisah dan dirangkai dengan <Sequence from={...} durationInFrames={...}>.
+// Gunakan spring animation untuk teks dan elemen visual. Hindari dependensi CSS luar.
+export default const MainVideo: React.FC = () => {
+  // Implementasi lengkap seluruh adegan...
+};
+\`\`\`
+PENTING: Tulis kode secara LENGKAP dan deterministik tanpa placeholder agar video MP4 bisa langsung diputar dan dirender di browser.
+`;
   }
 
   // Fix 2.1: htmlBlog section — paid feature gate; must appear in output when enabled

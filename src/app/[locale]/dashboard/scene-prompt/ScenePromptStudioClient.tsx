@@ -13,6 +13,7 @@ import {
   extractHtmlBlog,
   extractAffiliateRecommendations,
   parseScenes,
+  extractRemotionCode,
   cleanNarasiForTts,
   countWords,
   estimateExpressivePauseSeconds,
@@ -184,6 +185,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
   const [markedTitles, setMarkedTitles] = useState<string[]>([]);
   const [htmlBlog, setHtmlBlog] = useState(() => (defaultSource?.raw ? extractHtmlBlog(defaultSource.raw) : ""));
   const [affiliateRecs, setAffiliateRecs] = useState<AffiliateRecommendation[]>(() => (defaultSource?.raw ? extractAffiliateRecommendations(defaultSource.raw) : []));
+  const [detectedRemotionCode, setDetectedRemotionCode] = useState<string | null>(() => (defaultSource?.raw ? extractRemotionCode(defaultSource.raw) : null));
   const [completedChecklist, setCompletedChecklist] = useState<Record<number, boolean>>({});
 
   // Parse History state (10 latest)
@@ -905,6 +907,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
     setDraftTitle(chosen || t("defaultDraftTitle"));
     setHtmlBlog(extractHtmlBlog(raw));
     setAffiliateRecs(extractAffiliateRecommendations(raw));
+    setDetectedRemotionCode(extractRemotionCode(raw));
     setSelectedHistoryId(item.id);
     toast.success(t("historyLoadedSuccess"));
   }, [speechRate, t]);
@@ -924,6 +927,11 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
     const chosen = extractChosenTitle(rawText) || titles[0] || "";
     setDraftTitle(chosen || t("defaultDraftTitle"));
     setAffiliateRecs(extractAffiliateRecommendations(rawText));
+    const remCode = extractRemotionCode(rawText);
+    setDetectedRemotionCode(remCode);
+    if (remCode) {
+      toast.success(t("remotionCodeDetectedToast"));
+    }
     try {
       const res = await fetch("/api/parsed-outputs", {
         method: "POST",
@@ -1214,7 +1222,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
  if (tab === "htmlBlog" && !htmlBlog) return null;
  return (
  <button key={tab} onClick={() => setActiveTab(tab)} className={btn(activeTab === tab)}>
- {tab === "scenes" ? `🎬 ${t("sceneViewerTab")} (${scenes.length})` : tab === "thumbnail" ? `🖼️ ${t("thumbnailTab")}` : tab === "seo2026" ? t("seo2026Tab") : tab === "htmlBlog" ? t("htmlBlogTab") : tab === "voiceStudio" ? `🎙️ ${t("voiceStudioTab")}` : tab === "fullVideo" ? `🎞️ ${t("tabFullVideo")}` : tab === "remotionStudio" ? `⚛️ ${t("tabRemotionStudio")}` : `📱 ${t("platformTab")}`}
+ {tab === "scenes" ? `🎬 ${t("sceneViewerTab")} (${scenes.length})` : tab === "thumbnail" ? `🖼️ ${t("thumbnailTab")}` : tab === "seo2026" ? t("seo2026Tab") : tab === "htmlBlog" ? t("htmlBlogTab") : tab === "voiceStudio" ? `🎙️ ${t("voiceStudioTab")}` : tab === "fullVideo" ? `🎞️ ${t("tabFullVideo")}` : tab === "remotionStudio" ? `⚛️ ${t("tabRemotionStudio")}${detectedRemotionCode ? " ✨" : ""}` : `📱 ${t("platformTab")}`}
  </button>
  );
  })}
@@ -1321,6 +1329,32 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
 
   {activeTab === "scenes" && (
   <div className="space-y-4">
+    {/* Detected Remotion Code Alert Banner */}
+    {detectedRemotionCode && (
+      <div className="glass-panel p-4 rounded-2xl border border-sky-500/40 bg-gradient-to-r from-sky-500/10 via-blue-500/10 to-indigo-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl p-2 rounded-xl bg-sky-500/20 text-sky-500 shrink-0">⚛️</span>
+          <div>
+            <h4 className="text-xs font-bold text-sky-700 dark:text-sky-300 flex items-center gap-1.5">
+              {t("remotionCodeDetectedBannerTitle")}
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-600 dark:text-sky-300 font-mono">React Remotion v4</span>
+            </h4>
+            <p className="text-[11px] pg-text-muted mt-0.5 leading-relaxed">
+              {t("remotionCodeDetectedBannerDesc")}
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setActiveTab("remotionStudio")}
+          className="px-3.5 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold shrink-0 transition-colors shadow-xs flex items-center gap-1.5"
+        >
+          <span>{t("openRemotionStudioButton")}</span>
+          <span>→</span>
+        </button>
+      </div>
+    )}
+
     {/* Script Timing & Duration Control Bar */}
     {scenes.length > 0 && (
       <div className="glass-panel rounded-2xl p-4 sm:p-5 border pg-border shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-[var(--pg-surface)] to-[var(--pg-surface-dim)]">
@@ -2895,6 +2929,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
  scenesCount={scenes.length}
  draftTitle={draftTitle || initialDraft?.title || ""}
  canUploadToDrive={planFeatures.googleDriveUpload}
+ initialCode={detectedRemotionCode}
  />
  ) : (
  <RemotionUpgradeCard />

@@ -52,6 +52,54 @@
 > | `[#95]` | Fitur #95 (Bagian 45) | Tab Full Video, Timeline Builder Kumulatif, Export Manifest JSON & Sinkronisasi UsedTitle | 2026-10-18 |
 > | `[#96]` | Fitur #96 (Bagian 46) | Kode Animasi HTML AI, Sandbox Iframe Deterministik, Sekuensial Frame Render & WebAudio Mixer | 2026-10-18 |
 > | `[#97]` | Fitur #97 (Bagian 47) | Integrasi Google Drive Backup & Export Video (OAuth2 AAD, Resumable Upload, Auto-Refresh & Client Retry) | 2026-10-18 |
+> | `[#98]` | Fitur #98 (Bagian 48) | Paradigma Code-as-Video via React Remotion v4 (Dual-Engine, Motion Design, In-Browser Studio & Bridge Parser) | 2026-10-19 |
+
+---
+
+## [#98] — 2026-10-19 | Fitur #98: Paradigma Code-as-Video via React Remotion v4 (Dual-Engine, Motion Design, In-Browser Studio & Bridge Parser)
+
+### Overview
+Implementasi arsitektur **Paradigma Code-as-Video via React Remotion v4** (terinspirasi dari workflow *Claude Code / Opus 5.5 + Remotion*), mengubah cara produksi video dari yang sebelumnya bergantung pada generator video difusi eksternal berbayar (Kling, Runway, Sora) menjadi produksi berbasis kode motion graphics React deterministik. Mengintegrasikan pemilih engine ganda pada Generator Studio (*AI Video Difusi* vs *Code-as-Video Remotion*), perancangan prompt motion graphics dengan fisika pegas (spring physics), deteksi dan ekstraksi otomatis kode TSX pada Scene Prompt Studio via `extractRemotionCode`, serta bridging mulus ke downstream **Remotion Studio** untuk validasi, pratinjau real-time frame-by-frame di kanvas peramban, dan render MP4 lokal.
+
+### Komponen Kunci & Implementasi
+
+1. **Core Type Contracts & Data Snapshotting** (`src/types/generator.ts`):
+   - Menambahkan field `videoProductionMode` (`"DIFFUSION_AI" | "REMOTION_CODE"`) dan `remotionTheme` (`"modern" | "cyberpunk" | "documentary" | "kinetic"`) pada `GeneratorVideoConfigSnapshot` dan `GeneratorFormStateSnapshot`.
+   - Menjamin bahwa pilihan engine video tersimpan dan tersinkronisasi antar-profil channel tanpa kebocoran data (*zero state leakage*).
+
+2. **Dual-Engine Prompt Architecture & Theme Builder** (`src/lib/promptGenerator.ts`, `src/lib/remotionPromptBuilder.ts`):
+   - Menambahkan instruksi sistem khusus saat mode `REMOTION_CODE` aktif: melarang AI menggunakan deskripsi lensa kamera fisik fotorealistik (misal: 200mm, shallow DOF) dan mengarahkannya untuk memproduksi motion design berbasis komponen React (tipografi kinetik, kartu visual split-screen, ikon SVG, badge infografis).
+   - Menyelaraskan field *SETTING KAMERA* menjadi spesifikasi komponen UI & parameter spring animation, dan *VISUAL PROMPT* menjadi instruksi 4-layer motion design.
+   - Menginjeksi blok instruksi penutup `## KODE REMOTION LENGKAP (REACT TSX)` yang mewajibkan AI menyertakan satu blok kode TypeScript `.tsx` siap pakai untuk komponen `MainVideo` Remotion v4.
+
+3. **Proteksi Backend & Entitlement Gating** (`src/app/api/generate/route.ts`, `src/lib/planFeatures.ts`):
+   - Memutakhirkan skema validasi Zod `videoConfigSchema` untuk memvalidasi `videoProductionMode` dan `remotionTheme`.
+   - Menerapkan pengamanan *fail-closed* di sisi server: memverifikasi hak akses paket langganan pengguna terhadap flag `remotionStudio` sebelum mengizinkan generasi prompt mode Remotion. Pengguna tanpa izin menerima respon `403 Forbidden` terstandarisasi.
+
+4. **Antarmuka Generator Studio Dual-Engine Switcher** (`src/components/generator/GeneratorForm.tsx`, `src/app/[locale]/dashboard/generator/page.tsx`):
+   - Menyediakan pemilih engine visual modern di bagian atas Pengaturan Video dengan kartu perbandingan interaktif (*AI Video Difusi* vs *Code-as-Video Remotion*).
+   - Menampilkan indikator `PRO 🔒` dan mencegah seleksi bagi pengguna pada paket non-PRO/Enterprise.
+   - Menyediakan selector tema estetika Remotion (*Modern Minimalist*, *Cyberpunk Neon*, *Documentary Organic*, *Kinetic Typography*).
+   - Menyembunyikan pengaturan rig kamera fisik difusi secara kondisional saat mode Remotion aktif dan menggantikannya dengan catatan informatif motion design.
+
+5. **Parser Cerdas & Ekstraksi Kode TSX** (`src/lib/parsers.ts`):
+   - Mengimplementasikan helper deterministik `extractRemotionCode(text)` yang memindai seluruh blok kode terpagar (` ```tsx `, ` ```typescript `) dan memprioritaskan blok yang memuat impor Remotion atau primitif (`AbsoluteFill`, `useCurrentFrame`, `useVideoConfig`). Dilengkapi fallback toleran untuk kode di bawah header `## KODE REMOTION` tanpa markdown backticks.
+   - Memperluas `parseScenes` agar mengenali delimiter `Komponen Remotion`, `Motion Design`, dan `Animasi Spring`.
+
+6. **Bridge Seamless Scene Prompt Studio ke Remotion Studio** (`src/app/[locale]/dashboard/scene-prompt/ScenePromptStudioClient.tsx`, `src/components/remotion/RemotionStudioTab.tsx`):
+   - Menganalisis output naskah secara reaktif saat di-paste atau di-parse di Scene Prompt Studio.
+   - Menampilkan banner alert hijau jika kode Remotion terdeteksi, lengkap dengan tombol direct-action **"Buka di Remotion Studio"**.
+   - Menambahkan badge berkilau `✨` pada tombol tab navigasi `Remotion Studio`.
+   - Mengalirkan prop `initialCode` ke `RemotionStudioTab`, mengisi editor kode secara otomatis, dan langsung mengarahkan tampilan ke tab validator/previewer kanvas peramban.
+
+7. **Paritas Penuh Internasionalisasi (i18n)** (`messages/id.json`, `messages/en.json`):
+   - Menambahkan 13 kunci terjemahan pada namespace `Generator` dan `ScenePromptStudio` dengan kepatuhan format ICU ketat (tanpa kutip tunggal unescaped).
+   - Menjaga 100% key parity (1.701 kunci di kedua bahasa).
+
+8. **Verifikasi & Pengujian Komprehensif**:
+   - `src/lib/__tests__/parsers.remotionCode.test.ts`: 7 unit tests memverifikasi ekstraksi kode dan parsing scene.
+   - `src/lib/__tests__/promptGenerator.remotion.test.ts`: 2 unit tests memverifikasi isolasi antara mode Remotion dan mode Difusi.
+   - Seluruh 7 gerbang verifikasi (`prisma`, `tsc`, `lint`, `vitest`, `audit:i18n`, `audit:design`, `next build`) lulus dengan exit code 0.
 
 ---
 

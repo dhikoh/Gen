@@ -48,6 +48,8 @@ export interface GeneratorVideoConfigSnapshot {
   affiliateAngleMode?: "CTA" | "SOFT" | null;
   targetKeywords?: string[] | string | null;
   narrationModeOverride?: string | null;
+  videoProductionMode?: "DIFFUSION_AI" | "REMOTION_CODE" | null;
+  remotionTheme?: "modern" | "cyberpunk" | "documentary" | "kinetic" | null;
   [key: string]: unknown;
 }
 
@@ -104,6 +106,8 @@ export interface GeneratorFormStateSnapshot {
   targetKeywordsLongTail?: string;
   audioFadeInOut?: boolean;
   audioBeatSync?: boolean;
+  videoProductionMode?: "DIFFUSION_AI" | "REMOTION_CODE";
+  remotionTheme?: "modern" | "cyberpunk" | "documentary" | "kinetic";
   videoConfig?: GeneratorVideoConfigSnapshot;
   imageConfig?: GeneratorImageConfigSnapshot;
   step?: 1 | 2;

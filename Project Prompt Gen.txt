@@ -2470,6 +2470,42 @@ Sebagai penutup siklus pipeline produksi video, platform **Prompt Gen** memberik
 - Pengaturan Akun (`SettingsClient.tsx`): Status koneksi Google Drive (Terhubung / Belum Terhubung) serta tombol Hubungkan & Putuskan.
 - Linimasa Studio (`VideoTimelineTab.tsx`): Tombol "Upload ke Google Drive" dengan mekanisme retry otomatis hingga 3x menggunakan exponential backoff.
 
+### Bagian 48: Paradigma Code-as-Video via React Remotion v4 & In-Browser Motion Graphics Studio
+
+#### 48.1 Konsep & Arsitektur Dual-Engine
+- Menghadirkan paradigma produksi video berbasis kode deterministik (Code-as-Video) sebagai alternatif dari model difusi AI fotorealistik eksternal (Kling, Runway, Sora).
+- Memungkinkan kreator memproduksi video motion graphics, tipografi kinetik, animasi pegas (spring physics), infografis split-screen, dan ilustrasi SVG tanpa ketergantungan langganan tools video difusi pihak ketiga.
+- Tipe data `videoProductionMode` (`DIFFUSION_AI` | `REMOTION_CODE`) dan `remotionTheme` (`modern` | `cyberpunk` | `documentary` | `kinetic`) diintegrasikan pada snapshot formulir generator (`GeneratorVideoConfigSnapshot` dan `GeneratorFormStateSnapshot`).
+
+#### 48.2 Engine Prompt Motion Design & Template Komponen (`src/lib/promptGenerator.ts`)
+- Ketika mode `REMOTION_CODE` aktif:
+  - System Instruction otomatis menginstruksikan AI bahwa video dirender 100% menggunakan kode React Remotion v4 dan melarang instruksi lensa kamera fisik fotorealistik (misal: 200mm, shallow DOF, photorealistic lighting).
+  - Field `SETTING KAMERA` dipetakan menjadi spesifikasi komponen UI & parameter animasi spring (Komponen UI | Jenis Gerakan Spring | Timing frame | Warna & Palet | Layout & Safe Zone).
+  - Field `VISUAL PROMPT` dipetakan menjadi struktur 4-layer motion design (1. Komponen Visual & Elemen Grafis, 2. Tipografi & Teks Kinetik, 3. Animasi Spring & Transisi, 4. Tema & Warna Grafis).
+  - AI diwajibkan menyertakan satu blok kode TypeScript `.tsx` siap pakai di akhir naskah di bawah header `## KODE REMOTION LENGKAP (REACT TSX)`.
+
+#### 48.3 Parser Ekstraksi Kode & Bridging Downstream (`src/lib/parsers.ts`)
+- Fungsi `extractRemotionCode(text)`:
+  - Memindai seluruh blok kode terpagar (` ```tsx `, ` ```typescript `) dan memprioritaskan blok kode yang memuat modul `remotion` (`from "remotion"`, `AbsoluteFill`, `useCurrentFrame`, `useVideoConfig`, `Composition`).
+  - Dilengkapi mekanisme fallback toleran jika AI menghasilkan kode langsung di bawah header `## KODE REMOTION` tanpa markdown backticks.
+- Parser naskah `parseScenes` diperluas dengan delimiter `Komponen Remotion`, `Motion Design`, dan `Animasi Spring` sehingga scene tetap terpetakan secara terstruktur ke dalam antarmuka Scene Prompt Studio.
+
+#### 48.4 Integrasi Antarmuka Pengguna & In-Browser Remotion Studio
+- Generator Studio (`GeneratorForm.tsx`):
+  - Kartu pemilih engine interaktif Dual-Engine di bagian atas pengaturan video dengan proteksi paket `PRO 🔒`.
+  - Dropdown tema estetika Remotion bawaan (`modern`, `cyberpunk`, `documentary`, `kinetic`).
+  - Penyembunyian dinamis rig pergerakan kamera fisik yang digantikan oleh notifikasi informatif motion design.
+- Scene Prompt Studio (`ScenePromptStudioClient.tsx`):
+  - Deteksi otomatis reaktif: jika naskah yang di-paste memuat komponen Remotion, banner alert terdeteksi ditampilkan dengan tombol cepat "Buka di Remotion Studio".
+  - Tab navigasi `Remotion Studio` menampilkan indikator berkilau `✨`.
+- Remotion Studio (`RemotionStudioTab.tsx`):
+  - Menerima prop `initialCode`, otomatis mengisi editor kode dan mengarahkan tampilan ke tab validator/previewer.
+  - Kompilasi in-browser deterministik, pratinjau kanvas real-time frame demi frame (30 FPS), dan eksekusi rendering MP4 lokal tanpa biaya server backend.
+
+#### 48.5 Entitlement Gating & Keamanan Skema
+- Model perizinan fail-closed: fitur terdaftar pada `KNOWN_PLAN_FEATURES` dengan kunci `remotionStudio` (`src/lib/planFeatures.ts`).
+- Server-side validation pada endpoint `/api/generate` memverifikasi kepemilikan fitur paket pengguna sebelum memproses prompt mode Remotion. Pengguna yang tidak berhak menerima respon `403 Forbidden`.
+
 
 
 

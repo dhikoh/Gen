@@ -449,7 +449,16 @@
     "thumbnailStyleAntiGagalDesc": "1-3 uppercase punchy words template with high contrast & curiosity gap.",
     "affiliateCustomUrlPlaceholder": "Search base URL (example: https://bukalapak.com/products?search=)",
     "customVisualStyleLabel": "✏️ Describe Custom Visual Style",
-    "customVisualStyleHelp": "This description will be injected directly into each scene's Visual Prompt guide. Write in detail — greater precision yields more consistent AI visual styles."
+    "customVisualStyleHelp": "This description will be injected directly into each scene's Visual Prompt guide. Write in detail — greater precision yields more consistent AI visual styles.",
+    "videoProductionMode": "Video Production Mode",
+    "videoEngineSubtitle": "Choose between external AI Video Generator (diffusion) or Motion Graphics via React Remotion (no AI video subscription needed)",
+    "modeDiffusionAi": "AI Video Diffusion",
+    "modeDiffusionAiDesc": "Cinematic prompt format for diffusion models like Kling, Runway Gen-3, or Sora (physical camera rigs, lighting, lenses).",
+    "modeRemotionCode": "Code-as-Video (Remotion)",
+    "modeRemotionCodeDesc": "AI generates React Remotion animation code (motion graphics, kinetic typography, spring physics). Preview & render directly in studio.",
+    "remotionStudioLocked": "Remotion Studio is available on PRO or Enterprise plans. Please upgrade your plan.",
+    "remotionThemeLabel": "Remotion Aesthetic Theme",
+    "remotionCameraMovementNote": "Remotion mode active: Visuals are powered by React components (spring physics, typography, SVG transforms) replacing physical camera settings."
   },
   "Drafts": {
     "pageTitleTab": "Prompt History",
@@ -1229,7 +1238,11 @@
     "seoNotGeneratedDesc": "Run Generator Studio with YouTube Shorts or YouTube Long-Form platform to generate 3-tier tag architecture and automatic checklist.",
     "seoStudioTitle": "YouTube 2026 SEO & Pre-Flight Studio",
     "seoStudioSubtitle": "3-Tier Tag Architecture, Empathic Description, & Pre-Upload Checklist aligned with 2026 YouTube Algorithm.",
-    "copyHtml": "Copy HTML"
+    "copyHtml": "Copy HTML",
+    "remotionCodeDetectedToast": "Remotion React TSX code detected and automatically loaded into Remotion Studio!",
+    "remotionCodeDetectedBannerTitle": "Remotion React TSX Code Detected",
+    "remotionCodeDetectedBannerDesc": "AI generation output includes a complete Remotion component. You can validate, preview animations, or render MP4 directly in Remotion Studio.",
+    "openRemotionStudioButton": "Open in Remotion Studio"
   },
   "ForgotPassword": {
     "title": "Forgot Password?",

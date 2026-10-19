@@ -36,6 +36,7 @@ export interface RemotionStudioTabProps {
   scenesCount: number;
   draftTitle: string;
   canUploadToDrive?: boolean;
+  initialCode?: string | null;
 }
 
 type SubTab = "prompt" | "boilerplate" | "validator";
@@ -161,6 +162,7 @@ export function RemotionStudioTab({
   scenesCount,
   draftTitle,
   canUploadToDrive = false,
+  initialCode = null,
 }: RemotionStudioTabProps) {
   const t = useTranslations("RemotionStudio");
 
@@ -169,11 +171,25 @@ export function RemotionStudioTab({
   const [theme, setTheme] = useState<RemotionTheme>("modern");
   const [componentName, setComponentName] = useState<string>(() => componentNameFromTitle(draftTitle));
   const [additionalInstructions, setAdditionalInstructions] = useState<string>("");
-  const [subTab, setSubTab] = useState<SubTab>("prompt");
-  const [pastedCode, setPastedCode] = useState<string>("");
-  const [validation, setValidation] = useState<RemotionValidationResult | null>(null);
+  const [subTab, setSubTab] = useState<SubTab>(() => (initialCode ? "validator" : "prompt"));
+  const [pastedCode, setPastedCode] = useState<string>(() => initialCode || "");
+  const [validation, setValidation] = useState<RemotionValidationResult | null>(() =>
+    initialCode ? validateRemotionCode(initialCode) : null
+  );
   const [status, setStatus] = useState<string | null>(null);
   const statusTimer = useRef<number | null>(null);
+
+  const prevInitialCodeRef = useRef<string | null>(initialCode || null);
+  useEffect(() => {
+    if (initialCode && initialCode !== prevInitialCodeRef.current) {
+      prevInitialCodeRef.current = initialCode;
+      queueMicrotask(() => {
+        setPastedCode(initialCode);
+        setSubTab("validator");
+        setValidation(validateRemotionCode(initialCode));
+      });
+    }
+  }, [initialCode]);
 
   // In-Browser Player & Rendering States
   const canvasRef = useRef<HTMLCanvasElement | null>(null);

@@ -867,8 +867,8 @@ export function parseScenes(text: string, speechRateSec: number = 0.35): Scene[]
   const splitter = /(?:^|\r?\n)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:Scene|Adegan|Bagian|Part)\s*([a-zA-Z0-9_\-]+)(?:[:\s\*\-=_]*)(?=\r?\n|$)/gi;
   const parts = text.split(splitter);
   const scenes: Scene[] = [];
-  const delimiters = "(?:Konteks\\s*Scene|Konteks\\s*Adegan|Scene\\s*Context|Konteks|Context|Narasi|Dialog|Voice\\s*Over|VO|Audio|Target\\s*Emosi(?:\\s*\\(VET\\))?|Emosi|Teknik\\s*(?:Editing(?:\\s*&\\s*Pacing)?|Pacing)|Pacing|Teks\\s*Overlay|Text\\s*Overlay|Overlay|Panduan\\s*Suara|Voice\\s*Guidelines|Setting\\s*Kamera|Camera\\s*Setup|Visual\\s*Prompt|Visual|Deskripsi\\s*Visual|Prompt|Durasi|Time|Duration)";
-  const delimLookahead = `(?=(?:\\r?\\n)+(?:\\*\\*)?${delimiters}(?::\\s*\\*\\*|\\*\\*\\s*:|:)|\\r?\\n+[-*_]{3,}|\\r?\\n+(?:#{1,6}\\s*|\\*{2,3}\\s*|={2,4}\\s*)*(?:Scene|Adegan|Bagian|Part)\\s+[a-zA-Z0-9_\\-]+|\\r?\\n+(?:#{1,6}\\s*|\\*{2,3}\\s*|={2,4}\\s*)*(?:TOTAL|THUMBNAIL|METADATA|RINGKASAN|HASHTAG|CAPTION)|$)`;
+  const delimiters = "(?:Konteks\\s*Scene|Konteks\\s*Adegan|Scene\\s*Context|Konteks|Context|Narasi|Dialog|Voice\\s*Over|VO|Audio|Target\\s*Emosi(?:\\s*\\(VET\\))?|Emosi|Teknik\\s*(?:Editing(?:\\s*&\\s*Pacing)?|Pacing)|Pacing|Teks\\s*Overlay|Text\\s*Overlay|Overlay|Panduan\\s*Suara|Voice\\s*Guidelines|Setting\\s*Kamera|Camera\\s*Setup|Visual\\s*Prompt|Visual|Deskripsi\\s*Visual|Prompt|Komponen\\s*Remotion|Remotion\\s*Component|Motion\\s*Design|Elemen\\s*Visual|Animasi(?:\\s*&\\s*Spring)?|Spring(?:\\s*Animation)?|Transisi|Durasi|Time|Duration)";
+  const delimLookahead = `(?=(?:\\r?\\n)+(?:\\*\\*)?${delimiters}(?::\\s*\\*\\*|\\*\\*\\s*:|:)|\\r?\\n+[-*_]{3,}|\\r?\\n+(?:#{1,6}\\s*|\\*{2,3}\\s*|={2,4}\\s*)*(?:Scene|Adegan|Bagian|Part)\\s+[a-zA-Z0-9_\\-]+|\\r?\\n+(?:#{1,6}\\s*|\\*{2,3}\\s*|={2,4}\\s*)*(?:TOTAL|THUMBNAIL|METADATA|RINGKASAN|HASHTAG|CAPTION|KODE\\s*REMOTION|REMOTION\\s*CODE)|$)`;
 
   // Helper: find which chapter a given text offset belongs to
   function findChapterAt(offset: number): { prefix: string; num: number; title: string } | undefined {
@@ -896,7 +896,7 @@ export function parseScenes(text: string, speechRateSec: number = 0.35): Scene[]
       const sceneStartOffset = charOffset;
       charOffset += content.length;
 
-      const stop = /(?:^|\r?\n)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:TOTAL\s*DURASI|TOTAL|RINGKASAN|THUMBNAIL|ARTIKEL|HASHTAG|CAPTION|JUDUL\s*TERPILIH|HTML\s*BLOG|REKOMENDASI|METADATA\s*SEO)/i;
+      const stop = /(?:^|\r?\n)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:TOTAL\s*DURASI|TOTAL|RINGKASAN|THUMBNAIL|ARTIKEL|HASHTAG|CAPTION|JUDUL\s*TERPILIH|HTML\s*BLOG|REKOMENDASI|METADATA\s*SEO|KODE\s*REMOTION|REMOTION\s*CODE)/i;
       const m = content.match(stop);
       const c = m ? content.slice(0, m.index) : content;
 
@@ -910,10 +910,10 @@ export function parseScenes(text: string, speechRateSec: number = 0.35): Scene[]
       const emosi = matchField("Target\\s*Emosi(?:\\s*\\(VET\\))?|Emosi");
       const pacing = matchField("Teknik\\s*(?:Editing(?:\\s*&\\s*Pacing)?|Pacing)|Pacing");
       const overlay = matchField("Teks\\s*Overlay|Text\\s*Overlay|Overlay");
-      const vis = matchField("Visual\\s*Prompt|Visual|Deskripsi\\s*Visual|Prompt");
+      const vis = matchField("Visual\\s*Prompt|Visual|Deskripsi\\s*Visual|Prompt|Motion\\s*Design|Elemen\\s*Visual");
       const dur = matchField("Durasi|Time|Duration");
       const voi = matchField("Panduan\\s*Suara|Voice\\s*Guidelines");
-      const cam = matchField("Setting\\s*Kamera|Camera\\s*Setup");
+      const cam = matchField("Setting\\s*Kamera|Camera\\s*Setup|Komponen\\s*Remotion|Remotion\\s*Component|Animasi(?:\\s*&\\s*Spring)?|Spring(?:\\s*Animation)?|Transisi");
 
       let contextVal = context ? cleanParsedValue(context[1]) : "";
       if (contextVal.startsWith("[") && contextVal.endsWith("]")) {
@@ -1150,6 +1150,42 @@ export function buildCombinedYouTubeTags(
   }
 
   return result.join(", ");
+}
+
+/**
+ * Ekstrak blok kode TypeScript/TSX Remotion dari teks naskah jika ada.
+ * Mendeteksi blok ```tsx atau ```typescript yang memuat import dari 'remotion'
+ * atau komponen Remotion bawaan seperti AbsoluteFill / useCurrentFrame.
+ */
+export function extractRemotionCode(text: string): string | null {
+  if (!text || !text.trim()) return null;
+
+  // Pola 1: Iterasi seluruh blok kode terpagar (fenced code blocks)
+  const codeBlockRegex = /```(?:[a-zA-Z0-9_\-]+)?\s*([\s\S]*?)```/g;
+  let blockMatch: RegExpExecArray | null;
+  while ((blockMatch = codeBlockRegex.exec(text)) !== null) {
+    const rawContent = blockMatch[1]?.trim();
+    if (!rawContent) continue;
+    const isRemotion =
+      /(?:from\s+['"]remotion['"]|<AbsoluteFill|useCurrentFrame|useVideoConfig|Composition)/i.test(rawContent);
+    if (isRemotion) {
+      return rawContent;
+    }
+  }
+
+  // Pola 2: Fallback jika kode Remotion diletakkan di bawah header ## KODE REMOTION tanpa markdown backticks
+  const headerMatch = text.match(/(?:##\s*|###\s*|\*\*\s*|\b)(?:KODE\s*REMOTION|REMOTION\s*CODE)[^\n]*\n([\s\S]*)/i);
+  if (headerMatch && headerMatch[1]) {
+    const afterHeader = headerMatch[1].trim();
+    const nextHeaderIdx = afterHeader.search(/\n##\s+/);
+    const candidate = (nextHeaderIdx !== -1 ? afterHeader.substring(0, nextHeaderIdx) : afterHeader).trim();
+    const cleaned = candidate.replace(/^```[a-zA-Z0-9_\-]*\s*/i, "").replace(/```\s*$/i, "").trim();
+    if (/(?:from\s+['"]remotion['"]|<AbsoluteFill|useCurrentFrame|useVideoConfig|Composition)/i.test(cleaned)) {
+      return cleaned;
+    }
+  }
+
+  return null;
 }
 
 
