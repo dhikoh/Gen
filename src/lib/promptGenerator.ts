@@ -1,5 +1,5 @@
 import { resolveVisualStyle } from "./visualStyleMap";
-import { DEFAULT_SCENE_COUNT } from "./sceneLimits";
+import { DEFAULT_SCENE_COUNT, autoSceneRange, MIN_SEC_PER_SCENE, MAX_SEC_PER_SCENE, type AutoSceneRange } from "./sceneLimits";
 import { THEME_STYLES, getRemotionDimensions, type RemotionTheme } from "./remotionPromptBuilder";
 
 export interface ContentArchetypeData {
@@ -137,6 +137,8 @@ export interface SpeechRateTimingCalculation {
   minWordsPerScene: number;
   maxWordsPerScene: number;
   rateLabel: string;
+  isAutoScene: boolean;
+  sceneRange: AutoSceneRange;
 }
 
 /**
@@ -186,17 +188,17 @@ export function calculateSpeechRateTiming(
   const speechRateSec = resolveSpeechRateSecondsPerWord(rawSpeechRate, fallbackRate);
   const targetDurationSec = (targetDuration && targetDuration > 0) ? targetDuration : 60;
 
-  let targetSceneCount = 6;
+  // Patch #104: Proportional Scene-Duration Guard
+  // Manual scene count → honor user input. Auto → proportional 4-10s/scene.
+  let targetSceneCount: number;
+  let isAutoScene = false;
+  const sceneRange = autoSceneRange(targetDurationSec);
+
   if (targetScenes && targetScenes > 0) {
     targetSceneCount = targetScenes;
-  } else if (targetDurationSec <= 30) {
-    targetSceneCount = 3;
-  } else if (targetDurationSec <= 60) {
-    targetSceneCount = 6;
-  } else if (targetDurationSec <= 90) {
-    targetSceneCount = 8;
   } else {
-    targetSceneCount = Math.max(8, Math.round(targetDurationSec / 10));
+    targetSceneCount = sceneRange.recommended;
+    isAutoScene = true;
   }
 
   const wpm = Math.round(60 / speechRateSec);
@@ -227,6 +229,8 @@ export function calculateSpeechRateTiming(
     minWordsPerScene,
     maxWordsPerScene,
     rateLabel,
+    isAutoScene,
+    sceneRange,
   };
 }
 
@@ -961,7 +965,14 @@ ${structural.hookStrategyDirective}`;
     if (hasHashtag) formatOutputWajib += `HASHTAGS: [Kumpulan hashtag optimasi jangkauan viral]\n`;
   }
 
-  const sceneCount = videoConfig.targetSceneCount ?? DEFAULT_SCENE_COUNT;
+  // Patch #104: Unify sceneCount with timingCalc (moved calculation earlier)
+  const earlyTimingCalc = calculateSpeechRateTiming(
+    videoConfig.speechRate,
+    videoConfig.targetDurationSec,
+    videoConfig.targetSceneCount,
+    (channel.speechRate ? `${channel.speechRate} detik/kata` : null) || promptSettings?.defaultSpeechRate
+  );
+  const sceneCount = earlyTimingCalc.targetSceneCount;
   const remotionThemeName = ((videoConfig.remotionTheme as RemotionTheme) || "modern");
   const themeMeta = THEME_STYLES[remotionThemeName] || THEME_STYLES.modern;
 
@@ -1097,15 +1108,25 @@ Jumlah bab ditentukan secara natural berdasarkan alur konten (biasanya 3-6 bab u
       ? "SCENE CONTEXT: [Concise narrative action/event of scene 2]"
       : "KONTEKS SCENE: [Konteks kejadian/aksi adegan kedua]";
 
-    const sceneLimitInstruction = isEnglishOutput
-      ? `\nSCENE LIMIT: Create EXACTLY ${sceneCount} scenes (SCENE 1 to SCENE ${sceneCount}). DO NOT create more than ${sceneCount} scenes. If content is insufficient, merge into existing scenes. If content is too long, prioritize the most important.\n`
-      : `\nBATAS SCENE: Buat TEPAT ${sceneCount} scene (SCENE 1 sampai SCENE ${sceneCount}). DILARANG membuat lebih dari ${sceneCount} scene. Jika konten tidak cukup, gabungkan ke scene yang ada. Jika konten terlalu banyak, pilih yang paling penting.\n`;
+    // Patch #104: Guided-flexible scene instruction for auto mode,
+    // rigid exact count for manual mode.
+    const sceneLimitInstruction = earlyTimingCalc.isAutoScene
+      ? (isEnglishOutput
+        ? `\nSCENE RECOMMENDATION (GUIDED-FLEXIBLE — AUTO MODE):\n- Recommended: ~${sceneCount} scenes (acceptable range: ${earlyTimingCalc.sceneRange.min}–${earlyTimingCalc.sceneRange.max} scenes).\n- Each scene MUST have a natural duration of ${MIN_SEC_PER_SCENE}–${MAX_SEC_PER_SCENE} seconds. DO NOT create micro-scenes under ${MIN_SEC_PER_SCENE} seconds.\n- Scene count is a RECOMMENDATION — you MAY use fewer or more scenes as long as:\n  1. Total duration across all scenes EQUALS ${earlyTimingCalc.targetDurationSec} seconds (MANDATORY).\n  2. Every scene lasts ${MIN_SEC_PER_SCENE}–${MAX_SEC_PER_SCENE} seconds (MANDATORY).\n  3. Pacing feels natural for storytelling, NOT fragmented micro-cuts.\n- Use your judgment: topics needing deep explanation → fewer, longer scenes. Topics needing fast rhythm → more, shorter scenes.\n`
+        : `\nREKOMENDASI SCENE (GUIDED-FLEXIBLE — MODE AUTO):\n- Rekomendasi: ~${sceneCount} scene (rentang wajar: ${earlyTimingCalc.sceneRange.min}–${earlyTimingCalc.sceneRange.max} scene).\n- Setiap scene WAJIB berdurasi ${MIN_SEC_PER_SCENE}–${MAX_SEC_PER_SCENE} detik. DILARANG membuat micro-scene di bawah ${MIN_SEC_PER_SCENE} detik.\n- Jumlah scene bersifat REKOMENDASI — kamu BOLEH menyesuaikan lebih sedikit atau lebih banyak selama:\n  1. Total durasi seluruh scene TETAP = ${earlyTimingCalc.targetDurationSec} detik (WAJIB).\n  2. Setiap scene berdurasi ${MIN_SEC_PER_SCENE}–${MAX_SEC_PER_SCENE} detik (WAJIB).\n  3. Pacing terasa natural untuk storytelling, BUKAN fragmentasi mikro.\n- Gunakan pertimbanganmu: topik yang butuh penjelasan mendalam → scene lebih sedikit dan lebih panjang. Topik yang butuh ritme cepat → scene lebih banyak dan lebih pendek.\n`)
+      : (isEnglishOutput
+        ? `\nSCENE LIMIT: Create EXACTLY ${sceneCount} scenes (SCENE 1 to SCENE ${sceneCount}). DO NOT create more than ${sceneCount} scenes. If content is insufficient, merge into existing scenes. If content is too long, prioritize the most important.\n`
+        : `\nBATAS SCENE: Buat TEPAT ${sceneCount} scene (SCENE 1 sampai SCENE ${sceneCount}). DILARANG membuat lebih dari ${sceneCount} scene. Jika konten tidak cukup, gabungkan ke scene yang ada. Jika konten terlalu banyak, pilih yang paling penting.\n`);
 
     formatOutputWajib += `${syntaxGuide}${sceneLimitInstruction}\n## SCENE 1\n${scene1Context}\nNARASI: [${narasiExample}]\nTARGET EMOSI (VET): [Target emosi spesifik penonton: misal Rasa Ingin Tahu / Shock / Empati / Kelegaan / Urgensi]\nTEKNIK EDITING & PACING: [Instruksi pacing: misal Jump Cut (0s dead-air) / B-Roll Cutaway Overlay / Visual Beat Sync / Stabilized Flow]\nTEKS OVERLAY: [${overlayInstruction}]\nPANDUAN SUARA: [${panduanSuaraExample}]\nSETTING KAMERA: [${cameraSettingFieldHint}]\nVISUAL PROMPT: [${visualPromptInstruction}]${arSuffix}\nDURASI: [Estimasi durasi adegan dalam detik, contoh: 5 detik]\n`;
     formatOutputWajib += `\n## SCENE 2\n${scene2Context}\nNARASI: [Narasi / dialog adegan kedua dengan tanda kurung siku cue akting bahasa Inggris [...] (contoh wajib bahasa Inggris: [beat], [pause], [sigh], [whisper], [gasp], [chuckle])]\nTARGET EMOSI (VET): [Target emosi adegan kedua]\nTEKNIK EDITING & PACING: [Instruksi pacing adegan kedua]\nTEKS OVERLAY: [${overlayStyle === "minimal" ? 'Overlay hanya jika sangat diperlukan, strip "—" jika tidak' : 'Teks overlay sesuai jenis yang dipilih di atas'}]\nPANDUAN SUARA: [${panduanSuaraExample}]\nSETTING KAMERA: [Setting kamera adegan kedua, format sama seperti SCENE 1]\nVISUAL PROMPT: [Tulis prompt visual adegan kedua secara TEMPORAL (klip berjalan, bukan snapshot): deskripsikan Subject Micro-Action, Environment Dynamics, dan Camera Movement + Timing, bahasa Inggris.]${arSuffix}\nDURASI: [Estimasi durasi]\n`;
 
     if (sceneCount && sceneCount > 2) {
-      formatOutputWajib += `\n...dan seterusnya hingga TEPAT SCENE ${sceneCount}. Kamu WAJIB menghasilkan TEPAT ${sceneCount} SCENE.\n`;
+      if (earlyTimingCalc.isAutoScene) {
+        formatOutputWajib += `\n...dan seterusnya. Targetkan ~${sceneCount} scene (boleh lebih sedikit atau lebih banyak dalam rentang ${earlyTimingCalc.sceneRange.min}–${earlyTimingCalc.sceneRange.max} sesuai kebutuhan konten), pastikan total durasi = ${earlyTimingCalc.targetDurationSec} detik dan setiap scene berdurasi ${MIN_SEC_PER_SCENE}–${MAX_SEC_PER_SCENE} detik.\n`;
+      } else {
+        formatOutputWajib += `\n...dan seterusnya hingga TEPAT SCENE ${sceneCount}. Kamu WAJIB menghasilkan TEPAT ${sceneCount} SCENE.\n`;
+      }
     } else {
       formatOutputWajib += `\n...dan seterusnya sesuai alur naskah hingga selesai.\n`;
     }
@@ -1158,12 +1179,8 @@ PENTING: Tulis kode secara LENGKAP dan deterministik tanpa placeholder agar vide
     formatOutputWajib += `\n## HTML BLOG\nTulis sebuah artikel blog berbasis naskah video di atas dengan ketentuan berikut:\n1. Panjang artikel: 400–600 kata, SEO-friendly, dengan sub-heading menggunakan tag <h2> dan <h3>.\n2. Meta Description: Tulis meta description 150-160 karakter di bawah judul artikel (label: META DESCRIPTION:).\n3. Judul Artikel (H1): Tulis judul artikel blog yang mengandung kata kunci utama, menarik untuk diklik.\n4. Isi Artikel: Kembangkan narasi video menjadi artikel lengkap. Gunakan paragraf pendek (2-4 kalimat), tambahkan contoh konkret, statistik fiktif yang masuk akal, dan CTA di akhir.\n5. Format output WAJIB HTML murni (bukan Markdown), siap ditempel ke CMS. Mulai dari <h1> hingga paragraf penutup.\n`;
   }
 
-  const timingCalc = calculateSpeechRateTiming(
-    videoConfig.speechRate,
-    videoConfig.targetDurationSec,
-    videoConfig.targetSceneCount,
-    (channel.speechRate ? `${channel.speechRate} detik/kata` : null) || promptSettings?.defaultSpeechRate
-  );
+  // Patch #104: Reuse earlyTimingCalc (already computed above) to avoid double calculation
+  const timingCalc = earlyTimingCalc;
 
   const isVoiceOver = effectiveNarrationMode === "VOICE_OVER" || effectiveNarrationMode === "HYBRID";
   const durationCalcMode = effectiveArchetype?.durationCalcMode || "HYBRID";
@@ -1381,9 +1398,14 @@ ${structural.narrationModeDirective}
   }
 
   // ── Duration & Scene Count ─────────────────────────────────────────────
-  const durationText = isEnglishOutput
-    ? `\n[TARGET VIDEO DURATION & SCENE CONTROL]\nTarget duration is MANDATORY: total duration across all scenes must equal or closely match ${timingCalc.targetDurationSec} seconds${isVoiceOver ? ` (total narration ~${timingCalc.totalTargetWords} words at ${timingCalc.speechRateSec} s/word)` : ""}. Ensure exactly ${timingCalc.targetSceneCount} scenes are produced and the sum of all "DURASI:" fields equals ${timingCalc.targetDurationSec} seconds.\n`
-    : `\n[TARGET DURASI VIDEO & KONTROL SCENE]\nWAJIB mengarahkan estimasi durasi agar akumulasi seluruh scene TEPAT atau mendekati ${timingCalc.targetDurationSec} detik${isVoiceOver ? ` (total narasi ~${timingCalc.totalTargetWords} kata pada kecepatan ${timingCalc.speechRateSec} s/kata)` : ""}. Pastikan jumlah seluruh scene adalah TEPAT ${timingCalc.targetSceneCount} scene dan total nilai pada field DURASI dari Scene 1 sampai Scene ${timingCalc.targetSceneCount} berjumlah ${timingCalc.targetDurationSec} detik.\n`;
+  // Patch #104: Flexible duration text for auto mode vs rigid for manual
+  const durationText = timingCalc.isAutoScene
+    ? (isEnglishOutput
+      ? `\n[TARGET VIDEO DURATION & SCENE CONTROL — GUIDED-FLEXIBLE]\nTarget duration is MANDATORY: total duration across all scenes must equal or closely match ${timingCalc.targetDurationSec} seconds${isVoiceOver ? ` (total narration ~${timingCalc.totalTargetWords} words at ${timingCalc.speechRateSec} s/word)` : ""}. Aim for ~${timingCalc.targetSceneCount} scenes (acceptable: ${timingCalc.sceneRange.min}–${timingCalc.sceneRange.max}). Each scene should be ${MIN_SEC_PER_SCENE}–${MAX_SEC_PER_SCENE} seconds. Adjust scene count to fit the content naturally — the total duration is the hard constraint, not the exact scene count.\n`
+      : `\n[TARGET DURASI VIDEO & KONTROL SCENE — GUIDED-FLEXIBLE]\nWAJIB mengarahkan estimasi durasi agar akumulasi seluruh scene TEPAT atau mendekati ${timingCalc.targetDurationSec} detik${isVoiceOver ? ` (total narasi ~${timingCalc.totalTargetWords} kata pada kecepatan ${timingCalc.speechRateSec} s/kata)` : ""}. Targetkan ~${timingCalc.targetSceneCount} scene (rentang wajar: ${timingCalc.sceneRange.min}–${timingCalc.sceneRange.max}). Setiap scene berdurasi ${MIN_SEC_PER_SCENE}–${MAX_SEC_PER_SCENE} detik. Sesuaikan jumlah scene dengan kebutuhan konten secara natural — total durasi adalah batasan ketat, bukan jumlah scene yang persis.\n`)
+    : (isEnglishOutput
+      ? `\n[TARGET VIDEO DURATION & SCENE CONTROL]\nTarget duration is MANDATORY: total duration across all scenes must equal or closely match ${timingCalc.targetDurationSec} seconds${isVoiceOver ? ` (total narration ~${timingCalc.totalTargetWords} words at ${timingCalc.speechRateSec} s/word)` : ""}. Ensure exactly ${timingCalc.targetSceneCount} scenes are produced and the sum of all "DURASI:" fields equals ${timingCalc.targetDurationSec} seconds.\n`
+      : `\n[TARGET DURASI VIDEO & KONTROL SCENE]\nWAJIB mengarahkan estimasi durasi agar akumulasi seluruh scene TEPAT atau mendekati ${timingCalc.targetDurationSec} detik${isVoiceOver ? ` (total narasi ~${timingCalc.totalTargetWords} kata pada kecepatan ${timingCalc.speechRateSec} s/kata)` : ""}. Pastikan jumlah seluruh scene adalah TEPAT ${timingCalc.targetSceneCount} scene dan total nilai pada field DURASI dari Scene 1 sampai Scene ${timingCalc.targetSceneCount} berjumlah ${timingCalc.targetDurationSec} detik.\n`);
 
   // ── Product Context ────────────────────────────────────────────────────
   // Hanya inject productContext jika affiliateAngle TIDAK aktif.

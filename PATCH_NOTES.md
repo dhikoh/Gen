@@ -58,6 +58,40 @@
 > | `[#101]` | Fitur #101 (Bagian 51) | Channel Ecosystem Bundle (JSON) Export & Import dengan Sinkronisasi Otomatis Generator Studio | 2026-10-19 |
 > | `[#102]` | Fitur #102 | Pop-up Validasi Komposisi & Redesain Docking Tombol Generate Desktop/PWA | 2026-10-19 |
 > | `[#103]` | Fitur #103 | Dedicated Ambient Audio & Foley Natural Sound Layer ([AMBIENT: ...]) | 2026-10-19 |
+> | `[#104]` | Fitur #104 | Proportional Scene-Duration Guard & Guided-Flexible Scene Count (4–10s/scene) | 2026-10-19 |
+
+---
+
+## [#104] — 2026-10-19 | Proportional Scene-Duration Guard & Guided-Flexible Scene Count
+
+### Problem
+Prompt generator menggunakan tier hardcoded untuk auto scene count (≤30s→3, ≤60s→6, ≤90s→8) yang menghasilkan scene berdurasi 10+ detik — terlalu panjang dan drag untuk short-form. Sebaliknya, jika user memasukkan scene count tinggi secara manual, AI cenderung membuat micro-scene fragmentasi (<2 detik/scene). Instruksi prompt rigid "BUAT TEPAT X SCENE" juga memaksa AI mengisi exact count tanpa ruang pertimbangan kreatif.
+
+### Solution
+Tiga layer perubahan saling terhubung:
+
+1. **Proportional Auto-Calculation (`src/lib/sceneLimits.ts`)**:
+   - Konstanta baru: `MIN_SEC_PER_SCENE = 4`, `MAX_SEC_PER_SCENE = 10`, `AUTO_SWEET_SPOT_SEC = 5`.
+   - `autoSceneCount()` mengganti tier hardcoded dengan formula proporsional: `round(duration / 5)` + clamp 4–10 detik/scene.
+   - Fungsi baru `autoSceneRange()` mengembalikan `{ recommended, min, max }` untuk instruksi fleksibel.
+   - Contoh: 60s → 12 scene (5s each), bukan 6 scene lama (10s each).
+
+2. **Guided-Flexible Prompt Instructions (`src/lib/promptGenerator.ts`)**:
+   - **Auto mode**: Instruksi berubah dari "BUAT TEPAT 12 SCENE" menjadi "REKOMENDASI ~12 scene (rentang wajar: 6–15). Setiap scene WAJIB berdurasi 4–10 detik. Kamu BOLEH menyesuaikan jumlah scene berdasarkan kebutuhan konten." — AI mendapat kebebasan kreatif dengan guardrail.
+   - **Manual mode**: Tetap rigid "BUAT TEPAT X SCENE" — menghormati pilihan eksplisit user.
+   - Durasi total tetap **hard constraint** (tidak berubah).
+   - `SpeechRateTimingCalculation` interface diperkaya dengan `isAutoScene` dan `sceneRange`.
+
+3. **Unified sceneCount Resolution**:
+   - `sceneCount` di prompt output kini berasal dari `earlyTimingCalc.targetSceneCount` (sumber kebenaran tunggal), bukan `videoConfig.targetSceneCount ?? DEFAULT_SCENE_COUNT` yang bisa mismatch.
+
+### Files Changed
+- `src/lib/sceneLimits.ts` — Konstanta proporsional + `autoSceneRange()`.
+- `src/lib/promptGenerator.ts` — Guided-flexible vs rigid branching, unified sceneCount.
+- `src/lib/__tests__/sceneLimits.test.ts` — 20 test cases updated (proportional formula + range).
+
+### Test Results
+- 398 tests passed across 43 test suites ✅
 
 ---
 
