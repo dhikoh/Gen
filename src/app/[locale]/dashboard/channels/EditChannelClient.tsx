@@ -217,7 +217,7 @@ export default function EditChannelClient({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium pg-text-sub mb-1">
-              {t("channelName")} <span className="text-red-500">*</span>
+              {t("channelName")} <span className="text-[var(--pg-danger)]">*</span>
             </label>
             <input
               type="text"

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   autoSceneCount,
   clampSceneCount,
+  reachableDurationSec,
   MAX_SCENE_COUNT,
   MIN_SCENE_COUNT,
 } from "@/lib/sceneLimits";
@@ -45,5 +46,15 @@ describe("sceneLimits", () => {
 
   it("clampSceneCount accepts string number", () => {
     expect(clampSceneCount("25")).toBe(25);
+  });
+
+  it("reachableDurationSec returns target duration when reachable", () => {
+    expect(reachableDurationSec(60, "medium")).toBe(60);
+    expect(reachableDurationSec(600, "slow")).toBe(600);
+  });
+
+  it("reachableDurationSec truncates duration when exceeding MAX_SCENE_COUNT", () => {
+    expect(reachableDurationSec(600, "fast")).toBe(360);
+    expect(reachableDurationSec(600, 2)).toBe(240);
   });
 });

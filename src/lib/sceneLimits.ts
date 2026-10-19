@@ -40,6 +40,22 @@ export function autoSceneCount(
 }
 
 /**
+ * Apakah target durasi yang diminta user masih bisa dicapai setelah di-clamp
+ * ke MAX_SCENE_COUNT? Mengembalikan detik yang benar-benar bisa dicapai.
+ */
+export function reachableDurationSec(
+  targetDurationSec: number,
+  speechRate: string | number = "medium"
+): number {
+  const rateMap: Record<string, number> = { slow: 6, medium: 4, fast: 3 };
+  const avgSecPerScene =
+    typeof speechRate === "number"
+      ? Math.max(2, Math.min(10, speechRate))
+      : rateMap[String(speechRate).toLowerCase()] ?? 4;
+  return Math.min(targetDurationSec, MAX_SCENE_COUNT * avgSecPerScene);
+}
+
+/**
  * Validasi angka scene dari input user.
  * Mengembalikan angka yang sudah di-clamp, atau null jika input bukan angka.
  */

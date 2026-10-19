@@ -11,5 +11,9 @@ export default async function AdminNotificationsPage({ params }: { params: Promi
     redirect(`/${locale}/dashboard`);
   }
 
-  return <AdminNotificationsClient />;
+  return (
+    <div className="pg-surface-dim">
+      <AdminNotificationsClient />
+    </div>
+  );
 }

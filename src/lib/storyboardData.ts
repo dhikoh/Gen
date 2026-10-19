@@ -5,10 +5,7 @@ import {
   type StoryboardScene,
   type StyleBible,
 } from "@/lib/storyboardPromptBuilder";
-
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null && !Array.isArray(v);
-}
+import { isRecord } from "@/lib/typeGuards";
 
 function str(v: unknown): string {
   return typeof v === "string" ? v : "";

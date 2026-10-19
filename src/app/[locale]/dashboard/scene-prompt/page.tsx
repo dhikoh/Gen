@@ -70,13 +70,15 @@ export default async function ScenePromptPage({ params, searchParams }: PageProp
   };
 
   return (
-    <ScenePromptStudioClient
-      channels={channels}
-      locale={locale}
-      planFeatures={planFeatures}
-      initialDraft={initialDraft || undefined}
-      initialParsedOutputs={initialParsedOutputs}
-      userId={session.user.id}
-    />
+    <main className="pg-bg-page min-h-screen">
+      <ScenePromptStudioClient
+        channels={channels}
+        locale={locale}
+        planFeatures={planFeatures}
+        initialDraft={initialDraft || undefined}
+        initialParsedOutputs={initialParsedOutputs}
+        userId={session.user.id}
+      />
+    </main>
   );
 }

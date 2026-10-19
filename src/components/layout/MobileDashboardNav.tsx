@@ -55,6 +55,7 @@ const UserIcon = () => (
 const DRAWER_ITEMS = [
   { key: "research",       icon: "🔍", labelKey: "research",          href: (l: string) => `/${l}/dashboard/research` },
   { key: "scene-prompt",   icon: "🎬", labelKey: "scenePromptStudio", href: (l: string) => `/${l}/dashboard/scene-prompt` },
+  { key: "remotion-studio", icon: "⚛️", labelKey: "remotionStudio",    href: (l: string) => `/${l}/dashboard/remotion-studio` },
   { key: "billing",        icon: "💳", labelKey: "billing",            href: (l: string) => `/${l}/dashboard/billing` },
   { key: "pricing",        icon: "💎", labelKey: "pricingPlans",       href: (l: string) => `/${l}/dashboard/pricing` },
   { key: "notifications",  icon: "🔔", labelKey: "notifications",      href: (l: string) => `/${l}/dashboard/notifications` },

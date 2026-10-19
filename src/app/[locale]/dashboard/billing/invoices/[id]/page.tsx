@@ -63,5 +63,9 @@ export default async function InvoiceReceiptPage({
     plan: invoice.plan,
   };
 
-  return <PrintableInvoiceClient invoice={serializedInvoice} locale={locale} />;
+  return (
+    <div className="pg-surface-dim min-h-screen">
+      <PrintableInvoiceClient invoice={serializedInvoice} locale={locale} />
+    </div>
+  );
 }

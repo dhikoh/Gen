@@ -22,6 +22,8 @@ function base64ToUint8Array(base64Str: string): Uint8Array {
   return new Uint8Array(buf.buffer, buf.byteOffset, buf.length);
 }
 
+const REMOTION_VERSION = "4.0.536";
+
 /**
  * Buat paket ZIP mandiri yang siap di-render di PC pengguna via terminal / render.bat.
  * 100% diproses di client menggunakan JSZip bawaan repo.
@@ -38,22 +40,20 @@ export async function exportRemotionZip(
 
   // 1. package.json
   const packageJson = {
-    name: `remotion-${componentName.toLowerCase()}`,
+    name: "remotion-video-project",
     version: "1.0.0",
     private: true,
     scripts: {
+      build: `remotion render src/index.ts ${componentName} out/video.mp4`,
       preview: "remotion preview src/index.ts",
-      build: `remotion render ${componentName} out.mp4`,
     },
     dependencies: {
-      react: "^19.0.0",
-      "react-dom": "^19.0.0",
-      remotion: "^4.0.0",
+      remotion: REMOTION_VERSION,
     },
     devDependencies: {
-      "@types/react": "^19.0.0",
-      "@types/react-dom": "^19.0.0",
+      "@remotion/cli": REMOTION_VERSION,
       typescript: "^5.0.0",
+      "@types/react": "^18.0.0",
     },
   };
   zip.file("package.json", JSON.stringify(packageJson, null, 2) + "\n");
@@ -89,7 +89,7 @@ export async function exportRemotionZip(
     if (scene.audioRef) {
       try {
         const audioBytes = base64ToUint8Array(scene.audioRef);
-        zip.file(`public/audio/scene-${scene.sceneNumber}.mp3`, audioBytes);
+        zip.file(`public/audio/scene-${scene.sceneNumber}.wav`, audioBytes);
       } catch (err) {
         console.warn(`Gagal menyertakan audio scene ${scene.sceneNumber} ke ZIP:`, err);
       }

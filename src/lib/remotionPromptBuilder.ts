@@ -142,7 +142,7 @@ function truncate(value: string, max: number): string {
 }
 
 function audioPath(index: number): string {
-  return "audio/scene-" + index + ".mp3";
+  return "audio/scene-" + index + ".wav";
 }
 
 const RESERVED_NAMES: ReadonlySet<string> = new Set([
@@ -423,7 +423,7 @@ export function buildRemotionPrompt(
     "6. STYLING: Inline styles only. No className, no Tailwind, no CSS files, no external fonts, no network URLs. Use the font stack given above.",
   );
   L.push(
-    "7. ASSETS: Use <Img> from 'remotion' instead of <img>. Load audio only via staticFile('audio/scene-N.mp3') as specified per scene.",
+    "7. ASSETS: Use <Img> from 'remotion' instead of <img>. Load audio only via staticFile('audio/scene-N.wav') as specified per scene.",
   );
   L.push(
     "8. TYPES: Strict TypeScript. No `any`, no @ts-ignore. Type all component props explicitly and use React.FC.",

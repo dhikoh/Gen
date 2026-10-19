@@ -9,7 +9,7 @@ export default async function AdminSupportPage() {
   await requireRole(["SUPERADMIN"]);
 
   return (
-    <div className="max-w-6xl mx-auto py-2">
+    <div className="max-w-6xl mx-auto py-2 pg-surface-dim">
       <AdminSupportClient />
     </div>
   );

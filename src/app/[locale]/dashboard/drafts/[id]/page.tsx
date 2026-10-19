@@ -552,7 +552,7 @@ export default async function DraftDetailPage({
  {variation.negative_prompt && variation.negative_prompt !== "None" && (
  <div className="bg-red-50 dark:bg-red-900/10 p-3 rounded border border-red-100 dark:border-red-900/30">
  <p className="text-xs font-bold text-red-800 dark:text-red-600 mb-1">{t('negativePrompt')}</p>
- <p className="text-sm text-red-900 dark:text-red-500">{variation.negative_prompt}</p>
+ <p className="text-sm text-red-900 dark:text-[var(--pg-danger)]">{variation.negative_prompt}</p>
  </div>
  )}
  </div>

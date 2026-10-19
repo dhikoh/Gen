@@ -352,7 +352,7 @@ export default function AdminArchetypesTab() {
             <form onSubmit={handleSubmit} className="space-y-4 text-xs">
               <div>
                 <label className="block font-medium pg-text-sub mb-1">
-                  {t("nameLabel")} <span className="text-red-500">*</span>
+                  {t("nameLabel")} <span className="text-[var(--pg-danger)]">*</span>
                 </label>
                 <input
                   type="text"
@@ -364,7 +364,7 @@ export default function AdminArchetypesTab() {
                   required
                 />
                 {editingItem?.isSystem && (
-                  <p className="text-[10px] text-amber-500 mt-1">{t("systemNameWarning")}</p>
+                  <p className="text-[10px] text-[var(--pg-warning)] mt-1">{t("systemNameWarning")}</p>
                 )}
               </div>
 
@@ -420,7 +420,7 @@ export default function AdminArchetypesTab() {
 
               <div>
                 <label className="block font-medium pg-text-sub mb-1">
-                  {t("emotionalArcLabel")} <span className="text-red-500">*</span>
+                  {t("emotionalArcLabel")} <span className="text-[var(--pg-danger)]">*</span>
                 </label>
                 <input
                   type="text"

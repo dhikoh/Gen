@@ -867,6 +867,13 @@ export function parseScenes(text: string, speechRateSec: number = 0.35): Scene[]
   const splitter = /(?:^|\r?\n)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:Scene|Adegan|Bagian|Part)\s*([a-zA-Z0-9_\-]+)(?:[:\s\*\-=_]*)(?=\r?\n|$)/gi;
   const parts = text.split(splitter);
   const scenes: Scene[] = [];
+  // CATATAN: string ini memakai empat backslash sehingga runtime-nya menjadi dua
+  // backslash, yang berarti alternatif di sini COCOK LITERAL DENGAN BACKSLASH,
+  // bukan dengan spasi. Artinya daftar ini secara efektif tidak pernah cocok.
+  // Ekstraksi field tetap bekerja lewat alternatif `$` di delimLookahead dan
+  // lewat parameter `keys` pada matchField (escaping-nya benar di sana).
+  // Jangan menambah daftar ini tanpa memperbaiki escaping-nya lebih dulu, dan
+  // jalankan tests/parsers.scenes.test.ts bila mengubahnya.
   const delimiters = "(?:Konteks\\s*Scene|Konteks\\s*Adegan|Scene\\s*Context|Konteks|Context|Narasi|Dialog|Voice\\s*Over|VO|Audio|Target\\s*Emosi(?:\\s*\\(VET\\))?|Emosi|Teknik\\s*(?:Editing(?:\\s*&\\s*Pacing)?|Pacing)|Pacing|Teks\\s*Overlay|Text\\s*Overlay|Overlay|Panduan\\s*Suara|Voice\\s*Guidelines|Setting\\s*Kamera|Camera\\s*Setup|Visual\\s*Prompt|Visual|Deskripsi\\s*Visual|Prompt|Komponen\\s*Remotion|Remotion\\s*Component|Motion\\s*Design|Elemen\\s*Visual|Animasi(?:\\s*&\\s*Spring)?|Spring(?:\\s*Animation)?|Transisi|Durasi|Time|Duration)";
   const delimLookahead = `(?=(?:\\r?\\n)+(?:\\*\\*)?${delimiters}(?::\\s*\\*\\*|\\*\\*\\s*:|:)|\\r?\\n+[-*_]{3,}|\\r?\\n+(?:#{1,6}\\s*|\\*{2,3}\\s*|={2,4}\\s*)*(?:Scene|Adegan|Bagian|Part)\\s+[a-zA-Z0-9_\\-]+|\\r?\\n+(?:#{1,6}\\s*|\\*{2,3}\\s*|={2,4}\\s*)*(?:TOTAL|THUMBNAIL|METADATA|RINGKASAN|HASHTAG|CAPTION|KODE\\s*REMOTION|REMOTION\\s*CODE)|$)`;
 

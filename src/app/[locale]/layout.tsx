@@ -61,7 +61,7 @@ export default async function RootLayout({
       lang={locale}
       className={`${poppins.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col" style={{ fontFamily: 'var(--font-poppins, Poppins), sans-serif' }}>
+      <body className="min-h-full flex flex-col pg-bg-page" style={{ fontFamily: 'var(--font-poppins, Poppins), sans-serif' }}>
         <NextIntlClientProvider messages={messages}>
           <NextAuthProvider>
             <ToastProvider />

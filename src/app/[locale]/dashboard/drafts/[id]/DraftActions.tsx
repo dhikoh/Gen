@@ -43,7 +43,7 @@ export default function DraftActions({
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
       toast.success(t("downloadSuccess"));
     } catch {
       toast.error(t("downloadError"));

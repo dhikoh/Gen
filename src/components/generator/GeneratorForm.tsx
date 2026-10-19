@@ -23,6 +23,7 @@ import {
   DEFAULT_TARGET_DURATION_SEC,
   autoSceneCount,
   clampSceneCount,
+  reachableDurationSec,
 } from "@/lib/sceneLimits";
 
 interface ProductItem {
@@ -255,7 +256,7 @@ export default function GeneratorForm({
  targetPlatform: "TikTok",
  aspectRatio: "9:16",
  targetDurationSec: 60,
- targetSceneCount: 6,
+ targetSceneCount: DEFAULT_SCENE_COUNT,
  speechRate: 0.35,
  hookStyle: "Pertanyaan Provokatif",
  endingStyle: "Pertanyaan Terbuka",
@@ -830,7 +831,6 @@ export default function GeneratorForm({
            toast.error(t("youtubeLongStudioLocked"));
          } else {
            next.aspectRatio = "16:9";
-           if (next.targetSceneCount < 8) next.targetSceneCount = 8;
            if (next.targetDurationSec < 300) next.targetDurationSec = 300;
            setOverlayStyle("chapter_titles");
          }
@@ -1097,7 +1097,7 @@ export default function GeneratorForm({
  document.body.appendChild(link);
  link.click();
  document.body.removeChild(link);
- URL.revokeObjectURL(url);
+ setTimeout(() => URL.revokeObjectURL(url), 2000);
  toast.success(t("downloadPromptSuccess"));
  };
 
@@ -1220,7 +1220,7 @@ export default function GeneratorForm({
  <div className="flex flex-col items-center">
  <span>{t("imagePrompt")}</span>
  {!planFeatures.imagePromptStudio && (
- <span className="text-[10px] text-amber-500 font-semibold mt-0.5">
+ <span className="text-[10px] text-[var(--pg-warning)] font-semibold mt-0.5">
  🔒 Upgrade Required
  </span>
  )}
@@ -1265,7 +1265,7 @@ export default function GeneratorForm({
  <button
  type="button"
  onClick={() => setTargetKeywords([])}
- className="text-[11px] text-slate-400 hover:text-red-500 transition-colors"
+ className="text-[11px] text-slate-400 hover:text-[var(--pg-danger)] transition-colors"
  >
  Hapus Semua
  </button>
@@ -1577,16 +1577,29 @@ export default function GeneratorForm({
  className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
  />
  )}
- {sceneCountMode === "auto" && (
+ {sceneCountMode === "auto" && (() => {
+ const dur = videoConfig.targetDurationSec ?? DEFAULT_TARGET_DURATION_SEC;
+ const rate = videoConfig.speechRate ?? "medium";
+ const reachable = reachableDurationSec(dur, rate);
+ return (
+ <div className="space-y-1">
  <p className="pg-text-muted text-xs leading-relaxed">
  {t("sceneCountAutoHint", {
-   count: autoSceneCount(
-     videoConfig.targetDurationSec ?? DEFAULT_TARGET_DURATION_SEC,
-     videoConfig.speechRate ?? "medium"
-   ),
+   count: autoSceneCount(dur, rate),
+ })}
+ </p>
+ {reachable < dur && (
+ <p className="text-xs text-amber-600">
+ {t("autoDurationTruncated", {
+   target: dur,
+   max: MAX_SCENE_COUNT,
+   actual: reachable,
  })}
  </p>
  )}
+ </div>
+ );
+ })()}
  </div>
 
  <div>
@@ -1625,7 +1638,7 @@ export default function GeneratorForm({
  const rate = Number(videoConfig.speechRate) || 0.35;
  const scenes = sceneCountMode === "auto"
    ? autoSceneCount(dur, rate)
-   : Math.max(1, Number(videoConfig.targetSceneCount) || 6);
+   : Math.max(MIN_SCENE_COUNT, Number(videoConfig.targetSceneCount) || DEFAULT_SCENE_COUNT);
  const totalWords = Math.round(dur / rate);
  const wordsPerScene = Math.max(1, Math.round(totalWords / scenes));
  const wpm = Math.round(60 / rate);
@@ -2273,7 +2286,7 @@ export default function GeneratorForm({
  <button
  type="button"
  onClick={() => setCameraMovementPresets([])}
- className="text-[10px] pg-text-muted hover:text-red-500 transition-colors"
+ className="text-[10px] pg-text-muted hover:text-[var(--pg-danger)] transition-colors"
  >
  Reset
  </button>
@@ -2300,7 +2313,7 @@ export default function GeneratorForm({
  <div className="text-[10px] pg-text-muted italic">
  {planFeatures.cameraMovementPro
  ? t("cameraMovementAutoStandardWithPro")
- : <span>{t("cameraMovementAutoStandard")} <span className="text-amber-500 font-semibold not-italic">🔒 {t("cameraMovementAutoProLocked")}</span></span>
+ : <span>{t("cameraMovementAutoStandard")} <span className="text-[var(--pg-warning)] font-semibold not-italic">🔒 {t("cameraMovementAutoProLocked")}</span></span>
  }
  </div>
  )}
@@ -2348,7 +2361,7 @@ export default function GeneratorForm({
   ) : (
    <div className="flex items-center justify-between py-1.5 px-3 rounded-lg pg-surface-dim border pg-border">
     <span className="text-[11px] pg-text-muted">
-     ✨ {t("retentionPacingProModeLabel")} <span className="text-amber-500 font-semibold">🔒 PRO</span>
+     ✨ {t("retentionPacingProModeLabel")} <span className="text-[var(--pg-warning)] font-semibold">🔒 PRO</span>
     </span>
     <span className="text-[9px] pg-text-muted italic">{t("retentionPacingProModeDesc")}</span>
    </div>
@@ -2635,7 +2648,7 @@ export default function GeneratorForm({
  />
  <span>{t("htmlBlog")}</span>
  {!planFeatures.htmlBlogExport && (
- <span className="text-[10px] text-amber-500 font-semibold ml-1">🔒 Upgrade</span>
+ <span className="text-[10px] text-[var(--pg-warning)] font-semibold ml-1">🔒 Upgrade</span>
  )}
  </label>
 
@@ -2934,6 +2947,49 @@ export default function GeneratorForm({
  ) : (
  <>
  {/* Generated Prompt Output */}
+ {videoConfig.videoProductionMode === "REMOTION_CODE" ? (
+ <div className="flex flex-col flex-1 border pg-border rounded-lg overflow-hidden pg-bg-page min-h-0 items-center justify-center p-6 text-center space-y-4">
+ <div className="text-4xl">⚛️</div>
+ <div className="space-y-1 max-w-md">
+ <h3 className="text-base font-bold pg-text-heading">
+ {t("remotionPromptReady")}
+ </h3>
+ <p className="text-xs pg-text-sub leading-relaxed">
+ {t("remotionPromptDesc")}
+ </p>
+ </div>
+
+ <div className="flex items-center gap-2 flex-wrap justify-center pt-2">
+ <button
+ type="button"
+ onClick={() => {
+ if (!generatedPrompt) return;
+ navigator.clipboard.writeText(generatedPrompt);
+ toast.success(t("promptCopiedToast"));
+ }}
+ className="px-5 py-2.5 text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors shadow-sm flex items-center gap-2"
+ >
+ {t("copyAiPromptBtn")}
+ </button>
+
+ <button
+ type="button"
+ onClick={() => router.push(`/${document.documentElement.lang || "id"}/dashboard/remotion-studio`)}
+ className="px-5 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors shadow-sm flex items-center gap-2"
+ >
+ {t("openRemotionStudioBtn")}
+ </button>
+ </div>
+
+ <button
+ type="button"
+ onClick={downloadJsonPrompt}
+ className="text-xs pg-text-muted hover:underline flex items-center gap-1 pt-1"
+ >
+ {t("downloadBackupJson")}
+ </button>
+ </div>
+ ) : (
  <div className="flex flex-col flex-1 border pg-border rounded-lg overflow-hidden pg-bg-page min-h-0 items-center justify-center p-8 text-center space-y-4">
  <div className="text-4xl">📦</div>
  <p className="text-sm pg-text-sub max-w-md">
@@ -2947,6 +3003,7 @@ export default function GeneratorForm({
  ⬇️ Download JSON
  </button>
  </div>
+ )}
 
  {/* Action Panel — Title + Save */}
  <div className="border border-blue-200 dark:border-blue-900 rounded-lg bg-blue-50/30 dark:bg-blue-900/10 p-4 space-y-3 shrink-0">
@@ -2965,6 +3022,39 @@ export default function GeneratorForm({
  </div>
  <div className="flex flex-wrap gap-2">
  {type === "VIDEO" ? (
+ videoConfig.videoProductionMode === "REMOTION_CODE" ? (
+ <div className="flex flex-wrap items-center gap-2 w-full">
+ <button
+ type="button"
+ onClick={() => router.push(`/${document.documentElement.lang || "id"}/dashboard/remotion-studio`)}
+ className="flex-1 min-w-[160px] px-4 py-2.5 text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-md transition-colors flex items-center justify-center gap-2 shadow-sm"
+ >
+ {t("openRemotionStudioBtn")}
+ </button>
+ <button
+ type="button"
+ onClick={async () => {
+ try {
+ const scenePromptPayload = {
+ rawText: generatedPrompt,
+ selectedChannelId: channelId,
+ ar: videoConfig.aspectRatio || "9:16",
+ };
+ setUserItem(userId, "scenePromptState", JSON.stringify(scenePromptPayload));
+ await fetch("/api/user/preferences", {
+ method: "PUT",
+ headers: { "Content-Type": "application/json" },
+ body: JSON.stringify({ scenePromptState: scenePromptPayload })
+ });
+ } catch(e) { console.error(e); }
+ router.push(`/${document.documentElement.lang || "id"}/dashboard/scene-prompt`);
+ }}
+ className="px-3 py-2 text-xs font-medium pg-text-sub hover:underline flex items-center justify-center"
+ >
+ {t("continueToSceneStudioBtn")}
+ </button>
+ </div>
+ ) : (
  <button
  type="button"
  onClick={async () => {
@@ -2987,6 +3077,7 @@ export default function GeneratorForm({
  >
  {t("continueToSceneStudioBtn")}
  </button>
+ )
  ) : (
  <>
  <button

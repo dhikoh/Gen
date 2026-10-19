@@ -9,7 +9,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 
 export default function UserSupportPage() {
   return (
-    <div className="max-w-6xl mx-auto py-2">
+    <div className="max-w-6xl mx-auto py-2 pg-surface-dim">
       <UserSupportClient />
     </div>
   );

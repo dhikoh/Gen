@@ -28,7 +28,7 @@ export default async function ResearchPage({ params }: { params: Promise<{ local
   });
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6 pg-surface-dim">
       <ResearchClient channels={channels} locale={locale} />
     </div>
   );

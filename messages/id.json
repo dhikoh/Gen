@@ -48,7 +48,8 @@
     "research": "Riset Tren & Keyword",
     "settings": "Pengaturan Akun",
     "pricingPlans": "Pilihan Paket",
-    "profile": "Profil"
+    "profile": "Profil",
+    "remotionStudio": "Remotion Studio"
   },
   "Auth": {
     "login": "Masuk",
@@ -278,6 +279,7 @@
     "sceneCountAuto": "Otomatis",
     "sceneCountManual": "Manual",
     "sceneCountAutoHint": "AI akan membuat ~{count} scene berdasarkan durasi dan kecepatan bicara.",
+    "autoDurationTruncated": "Target {target}s tidak dapat dicapai pada mode auto karena batas {max} scene. Durasi tercapai sekitar {actual}s.",
     "targetDurationLabel": "Durasi Target (detik)",
     "targetDurationHint": "Masukkan durasi video yang diinginkan (10–600 detik).",
     "hookStyle": "Hook Style",
@@ -458,7 +460,13 @@
     "modeRemotionCodeDesc": "AI menghasilkan kode animasi React Remotion (motion graphics, kinetic typography, spring physics). Langsung preview & render di studio.",
     "remotionStudioLocked": "Fitur Remotion Studio tersedia pada paket PRO atau Enterprise. Silakan upgrade paket Anda.",
     "remotionThemeLabel": "Tema Estetika Remotion",
-    "remotionCameraMovementNote": "Mode Remotion aktif: Visual digerakkan oleh kode komponen React (spring physics, typography, transform SVG) menggantikan pengaturan kamera fisik."
+    "remotionCameraMovementNote": "Mode Remotion aktif: Visual digerakkan oleh kode komponen React (spring physics, typography, transform SVG) menggantikan pengaturan kamera fisik.",
+    "remotionPromptReady": "Prompt Remotion Siap Digunakan",
+    "remotionPromptDesc": "Salin prompt di bawah ini dan tempel ke AI Eksternal (ChatGPT, Claude, dsb). AI akan menghasilkan kode TypeScript Remotion (.tsx) visual lengkap.",
+    "copyAiPromptBtn": "📋 Salin Prompt AI",
+    "openRemotionStudioBtn": "🚀 Buka Remotion Studio (Parse Engine) ➔",
+    "downloadBackupJson": "⬇️ Download JSON Cadangan",
+    "promptCopiedToast": "Prompt berhasil disalin ke clipboard! Siap ditempel ke AI eksternal."
   },
   "Drafts": {
     "pageTitleTab": "Riwayat Prompt",
@@ -864,7 +872,10 @@
     "subscriptionInactive": "Langganan Anda tidak aktif atau telah kedaluwarsa. Silakan perpanjang paket Anda.",
     "payloadTooLarge": "Ukuran muatan terlalu besar (maksimal 1MB).",
     "maxTitlesExceeded": "Maksimal 1000 judul per permintaan.",
-    "noTitlesProvided": "Tidak ada judul yang diberikan."
+    "noTitlesProvided": "Tidak ada judul yang diberikan.",
+    "googleDriveLocked": "Fitur Google Drive memerlukan upgrade paket Anda.",
+    "googleDriveNotConnected": "Akun Google Drive belum terhubung. Silakan hubungkan akun Anda terlebih dahulu.",
+    "driveFileTooLarge": "Ukuran file terlalu besar. Maksimal 100MB."
   },
   "Emails": {
     "resetSubject": "Reset Password - Prompt Gen",
@@ -1242,7 +1253,10 @@
     "remotionCodeDetectedToast": "Kode Remotion React TSX terdeteksi dan otomatis dimuat ke Remotion Studio!",
     "remotionCodeDetectedBannerTitle": "Kode Remotion React TSX Terdeteksi",
     "remotionCodeDetectedBannerDesc": "Hasil generasi AI menyertakan komponen Remotion lengkap. Anda dapat memvalidasi, mempratinjau animasi, atau merender MP4 langsung di Remotion Studio.",
-    "openRemotionStudioButton": "Buka di Remotion Studio"
+    "openRemotionStudioButton": "Buka di Remotion Studio",
+    "remotionStudioStandaloneHeading": "Remotion Studio (Parse Engine)",
+    "remotionStudioStandaloneNotice": "Untuk kecepatan dan kemudahan render video MP4 animasi tanpa beban halaman, Parse Engine Remotion kini berjalan di studio mandiri khusus.",
+    "openStandaloneRemotionBtn": "🚀 Buka Standalone Remotion Studio ➔"
   },
   "ForgotPassword": {
     "title": "Lupa Password?",
@@ -1678,6 +1692,7 @@
     "pasteAnimationCode": "Tempel Kode Animasi HTML",
     "pasteAnimationCodeHint": "Tempel kode HTML lengkap dari AI di sini...",
     "startRender": "Mulai Render",
+    "cancelRender": "Batal",
     "rendering": "Merender... {percent}%",
     "downloadComplete": "Video berhasil diunduh.",
     "downloadVideo": "Unduh Video",
@@ -1804,6 +1819,33 @@
     "uploadDriveSuccess": "Video berhasil disimpan ke Google Drive!",
     "uploadDriveFailed": "Gagal mengunggah video ke Google Drive.",
     "openInDrive": "Buka di Google Drive",
-    "driveFeatureLocked": "Fitur Google Drive memerlukan upgrade paket."
+    "driveFeatureLocked": "Fitur Google Drive memerlukan upgrade paket.",
+    "templateNoticeTitle": "Yang dihasilkan adalah template motion design",
+    "templateNoticeBody": "Kode TSX hanya diekspor untuk dipakai di proyek Remotion Anda sendiri. Preview, render MP4 di browser, dan paket ZIP memakai template kartu teks yang sudah ditentukan, bukan hasil eksekusi kode TSX."
+  },
+  "StandaloneRemotion": {
+    "title": "Remotion Studio",
+    "subtitle": "Tempel kode React Remotion (.tsx) hasil AI untuk memutar animasi visual secara live dan merender video MP4.",
+    "inputLabel": "Kode React Remotion (.tsx)",
+    "inputPlaceholder": "Tempel kode .tsx lengkap dari AI di sini (misal: import { AbsoluteFill } from 'remotion' ...)...",
+    "loadButton": "🚀 Muat & Putar Animasi",
+    "loading": "Mengompilasi kode...",
+    "sampleButton": "🐍 Coba Demo Ular",
+    "downloadTsx": "💾 Unduh Kode (.tsx)",
+    "downloadZip": "💾 Unduh Paket ZIP",
+    "playerTitle": "Pemutar Animasi Live",
+    "emptyState": "Belum ada kode yang dimuat. Tempel kode Remotion di sebelah kiri atau klik 'Coba Demo Ular'.",
+    "play": "Putar",
+    "pause": "Jeda",
+    "restart": "Ulangi",
+    "frameCounter": "Frame {current} / {total} ({time}s)",
+    "renderMp4": "🎬 Render Video MP4",
+    "rendering": "Merender MP4... {percent}% ({current}/{total} frame)",
+    "renderSuccess": "Video MP4 berhasil dirender!",
+    "downloadAgain": "⬇️ Unduh Ulang MP4",
+    "compileError": "Gagal mengompilasi kode: {error}",
+    "noCode": "Masukkan kode Remotion terlebih dahulu.",
+    "copied": "Berhasil disalin!",
+    "downloaded": "File berhasil diunduh"
   }
 }

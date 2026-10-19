@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { useTranslations } from "next-intl";
 import toast from "react-hot-toast";
 import { formatTime } from "@/lib/formatTime";
@@ -11,6 +11,7 @@ import { buildAnimationPrompt } from "@/lib/animationPromptBuilder";
 import { buildFullVideoAiPrompt, type FullVideoPromptFormat } from "@/lib/fullVideoPromptBuilder";
 import { mixAudio, audioBufferToWav } from "@/lib/audioMixer";
 import { MAX_HTML_SIZE } from "@/lib/animationContract";
+import { useDriveUpload } from "@/hooks/useDriveUpload";
 
 interface Props {
   timeline: VideoTimeline | null;
@@ -49,12 +50,27 @@ export default function VideoTimelineTab({
   const [iframeEl, setIframeEl] = useState<HTMLIFrameElement | null>(null);
   const [renderProgress, setRenderProgress] = useState<RenderProgress | null>(null);
   const [isRendering, setIsRendering] = useState(false);
+  const [isCancelled, setIsCancelled] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
   const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
   const [isMixingAudio, setIsMixingAudio] = useState(false);
-  const [isUploadingDrive, setIsUploadingDrive] = useState(false);
-  const [driveLink, setDriveLink] = useState<string | null>(null);
-  const [isUploadingAudioDrive, setIsUploadingAudioDrive] = useState(false);
-  const [audioDriveLink, setAudioDriveLink] = useState<string | null>(null);
+  const {
+    isUploading: isUploadingDrive,
+    driveUrl: driveLink,
+    setDriveUrl: setDriveLink,
+    uploadToDrive: uploadVideoToDrive,
+  } = useDriveUpload();
+  const {
+    isUploading: isUploadingAudioDrive,
+    driveUrl: audioDriveLink,
+    setDriveUrl: setAudioDriveLink,
+    uploadToDrive: uploadAudioToDrive,
+  } = useDriveUpload();
+
+  const cancelRender = useCallback(() => {
+    abortRef.current?.abort();
+    setIsCancelled(true);
+  }, []);
 
   // Copy structured prompt for external AI animator
   const handleCopyPrompt = useCallback(async () => {
@@ -113,6 +129,9 @@ export default function VideoTimelineTab({
   // Start sequential video render
   const handleRender = useCallback(async () => {
     if (!animationHtml || !iframeEl || !timeline) return;
+    const controller = new AbortController();
+    abortRef.current = controller;
+    setIsCancelled(false);
     try {
       setIsRendering(true);
       setRenderProgress({ currentFrame: 0, totalFrames: 1, percent: 0 });
@@ -123,16 +142,24 @@ export default function VideoTimelineTab({
         timeline.totalDurationSec,
         (progress) => {
           setRenderProgress(progress);
-        }
+        },
+        { signal: controller.signal }
       );
 
       setVideoBlob(blob);
       toast.success(t("downloadComplete"));
-    } catch (err) {
+    } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        return;
+      }
+      if (err instanceof Error && (err.name === "AbortError" || err.message.includes("dibatalkan"))) {
+        return;
+      }
       console.error("Rendering failed:", err);
       toast.error(t("renderError"));
     } finally {
       setIsRendering(false);
+      abortRef.current = null;
     }
   }, [animationHtml, iframeEl, timeline, t]);
 
@@ -144,7 +171,7 @@ export default function VideoTimelineTab({
     a.href = url;
     a.download = `video-${timeline.draftId || "render"}.webm`;
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
     toast.success(t("downloadComplete"));
   }, [videoBlob, timeline, t]);
 
@@ -166,7 +193,7 @@ export default function VideoTimelineTab({
       a.href = url;
       a.download = `audio-${timeline.draftId || "render"}.wav`;
       a.click();
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
       toast.success(t("downloadComplete"));
     } catch (err) {
       console.error("Audio mixing error:", err);
@@ -185,72 +212,15 @@ export default function VideoTimelineTab({
       return;
     }
 
-    setIsUploadingDrive(true);
     setDriveLink(null);
-
-    const blobToBase64 = (blob: Blob): Promise<string> => {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const res = reader.result as string;
-          const base64 = res.split(",")[1];
-          if (base64) resolve(base64);
-          else reject(new Error("Failed to convert blob to base64"));
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-    };
-
-    const maxRetries = 3;
-    let attempt = 0;
-    let success = false;
-    let lastError: Error | null = null;
-
-    try {
-      const base64Data = await blobToBase64(videoBlob);
-      const filename = `video-${timeline.draftId || "render"}-${Date.now()}.webm`;
-
-      while (attempt < maxRetries && !success) {
-        attempt++;
-        try {
-          const res = await fetch("/api/user/google-drive/upload", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              filename,
-              mimeType: videoBlob.type || "video/webm",
-              base64Data,
-            }),
-          });
-
-          const data = (await res.json()) as { success?: boolean; error?: string; webViewLink?: string };
-          if (res.ok && data.success) {
-            success = true;
-            setDriveLink(data.webViewLink || null);
-            toast.success(t("uploadDriveSuccess"));
-            break;
-          } else {
-            throw new Error(data.error || "Upload failed");
-          }
-        } catch (err) {
-          lastError = err instanceof Error ? err : new Error(String(err));
-          if (attempt < maxRetries) {
-            const delay = Math.pow(2, attempt - 1) * 1000;
-            await new Promise((resolve) => setTimeout(resolve, delay));
-          }
-        }
-      }
-
-      if (!success) {
-        toast.error(lastError?.message || t("uploadDriveFailed"));
-      }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("uploadDriveFailed"));
-    } finally {
-      setIsUploadingDrive(false);
+    const filename = `video-${timeline.draftId || "render"}-${Date.now()}.webm`;
+    const success = await uploadVideoToDrive(videoBlob, filename);
+    if (success) {
+      toast.success(t("uploadDriveSuccess"));
+    } else {
+      toast.error(t("uploadDriveFailed"));
     }
-  }, [videoBlob, timeline, canUploadToDrive, t]);
+  }, [videoBlob, timeline, canUploadToDrive, setDriveLink, uploadVideoToDrive, t]);
 
   // Upload mixed WAV narration audio to Google Drive with 3x retry + exponential backoff
   const handleUploadAudioToDrive = useCallback(async () => {
@@ -267,74 +237,23 @@ export default function VideoTimelineTab({
       return;
     }
 
-    setIsUploadingAudioDrive(true);
     setAudioDriveLink(null);
-
-    const blobToBase64 = (blob: Blob): Promise<string> => {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const res = reader.result as string;
-          const base64 = res.split(",")[1];
-          if (base64) resolve(base64);
-          else reject(new Error("Failed to convert blob to base64"));
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-    };
-
-    const maxRetries = 3;
-    let attempt = 0;
-    let success = false;
-    let lastError: Error | null = null;
 
     try {
       const mixed = await mixAudio(timeline.scenes, timeline.totalDurationSec);
       const wavBlob = audioBufferToWav(mixed);
-      const base64Data = await blobToBase64(wavBlob);
       const filename = `audio-${timeline.draftId || "render"}-${Date.now()}.wav`;
 
-      while (attempt < maxRetries && !success) {
-        attempt++;
-        try {
-          const res = await fetch("/api/user/google-drive/upload", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              filename,
-              mimeType: "audio/wav",
-              base64Data,
-            }),
-          });
-
-          const data = (await res.json()) as { success?: boolean; error?: string; webViewLink?: string };
-          if (res.ok && data.success) {
-            success = true;
-            setAudioDriveLink(data.webViewLink || null);
-            toast.success(t("uploadDriveSuccess"));
-            break;
-          } else {
-            throw new Error(data.error || "Upload failed");
-          }
-        } catch (err) {
-          lastError = err instanceof Error ? err : new Error(String(err));
-          if (attempt < maxRetries) {
-            const delay = Math.pow(2, attempt - 1) * 1000;
-            await new Promise((resolve) => setTimeout(resolve, delay));
-          }
-        }
-      }
-
-      if (!success) {
-        toast.error(lastError?.message || t("uploadDriveFailed"));
+      const success = await uploadAudioToDrive(wavBlob, filename);
+      if (success) {
+        toast.success(t("uploadDriveSuccess"));
+      } else {
+        toast.error(t("uploadDriveFailed"));
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("uploadDriveFailed"));
-    } finally {
-      setIsUploadingAudioDrive(false);
     }
-  }, [timeline, canUploadToDrive, t]);
+  }, [timeline, canUploadToDrive, setAudioDriveLink, uploadAudioToDrive, t]);
 
   if (!timeline || timeline.scenes.length === 0) {
     return (
@@ -516,6 +435,17 @@ export default function VideoTimelineTab({
                   ? t("rendering", { percent: renderProgress?.percent ?? 0 })
                   : t("startRender")}
               </button>
+
+              {isRendering && (
+                <button
+                  type="button"
+                  onClick={cancelRender}
+                  disabled={isCancelled}
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  <span>⏹️</span> {t("cancelRender")}
+                </button>
+              )}
 
               {videoBlob && (
                 <>

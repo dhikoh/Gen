@@ -36,8 +36,6 @@ import {
 } from "@/lib/sceneExportFormat";
 import { getUserItem, setUserItem } from "@/lib/clientStorage";
 import VideoTimelineTab from "@/components/video/VideoTimelineTab";
-import { RemotionStudioTab } from "@/components/remotion/RemotionStudioTab";
-import { RemotionUpgradeCard } from "@/components/remotion/RemotionUpgradeCard";
 import { buildTimeline, validateTimeline } from "@/lib/timelineBuilder";
 import type { VideoTimeline } from "@/types/videoTimeline";
 
@@ -426,7 +424,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
    const a = document.createElement("a");
    a.href = url; a.download = `voice_studio_${draftTitle || "scenes"}.zip`;
    a.click();
-   URL.revokeObjectURL(url);
+   setTimeout(() => URL.revokeObjectURL(url), 2000);
    toast.success(t("ttsZipDownloaded"));
  }, [scenes, ttsResults, draftTitle, t]);
 
@@ -639,62 +637,63 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
     return map;
   }, [ttsResults]);
 
-  // Full Video Studio: Build timeline from parsed scenes + UsedTitle
-  useEffect(() => {
-    let cancelled = false;
+  // Sumber data judul terpakai. Diambil SEKALI per channel, bukan setiap TTS selesai.
+  const [usedTitles, setUsedTitles] = useState<{ ids: string[]; texts: string[] }>({
+    ids: [],
+    texts: [],
+  });
 
+  useEffect(() => {
+    if (!selectedChannelId) {
+      queueMicrotask(() => {
+        setUsedTitles({ ids: [], texts: [] });
+      });
+      return;
+    }
+    const controller = new AbortController();
+    (async () => {
+      try {
+        const res = await fetch(`/api/used-titles?channelId=${selectedChannelId}`, {
+          signal: controller.signal,
+        });
+        if (res.ok) {
+          const titles = (await res.json()) as { id: string; title: string }[];
+          setUsedTitles({
+            ids: titles.map((item) => item.id),
+            texts: titles.map((item) => item.title),
+          });
+        }
+      } catch {
+        if (!controller.signal.aborted) setUsedTitles({ ids: [], texts: [] });
+      }
+    })();
+    return () => controller.abort();
+  }, [selectedChannelId]);
+
+  useEffect(() => {
     if (scenes.length === 0) {
       queueMicrotask(() => {
-        if (!cancelled) {
-          setCurrentTimeline(null);
-        }
+        setCurrentTimeline(null);
       });
-      return () => {
-        cancelled = true;
-      };
+      return;
     }
-
-    async function build() {
-      let usedTitleIds: string[] = [];
-      let usedTitleTexts: string[] = [];
-      if (selectedChannelId) {
-        try {
-          const res = await fetch(`/api/used-titles?channelId=${selectedChannelId}`);
-          if (res.ok) {
-            const titles = (await res.json()) as { id: string; title: string }[];
-            usedTitleIds = titles.map((item) => item.id);
-            usedTitleTexts = titles.map((item) => item.title);
-          }
-        } catch {
-          // Non-fatal: timeline tetap dibuat tanpa used titles
-        }
-      }
-
-      if (cancelled) return;
-
-      const tl = buildTimeline(scenes as SceneForExport[], {
-        draftId: initialDraft?.id ?? "",
-        channelId: selectedChannelId ?? null,
-        usedTitleIds,
-        usedTitleTexts,
-        defaultDurationSec: 4,
-      });
-
-      if (audioMap && audioMap.size > 0) {
-        tl.scenes = tl.scenes.map((s) => ({
-          ...s,
-          audioRef: audioMap.get(s.sceneNumber) ?? null,
-        }));
-      }
-
+    const tl = buildTimeline(scenes as SceneForExport[], {
+      draftId: initialDraft?.id ?? "",
+      channelId: selectedChannelId ?? null,
+      usedTitleIds: usedTitles.ids,
+      usedTitleTexts: usedTitles.texts,
+      defaultDurationSec: 4,
+    });
+    if (audioMap.size > 0) {
+      tl.scenes = tl.scenes.map((s) => ({
+        ...s,
+        audioRef: audioMap.get(s.sceneNumber) ?? null,
+      }));
+    }
+    queueMicrotask(() => {
       setCurrentTimeline(tl);
-    }
-
-    build();
-    return () => {
-      cancelled = true;
-    };
-  }, [scenes, initialDraft?.id, selectedChannelId, audioMap]);
+    });
+  }, [scenes, initialDraft?.id, selectedChannelId, audioMap, usedTitles]);
 
   // Manifest JSON export handler
   const handleExportManifest = useCallback(() => {
@@ -711,7 +710,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
     a.href = url;
     a.download = `timeline-${currentTimeline.draftId || "draft"}.json`;
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
     toast.success(tVideo("manifestExported"));
   }, [currentTimeline, tVideo]);
 
@@ -1331,9 +1330,9 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
   <div className="space-y-4">
     {/* Detected Remotion Code Alert Banner */}
     {detectedRemotionCode && (
-      <div className="glass-panel p-4 rounded-2xl border border-sky-500/40 bg-gradient-to-r from-sky-500/10 via-blue-500/10 to-indigo-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+      <div className="glass-panel p-4 rounded-2xl border border-[var(--pg-brand)]/40 bg-gradient-to-r from-[var(--pg-brand)]/10 via-blue-500/10 to-indigo-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
         <div className="flex items-center gap-3">
-          <span className="text-2xl p-2 rounded-xl bg-sky-500/20 text-sky-500 shrink-0">⚛️</span>
+          <span className="text-2xl p-2 rounded-xl bg-[var(--pg-brand-light)] text-[var(--pg-brand)] shrink-0">⚛️</span>
           <div>
             <h4 className="text-xs font-bold text-sky-700 dark:text-sky-300 flex items-center gap-1.5">
               {t("remotionCodeDetectedBannerTitle")}
@@ -2697,8 +2696,8 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
                 title={favoriteVoices.includes(ttsVoice) ? t("ttsFavoriteToggleRemove") : t("ttsFavoriteToggleAdd")}
                 className={`px-2.5 py-1.5 rounded-md border text-sm transition-all flex items-center justify-center shrink-0 ${
                   favoriteVoices.includes(ttsVoice)
-                    ? "bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700 text-amber-500 shadow-xs"
-                    : "bg-white dark:bg-slate-700 pg-border text-slate-400 hover:text-amber-500 hover:border-amber-300"
+                    ? "bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700 text-[var(--pg-warning)] shadow-xs"
+                    : "bg-white dark:bg-slate-700 pg-border text-slate-400 hover:text-[var(--pg-warning)] hover:border-amber-300"
                 }`}
               >
                 {favoriteVoices.includes(ttsVoice) ? "⭐" : "☆"}
@@ -2715,7 +2714,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-xs font-bold pg-text-heading flex items-center gap-1">
-                        {isFav && <span className="text-amber-500">⭐</span>}
+                        {isFav && <span className="text-[var(--pg-warning)]">⭐</span>}
                         {selected.id}
                       </span>
                       <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200/80 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
@@ -2819,7 +2818,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
             </div>
           )}
           {ttsPreviewResult?.status === "error" && (
-            <p className="text-[11px] text-red-500 dark:text-red-400">⚠️ {ttsPreviewResult.errorMessage}</p>
+            <p className="text-[11px] text-[var(--pg-danger)] dark:text-red-400">⚠️ {ttsPreviewResult.errorMessage}</p>
           )}
         </div>
 
@@ -2846,7 +2845,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
                      <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">✅</span>
                    )}
                    {result?.status === "error" && (
-                     <span className="text-[10px] font-semibold text-red-500" title={result.errorMessage}>❌</span>
+                     <span className="text-[10px] font-semibold text-[var(--pg-danger)]" title={result.errorMessage}>❌</span>
                    )}
                    <button type="button" onClick={() => generateSceneTts(scene)}
                      disabled={result?.status === "generating"}
@@ -2921,19 +2920,37 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
  </div>
  )}
 
- {/* ── Remotion Studio Tab ── */}
- {activeTab === "remotionStudio" &&
- (planFeatures.remotionStudio === true ? (
- <RemotionStudioTab
- timeline={currentTimeline}
- scenesCount={scenes.length}
- draftTitle={draftTitle || initialDraft?.title || ""}
- canUploadToDrive={planFeatures.googleDriveUpload}
- initialCode={detectedRemotionCode}
- />
- ) : (
- <RemotionUpgradeCard />
- ))}
+ {/* ── Remotion Studio Standalone Pointer ── */}
+ {activeTab === "remotionStudio" && (
+ <div className="glass-panel rounded-2xl p-8 border pg-border text-center space-y-4 max-w-2xl mx-auto shadow-sm">
+ <div className="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center text-3xl bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
+ ⚛️
+ </div>
+ <div className="space-y-2">
+ <h3 className="text-xl font-bold pg-text-heading">
+ {t("remotionStudioStandaloneHeading")}
+ </h3>
+ <p className="text-sm pg-text-sub leading-relaxed">
+ {t("remotionStudioStandaloneNotice")}
+ </p>
+ </div>
+
+ <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+ <Link
+ href={`/${locale}/dashboard/remotion-studio`}
+ onClick={() => {
+ if (detectedRemotionCode) {
+ navigator.clipboard.writeText(detectedRemotionCode);
+ toast.success("Kode Remotion disalin ke clipboard!");
+ }
+ }}
+ className="w-full sm:w-auto px-6 py-3 text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
+ >
+ {t("openStandaloneRemotionBtn")}
+ </Link>
+ </div>
+ </div>
+ )}
 
  {/* Save Draft Panel */}
  <div className="glass-panel rounded-xl p-5 space-y-3">

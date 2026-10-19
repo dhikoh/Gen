@@ -29,6 +29,7 @@ export default async function DashboardLayout({
     { href: `/${locale}/dashboard/generator`,     icon: "✨", label: t("generator") },
     { href: `/${locale}/dashboard/research`,      icon: "🔍", label: t("research") },
     { href: `/${locale}/dashboard/scene-prompt`,  icon: "🎬", label: t("scenePromptStudio") },
+    { href: `/${locale}/dashboard/remotion-studio`, icon: "⚛️", label: t("remotionStudio") },
     { href: `/${locale}/dashboard/drafts`,        icon: "📄", label: t("drafts") },
     { href: `/${locale}/dashboard/channels`,      icon: "📺", label: t("channels") },
     { href: `/${locale}/dashboard/billing`,       icon: "💳", label: t("billing") },

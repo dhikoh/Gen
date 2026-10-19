@@ -1095,20 +1095,28 @@ Jumlah bab ditentukan secara natural berdasarkan alur konten (biasanya 3-6 bab u
   if (isRemotionMode && hasScene) {
     const { width, height } = getRemotionDimensions(ar === "16:9" ? "16:9" : "9:16");
     formatOutputWajib += `\n## KODE REMOTION LENGKAP (REACT TSX)
-Di akhir naskah, kamu WAJIB menyertakan SATU BLOK KODE LENGKAP TypeScript (.tsx) siap pakai untuk Remotion v4 yang mengimplementasikan seluruh ${sceneCount} adegan di atas:
+TARGET UTAMA: Di akhir naskah, kamu WAJIB menyertakan SATU BLOK KODE LENGKAP TypeScript (.tsx) siap pakai untuk Remotion v4 yang mengimplementasikan seluruh ${sceneCount} adegan di atas:
 \`\`\`tsx
 import React from 'react';
 import { AbsoluteFill, Sequence, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 
 // Resolusi: ${width}x${height} (${ar}), FPS: 30
 // Tema Grafis: ${remotionThemeName} (${themeMeta.description})
-// Setiap adegan diimplementasikan dalam komponen terpisah dan dirangkai dengan <Sequence from={...} durationInFrames={...}>.
-// Gunakan spring animation untuk teks dan elemen visual. Hindari dependensi CSS luar.
-export default const MainVideo: React.FC = () => {
-  // Implementasi lengkap seluruh adegan...
+// WAJIB: Buat animasi visual bergerak dengan elemen SVG dinamis (path/shapes/diagram bergerak, morphing, atau ilustrasi topik visual) yang digerakkan oleh useCurrentFrame() & spring()!
+// JANGAN hanya membuat kartu teks statis.
+export const MainVideo: React.FC = () => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  return (
+    <AbsoluteFill style={{ background: '#0b1220' }}>
+      {/* Seluruh adegan dirangkai berurutan menggunakan <Sequence> */}
+    </AbsoluteFill>
+  );
 };
+export default MainVideo;
 \`\`\`
-PENTING: Tulis kode secara LENGKAP dan deterministik tanpa placeholder agar video MP4 bisa langsung diputar dan dirender di browser.
+PENTING: Tulis kode secara LENGKAP dan deterministik tanpa placeholder agar video MP4 bisa langsung diputar dan dirender di Parse Engine browser. Jaga agar teks penjelasan naskah ringkas agar seluruh token mencukupi untuk kode TSX utuh.
 `;
   }
 

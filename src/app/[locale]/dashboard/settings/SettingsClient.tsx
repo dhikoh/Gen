@@ -405,7 +405,7 @@ export default function SettingsClient() {
                       <span>{t("ttsLastUsed")}: {formatRelativeTime(key.lastUsedAt, t("ttsJustNow"))}</span>
                     </div>
                     {key.lastErrorMessage && (
-                      <p className="text-[10px] text-red-500 dark:text-red-400 truncate max-w-xs" title={key.lastErrorMessage}>
+                      <p className="text-[10px] text-[var(--pg-danger)] dark:text-red-400 truncate max-w-xs" title={key.lastErrorMessage}>
                         ⚠️ {key.lastErrorCode}: {key.lastErrorMessage}
                       </p>
                     )}

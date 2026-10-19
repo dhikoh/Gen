@@ -10,14 +10,35 @@ import { getValidAccessToken, uploadToDrive } from "@/lib/googleDrive";
 import { logAdminAction } from "@/lib/auditLog";
 import { getApiTranslator } from "@/lib/apiI18n";
 
+/** Batas upload dalam byte. Base64 memuai ~33%, jadi batas karakter dihitung dari sini. */
+const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
+const MAX_BASE64_CHARS = Math.floor(MAX_UPLOAD_BYTES * 1.34);
+
+const ALLOWED_MIME_TYPES = new Set([
+  "video/webm",
+  "video/mp4",
+  "video/quicktime",
+  "audio/wav",
+  "audio/mpeg",
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+]);
+
 const uploadSchema = z.object({
   filename: z.string().min(1).max(255),
   mimeType: z.string().min(1).max(100).default("video/mp4"),
-  base64Data: z.string().min(1).max(140 * 1024 * 1024), // Max ~100MB file as base64
+  base64Data: z.string().min(1).max(MAX_BASE64_CHARS),
 });
 
 export async function POST(req: Request) {
   const t = await getApiTranslator();
+
+  const contentLength = Number(req.headers.get("content-length"));
+  if (Number.isFinite(contentLength) && contentLength > MAX_UPLOAD_BYTES * 1.4) {
+    return NextResponse.json({ error: t("driveFileTooLarge") }, { status: 413 });
+  }
+
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
@@ -49,7 +70,7 @@ export async function POST(req: Request) {
   const rawFeatures = (dbUser.currentPlan?.features as Record<string, boolean>) ?? {};
   if (!hasFeature(rawFeatures, "googleDriveUpload", isSuperadmin)) {
     return NextResponse.json(
-      { error: "Fitur Google Drive Backup tidak tersedia pada paket Anda." },
+      { error: t("googleDriveLocked") },
       { status: 403 }
     );
   }
@@ -58,7 +79,7 @@ export async function POST(req: Request) {
   const accessToken = await getValidAccessToken(session.user.id);
   if (!accessToken) {
     return NextResponse.json(
-      { error: "Google Drive belum terhubung atau sesi telah kedaluwarsa. Silakan hubungkan kembali." },
+      { error: t("googleDriveNotConnected") },
       { status: 400 }
     );
   }
@@ -74,12 +95,17 @@ export async function POST(req: Request) {
   }
 
   const { filename, mimeType, base64Data } = parsed.data;
+
+  if (!ALLOWED_MIME_TYPES.has(mimeType)) {
+    return NextResponse.json({ error: t("invalidData") }, { status: 400 });
+  }
+
   const buffer = Buffer.from(base64Data, "base64");
 
   // Validasi ukuran buffer riil (maks 100 MB)
-  if (buffer.length > 100 * 1024 * 1024) {
+  if (buffer.length > MAX_UPLOAD_BYTES) {
     return NextResponse.json(
-      { error: t("fileTooLarge") },
+      { error: t("driveFileTooLarge") },
       { status: 413 }
     );
   }

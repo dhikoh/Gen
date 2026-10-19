@@ -385,12 +385,12 @@ export function getDurationCalcModeBadge(mode?: string) {
   switch (mode) {
     case "SEGMENT_SELF_ESTIMATE":
       return {
-        className: "bg-sky-500/10 text-sky-500 border border-sky-500/20",
+        className: "bg-[var(--pg-info)]/10 text-[var(--pg-info)] border border-[var(--pg-info)]/20",
         icon: "🎬",
       };
     case "HYBRID":
       return {
-        className: "bg-amber-500/10 text-amber-500 border border-amber-500/20",
+        className: "bg-[var(--pg-warning)]/10 text-[var(--pg-warning)] border border-[var(--pg-warning)]/20",
         icon: "🔀",
       };
     case "NARRATION_WORDCOUNT":

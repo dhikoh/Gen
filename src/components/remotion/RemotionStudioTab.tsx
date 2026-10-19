@@ -30,6 +30,7 @@ import {
   type RemotionRenderResult,
 } from "@/lib/remotionVideoAssembler";
 import { exportRemotionZip } from "@/lib/remotionZipExporter";
+import { useDriveUpload } from "@/hooks/useDriveUpload";
 
 export interface RemotionStudioTabProps {
   timeline: VideoTimeline | null;
@@ -205,8 +206,12 @@ export function RemotionStudioTab({
 
   // ZIP Export & Google Drive States
   const [isExportingZip, setIsExportingZip] = useState<boolean>(false);
-  const [isUploadingDrive, setIsUploadingDrive] = useState<boolean>(false);
-  const [driveLink, setDriveLink] = useState<string | null>(null);
+  const {
+    isUploading: isUploadingDrive,
+    driveUrl: driveLink,
+    setDriveUrl: setDriveLink,
+    uploadToDrive,
+  } = useDriveUpload();
 
   useEffect(() => {
     return () => {
@@ -285,35 +290,12 @@ export function RemotionStudioTab({
       return;
     }
 
-    setIsUploadingDrive(true);
     setDriveLink(null);
-
-    try {
-      const file = new File([renderedResult.blob], renderedResult.filename, {
-        type: renderedResult.mimeType,
-      });
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("filename", renderedResult.filename);
-      if (timeline?.draftId) {
-        formData.append("draftId", timeline.draftId);
-      }
-
-      const res = await fetch("/api/user/google-drive/upload", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || t("uploadDriveFailed"));
-      }
-      setDriveLink(data.webViewLink || null);
+    const ok = await uploadToDrive(renderedResult.blob, renderedResult.filename);
+    if (ok) {
       showStatus(t("uploadDriveSuccess"));
-    } catch (err) {
-      console.error("Gagal mengunggah video ke Drive:", err);
-      showStatus(err instanceof Error ? err.message : t("uploadDriveFailed"));
-    } finally {
-      setIsUploadingDrive(false);
+    } else {
+      showStatus(t("uploadDriveFailed"));
     }
   };
 
@@ -725,6 +707,12 @@ export function RemotionStudioTab({
       {/* Sub-Tab 2: Boilerplate TSX */}
       {subTab === "boilerplate" ? (
         <div role="tabpanel" id="remotion-panel-boilerplate" aria-labelledby="remotion-tab-boilerplate" className="glass-panel space-y-3 rounded-xl p-4">
+          <div className="pg-border rounded-lg border border-amber-500/40 bg-amber-500/10 p-4">
+            <p className="text-sm font-semibold text-amber-600">
+              {t("templateNoticeTitle")}
+            </p>
+            <p className="text-sm text-amber-600/90">{t("templateNoticeBody")}</p>
+          </div>
           <p className="pg-text-muted text-xs">{t("boilerplateHint")}</p>
           <pre className="pg-border max-h-96 overflow-auto rounded-lg border p-3 text-xs" aria-label={t("boilerplateAriaLabel")}>
             <code className="font-mono">{boilerplate}</code>

@@ -7,15 +7,65 @@ import {
   type RemotionPromptOptions,
 } from "@/lib/remotionPromptBuilder";
 
+/** Regex yang mengenali warna valid untuk canvas. */
+const HEX_COLOR = /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
+const COLOR_FUNCTION = /^(?:rgb|hsl)a?\([\s\S]*\)$/i;
+
+function isCanvasColor(value: string): boolean {
+  return HEX_COLOR.test(value) || COLOR_FUNCTION.test(value);
+}
+
 /**
- * Parsing warna hex atau nama warna dari string gradien CSS sederhana.
+ * Ambil warna pertama dan kedua dari string linear-gradient CSS.
+ * Contoh yang didukung: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)".
+ * Mengembalikan null bila bukan gradien dua warna.
  */
-function parseGradientColors(bg: string): [string, string] | null {
-  const match = bg.match(/linear-gradient\(\s*\d+deg\s*,\s*([^0-9%]+?)\s+\d+%\s*,\s*([^0-9%]+?)\s+\d+%\s*\)/i);
-  if (match && match[1] && match[2]) {
-    return [match[1].trim(), match[2].trim()];
+export function parseGradientColors(bg: string): [string, string] | null {
+  const marker = "linear-gradient(";
+  const start = bg.indexOf(marker);
+  if (start === -1) return null;
+
+  const open = start + marker.length;
+  const close = bg.lastIndexOf(")");
+  if (close <= open) return null;
+
+  // Pecah isi gradien pada koma yang berada di kedalaman kurung 0,
+  // sehingga "rgb(15, 23, 42)" tidak ikut terpotong.
+  const parts: string[] = [];
+  let depth = 0;
+  let current = "";
+  for (const ch of bg.slice(open, close)) {
+    if (ch === "(") depth += 1;
+    else if (ch === ")") depth -= 1;
+    if (ch === "," && depth === 0) {
+      parts.push(current);
+      current = "";
+    } else {
+      current += ch;
+    }
   }
-  return null;
+  parts.push(current);
+
+  const colors: string[] = [];
+  for (const part of parts) {
+    const stop = part.trim();
+    if (!stop) continue;
+    if (stop.startsWith("#")) {
+      const token = stop.split(/\s+/)[0] ?? "";
+      if (HEX_COLOR.test(token)) colors.push(token);
+      continue;
+    }
+    const fn = stop.match(/^(?:rgb|hsl)a?\([\s\S]*?\)/);
+    if (fn) {
+      colors.push(fn[0]);
+      continue;
+    }
+    const token = stop.split(/\s+/)[0] ?? "";
+    if (isCanvasColor(token)) colors.push(token);
+    if (colors.length >= 2) break;
+  }
+
+  return colors.length >= 2 ? [colors[0] as string, colors[1] as string] : null;
 }
 
 /**

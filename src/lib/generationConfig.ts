@@ -1,10 +1,8 @@
 import type { Prisma } from "@prisma/client";
+import { isRecord } from "@/lib/typeGuards";
 
 type JsonObject = Record<string, Prisma.InputJsonValue>;
 
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null && !Array.isArray(v);
-}
 function pickString(v: unknown, max: number): string | undefined {
   return typeof v === "string" && v.trim() ? v.trim().slice(0, max) : undefined;
 }

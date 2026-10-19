@@ -48,7 +48,8 @@
     "research": "Trends & Keywords",
     "settings": "Account Settings",
     "pricingPlans": "Pricing Plans",
-    "profile": "Profile"
+    "profile": "Profile",
+    "remotionStudio": "Remotion Studio"
   },
   "Auth": {
     "login": "Login",
@@ -278,6 +279,7 @@
     "sceneCountAuto": "Auto",
     "sceneCountManual": "Manual",
     "sceneCountAutoHint": "AI will create ~{count} scenes based on duration and speech rate.",
+    "autoDurationTruncated": "Target of {target}s cannot be reached in auto mode due to the {max} scene limit. Actual duration will be about {actual}s.",
     "targetDurationLabel": "Target Duration (seconds)",
     "targetDurationHint": "Enter desired video duration (10–600 seconds).",
     "hookStyle": "Hook Style",
@@ -458,7 +460,13 @@
     "modeRemotionCodeDesc": "AI generates React Remotion animation code (motion graphics, kinetic typography, spring physics). Preview & render directly in studio.",
     "remotionStudioLocked": "Remotion Studio is available on PRO or Enterprise plans. Please upgrade your plan.",
     "remotionThemeLabel": "Remotion Aesthetic Theme",
-    "remotionCameraMovementNote": "Remotion mode active: Visuals are powered by React components (spring physics, typography, SVG transforms) replacing physical camera settings."
+    "remotionCameraMovementNote": "Remotion mode active: Visuals are powered by React components (spring physics, typography, SVG transforms) replacing physical camera settings.",
+    "remotionPromptReady": "Remotion Prompt Ready",
+    "remotionPromptDesc": "Copy the prompt below and paste into External AI (ChatGPT, Claude, etc.). The AI will generate complete visual Remotion TypeScript (.tsx) code.",
+    "copyAiPromptBtn": "📋 Copy AI Prompt",
+    "openRemotionStudioBtn": "🚀 Open Remotion Studio (Parse Engine) ➔",
+    "downloadBackupJson": "⬇️ Download Backup JSON",
+    "promptCopiedToast": "Prompt successfully copied to clipboard! Ready to paste into external AI."
   },
   "Drafts": {
     "pageTitleTab": "Prompt History",
@@ -864,7 +872,10 @@
     "subscriptionInactive": "Your subscription is inactive or has expired. Please renew your plan.",
     "payloadTooLarge": "Payload too large (max 1MB).",
     "maxTitlesExceeded": "Maximum 1000 titles per request.",
-    "noTitlesProvided": "No titles provided."
+    "noTitlesProvided": "No titles provided.",
+    "googleDriveLocked": "The Google Drive feature requires a plan upgrade.",
+    "googleDriveNotConnected": "Your Google Drive account is not connected yet. Please connect your account first.",
+    "driveFileTooLarge": "File is too large. Maximum 100MB."
   },
   "Emails": {
     "resetSubject": "Reset Password - Prompt Gen",
@@ -1242,7 +1253,10 @@
     "remotionCodeDetectedToast": "Remotion React TSX code detected and automatically loaded into Remotion Studio!",
     "remotionCodeDetectedBannerTitle": "Remotion React TSX Code Detected",
     "remotionCodeDetectedBannerDesc": "AI generation output includes a complete Remotion component. You can validate, preview animations, or render MP4 directly in Remotion Studio.",
-    "openRemotionStudioButton": "Open in Remotion Studio"
+    "openRemotionStudioButton": "Open in Remotion Studio",
+    "remotionStudioStandaloneHeading": "Remotion Studio (Parse Engine)",
+    "remotionStudioStandaloneNotice": "For maximum speed and ease of rendering animated MP4 videos without page bloat, the Remotion Parse Engine now runs in a dedicated standalone studio.",
+    "openStandaloneRemotionBtn": "🚀 Open Standalone Remotion Studio ➔"
   },
   "ForgotPassword": {
     "title": "Forgot Password?",
@@ -1678,6 +1692,7 @@
     "pasteAnimationCode": "Paste Animation HTML Code",
     "pasteAnimationCodeHint": "Paste the complete HTML code from AI here...",
     "startRender": "Start Render",
+    "cancelRender": "Cancel",
     "rendering": "Rendering... {percent}%",
     "downloadComplete": "Video downloaded successfully.",
     "downloadVideo": "Download Video",
@@ -1804,6 +1819,33 @@
     "uploadDriveSuccess": "Video successfully saved to Google Drive!",
     "uploadDriveFailed": "Failed to upload video to Google Drive.",
     "openInDrive": "Open in Google Drive",
-    "driveFeatureLocked": "Google Drive feature requires a plan upgrade."
+    "driveFeatureLocked": "Google Drive feature requires a plan upgrade.",
+    "templateNoticeTitle": "What is produced is a motion design template",
+    "templateNoticeBody": "The TSX code is only exported for use in your own Remotion project. The browser preview, in-browser MP4 render, and ZIP package use a predefined text-card template rather than executing the TSX code."
+  },
+  "StandaloneRemotion": {
+    "title": "Remotion Studio",
+    "subtitle": "Paste AI-generated React Remotion (.tsx) code to play live visual animations and render MP4 videos.",
+    "inputLabel": "React Remotion Code (.tsx)",
+    "inputPlaceholder": "Paste full AI .tsx code here (e.g., import { AbsoluteFill } from 'remotion' ...)...",
+    "loadButton": "🚀 Load & Play Animation",
+    "loading": "Compiling code...",
+    "sampleButton": "🐍 Try Snake Demo",
+    "downloadTsx": "💾 Download Code (.tsx)",
+    "downloadZip": "💾 Download ZIP Package",
+    "playerTitle": "Live Animation Player",
+    "emptyState": "No code loaded yet. Paste Remotion code on the left or click 'Try Snake Demo'.",
+    "play": "Play",
+    "pause": "Pause",
+    "restart": "Restart",
+    "frameCounter": "Frame {current} / {total} ({time}s)",
+    "renderMp4": "🎬 Render MP4 Video",
+    "rendering": "Rendering MP4... {percent}% ({current}/{total} frames)",
+    "renderSuccess": "MP4 Video rendered successfully!",
+    "downloadAgain": "⬇️ Download MP4 Again",
+    "compileError": "Failed to compile code: {error}",
+    "noCode": "Please enter Remotion code first.",
+    "copied": "Copied successfully!",
+    "downloaded": "File downloaded successfully"
   }
 }

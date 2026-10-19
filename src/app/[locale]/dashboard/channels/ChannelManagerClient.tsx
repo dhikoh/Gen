@@ -174,7 +174,7 @@ export default function ChannelManagerClient({ channels, maxChannels }: { channe
  {channels.length > 1 && (
  <button 
  onClick={() => handleDelete(channel.id)}
- className="text-red-500 hover:text-red-700 text-xs font-medium px-3 py-1.5 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 rounded-lg"
+ className="text-[var(--pg-danger)] hover:text-red-700 text-xs font-medium px-3 py-1.5 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 rounded-lg"
  >
  {t('delete')}
  </button>

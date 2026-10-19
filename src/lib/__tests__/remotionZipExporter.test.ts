@@ -47,6 +47,10 @@ describe("remotionZipExporter", () => {
     expect(zip.file("render.bat")).not.toBeNull();
     expect(zip.file("render.sh")).not.toBeNull();
     expect(zip.file("README.md")).not.toBeNull();
-    expect(zip.file("public/audio/scene-1.mp3")).not.toBeNull();
+    const scene1Audio = zip.file("public/audio/scene-1.wav");
+    expect(scene1Audio).not.toBeNull();
+    const bytes = await scene1Audio!.async("uint8array");
+    expect(bytes.length).toBeGreaterThan(0);
+    expect(zip.file("public/audio/scene-2.wav")).toBeNull();
   });
 });

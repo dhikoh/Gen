@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { getSceneAtFrame, renderRemotionFrame } from "../remotionCanvasRenderer";
+import {
+  getSceneAtFrame,
+  parseGradientColors,
+  renderRemotionFrame,
+} from "../remotionCanvasRenderer";
 import {
   computeRemotionPlan,
   DEFAULT_REMOTION_OPTIONS,
@@ -90,3 +94,31 @@ describe("remotionCanvasRenderer", () => {
     expect(mockCtx.fillRect).toHaveBeenCalled();
   });
 });
+
+describe("parseGradientColors", () => {
+  it("mengambil warna hex dari linear-gradient", () => {
+    expect(parseGradientColors("linear-gradient(135deg, #0f172a 0%, #1e293b 100%)")).toEqual([
+      "#0f172a",
+      "#1e293b",
+    ]);
+  });
+
+  it("mengambil warna hex dari gradien tema cyberpunk", () => {
+    expect(parseGradientColors("linear-gradient(135deg, #0a0014 0%, #1a0033 100%)")).toEqual([
+      "#0a0014",
+      "#1a0033",
+    ]);
+  });
+
+  it("mendukung fungsi warna rgb dengan spasi", () => {
+    expect(parseGradientColors("linear-gradient(90deg, rgb(15 23 42) 0%, rgb(30 41 59) 100%)")).toEqual([
+      "rgb(15 23 42)",
+      "rgb(30 41 59)",
+    ]);
+  });
+
+  it("mengembalikan null untuk warna padat", () => {
+    expect(parseGradientColors("#111111")).toBeNull();
+  });
+});
+

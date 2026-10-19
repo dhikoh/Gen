@@ -14,11 +14,12 @@ interface CanvasWithCaptureStream extends HTMLCanvasElement {
  * Tunggu satu frame dari iframe via postMessage.
  * Mengembalikan data URL gambar frame tersebut.
  */
-function waitForFrame(timeoutMs = 5000): Promise<string> {
+function waitForFrame(expectedWindow?: Window | null, timeoutMs = 5000): Promise<string> {
   return new Promise((resolve, reject) => {
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
     function handler(e: MessageEvent) {
+      if (expectedWindow && e.source !== expectedWindow) return;
       if (e.data && typeof e.data === "object" && e.data.type === "frame" && typeof e.data.dataUrl === "string") {
         if (timeoutId !== null) clearTimeout(timeoutId);
         window.removeEventListener("message", handler);
@@ -63,7 +64,14 @@ export async function assembleVideo(
   iframeEl: HTMLIFrameElement,
   totalDurationSec: number,
   onProgress?: (p: RenderProgress) => void,
-  opts?: { fps?: number; mimeType?: string; frameTimeoutMs?: number; width?: number; height?: number }
+  opts?: {
+    fps?: number;
+    mimeType?: string;
+    frameTimeoutMs?: number;
+    width?: number;
+    height?: number;
+    signal?: AbortSignal;
+  }
 ): Promise<Blob> {
   const fps = opts?.fps ?? DEFAULT_FPS;
   const width = opts?.width ?? 1920;
@@ -98,17 +106,41 @@ export async function assembleVideo(
     if (e.data.size > 0) chunks.push(e.data);
   };
 
+  const cleanup = () => {
+    try {
+      if (recorder.state !== "inactive") recorder.stop();
+      stream.getTracks().forEach((track) => track.stop());
+    } catch {
+      // ignore
+    }
+  };
+
+  if (opts?.signal?.aborted) {
+    cleanup();
+    throw new DOMException("Render dibatalkan", "AbortError");
+  }
+
   recorder.start();
 
   // === RENDER LOOP SEQUENTIAL ===
   for (let frame = 0; frame < totalFrames; frame++) {
+    if (opts?.signal?.aborted) {
+      cleanup();
+      throw new DOMException("Render dibatalkan", "AbortError");
+    }
+
     const t = frame / fps;
 
     // 1. Kirim seek ke iframe
     iframeEl.contentWindow?.postMessage({ type: "seek", time: t }, "*");
 
     // 2. TUNGGU respons frame (BLOCKING per frame)
-    const dataUrl = await waitForFrame(frameTimeout);
+    const dataUrl = await waitForFrame(iframeEl.contentWindow, frameTimeout);
+
+    if (opts?.signal?.aborted) {
+      cleanup();
+      throw new DOMException("Render dibatalkan", "AbortError");
+    }
 
     // 3. Gambar ke offscreen canvas
     const img = await loadImage(dataUrl);
@@ -123,6 +155,11 @@ export async function assembleVideo(
 
     // 5. Yield ke browser agar tidak freeze UI
     await new Promise((r) => setTimeout(r, 0));
+
+    if (opts?.signal?.aborted) {
+      cleanup();
+      throw new DOMException("Render dibatalkan", "AbortError");
+    }
   }
 
   // Stop recording dan tunggu blob

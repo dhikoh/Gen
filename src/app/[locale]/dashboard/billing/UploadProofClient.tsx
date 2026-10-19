@@ -65,7 +65,7 @@ export default function UploadProofClient({ invoiceId, currentProof }: { invoice
  <div className="mt-4 border-t pg-border pt-4">
  <h3 className="text-sm font-semibold mb-2 pg-text-heading">{t('uploadProof')}</h3>
  
- {error && <p className="text-red-500 text-xs mb-2">{error}</p>}
+ {error && <p className="text-[var(--pg-danger)] text-xs mb-2">{error}</p>}
  
  <div className="flex flex-col space-y-3">
  {preview && (

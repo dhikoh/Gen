@@ -1,10 +1,8 @@
 import JSZip from "jszip";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { applyRateLimit } from "@/lib/rateLimit";
 import { storageGet } from "@/lib/storage";
-import { storyboardError } from "@/lib/storyboardAccess";
+import { checkStoryboardAccess, storyboardError } from "@/lib/storyboardAccess";
 import {
   extractStoryboardScenes,
   readAspectRatio,
@@ -17,9 +15,9 @@ export const runtime = "nodejs";
 
 // GET /api/drafts/[id]/storyboard/export — ZIP berisi panel_XX.webp + storyboard.md
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions);
-  const userId = session?.user?.id;
-  if (!userId) return storyboardError(401, "UNAUTHORIZED");
+  const access = await checkStoryboardAccess();
+  if (!access.ok) return access.response;
+  const userId = access.userId;
 
   const allowed = await applyRateLimit(`storyboard_export_${userId}`, 10, 60);
   if (!allowed) return storyboardError(429, "RATE_LIMITED");

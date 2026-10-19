@@ -2506,6 +2506,86 @@ Sebagai penutup siklus pipeline produksi video, platform **Prompt Gen** memberik
 - Model perizinan fail-closed: fitur terdaftar pada `KNOWN_PLAN_FEATURES` dengan kunci `remotionStudio` (`src/lib/planFeatures.ts`).
 - Server-side validation pada endpoint `/api/generate` memverifikasi kepemilikan fitur paket pengguna sebelum memproses prompt mode Remotion. Pengguna yang tidak berhak menerima respon `403 Forbidden`.
 
+### Bagian 49: Audit Remediasi Sistemik & Pengerasan Arsitektur Pasca Rilis #92–#98 (Rilis #99)
+
+#### 49.1 Stabilisasi Paket Remotion & Ekosistem Audio
+- Penyelarasan Versi Remotion CLI: Paket ZIP mandiri Remotion (`src/lib/remotionZipExporter.ts`) menyelaraskan versi `@remotion/cli` ke `4.0.536` persis sesuai dependensi `remotion`, memastikan eksekusi build lokal pengguna tidak gagal.
+- Normalisasi Ekstensi Audio TTS: Semua referensi audio dinormalisasi secara ketat ke format file `.wav`, mengeliminasi kontradiksi historis payload binary WAV yang tersimpan sebagai file berekstensi `.mp3`.
+- Payload Upload Google Drive: Komponen `RemotionStudioTab.tsx` menggunakan JSON payload `{ fileBase64, fileName, mimeType }` yang sesuai kontrak API server `/api/user/google-drive/upload`.
+- Ekspor & Parsing Dynamic Gradient: Algoritma `parseGradientColors` pada `remotionCanvasRenderer.ts` mengadopsi pelacak kedalaman tanda kurung (bracket-depth counter) untuk menangani nested color stops dan fungsi warna CSS modern (misal: `color-mix`, `rgba`), mencegah fallback kanvas hitam pada 4 tema bawaan (Modern, Cyberpunk, Documentary, Kinetic).
+- Transparansi Kapabilitas Produk: Menyematkan notifikasi i18n (`templateNoticeTitle` dan `templateNoticeBody`) pada antarmuka Remotion Studio dan dokumentasi rilis bahwa render MP4 in-browser dan paket ZIP menggunakan template motion design kartu teks terdefinisi, sedangkan kode TSX diekspor untuk proyek mandiri.
+
+#### 49.2 Pengerasan Keamanan, Hak Akses & Batas Memori
+- Fail-Closed Entitlement Guard: Endpoint `/api/drafts/[id]/storyboard/export` dilindungi verifikasi hak akses terpusat `checkStoryboardAccess()` untuk mencegah eksfiltrasi storyboard oleh pengguna tanpa paket aktif.
+- Proteksi Memori & Validasi Upload Google Drive:
+  - Pemeriksaan dini header `Content-Length` sebelum parsing `req.json()`.
+  - Pengecekan batas karakter base64 `MAX_BASE64_CHARS` (50 MB) untuk mencegah kehabisan memori server (*heap exhaustion*).
+  - Validasi ketat whitelist MIME type (`ALLOWED_MIME_TYPES`).
+  - Standarisasi pesan error berbasis translation keys (`googleDriveLocked`, `googleDriveNotConnected`, `driveFileTooLarge`).
+- Ekstraksi Hook Terpusat `useDriveUpload`: Mengonsolidasikan logika upload Google Drive, konversi blob ke base64, dan penanganan rate limiting (429/5xx) dengan penghormatan header `Retry-After`.
+- Uncoupling Fetch Effect: Memisahkan pemanggilan `/api/used-titles` dari dependensi reaktif timeline pada `ScenePromptStudioClient.tsx`, mengeliminasi 120x network fetch cascade saat batch TTS selesai.
+
+#### 49.3 Keamanan Sandbox Browser & HTTP Security Headers
+- HSTS & CSP Hardening (`next.config.ts`):
+  - Menginjeksi header `Strict-Transport-Security: max-age=63072000; includeSubDomains`.
+  - Mengetatkan Content-Security-Policy global dengan menghapus wildcard `https:` pada direktif `img-src` dan `connect-src`.
+- Origin & Source Isolation: Listener `window.addEventListener("message")` pada `AnimationRenderer.tsx` dan `videoAssembler.ts` secara ketat memverifikasi `event.source === iframe.contentWindow` sebelum memproses payload data frame atau status render.
+
+#### 49.4 Ketahanan Rendering & Standarisasi Siklus Hidup Memori
+- Pembatalan Render Deterministik: Mengintegrasikan `signal?: AbortSignal` pada loop perakitan frame `videoAssembler.ts` dan menyediakan tombol batal interaktif di `VideoTimelineTab.tsx` untuk menghentikan recorder dan membersihkan memori tanpa error.
+- Pelepasan Object URL Aman: Standarisasi pelepasan Blob URL melalui penundaan `setTimeout(() => URL.revokeObjectURL(url), 2000)` di seluruh titik unduhan client (`DraftActions.tsx`, `ScenePromptStudioClient.tsx`, `GeneratorForm.tsx`, `VideoTimelineTab.tsx`).
+- Standarisasi Scene Limits & Auto Duration:
+  - Menyederhanakan penanganan jumlah scene di `GeneratorForm.tsx` dengan konstanta kanonikal `DEFAULT_SCENE_COUNT` (12) dan `MIN_SCENE_COUNT` (1).
+  - Menyediakan fungsi utilitas `reachableDurationSec()` dan peringatan visual saat durasi target pengguna terpotong batas maksimal scene pada Mode Auto.
+
+#### 49.5 Pengetatan Audit Desain & Konsolidasi Type Guards
+- Ambang Gerbang Desain 95%: Mengonfigurasi `scripts/audit-design.mjs` untuk mewajibkan tingkat adopsi token desain minimal 95% (tercapai 97.7%) dan mengeliminasi seluruh kelas warna raw Tailwind (`text-sky-500`, `text-red-500`, `text-amber-500`) menjadi token semantik tema `--pg-*`.
+- Konsolidasi Type Guards: Mengekstraksi fungsi `isRecord(v: unknown): v is Record<string, unknown>` ke dalam modul terpusat `src/lib/typeGuards.ts` yang diuji secara independen melalui unit test.
+- Paritas i18n 100%: Menjaga paritas penuh 1.708 translation keys antara `messages/id.json` dan `messages/en.json`.
+
+---
+
+### BAGIAN 50: STANDALONE REMOTION STUDIO & PARSE ENGINE CODE-AS-VIDEO (2026-10-19)
+
+#### 50.1 Arsitektur Mandiri (Standalone Page & Navigation)
+- Rute Khusus: `/dashboard/remotion-studio` (`src/app/[locale]/dashboard/remotion-studio/page.tsx`) berdiri sendiri 100% dan terpisah dari Scene Prompt Studio untuk menghilangkan kebingungan pengguna.
+- Akses Navigasi:
+  - Sidebar Desktop: Ditambahkan item navigasi `{ href: "/dashboard/remotion-studio", icon: "⚛️", label: "Remotion Studio" }`.
+  - Drawer Mobile: Ditambahkan `{ key: "remotion-studio", icon: "⚛️", labelKey: "remotionStudio" }`.
+
+#### 50.2 Mesin Transpiler & Sandbox Runtime (`/api/remotion/transpile` & `LiveRemotionSandbox.tsx`)
+- Server Transpilation Route:
+  - Mengompilasi kode TypeScript + JSX (.tsx) menjadi JavaScript ES2020 standar via `typescript.transpileModule`.
+  - Normalisasi anomali sintaksis LLM (seperti `export default const`, `export default function`, dan `export const`).
+  - Pembersihan import eksternal `react` dan `remotion`, menggantikannya dengan mock sandbox runtime.
+  - Ekstraksi otomatis FPS, resolusi lebar/tinggi, dan total durasi frame.
+- Sandboxed In-Browser Execution (`LiveRemotionSandbox.tsx`):
+  - Mengevaluasi komponen React 19 langsung di dalam iframe `contentDocument` tanpa dependensi bundler eksternal CDN.
+  - Remotion Shims: `AbsoluteFill`, `Sequence`, `interpolate` (damped extrapolation), `spring` (analytical damped harmonic oscillator physics), `useCurrentFrame`, dan `useVideoConfig`.
+  - Frame Capture Multi-Layer: Merasterisasi elemen DOM (HTML Typography + SVG Visuals) via serialisasi foreignObject SVG dan fallback serialisasi SVG native.
+
+#### 50.3 Alur Kerja Sederhana (Generator -> Eksternal AI -> Parse Engine -> MP4)
+- Langkah 1 (Generator): Pengguna memilih opsi "React Video Engine (Remotion Code)".
+- Langkah 2 (Generator):
+  - Kartu hasil menampilkan tombol cepat "📋 Salin Prompt AI" dan "🚀 Buka Remotion Studio (Parse Engine)".
+  - Prompt untuk AI eksternal difokuskan pada penghasilan KODE ANIMASI VISUAL REMOTION (TSX) lengkap dengan ilustrasi dinamis SVG (seperti gerakan sayap aerofoil ular dan anatominya), bukan sekadar kartu teks statis.
+- Parse Engine (Remotion Studio):
+  - Pengguna menempelkan kode TSX hasil AI eksternal.
+  - Klik "Jalankan Animasi & Parse Engine" -> animasi visual langsung diputar di browser dengan kontrol Play/Pause 60fps dan scrubber timeline.
+  - Tombol demo 1-klik "🐍 Coba Demo Ular (Paradise Tree Snake)" untuk pengujian instan.
+  - Klik "Render Video MP4" -> browser merender frame-by-frame sekuensial via `MediaRecorder` canvas stream dan mengunduh file `.mp4`/`.webm`.
+  - Tombol 1-klik "Simpan ke Google Drive" untuk sinkronisasi cloud instan.
+
+#### 50.4 Verifikasi Kualitas 6-Gate
+- `npx tsc --noEmit`: Exit 0 (Zero TypeScript errors)
+- `npx eslint . --max-warnings=0`: Exit 0 (Zero warnings)
+- `npx vitest run`: 42 test suites passed, 376 tests passed (100% pass rate)
+- `node scripts/audit-i18n.mjs`: 1.741 keys id & en (100% key parity)
+- `node scripts/audit-design.mjs`: 95.6% design token adoption (Pass >= 95%)
+- `npm run build`: Exit 0 (Next.js 16.3.1 Turbopack build passed cleanly)
+
+
+
 
 
 

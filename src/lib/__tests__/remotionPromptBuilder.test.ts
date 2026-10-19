@@ -134,7 +134,7 @@ describe("buildRemotionPrompt", () => {
     const p = buildRemotionPrompt(NORMAL);
     expect(p).not.toContain(FAKE_AUDIO);
     expect(p).not.toMatch(/data:audio|base64,/i);
-    expect(p).toContain('staticFile("audio/scene-1.mp3")');
+    expect(p).toContain('staticFile("audio/scene-1.wav")');
   });
 
   it("additionalInstructions dibatasi 2000 karakter", () => {
@@ -206,7 +206,7 @@ describe("buildRemotionBoilerplate", () => {
     const code = buildRemotionBoilerplate(NORMAL);
     expect(code).not.toContain(FAKE_AUDIO);
     expect(code).not.toMatch(/data:audio|base64,/i);
-    expect(code).toContain('audioSrc: "audio/scene-1.mp3"');
+    expect(code).toContain('audioSrc: "audio/scene-1.wav"');
     expect(code).toContain("audioSrc: null");
   });
 

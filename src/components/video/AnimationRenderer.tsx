@@ -96,6 +96,7 @@ export default function AnimationRenderer({
   // Listen for messages from iframe
   useEffect(() => {
     function handleMessage(e: MessageEvent) {
+      if (e.source !== iframeRef.current?.contentWindow) return;
       if (!e.data || typeof e.data.type !== "string") return;
 
       if (e.data.type === "ready") {
@@ -147,7 +148,7 @@ export default function AnimationRenderer({
         )}
         {status === "error" && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/80 pointer-events-none">
-            <span className="text-sm font-semibold text-red-500">{t("renderError")}</span>
+            <span className="text-sm font-semibold text-[var(--pg-danger)]">{t("renderError")}</span>
           </div>
         )}
       </div>
