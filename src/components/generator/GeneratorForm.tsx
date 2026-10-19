@@ -3023,7 +3023,6 @@ export default function GeneratorForm({
  <div className="flex flex-wrap gap-2">
  {type === "VIDEO" ? (
  videoConfig.videoProductionMode === "REMOTION_CODE" ? (
- <div className="flex flex-wrap items-center gap-2 w-full">
  <button
  type="button"
  onClick={() => router.push(`/${document.documentElement.lang || "id"}/dashboard/remotion-studio`)}
@@ -3031,29 +3030,6 @@ export default function GeneratorForm({
  >
  {t("openRemotionStudioBtn")}
  </button>
- <button
- type="button"
- onClick={async () => {
- try {
- const scenePromptPayload = {
- rawText: generatedPrompt,
- selectedChannelId: channelId,
- ar: videoConfig.aspectRatio || "9:16",
- };
- setUserItem(userId, "scenePromptState", JSON.stringify(scenePromptPayload));
- await fetch("/api/user/preferences", {
- method: "PUT",
- headers: { "Content-Type": "application/json" },
- body: JSON.stringify({ scenePromptState: scenePromptPayload })
- });
- } catch(e) { console.error(e); }
- router.push(`/${document.documentElement.lang || "id"}/dashboard/scene-prompt`);
- }}
- className="px-3 py-2 text-xs font-medium pg-text-sub hover:underline flex items-center justify-center"
- >
- {t("continueToSceneStudioBtn")}
- </button>
- </div>
  ) : (
  <button
  type="button"

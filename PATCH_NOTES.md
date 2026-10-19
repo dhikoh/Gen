@@ -54,6 +54,7 @@
 > | `[#97]` | Fitur #97 (Bagian 47) | Integrasi Google Drive Backup & Export Video (OAuth2 AAD, Resumable Upload, Auto-Refresh & Client Retry) | 2026-10-18 |
 > | `[#98]` | Fitur #98 (Bagian 48) | Paradigma Code-as-Video via React Remotion v4 (Dual-Engine, Motion Design, In-Browser Studio & Bridge Parser) | 2026-10-19 |
 > | `[#99]` | Audit & Remediasi #92–#98 (Bagian 49) | Remediasi Sistemik 19 Prompt: Keamanan (HSTS/CSP/Drive), Remotion ZIP/WAV, Design Tokens (97.7%), dan TypeGuards | 2026-10-19 |
+> | `[#100]` | Fitur #100 (Bagian 50) | Standalone Remotion Studio, Legacy Cleanup & Setup Toolbar (FPS, Aspect Ratio, Duration) | 2026-10-19 |
 
 ---
 
@@ -4844,13 +4845,33 @@ Migrasi menggunakan 3-layer approach:
 - **Penyederhanaan Scene Prompt Studio (`ScenePromptStudioClient.tsx`)**:
   - Sub-tab Remotion yang membingungkan digantikan dengan kartu rujukan bersih berdesain rapi yang mengarahkan pengguna langsung ke Standalone Remotion Studio.
 
-### 5. Verifikasi Kualitas 6-Gate
-- `npx tsc --noEmit`: Exit 0 (Zero errors)
-- `npx eslint . --max-warnings=0`: Exit 0 (Zero warnings)
+### 5. Pembersihan Komponen & Tombol Mubazir (Redundant UI Cleanup)
+- **Penghapusan File Usang**: Menghapus `src/components/remotion/RemotionStudioTab.tsx` dan `src/components/remotion/RemotionUpgradeCard.tsx` yang sebelumnya menumpuk di Scene Prompt Studio.
+- **Pembersihan Scene Prompt Studio (`ScenePromptStudioClient.tsx`)**:
+  - Menghapus tab `remotionStudio` dari daftar tab aktif dan state antarmuka.
+  - Menghapus seluruh render blok komponen tab lama.
+  - Banner deteksi kode Remotion kini langsung mengarahkan pengguna ke halaman mandiri `/${locale}/dashboard/remotion-studio` via Next.js `<Link>`.
+- **Pembersihan Generator Form (`GeneratorForm.tsx`)**:
+  - Menghapus tombol sekunder 'Lanjutkan ke Scene Studio' ketika mode 'REMOTION_CODE' dipilih, menyisakan satu tombol aksi utama yang terarah: `🚀 Buka Remotion Studio (Parse Engine)`.
+
+### 6. Toolbar Setup Video Interaktif (Aspect Ratio, FPS & Durasi Target)
+- **Toolbar Setup Lengkap (`RemotionStudioStandaloneClient.tsx`)**:
+  - **Rasio Layar (Aspect Ratio)**:
+    - `9:16` (Vertical / Shorts / TikTok / Reels — 1080×1920)
+    - `16:9` (Horizontal / Landscape YouTube — 1920×1080)
+    - `1:1` (Square Feed / Instagram — 1080×1080)
+  - **Frame Rate (FPS)**: Opsi 30 FPS vs 60 FPS untuk rendering halus.
+  - **Durasi Target & Total Frame**: Preset cepat 5s, 10s, 15s, dan 30s dengan kalkulasi otomatis `totalFrames = Math.round(durationSec * fps)`.
+  - **Generator Demo Adaptif (`getSampleSnakeCode`)**: Menyesuaikan koordinat grafis SVG ular & pohon terbang secara dinamis berdasarkan orientasi layar (landscape vs vertical).
+  - **Auto-Sync Parser**: Mesin deteksi transpile otomatis membaca deklarasi dimensi dan fps dari kode pengguna lalu menyinkronkan toolbar secara seamless.
+
+### 7. Verifikasi Kualitas 6-Gate
+- `npx tsc --noEmit`: Exit 0 (Zero TypeScript errors)
+- `npx eslint . --max-warnings=0`: Exit 0 (Zero warnings, clean React 19 / Next.js compiler rules)
 - `npx vitest run`: 42 test files passed, 376 tests passed (100% pass rate)
-- `node scripts/audit-i18n.mjs`: 1.741 keys id & en (100% key parity)
-- `node scripts/audit-design.mjs`: 95.6% design token adoption (Pass >= 95%)
-- `npm run build`: Exit 0 (Next.js 16.3.1 Turbopack build passed cleanly)
+- `node scripts/audit-i18n.mjs`: 1.753 keys id & en (100% key parity)
+- `node scripts/audit-design.mjs`: 95.5% design token adoption (Pass >= 95%)
+- `npm run build`: Exit 0 (56/56 rute statis & dinamis terkompilasi bersih di Next.js 16.3.1 Turbopack)
 
 
 

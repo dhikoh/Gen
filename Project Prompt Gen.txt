@@ -2576,13 +2576,26 @@ Sebagai penutup siklus pipeline produksi video, platform **Prompt Gen** memberik
   - Klik "Render Video MP4" -> browser merender frame-by-frame sekuensial via `MediaRecorder` canvas stream dan mengunduh file `.mp4`/`.webm`.
   - Tombol 1-klik "Simpan ke Google Drive" untuk sinkronisasi cloud instan.
 
-#### 50.4 Verifikasi Kualitas 6-Gate
+#### 50.4 Pembersihan Komponen & Tombol Mubazir (Redundant UI Cleanup)
+- Penghapusan File Usang: Menghapus `src/components/remotion/RemotionStudioTab.tsx` dan `src/components/remotion/RemotionUpgradeCard.tsx` yang sebelumnya menumpuk di Scene Prompt Studio.
+- Pembersihan Scene Prompt Studio: Menghapus sub-tab dan tombol `remotionStudio`, menggantinya dengan banner tautan langsung ke `/dashboard/remotion-studio`.
+- Pembersihan Generator Form: Menghapus tombol sekunder 'Lanjutkan ke Scene Studio' ketika mode 'REMOTION_CODE' aktif, menyisakan satu tombol aksi utama yang terarah: `🚀 Buka Remotion Studio (Parse Engine)`.
+
+#### 50.5 Toolbar Setup Video Interaktif (Aspect Ratio, FPS & Durasi Target)
+- Toolbar Konfigurasi Remotion Studio (`RemotionStudioStandaloneClient.tsx`):
+  - Rasio Layar (Aspect Ratio): Preset instan `9:16` (1080×1920 Vertikal/Shorts/TikTok), `16:9` (1920×1080 Horizontal/YouTube), `1:1` (1080×1080 Kotak/Instagram).
+  - Frame Rate (FPS): Pilihan 30 FPS vs 60 FPS untuk kehalusan rendering.
+  - Durasi Target & Total Frame: Tombol preset cepat 5 detik, 10 detik, 15 detik, dan 30 detik (`totalFrames = durasi × fps`).
+  - Generator Kode Demo Adaptif: Kode demo ular menyesuaikan aspek rasio secara dinamis antara vertikal dan lanskap.
+  - Auto-Sync Parser: Otomatis mendeteksi dimensi dan fps dari kode pengguna saat transpile.
+
+#### 50.6 Verifikasi Kualitas 6-Gate
 - `npx tsc --noEmit`: Exit 0 (Zero TypeScript errors)
-- `npx eslint . --max-warnings=0`: Exit 0 (Zero warnings)
+- `npx eslint . --max-warnings=0`: Exit 0 (Zero warnings, clean React 19 / Next.js compiler rules)
 - `npx vitest run`: 42 test suites passed, 376 tests passed (100% pass rate)
-- `node scripts/audit-i18n.mjs`: 1.741 keys id & en (100% key parity)
-- `node scripts/audit-design.mjs`: 95.6% design token adoption (Pass >= 95%)
-- `npm run build`: Exit 0 (Next.js 16.3.1 Turbopack build passed cleanly)
+- `node scripts/audit-i18n.mjs`: 1.753 keys id & en (100% key parity)
+- `node scripts/audit-design.mjs`: 95.5% design token adoption (Pass >= 95%)
+- `npm run build`: Exit 0 (56/56 rute statis & dinamis terkompilasi bersih di Next.js 16.3.1 Turbopack)
 
 
 

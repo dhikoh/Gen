@@ -178,7 +178,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"scenes"|"thumbnail"|"platform"|"voiceStudio"|"htmlBlog"|"seo2026"|"fullVideo"|"remotionStudio">("scenes");
+  const [activeTab, setActiveTab] = useState<"scenes"|"thumbnail"|"platform"|"voiceStudio"|"htmlBlog"|"seo2026"|"fullVideo">("scenes");
   const [currentTimeline, setCurrentTimeline] = useState<VideoTimeline | null>(null);
   const [markedTitles, setMarkedTitles] = useState<string[]>([]);
   const [htmlBlog, setHtmlBlog] = useState(() => (defaultSource?.raw ? extractHtmlBlog(defaultSource.raw) : ""));
@@ -1216,12 +1216,12 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
  {scenes.length > 0 && (
  <>
  <div className="glass-panel p-1.5 rounded-2xl border pg-border flex gap-1.5 overflow-x-auto whitespace-nowrap custom-scrollbar shadow-sm">
- {(["scenes","thumbnail","seo2026","platform","voiceStudio","htmlBlog","fullVideo","remotionStudio"] as const).map(tab => {
+ {(["scenes","thumbnail","seo2026","platform","voiceStudio","htmlBlog","fullVideo"] as const).map(tab => {
  if (tab === "seo2026" && !threeTierSeo) return null;
  if (tab === "htmlBlog" && !htmlBlog) return null;
  return (
  <button key={tab} onClick={() => setActiveTab(tab)} className={btn(activeTab === tab)}>
- {tab === "scenes" ? `🎬 ${t("sceneViewerTab")} (${scenes.length})` : tab === "thumbnail" ? `🖼️ ${t("thumbnailTab")}` : tab === "seo2026" ? t("seo2026Tab") : tab === "htmlBlog" ? t("htmlBlogTab") : tab === "voiceStudio" ? `🎙️ ${t("voiceStudioTab")}` : tab === "fullVideo" ? `🎞️ ${t("tabFullVideo")}` : tab === "remotionStudio" ? `⚛️ ${t("tabRemotionStudio")}${detectedRemotionCode ? " ✨" : ""}` : `📱 ${t("platformTab")}`}
+ {tab === "scenes" ? `🎬 ${t("sceneViewerTab")} (${scenes.length})` : tab === "thumbnail" ? `🖼️ ${t("thumbnailTab")}` : tab === "seo2026" ? t("seo2026Tab") : tab === "htmlBlog" ? t("htmlBlogTab") : tab === "voiceStudio" ? `🎙️ ${t("voiceStudioTab")}` : tab === "fullVideo" ? `🎞️ ${t("tabFullVideo")}` : `📱 ${t("platformTab")}`}
  </button>
  );
  })}
@@ -1343,14 +1343,17 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
             </p>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => setActiveTab("remotionStudio")}
-          className="px-3.5 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold shrink-0 transition-colors shadow-xs flex items-center gap-1.5"
+        <Link
+          href={`/${locale}/dashboard/remotion-studio`}
+          onClick={() => {
+            navigator.clipboard.writeText(detectedRemotionCode);
+            toast.success("Kode Remotion disalin ke clipboard!");
+          }}
+          className="px-3.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold shrink-0 transition-colors shadow-xs flex items-center gap-1.5"
         >
-          <span>{t("openRemotionStudioButton")}</span>
+          <span>{t("openStandaloneRemotionBtn")}</span>
           <span>→</span>
-        </button>
+        </Link>
       </div>
     )}
 
@@ -2917,38 +2920,6 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
  />
  </div>
  )}
- </div>
- )}
-
- {/* ── Remotion Studio Standalone Pointer ── */}
- {activeTab === "remotionStudio" && (
- <div className="glass-panel rounded-2xl p-8 border pg-border text-center space-y-4 max-w-2xl mx-auto shadow-sm">
- <div className="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center text-3xl bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
- ⚛️
- </div>
- <div className="space-y-2">
- <h3 className="text-xl font-bold pg-text-heading">
- {t("remotionStudioStandaloneHeading")}
- </h3>
- <p className="text-sm pg-text-sub leading-relaxed">
- {t("remotionStudioStandaloneNotice")}
- </p>
- </div>
-
- <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
- <Link
- href={`/${locale}/dashboard/remotion-studio`}
- onClick={() => {
- if (detectedRemotionCode) {
- navigator.clipboard.writeText(detectedRemotionCode);
- toast.success("Kode Remotion disalin ke clipboard!");
- }
- }}
- className="w-full sm:w-auto px-6 py-3 text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
- >
- {t("openStandaloneRemotionBtn")}
- </Link>
- </div>
  </div>
  )}
 

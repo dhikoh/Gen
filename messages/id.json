@@ -1846,6 +1846,18 @@
     "compileError": "Gagal mengompilasi kode: {error}",
     "noCode": "Masukkan kode Remotion terlebih dahulu.",
     "copied": "Berhasil disalin!",
-    "downloaded": "File berhasil diunduh"
+    "downloaded": "File berhasil diunduh",
+    "setupTitle": "Setup Video (Rasio, FPS & Durasi)",
+    "aspectRatio": "Rasio Layar",
+    "ratioVertical": "9:16 (Shorts/TikTok/Reels)",
+    "ratioHorizontal": "16:9 (YouTube/Landscape)",
+    "ratioSquare": "1:1 (Square/Feed)",
+    "fpsLabel": "Frame Rate (FPS)",
+    "fps30": "30 FPS",
+    "fps60": "60 FPS",
+    "durationLabel": "Durasi Target",
+    "durationSeconds": "{sec} detik",
+    "customDuration": "Kustom",
+    "presetDimensions": "Resolusi: {w} × {h} px"
   }
 }

@@ -1846,6 +1846,18 @@
     "compileError": "Failed to compile code: {error}",
     "noCode": "Please enter Remotion code first.",
     "copied": "Copied successfully!",
-    "downloaded": "File downloaded successfully"
+    "downloaded": "File downloaded successfully",
+    "setupTitle": "Video Setup (Ratio, FPS & Duration)",
+    "aspectRatio": "Aspect Ratio",
+    "ratioVertical": "9:16 (Shorts/TikTok/Reels)",
+    "ratioHorizontal": "16:9 (YouTube/Landscape)",
+    "ratioSquare": "1:1 (Square/Feed)",
+    "fpsLabel": "Frame Rate (FPS)",
+    "fps30": "30 FPS",
+    "fps60": "60 FPS",
+    "durationLabel": "Target Duration",
+    "durationSeconds": "{sec} seconds",
+    "customDuration": "Custom",
+    "presetDimensions": "Resolution: {w} × {h} px"
   }
 }

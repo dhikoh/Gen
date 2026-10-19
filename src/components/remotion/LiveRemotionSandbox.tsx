@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useImperativeHandle, forwardRef, useCallback } from "react";
+import React, { useEffect, useRef, useMemo, useImperativeHandle, forwardRef, useCallback } from "react";
 import ReactDOM from "react-dom/client";
 
 export interface LiveRemotionSandboxProps {
@@ -111,11 +111,11 @@ const Sequence: React.FC<{
   style?: React.CSSProperties;
   children?: React.ReactNode;
 }> = ({ from = 0, durationInFrames, layout = "absolute-fill", style, children, ...props }) => {
-  const { frame } = React.useContext(RemotionContext);
+  const parentCtx = React.useContext(RemotionContext);
+  const frame = parentCtx.frame;
   if (frame < from) return null;
   if (durationInFrames !== undefined && frame >= from + durationInFrames) return null;
   const localFrame = frame - from;
-  const parentCtx = React.useContext(RemotionContext);
   const childCtx = { ...parentCtx, frame: localFrame };
   const content = <RemotionContext.Provider value={childCtx}>{children}</RemotionContext.Provider>;
   if (layout === "none") return content;
@@ -145,13 +145,11 @@ export const LiveRemotionSandbox = forwardRef<LiveRemotionSandboxHandle, LiveRem
   ) => {
     const iframeRef = useRef<HTMLIFrameElement | null>(null);
     const reactRootRef = useRef<ReactDOM.Root | null>(null);
-    const [evalComponent, setEvalComponent] = useState<React.ComponentType | null>(null);
 
-    // Evaluasi kode JavaScript hasil transpile menjadi komponen React
-    useEffect(() => {
+    // Evaluasi kode JavaScript hasil transpile menjadi komponen React secara murni
+    const evalResult = useMemo(() => {
       if (!jsCode || !jsCode.trim()) {
-        setEvalComponent(null);
-        return;
+        return { comp: null as React.ComponentType | null, error: null as string | null };
       }
 
       try {
@@ -178,18 +176,29 @@ export const LiveRemotionSandbox = forwardRef<LiveRemotionSandboxHandle, LiveRem
 
         const Comp = factory(React, remotionShim, win);
         if (typeof Comp === "function") {
-          setEvalComponent(() => Comp);
-          onReady?.();
+          return { comp: Comp as React.ComponentType, error: null };
         } else {
-          throw new Error("Komponen utama (MainVideo / export default) tidak ditemukan di dalam kode.");
+          return {
+            comp: null,
+            error: "Komponen utama (MainVideo / export default) tidak ditemukan di dalam kode.",
+          };
         }
       } catch (err) {
         console.error("Gagal mengevaluasi komponen Remotion:", err);
         const msg = err instanceof Error ? err.message : String(err);
-        onError?.(msg);
-        setEvalComponent(null);
+        return { comp: null, error: msg };
       }
-    }, [jsCode, onError, onReady]);
+    }, [jsCode]);
+
+    const evalComponent = evalResult.comp;
+
+    useEffect(() => {
+      if (evalResult.error) {
+        onError?.(evalResult.error);
+      } else if (evalResult.comp) {
+        onReady?.();
+      }
+    }, [evalResult, onError, onReady]);
 
     // Inisialisasi iframe document
     useEffect(() => {

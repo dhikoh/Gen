@@ -9,12 +9,26 @@ import {
 } from "./LiveRemotionSandbox";
 import { useDriveUpload } from "@/hooks/useDriveUpload";
 
-const SAMPLE_SNAKE_CODE = `import React from 'react';
+export type RemotionAspectRatio = "9:16" | "16:9" | "1:1";
+
+export function getSampleSnakeCode(
+  ar: RemotionAspectRatio,
+  fpsVal: number,
+  durationSecVal: number
+): string {
+  const isLandscape = ar === "16:9";
+  const isSquare = ar === "1:1";
+  const w = isLandscape ? 1920 : 1080;
+  const h = isLandscape ? 1080 : isSquare ? 1080 : 1920;
+  const totalF = Math.round(durationSecVal * fpsVal);
+  const halfF = Math.max(30, Math.round(totalF / 2));
+
+  return `import React from 'react';
 import { AbsoluteFill, Sequence, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 
-// Resolusi: 1080x1920 (9:16), FPS: 30, total 300 frame (10 detik)
-const W = 1080;
-const H = 1920;
+// Resolusi: ${w}x${h} (${ar}), FPS: ${fpsVal}, total ${totalF} frame (${durationSecVal} detik)
+const W = ${w};
+const H = ${h};
 const C = {
   bg1: '#0b1220', bg2: '#1e293b', accent: '#38bdf8', text: '#f8fafc',
   ok: '#4ade80', warn: '#fbbf24', bad: '#f87171'
@@ -22,7 +36,6 @@ const C = {
 const FONT = 'Inter, -apple-system, sans-serif';
 
 type Pt = [number, number];
-const clamp = (v: number, a = 0, b = 1) => Math.min(b, Math.max(a, v));
 
 const Snake: React.FC<{ pt: (t: number) => Pt; flat: number }> = ({ pt, flat }) => {
   const n = 36;
@@ -62,39 +75,39 @@ const CrossSection: React.FC<{ f: number }> = ({ f }) => {
 export const MainVideo: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const p = (frame % 150) / 150;
+  const p = (frame % ${halfF}) / ${halfF};
 
   // Spring animation title
   const spr = spring({ frame, fps, config: { damping: 12 } });
 
   return (
     <AbsoluteFill style={{ background: \`linear-gradient(160deg, \${C.bg1}, \${C.bg2})\` }}>
-      {/* Title Scene */}
-      <Sequence from={0} durationInFrames={150}>
+      {/* Scene 1: Motion Gliding Snake */}
+      <Sequence from={0} durationInFrames={${halfF}}>
         <div style={{
-          position: 'absolute', top: 220, left: 60, right: 60, textAlign: 'center', fontFamily: FONT,
-          fontWeight: 900, fontSize: 88, lineHeight: 1.1, color: C.text,
+          position: 'absolute', top: ${isLandscape ? 80 : 220}, left: 60, right: 60, textAlign: 'center', fontFamily: FONT,
+          fontWeight: 900, fontSize: ${isLandscape ? 68 : 88}, lineHeight: 1.1, color: C.text,
           transform: \`scale(\${interpolate(spr, [0, 1], [0.8, 1])})\`,
           opacity: Math.min(1, spr * 1.5)
         }}>
           NO WINGS. <span style={{ color: C.accent }}>IT FLIES.</span>
         </div>
         <svg width={W} height={H} style={{ position: 'absolute' }}>
-          <Snake pt={(t) => [-100 + 1300 * p - t * 500, 960 + 70 * Math.sin(t * 7.5 - frame * 0.25)]} flat={1} />
+          <Snake pt={(t) => [-100 + (W + 200) * p - t * 500, ${Math.round(h / 2)} + 70 * Math.sin(t * 7.5 - frame * 0.25)]} flat={1} />
         </svg>
       </Sequence>
 
-      {/* Anatomy Scene */}
-      <Sequence from={150} durationInFrames={150}>
+      {/* Scene 2: Aerodynamic Wing Cross-Section */}
+      <Sequence from={${halfF}} durationInFrames={${totalF - halfF}}>
         <div style={{
-          position: 'absolute', top: 220, left: 60, right: 60, textAlign: 'center', fontFamily: FONT,
-          fontWeight: 900, fontSize: 80, color: C.accent
+          position: 'absolute', top: ${isLandscape ? 80 : 220}, left: 60, right: 60, textAlign: 'center', fontFamily: FONT,
+          fontWeight: 900, fontSize: ${isLandscape ? 60 : 80}, color: C.accent
         }}>
           BODY FLATTENS TO WING
         </div>
         <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center' }}>
           <div style={{ transform: 'scale(1.4)' }}>
-            <CrossSection f={interpolate(frame - 150, [0, 80], [0, 1], { extrapolateRight: 'clamp' })} />
+            <CrossSection f={interpolate(frame - ${halfF}, [0, Math.round(fps * 2.5)], [0, 1], { extrapolateRight: 'clamp' })} />
           </div>
         </AbsoluteFill>
       </Sequence>
@@ -104,18 +117,25 @@ export const MainVideo: React.FC = () => {
 
 export default MainVideo;
 `;
+}
 
-export default function RemotionStudioStandaloneClient() {
+export default function RemotionStudioStandaloneClient({
+  initialCode = "",
+}: {
+  initialCode?: string;
+} = {}) {
   const t = useTranslations("StandaloneRemotion");
 
-  const [inputCode, setInputCode] = useState<string>("");
+  const [inputCode, setInputCode] = useState<string>(initialCode);
   const [isCompiling, setIsCompiling] = useState<boolean>(false);
   const [compiledJs, setCompiledJs] = useState<string | null>(null);
 
-  // Video Config States
+  // Video Config Setup States
+  const [aspectRatio, setAspectRatio] = useState<RemotionAspectRatio>("9:16");
   const [fps, setFps] = useState<number>(30);
   const [width, setWidth] = useState<number>(1080);
   const [height, setHeight] = useState<number>(1920);
+  const [targetDurationSec, setTargetDurationSec] = useState<number>(10);
   const [totalFrames, setTotalFrames] = useState<number>(300);
 
   // Playback States
@@ -149,12 +169,11 @@ export default function RemotionStudioStandaloneClient() {
       if (elapsed >= frameIntervalMs) {
         lastTimeRef.current = now - (elapsed % frameIntervalMs);
         setCurrentFrame((prev) => {
-          const next = prev + 1;
-          if (next >= totalFrames) {
+          if (prev >= totalFrames - 1) {
             setIsPlaying(false);
             return 0;
           }
-          return next;
+          return prev + 1;
         });
       }
       playRafRef.current = requestAnimationFrame(loop);
@@ -166,49 +185,137 @@ export default function RemotionStudioStandaloneClient() {
     };
   }, [isPlaying, fps, totalFrames]);
 
-  // Transpile Code
-  const handleCompile = async (codeToCompile?: string) => {
-    const code = codeToCompile || inputCode;
-    if (!code.trim()) {
+  const handlePlayPause = () => {
+    if (!compiledJs) {
       toast.error(t("noCode"));
       return;
     }
+    setIsPlaying((prev) => !prev);
+  };
 
-    setIsCompiling(true);
-    setIsPlaying(false);
-    setCurrentFrame(0);
-
-    try {
-      const res = await fetch("/api/remotion/transpile", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code }),
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "Gagal mengompilasi kode");
+  const handleCompile = useCallback(
+    async (codeToCompile?: string) => {
+      const code = codeToCompile || inputCode;
+      if (!code.trim()) {
+        toast.error(t("noCode"));
+        return;
       }
 
-      setCompiledJs(data.jsCode);
-      setFps(data.fps || 30);
-      setWidth(data.width || 1080);
-      setHeight(data.height || 1920);
-      setTotalFrames(data.totalFrames || 300);
+      setIsCompiling(true);
+      setIsPlaying(false);
+      setCurrentFrame(0);
 
-      toast.success("Kode berhasil dimuat! Animasi visual siap diputar.");
-    } catch (err) {
-      console.error(err);
-      toast.error(t("compileError", { error: err instanceof Error ? err.message : String(err) }));
-    } finally {
-      setIsCompiling(false);
+      try {
+        const res = await fetch("/api/remotion/transpile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code }),
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || "Gagal mengompilasi kode");
+        }
+
+        setCompiledJs(data.jsCode);
+        const resolvedFps = data.fps || fps;
+        const resolvedW = data.width || width;
+        const resolvedH = data.height || height;
+        const resolvedTotal = data.totalFrames || totalFrames;
+
+        setFps(resolvedFps);
+        setWidth(resolvedW);
+        setHeight(resolvedH);
+        setTotalFrames(resolvedTotal);
+        setTargetDurationSec(Math.round(resolvedTotal / resolvedFps));
+
+        if (resolvedW > resolvedH) {
+          setAspectRatio("16:9");
+        } else if (resolvedW === resolvedH) {
+          setAspectRatio("1:1");
+        } else {
+          setAspectRatio("9:16");
+        }
+
+        toast.success("Kode berhasil dimuat! Animasi visual siap diputar.");
+      } catch (err) {
+        console.error(err);
+        toast.error(t("compileError", { error: err instanceof Error ? err.message : String(err) }));
+      } finally {
+        setIsCompiling(false);
+      }
+    },
+    [inputCode, fps, width, height, totalFrames, t]
+  );
+
+  // Auto-compile if initialCode is provided
+  useEffect(() => {
+    if (initialCode && initialCode.trim()) {
+      const timer = setTimeout(() => {
+        void handleCompile(initialCode);
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [initialCode, handleCompile]);
+
+  // Setup Handlers
+  const handleRatioChange = (newRatio: RemotionAspectRatio) => {
+    setAspectRatio(newRatio);
+    let newW = 1080;
+    let newH = 1920;
+    if (newRatio === "16:9") {
+      newW = 1920;
+      newH = 1080;
+    } else if (newRatio === "1:1") {
+      newW = 1080;
+      newH = 1080;
+    }
+    setWidth(newW);
+    setHeight(newH);
+
+    // If input code has W = and H =, update them smoothly
+    if (inputCode && /const W = \d+;\s*const H = \d+;/.test(inputCode)) {
+      const updatedCode = inputCode
+        .replace(/const W = \d+;/, `const W = ${newW};`)
+        .replace(/const H = \d+;/, `const H = ${newH};`);
+      setInputCode(updatedCode);
+      void handleCompile(updatedCode);
     }
   };
 
-  // Load demo sample
+  const handleFpsChange = (newFps: number) => {
+    setFps(newFps);
+    const newTotal = Math.round(targetDurationSec * newFps);
+    setTotalFrames(newTotal);
+
+    if (inputCode && /FPS: \d+/.test(inputCode)) {
+      const updatedCode = inputCode
+        .replace(/FPS: \d+/g, `FPS: ${newFps}`)
+        .replace(/fps[:=]\s*\d+/g, `fps = ${newFps}`);
+      setInputCode(updatedCode);
+      void handleCompile(updatedCode);
+    }
+  };
+
+  const handleDurationChange = (newSec: number) => {
+    setTargetDurationSec(newSec);
+    const newTotal = Math.round(newSec * fps);
+    setTotalFrames(newTotal);
+
+    if (inputCode && /total \d+ frame/.test(inputCode)) {
+      const updatedCode = inputCode
+        .replace(/total \d+ frame/g, `total ${newTotal} frame`)
+        .replace(/\(\d+ detik\)/g, `(${newSec} detik)`);
+      setInputCode(updatedCode);
+      void handleCompile(updatedCode);
+    }
+  };
+
+  // Load demo sample with current setup
   const handleLoadSample = () => {
-    setInputCode(SAMPLE_SNAKE_CODE);
-    handleCompile(SAMPLE_SNAKE_CODE);
+    const sampleCode = getSampleSnakeCode(aspectRatio, fps, targetDurationSec);
+    setInputCode(sampleCode);
+    void handleCompile(sampleCode);
   };
 
   // Download .tsx file
@@ -221,21 +328,25 @@ export default function RemotionStudioStandaloneClient() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "MainVideo.tsx";
+    a.download = `remotion-animation-${aspectRatio.replace(":", "-")}-${fps}fps-${Date.now()}.tsx`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
-    toast.success(t("downloaded"));
+    URL.revokeObjectURL(url);
+    toast.success("File .tsx berhasil diunduh");
   };
 
-  // In-Browser MP4/WebM Sequential Frame Render
+  // Render MP4
   const handleRenderMp4 = async () => {
-    if (!compiledJs || !sandboxRef.current || isRendering) return;
+    if (!sandboxRef.current || !compiledJs) {
+      toast.error("Muat kode animasi terlebih dahulu sebelum render.");
+      return;
+    }
 
-    setIsPlaying(false);
     setIsRendering(true);
+    setIsPlaying(false);
     setRenderProgress(0);
+    setRenderStatusText(t("renderingFrames", { current: 1, total: totalFrames }));
     cancelRenderRef.current = false;
 
     try {
@@ -243,9 +354,8 @@ export default function RemotionStudioStandaloneClient() {
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext("2d");
-      if (!ctx) throw new Error("Gagal membuat context canvas");
+      if (!ctx) throw new Error("Gagal menginisialisasi 2D Canvas");
 
-      // Siapkan MediaRecorder
       const stream = canvas.captureStream(fps);
       const mimeType = MediaRecorder.isTypeSupported("video/mp4;codecs=avc1")
         ? "video/mp4;codecs=avc1"
@@ -298,7 +408,7 @@ export default function RemotionStudioStandaloneClient() {
       recorder.stop();
       const videoBlob = await recordPromise;
 
-      const filename = `remotion-render-${Date.now()}.${mimeType.includes("mp4") ? "mp4" : "webm"}`;
+      const filename = `remotion-render-${aspectRatio.replace(":", "-")}-${Date.now()}.${mimeType.includes("mp4") ? "mp4" : "webm"}`;
       const downloadUrl = URL.createObjectURL(videoBlob);
 
       setRenderedBlob({ blob: videoBlob, url: downloadUrl, filename });
@@ -355,10 +465,128 @@ export default function RemotionStudioStandaloneClient() {
           <button
             type="button"
             onClick={handleLoadSample}
-            className="neu-btn px-3 py-1.5 rounded-xl text-xs font-semibold pg-text-heading flex items-center gap-1.5"
+            className="neu-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold pg-text-heading flex items-center gap-1.5"
           >
-            {t("sampleButton")}
+            <span>🐍</span>
+            <span>{t("sampleButton")} ({aspectRatio})</span>
           </button>
+        </div>
+      </div>
+
+      {/* ── Setup Toolbar (Rasio Layar, FPS, & Durasi) ── */}
+      <div className="pg-surface pg-border border rounded-2xl p-4 sm:p-5 shadow-sm space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pg-border pb-3">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">⚙️</span>
+            <h3 className="text-sm font-bold pg-text-heading">{t("setupTitle")}</h3>
+            <span className="text-xs px-2.5 py-0.5 rounded-full font-mono bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
+              {width}×{height} • {fps} FPS • {durationSec}s ({totalFrames}f)
+            </span>
+          </div>
+          <span className="text-[11px] pg-text-muted font-mono">
+            {t("presetDimensions", { w: width, h: height })}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+          {/* 1. Rasio Layar */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold pg-text-heading flex items-center gap-1.5">
+              <span>📐</span> {t("aspectRatio")}
+            </label>
+            <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl neu-pressed">
+              <button
+                type="button"
+                onClick={() => handleRatioChange("9:16")}
+                className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all text-center ${
+                  aspectRatio === "9:16"
+                    ? "bg-purple-600 text-white shadow-sm"
+                    : "pg-text-sub hover:pg-text-heading"
+                }`}
+                title="9:16 Vertical (1080x1920)"
+              >
+                9:16
+              </button>
+              <button
+                type="button"
+                onClick={() => handleRatioChange("16:9")}
+                className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all text-center ${
+                  aspectRatio === "16:9"
+                    ? "bg-purple-600 text-white shadow-sm"
+                    : "pg-text-sub hover:pg-text-heading"
+                }`}
+                title="16:9 Landscape (1920x1080)"
+              >
+                16:9
+              </button>
+              <button
+                type="button"
+                onClick={() => handleRatioChange("1:1")}
+                className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all text-center ${
+                  aspectRatio === "1:1"
+                    ? "bg-purple-600 text-white shadow-sm"
+                    : "pg-text-sub hover:pg-text-heading"
+                }`}
+                title="1:1 Square (1080x1080)"
+              >
+                1:1
+              </button>
+            </div>
+          </div>
+
+          {/* 2. Frame Rate (FPS) */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold pg-text-heading flex items-center gap-1.5">
+              <span>⚡</span> {t("fpsLabel")}
+            </label>
+            <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl neu-pressed">
+              <button
+                type="button"
+                onClick={() => handleFpsChange(30)}
+                className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all text-center ${
+                  fps === 30
+                    ? "bg-purple-600 text-white shadow-sm"
+                    : "pg-text-sub hover:pg-text-heading"
+                }`}
+              >
+                30 FPS
+              </button>
+              <button
+                type="button"
+                onClick={() => handleFpsChange(60)}
+                className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all text-center ${
+                  fps === 60
+                    ? "bg-purple-600 text-white shadow-sm"
+                    : "pg-text-sub hover:pg-text-heading"
+                }`}
+              >
+                60 FPS
+              </button>
+            </div>
+          </div>
+
+          {/* 3. Durasi Video */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold pg-text-heading flex items-center gap-1.5">
+              <span>⏱️</span> {t("durationLabel")}
+            </label>
+            <div className="flex items-center gap-1.5">
+              {[5, 10, 15, 30].map((sec) => (
+                <button
+                  key={sec}
+                  type="button"
+                  onClick={() => handleDurationChange(sec)}
+                  className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all text-center ${
+                    targetDurationSec === sec
+                      ? "bg-purple-600 text-white shadow-sm"
+                      : "neu-btn pg-text-sub hover:pg-text-heading"
+                  }`}
+                >
+                  {sec}s
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -387,7 +615,7 @@ export default function RemotionStudioStandaloneClient() {
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                onClick={() => handleCompile()}
+                onClick={() => void handleCompile()}
                 disabled={isCompiling}
                 className="neu-btn-brand px-4 py-2 rounded-xl text-xs font-bold text-white flex items-center gap-2 shadow-sm"
               >
@@ -448,9 +676,9 @@ export default function RemotionStudioStandaloneClient() {
 
             {/* Player Transport Controls */}
             {compiledJs && (
-              <div className="space-y-3 pt-2">
-                {/* Timeline scrubber slider */}
-                <div className="space-y-1">
+              <div className="space-y-3">
+                {/* Scrub Slider */}
+                <div className="flex items-center gap-3">
                   <input
                     type="range"
                     min={0}
@@ -458,27 +686,22 @@ export default function RemotionStudioStandaloneClient() {
                     value={currentFrame}
                     onChange={(e) => {
                       setIsPlaying(false);
-                      setCurrentFrame(parseInt(e.target.value, 10));
+                      setCurrentFrame(Number(e.target.value));
                     }}
-                    className="w-full accent-[var(--pg-brand)] cursor-pointer"
+                    className="flex-1 h-2 rounded-lg cursor-pointer accent-purple-600 bg-slate-700"
                   />
-                  <div className="flex justify-between text-[10px] font-mono pg-text-muted">
-                    <span>00:00 (0)</span>
-                    <span>
-                      {currentTimeSec}s / {durationSec}s
-                    </span>
-                    <span>{durationSec}s ({totalFrames})</span>
-                  </div>
+                  <span className="text-xs font-mono pg-text-muted w-14 text-right">
+                    {currentTimeSec}s
+                  </span>
                 </div>
 
-                {/* Transport Buttons & Render Action */}
-                <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                {/* Transport Buttons */}
+                <div className="flex items-center justify-between flex-wrap gap-2 pt-1">
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => setIsPlaying(!isPlaying)}
-                      disabled={isRendering}
-                      className="neu-btn px-4 py-2 rounded-xl text-xs font-bold pg-text-heading flex items-center gap-1.5"
+                      onClick={handlePlayPause}
+                      className="neu-btn px-4 py-2 rounded-xl text-xs font-bold pg-text-heading flex items-center gap-2"
                     >
                       <span>{isPlaying ? "⏸️" : "▶️"}</span>
                       <span>{isPlaying ? t("pause") : t("play")}</span>
@@ -490,44 +713,56 @@ export default function RemotionStudioStandaloneClient() {
                         setIsPlaying(false);
                         setCurrentFrame(0);
                       }}
-                      disabled={isRendering}
-                      className="neu-btn px-3 py-2 rounded-xl text-xs font-medium pg-text-heading flex items-center gap-1"
+                      className="neu-btn px-3 py-2 rounded-xl text-xs font-medium pg-text-heading"
                     >
-                      <span>⏮️</span>
-                      <span>{t("restart")}</span>
+                      ⏮️ {t("restart")}
                     </button>
                   </div>
 
                   {/* Render MP4 Trigger */}
-                  <button
-                    type="button"
-                    onClick={handleRenderMp4}
-                    disabled={isRendering}
-                    className="neu-btn-brand px-5 py-2 rounded-xl text-xs font-bold text-white flex items-center gap-2 shadow-sm"
-                  >
-                    <span>{isRendering ? "⏳" : "🎬"}</span>
-                    <span>{isRendering ? `${t("rendering", { percent: renderProgress, current: renderStatusText, total: totalFrames })}` : t("renderMp4")}</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleRenderMp4}
+                      disabled={isRendering}
+                      className="neu-btn-brand px-5 py-2 rounded-xl text-xs font-bold text-white flex items-center gap-2 shadow-sm"
+                    >
+                      <span>🎬</span>
+                      <span>{isRendering ? "Rendering..." : t("renderMp4")}</span>
+                    </button>
+
+                    {isRendering && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          cancelRenderRef.current = true;
+                        }}
+                        className="neu-btn px-3 py-2 rounded-xl text-xs font-medium text-red-500 hover:text-red-600"
+                      >
+                        🛑 Batal
+                      </button>
+                    )}
+                  </div>
                 </div>
 
-                {/* Render Progress & Results */}
+                {/* Render Progress Bar */}
                 {isRendering && (
-                  <div className="space-y-2 p-3 rounded-xl bg-[var(--pg-brand)]/10 border border-[var(--pg-brand)]/30">
-                    <div className="flex justify-between text-xs font-semibold text-[var(--pg-brand)]">
-                      <span>Proses Rendering MP4...</span>
-                      <span>{renderProgress}% ({renderStatusText})</span>
+                  <div className="space-y-1.5 p-3 rounded-xl bg-purple-500/10 border border-purple-500/30">
+                    <div className="flex justify-between text-xs font-medium pg-text-heading">
+                      <span>{t("rendering", { percent: renderProgress, current: currentFrame + 1, total: totalFrames })}</span>
+                      <span className="font-mono">{renderStatusText}</span>
                     </div>
-                    <div className="w-full bg-slate-700/50 rounded-full h-2 overflow-hidden">
+                    <div className="w-full h-2 rounded-full bg-slate-700 overflow-hidden">
                       <div
-                        className="bg-[var(--pg-brand)] h-2 rounded-full transition-all duration-100"
+                        className="h-full bg-purple-500 transition-all duration-75"
                         style={{ width: `${renderProgress}%` }}
                       />
                     </div>
                   </div>
                 )}
 
-                {/* Success Download Bar */}
-                {renderedBlob && !isRendering && (
+                {/* Render Success Card */}
+                {renderedBlob && (
                   <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/40 flex flex-wrap items-center justify-between gap-3 text-xs">
                     <span className="text-emerald-400 font-semibold flex items-center gap-1.5">
                       <span>✅</span> {t("renderSuccess")} ({renderedBlob.filename})
@@ -544,7 +779,7 @@ export default function RemotionStudioStandaloneClient() {
                         type="button"
                         onClick={handleDriveUpload}
                         disabled={isUploading}
-                        className="neu-btn px-3 py-1.5 rounded-lg text-xs font-medium pg-text-heading"
+                        className="neu-btn px-3 py-1.5 rounded-lg text-xs font-medium pg-text-heading flex items-center gap-1.5"
                       >
                         ☁️ {isUploading ? "Mengunggah..." : "Simpan ke Drive"}
                       </button>
