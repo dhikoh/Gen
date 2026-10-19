@@ -132,7 +132,7 @@ export default function RemotionStudioStandaloneClient() {
   const cancelRenderRef = useRef<boolean>(false);
 
   const sandboxRef = useRef<LiveRemotionSandboxHandle | null>(null);
-  const { isUploading, uploadToDrive } = useDriveUpload();
+  const { isUploading, uploadToDrive, uploadError } = useDriveUpload();
 
   // Playback loop
   useEffect(() => {
@@ -323,8 +323,14 @@ export default function RemotionStudioStandaloneClient() {
   const handleDriveUpload = async () => {
     if (!renderedBlob) return;
     const ok = await uploadToDrive(renderedBlob.blob, renderedBlob.filename);
-    if (ok) toast.success("Berhasil diunggah ke Google Drive!");
-    else toast.error("Gagal mengunggah ke Google Drive");
+    if (ok) {
+      toast.success("Berhasil diunggah ke Google Drive!");
+    } else {
+      toast.error(
+        uploadError ||
+          "Gagal mengunggah ke Google Drive. Pastikan akun Google Drive sudah terhubung di menu Pengaturan."
+      );
+    }
   };
 
   const durationSec = (totalFrames / fps).toFixed(1);

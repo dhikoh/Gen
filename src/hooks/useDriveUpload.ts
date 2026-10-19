@@ -29,14 +29,16 @@ export interface DriveUploadResult {
 export function useDriveUpload() {
   const [isUploading, setIsUploading] = useState(false);
   const [driveUrl, setDriveUrl] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const upload = useCallback(
     async (blob: Blob, filename: string): Promise<boolean> => {
       setIsUploading(true);
+      setUploadError(null);
       try {
         const base64Data = await blobToBase64(blob);
 
-        let lastError: unknown = null;
+        let lastErrorMsg = "";
 
         for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
           try {
@@ -50,11 +52,6 @@ export function useDriveUpload() {
               }),
             });
 
-            // Hanya status yang bisa berubah saat dicoba ulang yang di-retry.
-            // 400/401/403 adalah masalah permanen: gagal sekarang juga nanti.
-            const isRetryable =
-              res.status === 429 || (res.status >= 500 && res.status < 600);
-
             if (res.ok) {
               const data = (await res.json()) as DriveUploadResult;
               setDriveUrl(data.webViewLink || data.fileUrl || null);
@@ -64,10 +61,10 @@ export function useDriveUpload() {
             const errorBody = (await res.json().catch(() => null)) as
               | { error?: string }
               | null;
-            lastError = new Error(
-              errorBody?.error ?? `HTTP ${res.status}: ${res.statusText}`,
-            );
+            lastErrorMsg = errorBody?.error ?? `HTTP ${res.status}: ${res.statusText}`;
 
+            const isRetryable =
+              res.status === 429 || (res.status >= 500 && res.status < 600);
             if (!isRetryable) break;
 
             const retryAfter = Number(res.headers.get("Retry-After"));
@@ -77,14 +74,16 @@ export function useDriveUpload() {
                 : 2000 * Math.pow(2, attempt);
             await sleep(waitTime);
           } catch (err) {
-            lastError = err;
-            // Gagal di level jaringan (offline, DNS, dsb) masih layak dicoba ulang.
+            lastErrorMsg = err instanceof Error ? err.message : String(err);
             if (attempt === MAX_RETRIES - 1) break;
             await sleep(2000 * Math.pow(2, attempt));
           }
         }
 
-        if (lastError) console.error("Upload to Drive failed:", lastError);
+        if (lastErrorMsg) {
+          console.error("Upload to Drive failed:", lastErrorMsg);
+          setUploadError(lastErrorMsg);
+        }
         return false;
       } finally {
         setIsUploading(false);
@@ -93,5 +92,5 @@ export function useDriveUpload() {
     [],
   );
 
-  return { isUploading, driveUrl, setDriveUrl, uploadToDrive: upload };
+  return { isUploading, driveUrl, setDriveUrl, uploadError, uploadToDrive: upload };
 }
