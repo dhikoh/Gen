@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import EditChannelClient from "./EditChannelClient";
+import ImportChannelModal from "./ImportChannelModal";
 import { useTranslations } from "next-intl";
 
 interface ProfileChannelDto {
@@ -28,9 +29,38 @@ export default function ChannelManagerClient({ channels, maxChannels }: { channe
  const router = useRouter();
  const t = useTranslations("Channels");
  const [addingNew, setAddingNew] = useState(false);
+ const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+ const [exportingId, setExportingId] = useState<string | null>(null);
  const [expandedId, setExpandedId] = useState<string | null>(channels[0]?.id || null);
 
  const canAddMore = channels.length < maxChannels;
+
+ const handleExport = async (id: string, name: string) => {
+   setExportingId(id);
+   try {
+     const res = await fetch(`/api/channels/${id}/export`);
+     if (!res.ok) {
+       const err = await res.json().catch(() => ({}));
+       throw new Error(err.error || t("exportError"));
+     }
+     const blob = await res.blob();
+     const url = window.URL.createObjectURL(blob);
+     const a = document.createElement("a");
+     a.href = url;
+     const safeName = name.toLowerCase().replace(/[^a-z0-9]+/g, "_");
+     a.download = `${safeName}_channel_bundle.json`;
+     document.body.appendChild(a);
+     a.click();
+     window.URL.revokeObjectURL(url);
+     document.body.removeChild(a);
+     toast.success(t("exportSuccess"));
+   } catch (err) {
+     const msg = err instanceof Error ? err.message : String(err);
+     toast.error(msg);
+   } finally {
+     setExportingId(null);
+   }
+ };
 
  const handleDelete = async (id: string) => {
  if (!confirm(t('confirmDeleteChannel'))) return;
@@ -99,6 +129,16 @@ export default function ChannelManagerClient({ channels, maxChannels }: { channe
  <h2 className="text-lg font-semibold pg-text-heading">{t('listTitle')} ({channels.length}/{maxChannels})</h2>
  <p className="text-sm pg-text-muted">{t('quotaInfo')}</p>
  </div>
+ <div className="flex items-center gap-2">
+ <button
+   type="button"
+   onClick={() => setIsImportModalOpen(true)}
+   className="min-h-[40px] px-3.5 py-2 text-sm font-semibold rounded-lg pg-surface-dim pg-text-sub hover:pg-surface border pg-border transition-colors flex items-center gap-1.5 shadow-sm"
+   title={t("importChannelJson")}
+ >
+   <span>📥</span>
+   <span>{t("importChannelJson")}</span>
+ </button>
  {!addingNew && canAddMore && (
  <button 
  onClick={() => setAddingNew(true)}
@@ -107,6 +147,7 @@ export default function ChannelManagerClient({ channels, maxChannels }: { channe
  {t('addChannel')}
  </button>
  )}
+ </div>
  </div>
 
  {addingNew && (
@@ -165,6 +206,21 @@ export default function ChannelManagerClient({ channels, maxChannels }: { channe
 
  <div className="flex items-center space-x-2">
  <button
+   type="button"
+   onClick={() => handleExport(channel.id, channel.channelName)}
+   disabled={exportingId === channel.id}
+   className="px-3 py-1.5 text-xs font-medium pg-surface-dim pg-text-sub rounded-lg transition-colors flex items-center gap-1 hover:pg-surface border pg-border"
+   title={t("exportChannelJson")}
+ >
+   {exportingId === channel.id ? (
+     <span className="inline-block w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
+   ) : (
+     <span>📤</span>
+   )}
+   <span>{t("exportChannelJson")}</span>
+ </button>
+
+ <button
  onClick={() => setExpandedId(isExpanded ? null : channel.id)}
  className="px-3 py-1.5 text-xs font-medium pg-surface-dim pg-text-sub rounded-lg transition-colors"
  >
@@ -204,6 +260,18 @@ export default function ChannelManagerClient({ channels, maxChannels }: { channe
  </div>
  )}
  </div>
+
+ <ImportChannelModal
+   isOpen={isImportModalOpen}
+   onClose={() => setIsImportModalOpen(false)}
+   onSuccess={() => {
+     setIsImportModalOpen(false);
+     router.refresh();
+   }}
+   canAddMore={canAddMore}
+   maxChannels={maxChannels}
+   currentCount={channels.length}
+ />
  </div>
  );
 }

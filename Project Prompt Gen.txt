@@ -2597,6 +2597,46 @@ Sebagai penutup siklus pipeline produksi video, platform **Prompt Gen** memberik
 - `node scripts/audit-design.mjs`: 95.5% design token adoption (Pass >= 95%)
 - `npm run build`: Exit 0 (56/56 rute statis & dinamis terkompilasi bersih di Next.js 16.3.1 Turbopack)
 
+### 51. CHANNEL ECOSYSTEM BUNDLE (JSON) EXPORT & IMPORT ENGINE (2026-10-19)
+
+#### 51.1 Latar Belakang & Kebutuhan Portabilitas
+- Menyelesaikan kebutuhan backup, migrasi, dan restorasi channel kreator (seperti *Organictopia*, *Zoo Nation*) dalam 1 file JSON standar tanpa input manual berulang.
+- Mengintegrasikan 4 pilar channel: Profil Channel, Katalog Produk/Afiliasi, Database Judul Terpakai (*Used Titles*), dan Snapshot Konfigurasi Generator Studio (*channelFormStates*).
+
+#### 51.2 Kontrak Data & Validasi Schema (`src/lib/channelBundle.ts`)
+- `channelBundleSchema`: Validasi Zod v1.0 yang menjamin integritas data (nama channel, niche, deskripsi, platform, persona POV, speech rate, estetika visual, CTA 1/2, BGM/SFX/VO, social links, products array, usedTitles array, dan generatorSettings object).
+- `buildChannelBundle()`: Serializer yang mengekstrak data dari database Prisma dan generator preferences pengguna ke dalam format JSON standar.
+
+#### 51.3 Rute API End-to-End
+- `GET /api/channels/[id]/export`:
+  - Autentikasi sesi, rate limiting, verifikasi kepemilikan channel.
+  - Menghasilkan file JSON dengan header `Content-Disposition: attachment; filename="{slug}_channel_bundle.json"`.
+- `POST /api/channels/import`:
+  - Enforce batas payload 5MB, subscription checking, dan rate limiting.
+  - Transaksi atomik Prisma:
+    - Enforce kuota channel paket langganan (`MAX_CHANNELS_LIMIT`).
+    - Buat ProfileChannel.
+    - Batch insert Produk (`Product.createMany`).
+    - Batch insert Judul Terpakai (`UsedTitle.createMany`).
+    - Sinkronisasi otomatis pengaturan Generator Studio ke `User.generatorPreferences.channelFormStates[newChannelId]`.
+
+#### 51.4 Antarmuka Pengguna (UI)
+- `ImportChannelModal.tsx`:
+  - File picker & drag-and-drop area untuk berkas `.json`.
+  - Pratinjau detail sebelum eksekusi (Nama, platform, jumlah produk, jumlah judul terpakai, dan status setting generator).
+  - Peringatan kuota visual jika batas channel paket telah tercapai.
+- `ChannelManagerClient.tsx`:
+  - Tombol `📥 Impor Channel (JSON)` di header daftar channel.
+  - Tombol `📤 Ekspor JSON` di setiap kartu channel dengan spinner loading saat ekspor.
+
+#### 51.5 Verifikasi Kualitas 6-Gate
+- `npx tsc --noEmit`: Exit 0 (Zero TypeScript errors)
+- `npx eslint . --max-warnings=0`: Exit 0 (Zero warnings)
+- `npx vitest run`: 43 test suites passed, 379 tests passed (100% pass rate)
+- `node scripts/audit-i18n.mjs`: 1.775 keys id & en (100% key parity)
+- `node scripts/audit-design.mjs`: 95.6% design token adoption (Pass >= 95%)
+- `npm run build`: Exit 0 (57/57 rute statis & dinamis terkompilasi bersih di Next.js 16.3.1 Turbopack)
+
 
 
 
