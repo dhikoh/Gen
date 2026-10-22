@@ -6,6 +6,25 @@ import { prisma } from "@/lib/db";
 import { encryptSecret, googleDriveAad } from "@/lib/crypto";
 import { logAdminAction } from "@/lib/auditLog";
 
+function getPublicRedirectUrl(path: string, req: Request): URL {
+  const redirectUri = process.env.GOOGLE_DRIVE_REDIRECT_URI;
+  if (redirectUri) {
+    try {
+      const parsed = new URL(redirectUri);
+      return new URL(path, parsed.origin);
+    } catch {}
+  }
+  if (process.env.NEXTAUTH_URL) {
+    return new URL(path, process.env.NEXTAUTH_URL.replace(/\/$/, ""));
+  }
+  const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
+  const proto = req.headers.get("x-forwarded-proto") || "https";
+  if (host) {
+    return new URL(path, `${proto}://${host}`);
+  }
+  return new URL(path, req.url);
+}
+
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const code = url.searchParams.get("code");
@@ -23,26 +42,26 @@ export async function GET(req: Request) {
 
   if (errorParam) {
     return NextResponse.redirect(
-      new URL(`${redirectBase}?gdrive=error&reason=${encodeURIComponent(errorParam)}`, req.url)
+      getPublicRedirectUrl(`${redirectBase}?gdrive=error&reason=${encodeURIComponent(errorParam)}`, req)
     );
   }
 
   if (!code || !state) {
     return NextResponse.redirect(
-      new URL(`${redirectBase}?gdrive=error&reason=missing_code`, req.url)
+      getPublicRedirectUrl(`${redirectBase}?gdrive=error&reason=missing_code`, req)
     );
   }
 
   // Verifikasi CSRF token
   if (!csrfToken || csrfToken !== state) {
     return NextResponse.redirect(
-      new URL(`${redirectBase}?gdrive=error&reason=csrf_mismatch`, req.url)
+      getPublicRedirectUrl(`${redirectBase}?gdrive=error&reason=csrf_mismatch`, req)
     );
   }
 
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.redirect(new URL(`/${locale}/auth`, req.url));
+    return NextResponse.redirect(getPublicRedirectUrl(`/${locale}/auth`, req));
   }
 
   const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -51,7 +70,7 @@ export async function GET(req: Request) {
 
   if (!clientId || !clientSecret || !redirectUri) {
     return NextResponse.redirect(
-      new URL(`${redirectBase}?gdrive=error&reason=not_configured`, req.url)
+      getPublicRedirectUrl(`${redirectBase}?gdrive=error&reason=not_configured`, req)
     );
   }
 
@@ -72,7 +91,7 @@ export async function GET(req: Request) {
       const errText = await tokenRes.text();
       console.error("[GoogleDrive OAuth Callback] Exchange error:", errText);
       return NextResponse.redirect(
-        new URL(`${redirectBase}?gdrive=error&reason=exchange_failed`, req.url)
+        getPublicRedirectUrl(`${redirectBase}?gdrive=error&reason=exchange_failed`, req)
       );
     }
 
@@ -90,7 +109,7 @@ export async function GET(req: Request) {
 
     if (!accessToken) {
       return NextResponse.redirect(
-        new URL(`${redirectBase}?gdrive=error&reason=missing_token`, req.url)
+        getPublicRedirectUrl(`${redirectBase}?gdrive=error&reason=missing_token`, req)
       );
     }
 
@@ -136,12 +155,12 @@ export async function GET(req: Request) {
     });
 
     return NextResponse.redirect(
-      new URL(`${redirectBase}?gdrive=connected`, req.url)
+      getPublicRedirectUrl(`${redirectBase}?gdrive=connected`, req)
     );
   } catch (error) {
     console.error("[GoogleDrive OAuth Callback] Unexpected error:", error);
     return NextResponse.redirect(
-      new URL(`${redirectBase}?gdrive=error&reason=server_error`, req.url)
+      getPublicRedirectUrl(`${redirectBase}?gdrive=error&reason=server_error`, req)
     );
   }
 }

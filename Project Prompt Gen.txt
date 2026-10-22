@@ -2758,6 +2758,11 @@ Sebagai penutup siklus pipeline produksi video, platform **Prompt Gen** memberik
 - `npx vitest run tests/multiPlatformSeoParser.test.ts`: 6 passed (100% pass rate)
 - `npx vitest run`: 45 test suites passed, 411 tests passed (100% pass rate)
 
+#### 53.8 Patch Koreksi: Resolusi Domain Redirect OAuth Google Drive pada Reverse Proxy (Coolify / Docker)
+- Masalah: Panggilan `NextResponse.redirect(new URL(..., req.url))` di dalam kontainer Docker yang berada di balik reverse proxy (Coolify/Traefik) membaca `req.url` sebagai `http://localhost:3000`, menyebabkan peramban diarahkan ke `localhost:3000` (ERR_CONNECTION_REFUSED) setelah autentikasi Google OAuth berhasil.
+- Solusi: Implementasi fungsi helper `getPublicRedirectUrl(path, req)` pada `src/app/api/auth/google-drive/callback/route.ts` yang memprioritaskan origin publik dari `GOOGLE_DRIVE_REDIRECT_URI` atau `NEXTAUTH_URL` atau header `x-forwarded-host`/`x-forwarded-proto`, sehingga redirect selalu diarahkan kembali secara tepat ke domain publik produksi (misal: `https://muatin.id/id/dashboard/settings?gdrive=connected`).
+
+
 
 
 
