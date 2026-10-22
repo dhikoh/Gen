@@ -103,6 +103,19 @@ export interface VideoConfigData {
   // Production Engine (Diffusion AI vs Remotion Code)
   videoProductionMode?: "DIFFUSION_AI" | "REMOTION_CODE" | null;
   remotionTheme?: "modern" | "cyberpunk" | "documentary" | "kinetic" | null;
+  // Funnel Pack (2 Short + 1 Long) & Link Content Audit Repurposing
+  outputStructure?: "SINGLE" | "FUNNEL_BUNDLE" | null;
+  sourceUrl?: string | null;
+  sourceSnippet?: string | null;
+  funnelConfig?: {
+    sceneMode?: "auto" | "manual" | null;
+    short1Scenes?: number | null;
+    short1DurationSec?: number | null;
+    short2Scenes?: number | null;
+    short2DurationSec?: number | null;
+    longScenes?: number | null;
+    longDurationMinutes?: number | null;
+  } | null;
 }
 
 export interface PromptSettingsData {
@@ -555,6 +568,21 @@ Video ini dirender 100% menggunakan kode pemrograman React Remotion v4 dengan ko
 DILARANG memberikan instruksi lensa kamera fisik (seperti 200mm, shallow DOF, photorealistic lighting). Rancanglah visual dan adegan sebagai komponen motion design yang dinamis, modern, dan presisi secara kode.`;
   }
 
+  const isFunnelBundle = videoConfig?.outputStructure === "FUNNEL_BUNDLE";
+  if (isFunnelBundle) {
+    systemInstruction += `\nWAJIB MODE FUNNEL PACK (2 SHORT + 1 LONG PILLAR):
+Kamu adalah master video content strategist. Kamu WAJIB menyusun paket konten terintegrasi:
+- SHORT 1: The Spark & Curiosity Hook (Format Vertikal 9:16)
+- SHORT 2: The Problem & Contrarian Angle (Format Vertikal 9:16)
+- LONG PILLAR: The Deep-Dive Masterclass Berbab (Format Horizontal 16:9)
+Pastikan Short 1 & Short 2 mengarahkan penonton (*funnel bridge*) untuk menonton Long Pillar.`;
+  }
+
+  if (videoConfig?.sourceUrl || videoConfig?.sourceSnippet) {
+    systemInstruction += `\nWAJIB SUMBER DATA NYATA (ANTI-HALUSINASI & ANTI-PLAGIASI):
+Konten ini berbasis link/dokumen referensi. Kamu WAJIB mengekstrak fakta nyata, data riil, dan statistik tanpa mengarang bebas. DILARANG plagiasi kalimat asli sumber — tulis ulang 100% dengan persona channel.`;
+  }
+
   // ── Audio Config ───────────────────────────────────────────────────────
   const finalMusic = videoConfig.musicPreference !== undefined ? Boolean(videoConfig.musicPreference) : Boolean(channel.audioBGM !== false);
   const finalSfx   = videoConfig.sfxPreference   !== undefined ? Boolean(videoConfig.sfxPreference)   : Boolean(channel.audioSFX !== false);
@@ -903,6 +931,160 @@ PENTING: Tulis URL pencarian yang VALID dan LENGKAP dengan nama produk sudah di-
 `;
   }
 
+  // ── Source Audit & URL Grounded Directive ─────────────────────────────
+  let sourceAuditSection = "";
+  if (videoConfig.sourceUrl || videoConfig.sourceSnippet || isFunnelBundle) {
+    sourceAuditSection = `\n[AUDIT LINK REFERENSI & DATA SUMBER (ANTI-HALUSINASI & ANTI-PLAGIASI)]
+${videoConfig.sourceUrl ? `URL Sumber: ${videoConfig.sourceUrl}\n` : ""}
+${videoConfig.sourceSnippet ? `Cuplikan Fakta Primer / Catatan Mentah:\n"""\n${videoConfig.sourceSnippet}\n"""\n` : ""}
+ATURAN WAJIB SUMBER DATA NYATA:
+1. Ekstrak data riil (angka statistik, nama temuan, studi kasus nyata, kutipan fakta).
+2. DILARANG KERAS melakukan copy-paste atau plagiasi kalimat asli dari sumber. Seluruh materi WAJIB ditulis ulang 100% menggunakan gaya bahasa persona channel ini.
+3. INVERSI SUDUT PANDANG (ANGLE SHIFT): Ubah sudut pandang teks sumber menjadi konten video edukatif dan memikat bagi penonton channel.
+4. Awali seluruh output naskah dengan blok metadata wajib:
+### [SOURCE AUDIT]
+- **URL Sumber**: ${videoConfig.sourceUrl || "Berdasarkan Analisis Topik"}
+- **Fakta & Data Kunci**: [Daftar 3-5 poin fakta nyata yang diekstrak dari sumber]
+- **Sudut Pandang Baru (Angle Shift)**: [Penjelasan 1-2 kalimat mengapa konten ini orisinal dan bukan duplikasi]
+- **Jembatan Funnel**: [Penjelasan alur bagaimana Short 1 & Short 2 mengarahkan penonton ke Long Pillar]\n`;
+  }
+
+  // Pre-calculate speech timing for all modes
+  const earlyTimingCalc = calculateSpeechRateTiming(
+    videoConfig.speechRate,
+    videoConfig.targetDurationSec,
+    videoConfig.targetSceneCount,
+    (channel.speechRate ? `${channel.speechRate} detik/kata` : null) || promptSettings?.defaultSpeechRate
+  );
+  const sceneCount = earlyTimingCalc.targetSceneCount;
+
+  const fConf = videoConfig.funnelConfig;
+  const isManual = fConf?.sceneMode === "manual";
+  const s1Scenes = isManual ? (fConf?.short1Scenes || 5) : "3-5";
+  const s1Dur = isManual ? (fConf?.short1DurationSec || 45) : "30-45";
+  const s2Scenes = isManual ? (fConf?.short2Scenes || 5) : "3-5";
+  const s2Dur = isManual ? (fConf?.short2DurationSec || 45) : "30-45";
+  const longScenes = isManual ? (fConf?.longScenes || 15) : "12-25";
+  const longDur = isManual ? (fConf?.longDurationMinutes || 10) : "8-12";
+
+  if (isFunnelBundle) {
+    formatOutputWajib += `\nPROSES PEMBUATAN PAKET FUNNEL PACK 3-IN-1:
+Kamu WAJIB menghasilkan 3 NASKAH VIDEO LENGKAP yang saling terhubung dalam SATU respons dengan pembatas resmi bertingkat:
+1. ### [SOURCE AUDIT] — Audit data sumber & fakta nyata (anti-halusinasi & anti-plagiasi)
+2. ### [SEGMENT: SHORT 1] — The Spark & Curiosity Hook (Vertikal 9:16)
+3. ### [SEGMENT: SHORT 2] — The Problem & Contrarian Angle (Vertikal 9:16)
+4. ### [SEGMENT: LONG PILLAR] — The Deep-Dive Masterclass (Horizontal 16:9)
+
+${sourceAuditSection}
+
+=== PANDUAN PRESET GLOBAL (KONSISTENSI VISUAL & BRANDING) ===
+- Persona Kreator: ${videoConfig.pov || channel.personaPov || "Expert Storyteller"}
+- Visual Style & Lighting: Terapkan gaya visual yang sama pada ketiga video agar penonton merasa berada di semesta konten yang seragam.
+- Speech Rate: ${videoConfig.speechRate || 0.35} detik/kata.
+${videoConfig.selectedProduct ? `- Produk Terkait: ${videoConfig.selectedProduct.name}\n` : ""}
+
+----------------------------------------------------
+### [SOURCE AUDIT]
+- **URL Sumber**: ${videoConfig.sourceUrl || "Berdasarkan Analisis Topik"}
+- **Fakta & Data Kunci**: [Daftar 3-5 poin fakta nyata yang diekstrak dari sumber]
+- **Sudut Pandang Baru (Angle Shift)**: [Penjelasan 1-2 kalimat mengapa konten ini orisinal dan bukan duplikasi]
+- **Jembatan Funnel**: [Penjelasan alur bagaimana Short 1 & Short 2 mengarahkan penonton ke Long Pillar]
+
+----------------------------------------------------
+### [SEGMENT: SHORT 1]
+Judul: [Judul Short 1 - Hook Penasaran Maksimal]
+Aspek Rasio: 9:16 Vertikal
+Platform: TikTok / YouTube Shorts / Reels
+Target Durasi: ~${s1Dur} detik (${s1Scenes} scene)
+Aturan 3 Detik Awal: Pattern interrupt visual & audio ekstrem.
+Aturan CTA Penutup: Jembatan Funnel — wajib arahkan penonton untuk menonton video panjang di channel ini.
+Gaya Loop: Seamless Loop aktif (ending menyambung mulus ke hook Scene 1).
+
+CAPTION: [Caption memicu engagement + ajakan tonton video panjang]
+HASHTAGS: [Hashtag viral relevan]
+
+## SCENE 1
+KONTEKS SCENE: [Konteks Hook]
+NARASI: [Narasi punchy dengan cue akting [beat], [pause]]
+TARGET EMOSI (VET): [Rasa Penasaran Tinggi]
+TEKNIK EDITING & PACING: [Jump Cut 0s dead-air]
+TEKS OVERLAY: [Teks hook punchy]
+PANDUAN SUARA: [Context: suasana hook | Note: intonasi penasaran, punchy | Traits: vokal tegas]
+SETTING KAMERA: [${cameraSettingFieldHint}]
+VISUAL PROMPT: [Visual prompt temporal gerak kamera, bahasa Inggris] --ar 9:16
+DURASI: [5 detik]
+
+## SCENE 2
+...dan seterusnya hingga selesai (${s1Scenes} scene).
+
+----------------------------------------------------
+### [SEGMENT: SHORT 2]
+Judul: [Judul Short 2 - Problem & Contrarian Angle]
+Aspek Rasio: 9:16 Vertikal
+Platform: TikTok / YouTube Shorts / Reels
+Target Durasi: ~${s2Dur} detik (${s2Scenes} scene)
+Aturan 3 Detik Awal: Pertanyaan provokatif / mematahkan mitos ("Jangan lakukan ini lagi!").
+Aturan CTA Penutup: Jembatan Funnel — ajak tonton video panjang untuk melihat solusi dan studi kasus lengkap.
+Gaya Loop: Question / Cliffhanger Loop aktif.
+
+CAPTION: [Caption solutif + ajakan tonton video panjang]
+HASHTAGS: [Hashtag viral relevan]
+
+## SCENE 1
+KONTEKS SCENE: [Konteks Problem]
+NARASI: [Narasi tajam]
+TARGET EMOSI (VET): [Shock / Waspada]
+TEKNIK EDITING & PACING: [B-Roll Cutaway]
+TEKS OVERLAY: [Teks peringatan/masalah]
+PANDUAN SUARA: [Context: suasana problem | Note: intonasi serius membedah masalah | Traits: vokal tajam]
+SETTING KAMERA: [${cameraSettingFieldHint}]
+VISUAL PROMPT: [Visual prompt temporal gerak kamera, bahasa Inggris] --ar 9:16
+DURASI: [5 detik]
+
+## SCENE 2
+...dan seterusnya hingga selesai (${s2Scenes} scene).
+
+----------------------------------------------------
+### [SEGMENT: LONG PILLAR]
+Judul: [Judul Video Utama YouTube - Panduan Lengkap A to Z]
+Aspek Rasio: 16:9 Horizontal Widescreen
+Platform: YouTube Long-Form
+Target Durasi: ~${longDur} menit (${longScenes} scene)
+Struktur: Berbab (BAB 1, BAB 2, BAB 3...) dengan [CHAPTER TITLE] di teks overlay.
+Aturan Pembuka: Sinematik intro 15-30 detik + Value Promise jelas apa yang akan dikuasai penonton.
+Aturan CTA Penutup: Ekosistem Channel (Subscribe, ajak diskusi di kolom komentar, tonton playlist lanjutan). Looping dimatikan (gunakan outro card).
+
+CAPTION: [Deskripsi video YouTube komprehensif 2-3 paragraf]
+
+## SCENE 1
+KONTEKS SCENE: [Sinematik Intro]
+NARASI: [Narasi pengantar dan janji nilai]
+TARGET EMOSI (VET): [Inspiratif & Fokus]
+TEKNIK EDITING & PACING: [Stabilized Flow]
+TEKS OVERLAY: [CHAPTER TITLE] BAB 1: PENGANTAR & JANJI NILAI
+PANDUAN SUARA: [Context: suasana epik sinematik | Note: intonasi berwibawa masterclass | Traits: vokal warm & clear]
+SETTING KAMERA: [${cameraSettingFieldHint}]
+VISUAL PROMPT: [Visual prompt sinematik widescreen, bahasa Inggris] --ar 16:9
+DURASI: [10 detik]
+
+## SCENE 2
+...dan seterusnya hingga selesai (${longScenes} scene).
+
+## THUMBNAIL STUDIO
+TEKS OVERLAY SEO: [1-3 kata huruf kapital tebal]
+OPSI 1 PROMPT: [Visual prompt thumbnail horizontal 16:9 widescreen, ekspresi wajah 60-80% frame, negative space untuk teks, bahasa Inggris] --ar 16:9
+OPSI 1 TEKS OVERLAY: [Teks singkat punchy]
+OPSI 2 PROMPT: [Visual prompt alternatif 16:9] --ar 16:9
+OPSI 2 TEKS OVERLAY: [Teks alternatif]
+REKOMENDASI WARNA & ELEMEN: [Palet kontras tinggi]
+
+## METADATA SEO YOUTUBE 2026
+TAG SPESIFIK: [5-8 kata kunci utama]
+TAG UMUM: [3-5 kategori niche luas]
+TAG MAJEMUK (LONG-TAIL): [5-8 frasa pencarian alami]
+DESKRIPSI YOUTUBE (SEO & EMPATI): [Deskripsi YouTube ramah algoritma & manusia]
+`;
+  } else {
   if (hasTitleSection) {
     const studyDirectiveLine = isYoutube
       ? `Sebelum membuat ide judul, pelajari dan serap secara mendalam [DOKUMEN RUJUKAN UTAMA: PANDUAN LENGKAP STRATEGI YOUTUBE 2026] di atas, beserta topik, konteks tambahan, persona channel, serta pedoman platform. Lakukan dekonstruksi materi terlebih dahulu dengan format wajib:`
@@ -1220,6 +1402,7 @@ Tulis kode artikel HTML murni (dibungkus code fence \`\`\`html ... \`\`\`):
 5. Format output: HTML murni yang rapi, mulai dari <h1> hingga paragraf penutup artikel.\n`;
     }
   }
+  }
 
   // Patch #104: Reuse earlyTimingCalc (already computed above) to avoid double calculation
   const timingCalc = earlyTimingCalc;
@@ -1441,13 +1624,15 @@ ${structural.narrationModeDirective}
 
   // ── Duration & Scene Count ─────────────────────────────────────────────
   // Patch #104: Flexible duration text for auto mode vs rigid for manual
-  const durationText = timingCalc.isAutoScene
+  const durationText = isFunnelBundle
+    ? `\n[TARGET DURASI & STRUKTUR 3-IN-1 FUNNEL PACK]\nDurasi dan scene dikontrol per segmen: Short 1 (~${s1Dur}s, ${s1Scenes} scene), Short 2 (~${s2Dur}s, ${s2Scenes} scene), dan Long Pillar (~${longDur}m, ${longScenes} scene).\n`
+    : (timingCalc.isAutoScene
     ? (isEnglishOutput
       ? `\n[TARGET VIDEO DURATION & SCENE CONTROL — GUIDED-FLEXIBLE]\nTarget duration is MANDATORY: total duration across all scenes must equal or closely match ${timingCalc.targetDurationSec} seconds${isVoiceOver ? ` (total narration ~${timingCalc.totalTargetWords} words at ${timingCalc.speechRateSec} s/word)` : ""}. Aim for ~${timingCalc.targetSceneCount} scenes (acceptable: ${timingCalc.sceneRange.min}–${timingCalc.sceneRange.max}). Each scene should be ${MIN_SEC_PER_SCENE}–${MAX_SEC_PER_SCENE} seconds. Adjust scene count to fit the content naturally — the total duration is the hard constraint, not the exact scene count.\n`
       : `\n[TARGET DURASI VIDEO & KONTROL SCENE — GUIDED-FLEXIBLE]\nWAJIB mengarahkan estimasi durasi agar akumulasi seluruh scene TEPAT atau mendekati ${timingCalc.targetDurationSec} detik${isVoiceOver ? ` (total narasi ~${timingCalc.totalTargetWords} kata pada kecepatan ${timingCalc.speechRateSec} s/kata)` : ""}. Targetkan ~${timingCalc.targetSceneCount} scene (rentang wajar: ${timingCalc.sceneRange.min}–${timingCalc.sceneRange.max}). Setiap scene berdurasi ${MIN_SEC_PER_SCENE}–${MAX_SEC_PER_SCENE} detik. Sesuaikan jumlah scene dengan kebutuhan konten secara natural — total durasi adalah batasan ketat, bukan jumlah scene yang persis.\n`)
     : (isEnglishOutput
       ? `\n[TARGET VIDEO DURATION & SCENE CONTROL]\nTarget duration is MANDATORY: total duration across all scenes must equal or closely match ${timingCalc.targetDurationSec} seconds${isVoiceOver ? ` (total narration ~${timingCalc.totalTargetWords} words at ${timingCalc.speechRateSec} s/word)` : ""}. Ensure exactly ${timingCalc.targetSceneCount} scenes are produced and the sum of all "DURASI:" fields equals ${timingCalc.targetDurationSec} seconds.\n`
-      : `\n[TARGET DURASI VIDEO & KONTROL SCENE]\nWAJIB mengarahkan estimasi durasi agar akumulasi seluruh scene TEPAT atau mendekati ${timingCalc.targetDurationSec} detik${isVoiceOver ? ` (total narasi ~${timingCalc.totalTargetWords} kata pada kecepatan ${timingCalc.speechRateSec} s/kata)` : ""}. Pastikan jumlah seluruh scene adalah TEPAT ${timingCalc.targetSceneCount} scene dan total nilai pada field DURASI dari Scene 1 sampai Scene ${timingCalc.targetSceneCount} berjumlah ${timingCalc.targetDurationSec} detik.\n`);
+      : `\n[TARGET DURASI VIDEO & KONTROL SCENE]\nWAJIB mengarahkan estimasi durasi agar akumulasi seluruh scene TEPAT atau mendekati ${timingCalc.targetDurationSec} detik${isVoiceOver ? ` (total narasi ~${timingCalc.totalTargetWords} kata pada kecepatan ${timingCalc.speechRateSec} s/kata)` : ""}. Pastikan jumlah seluruh scene adalah TEPAT ${timingCalc.targetSceneCount} scene dan total nilai pada field DURASI dari Scene 1 sampai Scene ${timingCalc.targetSceneCount} berjumlah ${timingCalc.targetDurationSec} detik.\n`));
 
   // ── Product Context ────────────────────────────────────────────────────
   // Hanya inject productContext jika affiliateAngle TIDAK aktif.
@@ -1684,7 +1869,8 @@ Satu-satunya penutup yang diizinkan: resolusi cerita, pertanyaan diskusi, plot t
   const youtubeMasterDocSection = isYoutube
     ? `\n${YOUTUBE_2026_STRATEGY_MASTER_DOC}\n\n`
     : "";
-  const masterPrompt = `${povSection}${youtubeMasterDocSection}[TOPIK UTAMA]\n${topic}${seoSection}${closedLoopSection}${contextText}${productContext}${affiliateAngleGuide}${compositionText}${platformGuideText}${excludeSection}${durationText}${formatOutputWajib}${hookStyleDirective}${endingStyleDirective}${cameraMovementGuide}${retentionPacingGuide}${storytellingGuide}${valuePromiseDirective}${audioDynamicsGuide}${negativeCTADirective}${antiHallucinationDirective}\n\n${allGuidelines}`;
+  const sourceAuditInPrompt = isFunnelBundle ? "" : sourceAuditSection;
+  const masterPrompt = `${povSection}${youtubeMasterDocSection}[TOPIK UTAMA]\n${topic}${sourceAuditInPrompt}${seoSection}${closedLoopSection}${contextText}${productContext}${affiliateAngleGuide}${compositionText}${platformGuideText}${excludeSection}${durationText}${formatOutputWajib}${hookStyleDirective}${endingStyleDirective}${cameraMovementGuide}${retentionPacingGuide}${storytellingGuide}${valuePromiseDirective}${audioDynamicsGuide}${negativeCTADirective}${antiHallucinationDirective}\n\n${allGuidelines}`;
 
   return { masterPrompt, systemInstruction };
 }

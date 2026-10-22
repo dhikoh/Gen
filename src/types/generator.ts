@@ -4,6 +4,52 @@
  * user preferences synchronization (/api/user/preferences), and ContentArchetype models.
  */
 
+import type { Scene, ScriptTimingSummary, ThumbnailData, BlogPublishingPack, ThreeTierSeoData } from "@/lib/parsers";
+
+export interface SourceAuditData {
+  sourceUrl?: string;
+  sourceSnippet?: string;
+  keyFacts?: string[];
+  angleShift?: string;
+  pillarBridge?: string;
+  disclaimer?: string;
+}
+
+export interface FunnelConfigSnapshot {
+  sceneMode: "auto" | "manual";
+  short1Scenes?: number;
+  short1DurationSec?: number;
+  short2Scenes?: number;
+  short2DurationSec?: number;
+  longScenes?: number;
+  longDurationMinutes?: number;
+}
+
+export interface FunnelSegment {
+  id: "short1" | "short2" | "long";
+  label: string;
+  aspectRatio: "9:16" | "16:9";
+  targetDurationSec: number;
+  scenes: Scene[];
+  timingSummary: ScriptTimingSummary;
+  caption?: string;
+  hashtags?: string;
+  thumbnailData?: ThumbnailData | null;
+}
+
+export interface FunnelPackData {
+  isFunnel: true;
+  sourceAudit?: SourceAuditData | null;
+  segments: {
+    short1: FunnelSegment;
+    short2: FunnelSegment;
+    long: FunnelSegment;
+  };
+  globalHtmlBlog?: string | null;
+  globalBlogPack?: BlogPublishingPack | null;
+  threeTierSeo?: ThreeTierSeoData | null;
+}
+
 export interface ContentArchetypeIncludedSections {
   hook?: boolean;
   cta?: boolean;
@@ -50,6 +96,10 @@ export interface GeneratorVideoConfigSnapshot {
   narrationModeOverride?: string | null;
   videoProductionMode?: "DIFFUSION_AI" | "REMOTION_CODE" | null;
   remotionTheme?: "modern" | "cyberpunk" | "documentary" | "kinetic" | null;
+  outputStructure?: "SINGLE" | "FUNNEL_BUNDLE" | null;
+  sourceUrl?: string | null;
+  sourceSnippet?: string | null;
+  funnelConfig?: FunnelConfigSnapshot | null;
   [key: string]: unknown;
 }
 
@@ -109,6 +159,17 @@ export interface GeneratorFormStateSnapshot {
   audioBeatSync?: boolean;
   videoProductionMode?: "DIFFUSION_AI" | "REMOTION_CODE";
   remotionTheme?: "modern" | "cyberpunk" | "documentary" | "kinetic";
+  outputStructure?: "SINGLE" | "FUNNEL_BUNDLE";
+  sourceUrl?: string;
+  sourceSnippet?: string;
+  showSnippetInput?: boolean;
+  funnelSceneMode?: "auto" | "manual";
+  short1Scenes?: number;
+  short1DurationSec?: number;
+  short2Scenes?: number;
+  short2DurationSec?: number;
+  longScenes?: number;
+  longDurationMinutes?: number;
   videoConfig?: GeneratorVideoConfigSnapshot;
   imageConfig?: GeneratorImageConfigSnapshot;
   step?: 1 | 2;

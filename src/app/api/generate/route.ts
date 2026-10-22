@@ -80,6 +80,21 @@ const videoConfigSchema = z.object({
   // Production Engine (Diffusion AI vs Remotion Code)
   videoProductionMode: z.enum(["DIFFUSION_AI", "REMOTION_CODE"]).default("DIFFUSION_AI"),
   remotionTheme: z.enum(["modern", "cyberpunk", "documentary", "kinetic"]).optional().nullable(),
+  // Funnel Pack (2 Short + 1 Long) & Link Content Audit Repurposing
+  outputStructure: z.enum(["SINGLE", "FUNNEL_BUNDLE"]).default("SINGLE"),
+  sourceUrl: z.string().max(1000).refine((v) => !v || /^https?:\/\//i.test(v), {
+    message: "Invalid URL protocol",
+  }).optional().nullable(),
+  sourceSnippet: z.string().max(10000).optional().nullable(),
+  funnelConfig: z.object({
+    sceneMode: z.enum(["auto", "manual"]).default("auto"),
+    short1Scenes: z.coerce.number().min(2).max(20).optional().nullable(),
+    short1DurationSec: z.coerce.number().min(15).max(180).optional().nullable(),
+    short2Scenes: z.coerce.number().min(2).max(20).optional().nullable(),
+    short2DurationSec: z.coerce.number().min(15).max(180).optional().nullable(),
+    longScenes: z.coerce.number().min(5).max(60).optional().nullable(),
+    longDurationMinutes: z.coerce.number().min(1).max(60).optional().nullable(),
+  }).optional().nullable(),
 });
 
 const imageConfigSchema = z.object({
@@ -200,9 +215,10 @@ export async function POST(req: Request) {
         }
       }
 
-      // Validasi fitur YouTube Long-Form Studio
+      // Validasi fitur YouTube Long-Form Studio & Funnel Pack Bundle
       const isTargetingYoutubeLong = videoConfig?.targetPlatform === "YouTube Long" || videoConfig?.targetPlatform === "YouTube Long-Form";
-      if (type === "VIDEO" && isTargetingYoutubeLong) {
+      const isFunnelBundle = videoConfig?.outputStructure === "FUNNEL_BUNDLE";
+      if (type === "VIDEO" && (isTargetingYoutubeLong || isFunnelBundle)) {
         if (!getFeatureValue("youtubeLongStudio")) {
           return NextResponse.json({ error: t("youtubeLongStudioLocked") }, { status: 403 });
         }

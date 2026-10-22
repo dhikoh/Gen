@@ -288,6 +288,19 @@ export default function GeneratorForm({
    userId
  );
 
+  // Funnel Pack (2 Short + 1 Long) & Link Content Audit Repurposing
+  const [outputStructure, setOutputStructure] = useState<"SINGLE" | "FUNNEL_BUNDLE">("SINGLE");
+  const [sourceUrl, setSourceUrl] = useState<string>("");
+  const [sourceSnippet, setSourceSnippet] = useState<string>("");
+  const [showSnippetInput, setShowSnippetInput] = useState<boolean>(false);
+  const [funnelSceneMode, setFunnelSceneMode] = useState<"auto" | "manual">("auto");
+  const [short1Scenes, setShort1Scenes] = useState<number>(5);
+  const [short1DurationSec, setShort1DurationSec] = useState<number>(45);
+  const [short2Scenes, setShort2Scenes] = useState<number>(5);
+  const [short2DurationSec, setShort2DurationSec] = useState<number>(45);
+  const [longScenes, setLongScenes] = useState<number>(15);
+  const [longDurationMinutes, setLongDurationMinutes] = useState<number>(10);
+
  // Image specific fields
  const [imageConfig, setImageConfig] = useState({
  cameraType: "DSLR",
@@ -346,6 +359,17 @@ export default function GeneratorForm({
       targetKeywordsLongTail,
       audioFadeInOut,
       audioBeatSync,
+      outputStructure,
+      sourceUrl,
+      sourceSnippet,
+      showSnippetInput,
+      funnelSceneMode,
+      short1Scenes,
+      short1DurationSec,
+      short2Scenes,
+      short2DurationSec,
+      longScenes,
+      longDurationMinutes,
       videoConfig,
       imageConfig,
       step,
@@ -393,6 +417,17 @@ export default function GeneratorForm({
     targetKeywordsLongTail,
     audioFadeInOut,
     audioBeatSync,
+    outputStructure,
+    sourceUrl,
+    sourceSnippet,
+    showSnippetInput,
+    funnelSceneMode,
+    short1Scenes,
+    short1DurationSec,
+    short2Scenes,
+    short2DurationSec,
+    longScenes,
+    longDurationMinutes,
     videoConfig,
     imageConfig,
     step,
@@ -445,6 +480,17 @@ export default function GeneratorForm({
       setTargetKeywordsLongTail(savedState.targetKeywordsLongTail || "");
       setAudioFadeInOut(savedState.audioFadeInOut !== undefined ? savedState.audioFadeInOut : true);
       setAudioBeatSync(savedState.audioBeatSync !== undefined ? savedState.audioBeatSync : true);
+      setOutputStructure(savedState.outputStructure || "SINGLE");
+      setSourceUrl(savedState.sourceUrl || "");
+      setSourceSnippet(savedState.sourceSnippet || "");
+      setShowSnippetInput(Boolean(savedState.showSnippetInput || savedState.sourceSnippet));
+      setFunnelSceneMode(savedState.funnelSceneMode || "auto");
+      setShort1Scenes(savedState.short1Scenes ?? 5);
+      setShort1DurationSec(savedState.short1DurationSec ?? 45);
+      setShort2Scenes(savedState.short2Scenes ?? 5);
+      setShort2DurationSec(savedState.short2DurationSec ?? 45);
+      setLongScenes(savedState.longScenes ?? 15);
+      setLongDurationMinutes(savedState.longDurationMinutes ?? 10);
 
       // Visual Style: If user picked a custom style or valid preset for this channel, keep it; else fallback to channel default
       if (savedState.visualStyleKey) {
@@ -534,6 +580,17 @@ export default function GeneratorForm({
       setTargetKeywordsLongTail("");
       setAudioFadeInOut(true);
       setAudioBeatSync(true);
+      setOutputStructure("SINGLE");
+      setSourceUrl("");
+      setSourceSnippet("");
+      setShowSnippetInput(false);
+      setFunnelSceneMode("auto");
+      setShort1Scenes(5);
+      setShort1DurationSec(45);
+      setShort2Scenes(5);
+      setShort2DurationSec(45);
+      setLongScenes(15);
+      setLongDurationMinutes(10);
 
       setMusicPreference(ch.audioBGM !== false);
       setSfxPreference(ch.audioSFX !== false);
@@ -1037,6 +1094,18 @@ export default function GeneratorForm({
  targetKeywordsLongTail: targetKeywordsLongTail.trim() || undefined,
  audioFadeInOut,
  audioBeatSync,
+ outputStructure,
+ sourceUrl: sourceUrl.trim() || undefined,
+ sourceSnippet: showSnippetInput && sourceSnippet.trim() ? sourceSnippet.trim() : undefined,
+ funnelConfig: outputStructure === "FUNNEL_BUNDLE" ? {
+   sceneMode: funnelSceneMode,
+   short1Scenes: funnelSceneMode === "manual" ? short1Scenes : undefined,
+   short1DurationSec: funnelSceneMode === "manual" ? short1DurationSec : undefined,
+   short2Scenes: funnelSceneMode === "manual" ? short2Scenes : undefined,
+   short2DurationSec: funnelSceneMode === "manual" ? short2DurationSec : undefined,
+   longScenes: funnelSceneMode === "manual" ? longScenes : undefined,
+   longDurationMinutes: funnelSceneMode === "manual" ? longDurationMinutes : undefined,
+ } : undefined,
  } : undefined,
  imageConfig: type === "IMAGE" ? {
   ...imageConfig,
@@ -1510,6 +1579,318 @@ export default function GeneratorForm({
   </p>
  </div>
 
+ {/* 🚀 Output Script Structure: Single Video vs Funnel Pack (2 Short + 1 Long) */}
+ <div className="p-4 rounded-xl border pg-border bg-slate-50/70 dark:bg-slate-800/40 space-y-3">
+  <div className="flex items-center justify-between">
+   <label className="text-xs font-semibold pg-text-heading flex items-center gap-1.5">
+    <span>🚀</span>
+    <span>Struktur Naskah Video</span>
+   </label>
+   <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+    {outputStructure === "FUNNEL_BUNDLE" ? "Funnel Pack (2 Short + 1 Long)" : "Single Video"}
+   </span>
+  </div>
+
+  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+   {/* Option 1: Single Video */}
+   <button
+    type="button"
+    onClick={() => setOutputStructure("SINGLE")}
+    className={`p-3 rounded-lg border text-left transition-all flex flex-col justify-between ${
+     outputStructure === "SINGLE"
+      ? "border-blue-500 bg-blue-50/80 dark:bg-blue-950/30 ring-1 ring-blue-500"
+      : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 bg-white dark:bg-slate-800"
+    }`}
+   >
+    <div className="flex items-center justify-between">
+     <span className="text-sm font-semibold pg-text-heading flex items-center gap-2">
+      🎬 Single Video Standar
+     </span>
+     {outputStructure === "SINGLE" && (
+      <span className="w-2 h-2 rounded-full bg-blue-500" />
+     )}
+    </div>
+    <p className="text-[11px] pg-text-muted mt-1.5 leading-relaxed">
+     Menghasilkan 1 naskah video independen sesuai durasi dan rasio aspek pilihan Anda.
+    </p>
+   </button>
+
+   {/* Option 2: Funnel Pack */}
+   <button
+    type="button"
+    onClick={() => {
+     if (!planFeatures?.youtubeLongStudio) {
+      toast.error(t("youtubeLongStudioLocked"));
+      return;
+     }
+     setOutputStructure("FUNNEL_BUNDLE");
+    }}
+    className={`p-3 rounded-lg border text-left transition-all flex flex-col justify-between ${
+     !planFeatures?.youtubeLongStudio
+      ? "opacity-60 cursor-not-allowed border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-slate-900/30"
+      : outputStructure === "FUNNEL_BUNDLE"
+      ? "border-purple-500 bg-purple-50/80 dark:bg-purple-950/30 ring-1 ring-purple-500"
+      : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 bg-white dark:bg-slate-800"
+    }`}
+   >
+    <div className="flex items-center justify-between">
+     <span className="text-sm font-semibold pg-text-heading flex items-center gap-2">
+      🔥 Funnel Pack (2 Short + 1 Long)
+      {!planFeatures?.youtubeLongStudio && (
+       <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 font-semibold">
+        PRO 🔒
+       </span>
+      )}
+     </span>
+     {outputStructure === "FUNNEL_BUNDLE" && (
+      <span className="w-2 h-2 rounded-full bg-purple-500" />
+     )}
+    </div>
+    <p className="text-[11px] pg-text-muted mt-1.5 leading-relaxed">
+     Menghasilkan 2 video pemantik rasa penasaran (9:16) yang mengarahkan penonton ke 1 video panjang berbab (16:9).
+    </p>
+   </button>
+  </div>
+ </div>
+
+ {/* 🌐 Audit Link Referensi & Sumber Fakta (Anti-Halusinasi & Anti-Plagiasi) */}
+ <div className="p-4 rounded-xl border pg-border bg-slate-50/70 dark:bg-slate-800/40 space-y-3">
+  <div className="flex items-center justify-between">
+   <label className="text-xs font-semibold pg-text-heading flex items-center gap-1.5">
+    <span>🌐</span>
+    <span>Audit Link Referensi & Fakta Riil (Opsional)</span>
+   </label>
+   <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+    Anti-Halusinasi & Orisinal 100%
+   </span>
+  </div>
+  <p className="text-xs pg-text-muted">
+   Tempel URL web, blog, artikel, video YouTube, atau IG. AI akan mengekstrak fakta nyata dan menulis ulang materi dengan sudut pandang unik tanpa plagiasi kalimat asli.
+  </p>
+  <div className="relative">
+   <input
+    type="url"
+    value={sourceUrl}
+    onChange={(e) => setSourceUrl(e.target.value)}
+    placeholder="https://... (contoh: artikel blog, YouTube, riset industri, atau jurnal)"
+    className="w-full pl-8 pr-8 py-2 text-xs bg-white dark:bg-slate-700 border pg-border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none dark:text-white"
+   />
+   <span className="absolute left-2.5 top-2.5 text-xs pg-text-muted select-none">🔗</span>
+   {sourceUrl && (
+    <button
+     type="button"
+     onClick={() => setSourceUrl("")}
+     className="absolute right-2.5 top-2 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+    >
+     ✕
+    </button>
+   )}
+  </div>
+
+  {/* Snippet Teks Mentah (Untuk paywall/login/catatan riset) */}
+  <div>
+   {!showSnippetInput ? (
+    <button
+     type="button"
+     onClick={() => setShowSnippetInput(true)}
+     className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+    >
+     <span>+</span>
+     <span>Tambah Cuplikan Teks / Rangkuman Kasar (berguna jika link ber-paywall atau butuh login)</span>
+    </button>
+   ) : (
+    <div className="space-y-1.5 pt-2 border-t pg-border">
+     <div className="flex items-center justify-between">
+      <label className="text-xs font-medium pg-text-sub">
+       📝 Cuplikan Teks Mentah / Data Fakta Tambahan:
+      </label>
+      <button
+       type="button"
+       onClick={() => {
+        setShowSnippetInput(false);
+        setSourceSnippet("");
+       }}
+       className="text-[11px] text-slate-400 hover:text-rose-500"
+      >
+       Sembunyikan
+      </button>
+     </div>
+     <textarea
+      value={sourceSnippet}
+      onChange={(e) => setSourceSnippet(e.target.value)}
+      placeholder="Tempel teks artikel, kutipan statistik, atau catatan poin fakta di sini jika link tidak bisa dibuka publik..."
+      rows={3}
+      maxLength={10000}
+      className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-700 border pg-border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none dark:text-white resize-y min-h-[60px]"
+     />
+     <div className="flex justify-between text-[10px] pg-text-muted">
+      <span>Data ini menjadi jangkar fakta nyata agar AI tidak mengarang bebas.</span>
+      <span>{sourceSnippet.length}/10000</span>
+     </div>
+    </div>
+   )}
+  </div>
+ </div>
+
+ {/* ⚙️ Panel Pengaturan Scene & Durasi Funnel Pack */}
+ {outputStructure === "FUNNEL_BUNDLE" && (
+  <div className="p-4 rounded-xl border border-purple-500/30 bg-purple-50/50 dark:bg-purple-950/20 space-y-4">
+   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+    <div>
+     <h4 className="text-xs font-semibold pg-text-heading flex items-center gap-1.5 text-purple-700 dark:text-purple-300">
+      <span>⚙️</span>
+      <span>Pengaturan Scene & Durasi Funnel Pack</span>
+     </h4>
+     <p className="text-[11px] pg-text-muted mt-0.5">
+      Tentukan apakah AI membagi scene secara otomatis atau Anda ingin menentukan target adegan sendiri.
+     </p>
+    </div>
+    <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800 p-1 rounded-lg border pg-border shrink-0">
+     <button
+      type="button"
+      onClick={() => setFunnelSceneMode("auto")}
+      className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${
+       funnelSceneMode === "auto"
+        ? "bg-purple-600 text-white shadow-xs"
+        : "pg-text-sub hover:pg-surface-dim"
+      }`}
+     >
+      Auto (Proporsional)
+     </button>
+     <button
+      type="button"
+      onClick={() => setFunnelSceneMode("manual")}
+      className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${
+       funnelSceneMode === "manual"
+        ? "bg-purple-600 text-white shadow-xs"
+        : "pg-text-sub hover:pg-surface-dim"
+      }`}
+     >
+      Tentukan Sendiri
+     </button>
+    </div>
+   </div>
+
+   {funnelSceneMode === "auto" ? (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+     <div className="p-3 rounded-lg border pg-border bg-white/80 dark:bg-slate-800/80">
+      <div className="flex items-center justify-between">
+       <span className="text-xs font-semibold pg-text-heading">📱 Short 1: Spark & Hook</span>
+       <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 font-mono">9:16</span>
+      </div>
+      <p className="text-[11px] pg-text-muted mt-1">Pacing cepat (~30-45 detik), 3-5 scene padat memancing rasa penasaran penonton.</p>
+     </div>
+     <div className="p-3 rounded-lg border pg-border bg-white/80 dark:bg-slate-800/80">
+      <div className="flex items-center justify-between">
+       <span className="text-xs font-semibold pg-text-heading">📱 Short 2: Problem & Angle</span>
+       <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 font-mono">9:16</span>
+      </div>
+      <p className="text-[11px] pg-text-muted mt-1">Solutif kontradiktif (~30-45 detik), 3-5 scene mengarahkan penonton ke video utama.</p>
+     </div>
+     <div className="p-3 rounded-lg border pg-border bg-white/80 dark:bg-slate-800/80">
+      <div className="flex items-center justify-between">
+       <span className="text-xs font-semibold pg-text-heading">🎥 Long Pillar: Masterclass</span>
+       <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 font-mono">16:9</span>
+      </div>
+      <p className="text-[11px] pg-text-muted mt-1">Struktur berbab komprehensif (~10 menit), 12-25 scene mendalam A to Z.</p>
+     </div>
+    </div>
+   ) : (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+     {/* Short 1 Manual */}
+     <div className="p-3 rounded-lg border pg-border bg-white dark:bg-slate-800 space-y-2.5">
+      <div className="flex items-center justify-between">
+       <span className="text-xs font-semibold pg-text-heading">📱 Short 1 (Hook)</span>
+       <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 font-mono">9:16</span>
+      </div>
+      <div>
+       <label className="text-[11px] pg-text-muted block mb-1">Target Scene:</label>
+       <input
+        type="number"
+        min={2}
+        max={20}
+        value={short1Scenes}
+        onChange={(e) => setShort1Scenes(Math.max(2, Math.min(20, parseInt(e.target.value, 10) || 5)))}
+        className="w-full px-2.5 py-1 text-xs bg-slate-50 dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white"
+       />
+      </div>
+      <div>
+       <label className="text-[11px] pg-text-muted block mb-1">Target Durasi (Detik):</label>
+       <input
+        type="number"
+        min={15}
+        max={180}
+        value={short1DurationSec}
+        onChange={(e) => setShort1DurationSec(Math.max(15, Math.min(180, parseInt(e.target.value, 10) || 45)))}
+        className="w-full px-2.5 py-1 text-xs bg-slate-50 dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white"
+       />
+      </div>
+     </div>
+
+     {/* Short 2 Manual */}
+     <div className="p-3 rounded-lg border pg-border bg-white dark:bg-slate-800 space-y-2.5">
+      <div className="flex items-center justify-between">
+       <span className="text-xs font-semibold pg-text-heading">📱 Short 2 (Problem)</span>
+       <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 font-mono">9:16</span>
+      </div>
+      <div>
+       <label className="text-[11px] pg-text-muted block mb-1">Target Scene:</label>
+       <input
+        type="number"
+        min={2}
+        max={20}
+        value={short2Scenes}
+        onChange={(e) => setShort2Scenes(Math.max(2, Math.min(20, parseInt(e.target.value, 10) || 5)))}
+        className="w-full px-2.5 py-1 text-xs bg-slate-50 dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white"
+       />
+      </div>
+      <div>
+       <label className="text-[11px] pg-text-muted block mb-1">Target Durasi (Detik):</label>
+       <input
+        type="number"
+        min={15}
+        max={180}
+        value={short2DurationSec}
+        onChange={(e) => setShort2DurationSec(Math.max(15, Math.min(180, parseInt(e.target.value, 10) || 45)))}
+        className="w-full px-2.5 py-1 text-xs bg-slate-50 dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white"
+       />
+      </div>
+     </div>
+
+     {/* Long Pillar Manual */}
+     <div className="p-3 rounded-lg border pg-border bg-white dark:bg-slate-800 space-y-2.5">
+      <div className="flex items-center justify-between">
+       <span className="text-xs font-semibold pg-text-heading">🎥 Long Pillar (Full)</span>
+       <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 font-mono">16:9</span>
+      </div>
+      <div>
+       <label className="text-[11px] pg-text-muted block mb-1">Target Scene:</label>
+       <input
+        type="number"
+        min={5}
+        max={60}
+        value={longScenes}
+        onChange={(e) => setLongScenes(Math.max(5, Math.min(60, parseInt(e.target.value, 10) || 15)))}
+        className="w-full px-2.5 py-1 text-xs bg-slate-50 dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white"
+       />
+      </div>
+      <div>
+       <label className="text-[11px] pg-text-muted block mb-1">Target Durasi (Menit):</label>
+       <input
+        type="number"
+        min={1}
+        max={60}
+        value={longDurationMinutes}
+        onChange={(e) => setLongDurationMinutes(Math.max(1, Math.min(60, parseInt(e.target.value, 10) || 10)))}
+        className="w-full px-2.5 py-1 text-xs bg-slate-50 dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white"
+       />
+      </div>
+     </div>
+    </div>
+   )}
+  </div>
+ )}
+
  {/* Dual-Engine Video Production Mode Switcher */}
  <div className="p-4 rounded-xl border pg-border bg-slate-50/70 dark:bg-slate-800/40 space-y-3">
   <div className="flex items-center justify-between">
@@ -1666,41 +2047,53 @@ export default function GeneratorForm({
  <label className="block text-xs font-medium pg-text-sub">
  Target Durasi Video (Detik)
  </label>
- <div className="flex flex-wrap items-center gap-2">
- {[15, 30, 45, 60, 90, 120, 180].map((sec) => (
- <button
- key={sec}
- type="button"
- onClick={() => handleVideoConfigChange("targetDurationSec", sec)}
- className={`px-3 py-1 text-xs font-medium rounded-full border transition-colors ${
- videoConfig.targetDurationSec === sec
- ? "bg-blue-600 text-white border-blue-600"
- : "pg-surface pg-text-sub pg-border hover:neu-flat"
- }`}
- >
- {sec}s
- </button>
- ))}
- <div className="flex items-center gap-1">
- <input
- type="number"
- min={MIN_TARGET_DURATION_SEC}
- max={MAX_TARGET_DURATION_SEC}
- value={videoConfig.targetDurationSec ?? DEFAULT_TARGET_DURATION_SEC}
- onChange={(e) => {
-   const val = parseInt(e.target.value, 10);
-   if (Number.isFinite(val)) {
-     handleVideoConfigChange(
-       "targetDurationSec",
-       Math.max(MIN_TARGET_DURATION_SEC, Math.min(MAX_TARGET_DURATION_SEC, val))
-     );
-   }
- }}
- className="w-20 px-2 py-1 text-xs bg-white dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white"
- />
- <span className="text-xs pg-text-muted">detik</span>
- </div>
- </div>
+ {outputStructure === "FUNNEL_BUNDLE" ? (
+  <div className="p-3 rounded-lg border border-purple-500/30 bg-purple-50/60 dark:bg-purple-950/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+   <span className="flex items-center gap-2 text-purple-700 dark:text-purple-300 font-medium">
+    <span>⚡</span>
+    <span>Durasi dikontrol terpisah untuk Short 1, Short 2, dan Long Pillar pada panel Funnel Pack di atas.</span>
+   </span>
+   <span className="px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 text-[10px] font-semibold shrink-0">
+    3 Segmen Terpadu
+   </span>
+  </div>
+ ) : (
+  <div className="flex flex-wrap items-center gap-2">
+  {[15, 30, 45, 60, 90, 120, 180].map((sec) => (
+  <button
+  key={sec}
+  type="button"
+  onClick={() => handleVideoConfigChange("targetDurationSec", sec)}
+  className={`px-3 py-1 text-xs font-medium rounded-full border transition-colors ${
+  videoConfig.targetDurationSec === sec
+  ? "bg-blue-600 text-white border-blue-600"
+  : "pg-surface pg-text-sub pg-border hover:neu-flat"
+  }`}
+  >
+  {sec}s
+  </button>
+  ))}
+  <div className="flex items-center gap-1">
+  <input
+  type="number"
+  min={MIN_TARGET_DURATION_SEC}
+  max={MAX_TARGET_DURATION_SEC}
+  value={videoConfig.targetDurationSec ?? DEFAULT_TARGET_DURATION_SEC}
+  onChange={(e) => {
+    const val = parseInt(e.target.value, 10);
+    if (Number.isFinite(val)) {
+      handleVideoConfigChange(
+        "targetDurationSec",
+        Math.max(MIN_TARGET_DURATION_SEC, Math.min(MAX_TARGET_DURATION_SEC, val))
+      );
+    }
+  }}
+  className="w-20 px-2 py-1 text-xs bg-white dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white"
+  />
+  <span className="text-xs pg-text-muted">detik</span>
+  </div>
+  </div>
+ )}
  </div>
 
  {/* Precision Controls: Scene Count, Aspect Ratio, Speech Rate */}
@@ -1709,80 +2102,96 @@ export default function GeneratorForm({
  <label className="block text-xs font-medium pg-text-sub mb-1">
  {t("sceneCountLabel")}
  </label>
- <div className="flex items-center gap-2 mb-2">
- <button
- type="button"
- onClick={() => setSceneCountMode("auto")}
- className={`px-2.5 py-1 rounded text-xs font-semibold transition-all ${
-   sceneCountMode === "auto" ? "neu-btn-brand" : "neu-btn"
- }`}
- >
- {t("sceneCountAuto")}
- </button>
- <button
- type="button"
- onClick={() => setSceneCountMode("manual")}
- className={`px-2.5 py-1 rounded text-xs font-semibold transition-all ${
-   sceneCountMode === "manual" ? "neu-btn-brand" : "neu-btn"
- }`}
- >
- {t("sceneCountManual")}
- </button>
- </div>
- {sceneCountMode === "manual" && (
- <input
- type="number"
- min={MIN_SCENE_COUNT}
- max={MAX_SCENE_COUNT}
- value={videoConfig.targetSceneCount ?? DEFAULT_SCENE_COUNT}
- onChange={(e) => {
-   const clamped = clampSceneCount(e.target.value);
-   if (clamped !== null) {
-     handleVideoConfigChange("targetSceneCount", clamped);
-   }
- }}
- className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
- />
+ {outputStructure === "FUNNEL_BUNDLE" ? (
+  <div className="p-2.5 rounded-lg border border-purple-500/20 bg-purple-50/40 dark:bg-purple-950/20 text-xs">
+   <span className="font-semibold text-purple-700 dark:text-purple-300 block mb-0.5">Auto/Manual Funnel</span>
+   <span className="text-[11px] pg-text-muted">Target scene diatur per segmen di panel Funnel Pack.</span>
+  </div>
+ ) : (
+  <>
+   <div className="flex items-center gap-2 mb-2">
+   <button
+   type="button"
+   onClick={() => setSceneCountMode("auto")}
+   className={`px-2.5 py-1 rounded text-xs font-semibold transition-all ${
+     sceneCountMode === "auto" ? "neu-btn-brand" : "neu-btn"
+   }`}
+   >
+   {t("sceneCountAuto")}
+   </button>
+   <button
+   type="button"
+   onClick={() => setSceneCountMode("manual")}
+   className={`px-2.5 py-1 rounded text-xs font-semibold transition-all ${
+     sceneCountMode === "manual" ? "neu-btn-brand" : "neu-btn"
+   }`}
+   >
+   {t("sceneCountManual")}
+   </button>
+   </div>
+   {sceneCountMode === "manual" && (
+   <input
+   type="number"
+   min={MIN_SCENE_COUNT}
+   max={MAX_SCENE_COUNT}
+   value={videoConfig.targetSceneCount ?? DEFAULT_SCENE_COUNT}
+   onChange={(e) => {
+     const clamped = clampSceneCount(e.target.value);
+     if (clamped !== null) {
+       handleVideoConfigChange("targetSceneCount", clamped);
+     }
+   }}
+   className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
+   />
+   )}
+   {sceneCountMode === "auto" && (() => {
+   const dur = videoConfig.targetDurationSec ?? DEFAULT_TARGET_DURATION_SEC;
+   const rate = videoConfig.speechRate ?? "medium";
+   const reachable = reachableDurationSec(dur, rate);
+   return (
+   <div className="space-y-1">
+   <p className="pg-text-muted text-xs leading-relaxed">
+   {t("sceneCountAutoHint", {
+     count: autoSceneCount(dur, rate),
+   })}
+   </p>
+   {reachable < dur && (
+   <p className="text-xs text-amber-600">
+   {t("autoDurationTruncated", {
+     target: dur,
+     max: MAX_SCENE_COUNT,
+     actual: reachable,
+   })}
+   </p>
+   )}
+   </div>
+   );
+   })()}
+  </>
  )}
- {sceneCountMode === "auto" && (() => {
- const dur = videoConfig.targetDurationSec ?? DEFAULT_TARGET_DURATION_SEC;
- const rate = videoConfig.speechRate ?? "medium";
- const reachable = reachableDurationSec(dur, rate);
- return (
- <div className="space-y-1">
- <p className="pg-text-muted text-xs leading-relaxed">
- {t("sceneCountAutoHint", {
-   count: autoSceneCount(dur, rate),
- })}
- </p>
- {reachable < dur && (
- <p className="text-xs text-amber-600">
- {t("autoDurationTruncated", {
-   target: dur,
-   max: MAX_SCENE_COUNT,
-   actual: reachable,
- })}
- </p>
- )}
- </div>
- );
- })()}
  </div>
 
  <div>
  <label className="block text-xs font-medium pg-text-sub mb-1">
  Aspect Ratio Video
  </label>
- <select
- value={videoConfig.aspectRatio}
- onChange={(e) => handleVideoConfigChange("aspectRatio", e.target.value)}
- className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
- >
- <option value="9:16">9:16 (Vertikal / Shorts / Reels)</option>
- <option value="16:9">16:9 (Horizontal / YouTube)</option>
- <option value="1:1">1:1 (Persegi / Feed)</option>
- <option value="4:5">4:5 (Potret Post)</option>
- </select>
+ {outputStructure === "FUNNEL_BUNDLE" ? (
+  <div className="p-2.5 rounded-lg border border-blue-500/30 bg-blue-50/50 dark:bg-blue-950/20 text-xs text-blue-700 dark:text-blue-300">
+   <span className="font-semibold block">✨ Auto Lock Multi-Format</span>
+   <span className="text-[11px] block mt-0.5 text-blue-600 dark:text-blue-400">Shorts: 9:16 | Long Pillar: 16:9</span>
+  </div>
+ ) : (
+  <select
+  value={videoConfig.aspectRatio}
+  onChange={(e) => handleVideoConfigChange("aspectRatio", e.target.value)}
+  className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
+  >
+  <option value="9:16">9:16 (Vertikal / Shorts / Reels)</option>
+  <option value="16:9">16:9 (Horizontal / YouTube)</option>
+  <option value="1:1">1:1 (Persegi / Feed)</option>
+  <option value="4:5">4:5 (Potret Post)</option>
+  </select>
+ )}
  </div>
 
  <PresetSelect

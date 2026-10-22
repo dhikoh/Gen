@@ -72,6 +72,8 @@ interface ImageVariation {
 // - schema lama (alur Generator langsung): segments[], caption_medsos, ide_thumbnail, opsi_judul
 // - schema baru (alur Scene Prompt Studio): scenes[], caption, thumbnailData
 // Field canonical selalu diprioritaskan; alias lama sebagai fallback
+import type { FunnelPackData } from "@/types/generator";
+
 interface DraftParsedData {
  // Canonical fields (ditulis oleh semua jalur sejak audit 3.2)
  opsi_judul?: string[];
@@ -83,6 +85,8 @@ interface DraftParsedData {
  // Alias backup dari Scene Prompt Studio (sebelum fix audit 3.2)
  scenes?: SceneItem[];
  caption?: string; // alias dari caption_medsos
+ outputStructure?: "SINGLE" | "FUNNEL_BUNDLE";
+ funnelPackData?: FunnelPackData;
 }
 
 export default async function DraftDetailPage({ 
@@ -176,6 +180,11 @@ export default async function DraftDetailPage({
               >
                 {draft.type}
               </span>
+              {(parsedData.outputStructure === "FUNNEL_BUNDLE" || parsedData.funnelPackData) && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-gradient-to-r from-purple-500/20 to-indigo-500/20 text-purple-700 dark:text-purple-300 border border-purple-500/30">
+                  <span>🌪️</span> 3-in-1 Funnel Pack
+                </span>
+              )}
               <span>•</span>
               <span>
                 {new Date(draft.createdAt).toLocaleDateString("id-ID", {
@@ -213,6 +222,63 @@ export default async function DraftDetailPage({
           </div>
         </div>
       </div>
+
+      {/* Source Audit Summary Card (if present) */}
+      {parsedData.funnelPackData?.sourceAudit && (
+        <div className="glass-panel rounded-2xl border pg-border p-5 mb-6 shadow-xs bg-gradient-to-r from-[var(--pg-surface)] to-[var(--pg-surface-dim)]">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-xl">🛡️</span>
+            <div>
+              <h3 className="text-sm font-bold pg-text-heading flex items-center gap-2 flex-wrap">
+                Audit Link Sumber & Data Nyata
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold border border-emerald-500/20">
+                  Anti-Halusinasi & Anti-Plagiasi
+                </span>
+              </h3>
+              <p className="text-xs pg-text-muted mt-0.5">
+                Materi dianalisis dan ditulis ulang dengan inversi sudut pandang (angle shift).
+              </p>
+            </div>
+          </div>
+          <div className="space-y-2.5 text-xs pg-border/40 border-t pt-3">
+            {parsedData.funnelPackData.sourceAudit.sourceUrl && (
+              <div className="flex items-start gap-2">
+                <span className="font-semibold pg-text-heading shrink-0">🔗 URL Sumber:</span>
+                <a
+                  href={parsedData.funnelPackData.sourceAudit.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-500 hover:underline break-all"
+                >
+                  {parsedData.funnelPackData.sourceAudit.sourceUrl}
+                </a>
+              </div>
+            )}
+            {parsedData.funnelPackData.sourceAudit.keyFacts && parsedData.funnelPackData.sourceAudit.keyFacts.length > 0 && (
+              <div>
+                <div className="font-semibold pg-text-heading mb-1">📊 Fakta Kunci:</div>
+                <ul className="list-disc list-inside space-y-1 text-slate-700 dark:text-slate-300 pl-1">
+                  {parsedData.funnelPackData.sourceAudit.keyFacts.map((fact, idx) => (
+                    <li key={idx}>{fact}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {parsedData.funnelPackData.sourceAudit.angleShift && (
+              <div>
+                <span className="font-semibold pg-text-heading">💡 Inversi Sudut Pandang: </span>
+                <span className="text-slate-700 dark:text-slate-300">{parsedData.funnelPackData.sourceAudit.angleShift}</span>
+              </div>
+            )}
+            {parsedData.funnelPackData.sourceAudit.pillarBridge && (
+              <div>
+                <span className="font-semibold pg-text-heading">🌉 Jembatan Funnel: </span>
+                <span className="text-slate-700 dark:text-slate-300">{parsedData.funnelPackData.sourceAudit.pillarBridge}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {draft.type === "VIDEO" && draft.targetDurationSec ? (
         <div

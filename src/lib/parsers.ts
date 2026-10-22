@@ -6,6 +6,7 @@
  */
 
 import { MAX_SCENE_COUNT } from "@/lib/sceneLimits";
+import type { SourceAuditData, FunnelPackData, FunnelSegment } from "@/types/generator";
 
 // ── Markdown / Value Cleaning ─────────────────────────────────────────────
 
@@ -958,7 +959,7 @@ export function calculateScriptTiming(
  * - Overlay types (Chapter Title / Key Point)
  * - Visual prompts and durations
  */
-export function parseScenes(text: string, speechRateSec: number = 0.35): Scene[] {
+export function parseScenes(text: string, speechRateSec: number = 0.35, idOffset: number = 0): Scene[] {
   if (!text || !text.trim()) return [];
 
   // Extract chapter markers: ## BAB N: Title or ## CHAPTER N: Title
@@ -1062,7 +1063,7 @@ export function parseScenes(text: string, speechRateSec: number = 0.35): Scene[]
         const chapterInfo = findChapterAt(sceneStartOffset);
 
         scenes.push({
-          id: count,
+          id: idOffset + count,
           sceneNumber: isNaN(Number(sceneNum)) ? sceneNum : `Scene ${sceneNum}`,
           sceneContext: contextVal && contextVal !== "—" ? contextVal : undefined,
           narasi: audio.cleanNarasi || "—",
@@ -1305,6 +1306,203 @@ export function extractRemotionCode(text: string): string | null {
   }
 
   return null;
+}
+
+// ── Multi-Segment Funnel Pack Parsing ─────────────────────────────────────
+
+/**
+ * Detects whether the generated script contains a 3-in-1 Funnel Pack or Single video.
+ */
+export function detectOutputStructure(text: string): "FUNNEL_BUNDLE" | "SINGLE" {
+  if (!text || typeof text !== "string") return "SINGLE";
+
+  const hasShort1 = /(?:^|\r?\n)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:\[?SEGMENT[:\s]+(?:SHORT\s*1|1\s*[-:]\s*SHORT)\]?)/i.test(text);
+  const hasShort2 = /(?:^|\r?\n)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:\[?SEGMENT[:\s]+(?:SHORT\s*2|2\s*[-:]\s*SHORT)\]?)/i.test(text);
+  const hasLong = /(?:^|\r?\n)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:\[?SEGMENT[:\s]+(?:LONG\s*PILLAR|LONG|3\s*[-:]\s*LONG)\]?)/i.test(text);
+
+  let matchCount = 0;
+  if (hasShort1) matchCount++;
+  if (hasShort2) matchCount++;
+  if (hasLong) matchCount++;
+
+  return matchCount >= 2 ? "FUNNEL_BUNDLE" : "SINGLE";
+}
+
+/**
+ * Extracts structured source audit and anti-hallucination metadata from the script.
+ */
+export function extractSourceAudit(text: string): SourceAuditData | null {
+  if (!text || typeof text !== "string") return null;
+
+  const headerRegex = /(?:^|\r?\n)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:\[?SOURCE\s*AUDIT\]?|\[?AUDIT\s*(?:LINK\s*REFERENSI|DATA\s*SUMBER)\]?)[^\n]*/i;
+  const match = text.match(headerRegex);
+  if (!match || match.index === undefined) return null;
+
+  const startIndex = match.index + match[0].length;
+  const afterHeader = text.substring(startIndex);
+
+  // Stop at the next major section (e.g. ### [SEGMENT: ..., ## SCENE, etc.)
+  const stopRegex = /(?:^|\r?\n)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:\[?SEGMENT|SCENE\s*1|TAHAP\s*1)/i;
+  const stopMatch = afterHeader.match(stopRegex);
+  const auditSection = stopMatch && stopMatch.index !== undefined
+    ? afterHeader.substring(0, stopMatch.index)
+    : afterHeader.substring(0, 1500);
+
+  // Helper to extract a single line value
+  const extractField = (pattern: RegExp): string | undefined => {
+    const m = auditSection.match(pattern);
+    return m && m[1] ? cleanParsedValue(m[1]) : undefined;
+  };
+
+  const sourceUrl = extractField(/(?:^|\r?\n)\s*[-*•]?\s*(?:\*\*)?(?:URL\s*Sumber|Source\s*URL)(?:\*\*)?[:\s]+([^\r\n]+)/i);
+  const angleShift = extractField(/(?:^|\r?\n)\s*[-*•]?\s*(?:\*\*)?(?:Sudut\s*Pandang\s*Baru\s*(?:\(Angle\s*Shift\))?|Angle\s*Shift)(?:\*\*)?[:\s]+([^\r\n]+)/i);
+  const pillarBridge = extractField(/(?:^|\r?\n)\s*[-*•]?\s*(?:\*\*)?(?:Jembatan\s*Funnel|Pillar\s*Bridge|Funnel\s*Bridge)(?:\*\*)?[:\s]+([^\r\n]+)/i);
+  const disclaimer = extractField(/(?:^|\r?\n)\s*[-*•]?\s*(?:\*\*)?(?:Disclaimer|Catatan\s*Integritas)(?:\*\*)?[:\s]+([^\r\n]+)/i);
+
+  // Extract key facts (bullets or numbers)
+  const factsHeaderMatch = auditSection.match(/(?:^|\r?\n)\s*[-*•]?\s*(?:\*\*)?(?:Fakta\s*&\s*Data\s*Kunci|Key\s*Facts|Data\s*Kunci)(?:\*\*)?[:\s]*\r?\n([\s\S]*?)(?=(?:\r?\n\s*[-*•]?\s*(?:\*\*)?(?:Sudut\s*Pandang|Jembatan|Disclaimer|URL)|$))/i);
+  let keyFacts: string[] | undefined = undefined;
+
+  if (factsHeaderMatch && factsHeaderMatch[1]) {
+    const rawLines = factsHeaderMatch[1].split(/\r?\n/);
+    const facts = rawLines
+      .map(l => l.replace(/^\s*[-*•\d\.]+\s*/, "").trim())
+      .filter(l => l.length > 0 && !l.startsWith("###"));
+    if (facts.length > 0) {
+      keyFacts = facts;
+    }
+  }
+
+  if (!sourceUrl && !angleShift && !pillarBridge && (!keyFacts || keyFacts.length === 0)) {
+    return null;
+  }
+
+  return {
+    sourceUrl,
+    angleShift,
+    pillarBridge,
+    keyFacts,
+    disclaimer,
+  };
+}
+
+/**
+ * Parses a 3-in-1 Funnel Pack script containing:
+ * - SOURCE AUDIT
+ * - SEGMENT: SHORT 1 (9:16)
+ * - SEGMENT: SHORT 2 (9:16)
+ * - SEGMENT: LONG PILLAR (16:9)
+ */
+export function parseFunnelPack(text: string, speechRateSec: number = 0.35): FunnelPackData {
+  const sourceAudit = extractSourceAudit(text);
+
+  // Delimiters for segments
+  const short1Regex = /(?:^|\r?\n)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:\[?SEGMENT[:\s]+(?:SHORT\s*1|1\s*[-:]\s*SHORT)\]?)/i;
+  const short2Regex = /(?:^|\r?\n)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:\[?SEGMENT[:\s]+(?:SHORT\s*2|2\s*[-:]\s*SHORT)\]?)/i;
+  const longRegex = /(?:^|\r?\n)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:\[?SEGMENT[:\s]+(?:LONG\s*PILLAR|LONG|3\s*[-:]\s*LONG)\]?)/i;
+
+  const mS1 = text.match(short1Regex);
+  const mS2 = text.match(short2Regex);
+  const mLong = text.match(longRegex);
+
+  const idxS1 = mS1?.index !== undefined ? mS1.index : -1;
+  const idxS2 = mS2?.index !== undefined ? mS2.index : -1;
+  const idxLong = mLong?.index !== undefined ? mLong.index : -1;
+
+  let s1Text = "";
+  let s2Text = "";
+  let longText = "";
+
+  if (idxS1 !== -1 && idxS2 !== -1 && idxLong !== -1) {
+    // Normal case: S1 -> S2 -> Long
+    s1Text = text.substring(idxS1, idxS2);
+    s2Text = text.substring(idxS2, idxLong);
+    longText = text.substring(idxLong);
+  } else {
+    // Fallback if some delimiters missing
+    if (idxS1 !== -1) {
+      const end1 = idxS2 !== -1 ? idxS2 : (idxLong !== -1 ? idxLong : text.length);
+      s1Text = text.substring(idxS1, end1);
+    }
+    if (idxS2 !== -1) {
+      const end2 = idxLong !== -1 ? idxLong : text.length;
+      s2Text = text.substring(idxS2, end2);
+    }
+    if (idxLong !== -1) {
+      longText = text.substring(idxLong);
+    }
+  }
+
+  // Parse scenes for each segment with dedicated isolated namespace IDs
+  const s1Scenes = parseScenes(s1Text, speechRateSec, 100);
+  const s2Scenes = parseScenes(s2Text, speechRateSec, 200);
+  const longScenes = parseScenes(longText, speechRateSec, 300);
+
+  // Timing
+  const s1Timing = calculateScriptTiming(s1Scenes, speechRateSec);
+  const s2Timing = calculateScriptTiming(s2Scenes, speechRateSec);
+  const longTiming = calculateScriptTiming(longScenes, speechRateSec);
+
+  // Captions & Hashtags
+  const s1Caption = extractCaption(s1Text) || undefined;
+  const s1Hashtags = extractHashtags(s1Text) || undefined;
+  const s2Caption = extractCaption(s2Text) || undefined;
+  const s2Hashtags = extractHashtags(s2Text) || undefined;
+  const longCaption = extractCaption(longText) || undefined;
+  const longHashtags = extractHashtags(longText) || undefined;
+
+  // Thumbnails (Long video typically has thumbnail studio)
+  const longThumbnail = extractThumbnailData(longText) || extractThumbnailData(text);
+  const s1Thumbnail = extractThumbnailData(s1Text);
+  const s2Thumbnail = extractThumbnailData(s2Text);
+
+  // SEO & Blog
+  const threeTierSeo = extractThreeTierSeo(longText) || extractThreeTierSeo(text);
+  const globalHtmlBlog = extractHtmlBlog(text);
+  const globalBlogPack = extractBlogPublishingPack(text);
+
+  return {
+    isFunnel: true,
+    sourceAudit,
+    segments: {
+      short1: {
+        id: "short1",
+        label: "Short 1 (Spark Hook)",
+        aspectRatio: "9:16",
+        targetDurationSec: s1Timing.totalDurationSec || 45,
+        scenes: s1Scenes,
+        timingSummary: s1Timing,
+        caption: s1Caption,
+        hashtags: s1Hashtags,
+        thumbnailData: s1Thumbnail,
+      },
+      short2: {
+        id: "short2",
+        label: "Short 2 (Problem & Contrarian)",
+        aspectRatio: "9:16",
+        targetDurationSec: s2Timing.totalDurationSec || 45,
+        scenes: s2Scenes,
+        timingSummary: s2Timing,
+        caption: s2Caption,
+        hashtags: s2Hashtags,
+        thumbnailData: s2Thumbnail,
+      },
+      long: {
+        id: "long",
+        label: "Long Pillar (Masterclass)",
+        aspectRatio: "16:9",
+        targetDurationSec: longTiming.totalDurationSec || 600,
+        scenes: longScenes,
+        timingSummary: longTiming,
+        caption: longCaption,
+        hashtags: longHashtags,
+        thumbnailData: longThumbnail,
+      },
+    },
+    globalHtmlBlog,
+    globalBlogPack,
+    threeTierSeo,
+  };
 }
 
 

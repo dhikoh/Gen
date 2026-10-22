@@ -20,6 +20,10 @@
 # 4. Periode Integrasi Robot Lokal (2026-09-30): [#87 / Hermes Autobot API Sync]
 #    - Fitur #87a: Penambahan endpoint `GET /api/drafts` dengan bypass otentikasi `HERMES_SECRET_KEY` untuk sinkronisasi robot.
 #    - Fitur #87b: Perombakan Modul 3 (03_flow.py) beralih ke API Murni dan peningkatan selektor klik Playwright (Google Flow).
+# 5. Periode Ekspansi Ekosistem Konten & Funnel Engine (2026-10-22): [Bagian 52 / 3-in-1 Funnel Pack & Link Content Audit]
+#    - Fitur 3-in-1 Funnel Bundle (2 Short + 1 Long Pillar), Smart Preset Inheritance Engine.
+#    - Fitur Link Content Audit & Repurposing (Anti-Halusinasi, Inversi Sudut Pandang).
+#    - Multi-Segment Parse Engine (ID 101+, 201+, 301+), Segment Switcher di Scene Studio & Drafts.
 # =====================================================================
 
 0. PERAN, MANDAT, DAN ATURAN KERJA AGENT
@@ -2636,6 +2640,67 @@ Sebagai penutup siklus pipeline produksi video, platform **Prompt Gen** memberik
 - `node scripts/audit-i18n.mjs`: 1.775 keys id & en (100% key parity)
 - `node scripts/audit-design.mjs`: 95.6% design token adoption (Pass >= 95%)
 - `npm run build`: Exit 0 (57/57 rute statis & dinamis terkompilasi bersih di Next.js 16.3.1 Turbopack)
+
+### 52. 3-IN-1 FUNNEL PACK & LINK CONTENT AUDIT REPURPOSING ENGINE (2026-10-22)
+
+#### 52.1 Latar Belakang & Kebutuhan Ekosistem Konten
+- Menjawab kebutuhan kreator untuk memproduksi ekosistem video terintegrasi (2 video pendek + 1 video panjang pilar). Short 1 dan Short 2 berfungsi memancing penonton (hook & curiosity) yang mengalirkan traffic penonton ke video Long Pillar di YouTube.
+- Menyediakan fitur Content Audit & Repurposing Link: pengguna dapat memasukkan tautan (blog/web/YouTube/Instagram/jurnal) dan/atau cuplikan catatan teks mentah untuk dianalisis oleh AI eksternal, mengekstrak data nyata tanpa halusinasi, dan ditulis ulang 100% dengan Inversi Sudut Pandang (Angle Shift) bebas plagiasi.
+- Menerapkan prinsip "Smart Preset Inheritance Engine": parameter estetika global (Persona POV, Visual Style, Lighting, Audio BGM/SFX, Speech Rate, Produk) diisi 1x di form utama dan diwarisi ke ketiga video untuk menjaga keseragaman semesta konten (*single source of truth*), sementara aturan teknis spesifik (Scene, Durasi, Aspek Rasio, CTA, Platform, Loop) diatur terpisah per segmen video.
+
+#### 52.2 Kontrak Data & Validasi Server (`src/types/generator.ts` & `src/app/api/generate/route.ts`)
+- Interface Baru:
+  - `SourceAuditData`: url sumber, cuplikan mentah, daftar fakta kunci (`keyFacts`), inversi sudut pandang (`angleShift`), jembatan funnel (`pillarBridge`), dan disclaimer integritas.
+  - `FunnelConfigSnapshot`: konfigurasi scene dan durasi per video (Short 1, Short 2, Long Pillar) dalam mode auto maupun manual.
+  - `FunnelSegment`: unit segmen terisolasi (id `short1` | `short2` | `long`, label, aspek rasio `9:16` vs `16:9`, scenes, timingSummary, caption, hashtags, thumbnailData).
+  - `FunnelPackData`: struktur bundle lengkap (`isFunnel: true`, sourceAudit, segments, globalHtmlBlog, threeTierSeo).
+- Validasi Server (`src/app/api/generate/route.ts`):
+  - Skema Zod `outputStructure` ("SINGLE" vs "FUNNEL_BUNDLE"), `sourceUrl`, `sourceSnippet`, dan `funnelConfig`.
+  - Gate entitlement komersial: memastikan akun memiliki lisensi `youtubeLongStudio` (atau Superadmin) untuk membuat paket Funnel Bundle.
+
+#### 52.3 Generator Studio UI (`src/components/generator/GeneratorForm.tsx`)
+- Selector Struktur Output: Pilihan `Single Video` vs `Paket Funnel 3-in-1 (2 Short + 1 Long)` dengan badge PRO dan lock otomatis jika paket belum mendukung.
+- Card Audit Link Referensi: Input URL referensi disertai textarea expandable opsional untuk cuplikan teks mentah (penyelamat link ber-paywall/login).
+- Matriks Konfigurasi Scene & Durasi Funnel:
+  - Mode Auto: Proporsional otomatis (Short 1: ~30-45s / 3-5 scene, Short 2: ~30-45s / 3-5 scene, Long Pillar: ~8-12m / 12-25 scene).
+  - Mode Manual: Grid 3 kolom independen untuk mengatur durasi dan jumlah scene per video secara presisi.
+- Adaptasi Form Dinamis: Kontrol aspek rasio, durasi single, dan scene single otomatis menampilkan badge / dinonaktifkan ketika mode Funnel Bundle aktif agar tidak terjadi konflik konfigurasi.
+
+#### 52.4 Prompt Generator Engine (`src/lib/promptGenerator.ts`)
+- System Instruction Anti-Halusinasi & Grounded Data: Memaksa model mengekstrak fakta nyata dan melarang keras fabrikasi data survei/angka palsu.
+- Section Audit Sumber Otomatis: Menyusun `[AUDIT LINK REFERENSI & DATA SUMBER]` dengan format header wajib `### [SOURCE AUDIT]`.
+- Output Template Terstruktur Funnel 3-in-1:
+  - `### [SEGMENT: SHORT 1]`: 9:16 Vertikal, Pattern Interrupt 3 detik awal, CTA Jembatan Funnel, Seamless Loop aktif.
+  - `### [SEGMENT: SHORT 2]`: 9:16 Vertikal, Problem / Contrarian Angle, CTA Jembatan Funnel, Cliffhanger Loop aktif.
+  - `### [SEGMENT: LONG PILLAR]`: 16:9 Horizontal Widescreen, Sinematik Intro, Bab tematik ber-`[CHAPTER TITLE]`, Channel Retention CTA, Thumbnail Studio, dan 3-Tier YouTube SEO Metadata.
+
+#### 52.5 Multi-Segment Parse Engine & Namespace ID (`src/lib/parsers.ts`)
+- `detectOutputStructure(text)`: Deteksi cerdas penanda segmen funnel (`### [SEGMENT: SHORT 1]`, `SHORT 2`, `LONG PILLAR`) untuk membedakan output funnel vs single video.
+- `extractSourceAudit(text)`: Parsing terstruktur mengekstrak URL, poin fakta riil, sudut pandang baru, dan jembatan funnel.
+- `parseScenes(text, speechRate, idOffset)`: Penambahan parameter `idOffset` untuk memisahkan ID scene per video:
+  - Short 1: ID scene `101, 102, 103...`
+  - Short 2: ID scene `201, 202, 203...`
+  - Long Pillar: ID scene `301, 302, 303...`
+  - Single Script: ID scene `1, 2, 3...` (100% kompatibel mundur).
+  - Menjamin isolasi penuh audio TTS Gemini, seleksi scene, dan pratinjau tanpa tumpang tindih (*zero collision*).
+- `parseFunnelPack(text, speechRate)`: Membelah naskah menjadi 3 segmen terisolasi dengan timing, kalkulasi kata, caption, hashtag, dan thumbnail independen.
+
+#### 52.6 Scene Prompt Studio & Draft Viewer Integration
+- Scene Prompt Studio Client (`ScenePromptStudioClient.tsx`):
+  - Deteksi otomatis funnel bundle saat parse naskah, load riwayat, atau load draft.
+  - Card Audit Sumber & Data Nyata yang dapat di-expand/collapse.
+  - Segment Switcher Pills (Short 1, Short 2, Long Pillar): Mengalihkan tampilan scene, aspek rasio (9:16 vs 16:9), caption, hashtag, dan durasi secara instan dengan satu klik.
+  - Penyimpanan draft otomatis menyertakan `funnelPackData` dan `outputStructure: "FUNNEL_BUNDLE"`.
+- Draft Detail Page (`src/app/[locale]/dashboard/drafts/[id]/page.tsx`):
+  - Menampilkan badge visual `🌪️ 3-in-1 Funnel Pack` di header.
+  - Kartu ringkasan Source Audit & Data Nyata.
+  - Tautan langsung ke Scene Prompt Studio untuk melanjutkan pengeditan seluruh segmen.
+
+#### 52.7 Verifikasi Kualitas
+- `npx tsc --noEmit`: Exit 0 (Zero TypeScript errors)
+- `npx vitest run tests/funnelPackParser.test.ts`: 4 passed (100% pass rate)
+- `npx vitest run`: 44 test suites passed, 405 tests passed (100% pass rate)
+
 
 
 

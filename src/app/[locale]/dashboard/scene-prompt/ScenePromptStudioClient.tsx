@@ -24,8 +24,12 @@ import {
   formatAsYouTubeTags,
   formatAsHashtags,
   buildCombinedYouTubeTags,
+  detectOutputStructure,
+  extractSourceAudit,
+  parseFunnelPack,
 } from "@/lib/parsers";
 import type { ThumbnailData, AffiliateRecommendation, Scene, ThreeTierSeoData, BlogPublishingPack } from "@/lib/parsers";
+import type { FunnelPackData, SourceAuditData } from "@/types/generator";
 import { GEMINI_TTS_VOICES, GEMINI_TTS_MODELS, DEFAULT_TTS_VOICE, DEFAULT_TTS_MODEL, TTS_PITCH_PRESETS, DEFAULT_TTS_PITCH, type TtsPitchPresetId } from "@/lib/ttsVoices";
 import {
   buildOverlayVisualCopyText,
@@ -223,6 +227,17 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
   // 2. initialParsedOutputs[0] (latest parse from database memory)
   const defaultSource = useMemo(() => {
     if (initialDraft?.rawJson) {
+      const isFunnel = detectOutputStructure(initialDraft.rawJson) === "FUNNEL_BUNDLE";
+      if (isFunnel) {
+        const fp = parseFunnelPack(initialDraft.rawJson, initialSpeechRate);
+        return {
+          raw: initialDraft.rawJson,
+          parsed: fp.segments.short1.scenes,
+          id: initialDraft.id,
+          isDraft: true,
+          funnelPack: fp,
+        };
+      }
       return {
         raw: initialDraft.rawJson,
         parsed: parseScenes(initialDraft.rawJson, initialSpeechRate),
@@ -231,8 +246,20 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
       };
     }
     if (initialParsedOutputs.length > 0) {
+      const raw = initialParsedOutputs[0].rawInput;
+      const isFunnel = detectOutputStructure(raw) === "FUNNEL_BUNDLE";
+      if (isFunnel) {
+        const fp = parseFunnelPack(raw, initialSpeechRate);
+        return {
+          raw,
+          parsed: fp.segments.short1.scenes,
+          id: initialParsedOutputs[0].id,
+          isDraft: false,
+          funnelPack: fp,
+        };
+      }
       return {
-        raw: initialParsedOutputs[0].rawInput,
+        raw,
         parsed:
           Array.isArray(initialParsedOutputs[0].parsedResult) &&
           (initialParsedOutputs[0].parsedResult as unknown[]).length > 0
@@ -246,6 +273,17 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
   }, [initialDraft, initialParsedOutputs, initialSpeechRate]);
 
   const [rawText, setRawText] = useState(defaultSource?.raw || "");
+  const [funnelPackData, setFunnelPackData] = useState<FunnelPackData | null>(() => {
+    if (defaultSource && "funnelPack" in defaultSource && defaultSource.funnelPack) {
+      return defaultSource.funnelPack as FunnelPackData;
+    }
+    if (defaultSource?.raw && detectOutputStructure(defaultSource.raw) === "FUNNEL_BUNDLE") {
+      return parseFunnelPack(defaultSource.raw, initialSpeechRate);
+    }
+    return null;
+  });
+  const [activeFunnelSegment, setActiveFunnelSegment] = useState<"short1" | "short2" | "long">("short1");
+  const [isSourceAuditOpen, setIsSourceAuditOpen] = useState(true);
   const [scenes, setScenes] = useState<Scene[]>(() => defaultSource?.parsed || []);
 
   const timingSummary = useMemo(() => {
@@ -287,6 +325,22 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
   const [affiliateRecs, setAffiliateRecs] = useState<AffiliateRecommendation[]>(() => (defaultSource?.raw ? extractAffiliateRecommendations(defaultSource.raw) : []));
   const [detectedRemotionCode, setDetectedRemotionCode] = useState<string | null>(() => (defaultSource?.raw ? extractRemotionCode(defaultSource.raw) : null));
   const [completedChecklist, setCompletedChecklist] = useState<Record<number, boolean>>({});
+
+  const switchFunnelSegment = useCallback((segId: "short1" | "short2" | "long") => {
+    if (!funnelPackData) return;
+    setActiveFunnelSegment(segId);
+    const target = funnelPackData.segments[segId];
+    setScenes(target.scenes);
+    setAr(target.aspectRatio);
+    setSelectedSceneIds(new Set(target.scenes.map((s) => s.id)));
+    if (target.caption) setCaption(target.caption);
+    if (target.hashtags) setHashtags(target.hashtags);
+    if (target.thumbnailData) {
+      setThumbnailData(target.thumbnailData);
+    } else if (segId === "long" && funnelPackData.segments.long.thumbnailData) {
+      setThumbnailData(funnelPackData.segments.long.thumbnailData);
+    }
+  }, [funnelPackData]);
 
   // Parse History state (10 latest)
   const [historyList, setHistoryList] = useState<SerializedParsedOutput[]>(initialParsedOutputs);
@@ -427,13 +481,28 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
             setSpeechRate(rate);
           }
         }
-        const parsed = parseScenes(raw, draftSpeechRate);
-        setScenes(parsed);
-        setSelectedSceneIds(new Set(parsed.map((s) => s.id)));
-        setCaption(extractCaption(raw));
-        setHashtags(extractHashtags(raw));
-        setThumbnailData(extractThumbnailData(raw));
-        setThreeTierSeo(extractThreeTierSeo(raw));
+        const isFunnel = detectOutputStructure(raw) === "FUNNEL_BUNDLE";
+        if (isFunnel) {
+          const fp = parseFunnelPack(raw, draftSpeechRate);
+          setFunnelPackData(fp);
+          setActiveFunnelSegment("short1");
+          setScenes(fp.segments.short1.scenes);
+          setAr(fp.segments.short1.aspectRatio);
+          setSelectedSceneIds(new Set(fp.segments.short1.scenes.map((s) => s.id)));
+          setCaption(fp.segments.short1.caption || extractCaption(raw));
+          setHashtags(fp.segments.short1.hashtags || extractHashtags(raw));
+          setThumbnailData(fp.segments.long.thumbnailData || extractThumbnailData(raw));
+          setThreeTierSeo(fp.threeTierSeo || extractThreeTierSeo(raw));
+        } else {
+          setFunnelPackData(null);
+          const parsed = parseScenes(raw, draftSpeechRate);
+          setScenes(parsed);
+          setSelectedSceneIds(new Set(parsed.map((s) => s.id)));
+          setCaption(extractCaption(raw));
+          setHashtags(extractHashtags(raw));
+          setThumbnailData(extractThumbnailData(raw));
+          setThreeTierSeo(extractThreeTierSeo(raw));
+        }
         const titles = extractTitles(raw);
         setParsedTitles(titles);
         if (!initialDraft.title) {
@@ -1013,16 +1082,32 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
   const applyParsedOutput = useCallback((item: SerializedParsedOutput) => {
     const raw = item.rawInput;
     setRawText(raw);
-    const parsed = Array.isArray(item.parsedResult) && (item.parsedResult as unknown[]).length > 0
-      ? (item.parsedResult as Scene[])
-      : parseScenes(raw, speechRate);
-    setScenes(parsed);
-    setSelectedSceneIds(new Set(parsed.map((s) => s.id)));
-    setTtsResults({}); // reset TTS results for new script
-    setCaption(extractCaption(raw));
-    setHashtags(extractHashtags(raw));
-    setThumbnailData(extractThumbnailData(raw));
-    setThreeTierSeo(extractThreeTierSeo(raw));
+    const isFunnel = detectOutputStructure(raw) === "FUNNEL_BUNDLE";
+    if (isFunnel) {
+      const fp = parseFunnelPack(raw, speechRate);
+      setFunnelPackData(fp);
+      setActiveFunnelSegment("short1");
+      setScenes(fp.segments.short1.scenes);
+      setAr(fp.segments.short1.aspectRatio);
+      setSelectedSceneIds(new Set(fp.segments.short1.scenes.map((s) => s.id)));
+      setTtsResults({});
+      setCaption(fp.segments.short1.caption || extractCaption(raw));
+      setHashtags(fp.segments.short1.hashtags || extractHashtags(raw));
+      setThumbnailData(fp.segments.long.thumbnailData || extractThumbnailData(raw));
+      setThreeTierSeo(fp.threeTierSeo || extractThreeTierSeo(raw));
+    } else {
+      setFunnelPackData(null);
+      const parsed = Array.isArray(item.parsedResult) && (item.parsedResult as unknown[]).length > 0
+        ? (item.parsedResult as Scene[])
+        : parseScenes(raw, speechRate);
+      setScenes(parsed);
+      setSelectedSceneIds(new Set(parsed.map((s) => s.id)));
+      setTtsResults({});
+      setCaption(extractCaption(raw));
+      setHashtags(extractHashtags(raw));
+      setThumbnailData(extractThumbnailData(raw));
+      setThreeTierSeo(extractThreeTierSeo(raw));
+    }
     const titles = extractTitles(raw);
     setParsedTitles(titles);
     const chosen = extractChosenTitle(raw) || titles[0] || "";
@@ -1038,6 +1123,54 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
 
   const handleParse = async () => {
     if (!rawText.trim()) return;
+    const isFunnel = detectOutputStructure(rawText) === "FUNNEL_BUNDLE";
+    if (isFunnel) {
+      const fp = parseFunnelPack(rawText, speechRate);
+      setFunnelPackData(fp);
+      setActiveFunnelSegment("short1");
+      setScenes(fp.segments.short1.scenes);
+      setAr(fp.segments.short1.aspectRatio);
+      setSelectedSceneIds(new Set(fp.segments.short1.scenes.map((s) => s.id)));
+      setTtsResults({});
+      setCaption(fp.segments.short1.caption || extractCaption(rawText));
+      setHashtags(fp.segments.short1.hashtags || extractHashtags(rawText));
+      setThumbnailData(fp.segments.long.thumbnailData || extractThumbnailData(rawText));
+      setThreeTierSeo(fp.threeTierSeo || extractThreeTierSeo(rawText));
+      const titles = extractTitles(rawText);
+      setParsedTitles(titles);
+      const chosen = extractChosenTitle(rawText) || titles[0] || "";
+      setDraftTitle(chosen || t("defaultDraftTitle"));
+      const blogP = extractBlogPublishingPack(rawText);
+      setBlogPack(blogP);
+      setHtmlBlog(blogP.html);
+      setAffiliateRecs(extractAffiliateRecommendations(rawText));
+      const remCode = extractRemotionCode(rawText);
+      setDetectedRemotionCode(remCode);
+      if (remCode) {
+        toast.success(t("remotionCodeDetectedToast"));
+      }
+      try {
+        const res = await fetch("/api/parsed-outputs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rawInput: rawText, parsedResult: fp }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const newRecord: SerializedParsedOutput = {
+            id: data.output?.id || data.id,
+            rawInput: rawText,
+            parsedResult: fp,
+            createdAt: data.output?.createdAt ? new Date(data.output.createdAt).toISOString() : new Date().toISOString(),
+          };
+          setHistoryList((prev) => [newRecord, ...prev.filter((item) => item.id !== newRecord.id)].slice(0, 10));
+          setSelectedHistoryId(newRecord.id);
+        }
+      } catch {}
+      return;
+    }
+
+    setFunnelPackData(null);
     const parsed = parseScenes(rawText, speechRate);
     setScenes(parsed);
     setSelectedSceneIds(new Set(parsed.map(s => s.id))); // auto-select semua scene
@@ -1180,6 +1313,8 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
       hashtags: hashtags || undefined,
       thumbnailData: thumbnailData ?? undefined,
       speechRate,
+      funnelPackData: funnelPackData ?? undefined,
+      outputStructure: funnelPackData ? "FUNNEL_BUNDLE" : "SINGLE",
     };
 
     const res = await fetch("/api/drafts", {
@@ -1458,6 +1593,185 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
 
   {activeTab === "scenes" && (
   <div className="space-y-4">
+    {/* 3-in-1 Funnel Pack Segment Switcher */}
+    {funnelPackData && (
+      <div className="glass-panel p-3 rounded-2xl border pg-border bg-[var(--pg-surface-dim)]/40 shadow-xs space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b pg-border/40">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🌪️</span>
+            <div>
+              <div className="text-xs font-bold pg-text-heading flex items-center gap-2">
+                <span>{locale === "en" ? "3-in-1 Funnel Pack" : "Paket Funnel 3-in-1"}</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 font-semibold border border-purple-500/20">
+                  {locale === "en" ? "Integrated Video Ecosystem" : "Ekosistem Video Terintegrasi"}
+                </span>
+              </div>
+              <p className="text-[11px] pg-text-muted mt-0.5">
+                {locale === "en"
+                  ? "Select a video segment below to view, edit, and generate audio for its scenes"
+                  : "Pilih segmen video di bawah untuk mempratinjau, mengedit, dan menghasilkan audio"}
+              </p>
+            </div>
+          </div>
+          <span className="text-[10px] font-mono px-2 py-1 rounded bg-[var(--pg-surface)] border pg-border self-start sm:self-auto">
+            {locale === "en" ? "Active" : "Aktif"}: <strong className="uppercase">{activeFunnelSegment}</strong> ({ar})
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          {/* Short 1 Card */}
+          <button
+            type="button"
+            onClick={() => switchFunnelSegment("short1")}
+            className={`p-3 rounded-xl border text-left transition-all relative ${
+              activeFunnelSegment === "short1"
+                ? "bg-[var(--pg-brand)] text-white border-[var(--pg-brand)] shadow-md ring-2 ring-[var(--pg-brand)]/30"
+                : "bg-[var(--pg-surface)] hover:bg-[var(--pg-surface-dim)] pg-border text-slate-700 dark:text-slate-300"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-bold flex items-center gap-1.5">
+                <span>⚡</span> Short 1
+              </span>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono font-semibold ${
+                activeFunnelSegment === "short1" ? "bg-white/20 text-white" : "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+              }`}>
+                9:16
+              </span>
+            </div>
+            <div className="text-[11px] opacity-90 truncate font-semibold">The Spark Hook</div>
+            <div className="text-[10px] opacity-75 mt-0.5">
+              {funnelPackData.segments.short1.scenes.length} Scene • ~{funnelPackData.segments.short1.timingSummary.formattedTotalDuration}
+            </div>
+          </button>
+
+          {/* Short 2 Card */}
+          <button
+            type="button"
+            onClick={() => switchFunnelSegment("short2")}
+            className={`p-3 rounded-xl border text-left transition-all relative ${
+              activeFunnelSegment === "short2"
+                ? "bg-[var(--pg-brand)] text-white border-[var(--pg-brand)] shadow-md ring-2 ring-[var(--pg-brand)]/30"
+                : "bg-[var(--pg-surface)] hover:bg-[var(--pg-surface-dim)] pg-border text-slate-700 dark:text-slate-300"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-bold flex items-center gap-1.5">
+                <span>🎯</span> Short 2
+              </span>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono font-semibold ${
+                activeFunnelSegment === "short2" ? "bg-white/20 text-white" : "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+              }`}>
+                9:16
+              </span>
+            </div>
+            <div className="text-[11px] opacity-90 truncate font-semibold">Problem & Contrarian</div>
+            <div className="text-[10px] opacity-75 mt-0.5">
+              {funnelPackData.segments.short2.scenes.length} Scene • ~{funnelPackData.segments.short2.timingSummary.formattedTotalDuration}
+            </div>
+          </button>
+
+          {/* Long Pillar Card */}
+          <button
+            type="button"
+            onClick={() => switchFunnelSegment("long")}
+            className={`p-3 rounded-xl border text-left transition-all relative ${
+              activeFunnelSegment === "long"
+                ? "bg-[var(--pg-brand)] text-white border-[var(--pg-brand)] shadow-md ring-2 ring-[var(--pg-brand)]/30"
+                : "bg-[var(--pg-surface)] hover:bg-[var(--pg-surface-dim)] pg-border text-slate-700 dark:text-slate-300"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-bold flex items-center gap-1.5">
+                <span>🏛️</span> Long Pillar
+              </span>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono font-semibold ${
+                activeFunnelSegment === "long" ? "bg-white/20 text-white" : "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+              }`}>
+                16:9
+              </span>
+            </div>
+            <div className="text-[11px] opacity-90 truncate font-semibold">Masterclass Berbab</div>
+            <div className="text-[10px] opacity-75 mt-0.5">
+              {funnelPackData.segments.long.scenes.length} Scene • ~{funnelPackData.segments.long.timingSummary.formattedTotalDuration}
+            </div>
+          </button>
+        </div>
+      </div>
+    )}
+
+    {/* Source Audit Card */}
+    {funnelPackData?.sourceAudit && (
+      <div className="glass-panel rounded-2xl border pg-border overflow-hidden shadow-xs">
+        <button
+          type="button"
+          onClick={() => setIsSourceAuditOpen(prev => !prev)}
+          className="w-full p-4 flex items-center justify-between text-left hover:bg-[var(--pg-surface-dim)]/50 transition-colors"
+        >
+          <div className="flex items-center gap-2.5">
+            <span className="text-lg">🛡️</span>
+            <div>
+              <div className="text-xs font-bold pg-text-heading flex items-center gap-2 flex-wrap">
+                <span>{locale === "en" ? "Source Audit & Grounded Data" : "Audit Link Sumber & Data Nyata"}</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold border border-emerald-500/20">
+                  {locale === "en" ? "Zero-Hallucination & Angle Shift" : "Anti-Halusinasi & Inversi Sudut Pandang"}
+                </span>
+              </div>
+              <p className="text-[11px] pg-text-muted mt-0.5">
+                {locale === "en"
+                  ? "Original facts extracted and rewritten with authentic channel persona without duplication"
+                  : "Fakta riil diekstrak dan ditulis ulang dengan persona channel tanpa duplikasi materi"}
+              </p>
+            </div>
+          </div>
+          <span className="text-xs pg-text-muted">{isSourceAuditOpen ? "▲" : "▼"}</span>
+        </button>
+        {isSourceAuditOpen && (
+          <div className="p-4 pt-0 space-y-3 text-xs pg-border/40 border-t mt-1">
+            {funnelPackData.sourceAudit.sourceUrl && (
+              <div className="flex items-start gap-2 pt-3">
+                <span className="font-semibold pg-text-heading shrink-0">🔗 {locale === "en" ? "Source URL" : "URL Sumber"}:</span>
+                <a
+                  href={funnelPackData.sourceAudit.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-500 hover:underline break-all"
+                >
+                  {funnelPackData.sourceAudit.sourceUrl}
+                </a>
+              </div>
+            )}
+            {funnelPackData.sourceAudit.keyFacts && funnelPackData.sourceAudit.keyFacts.length > 0 && (
+              <div>
+                <div className="font-semibold pg-text-heading mb-1">📊 {locale === "en" ? "Key Verified Facts" : "Fakta & Data Kunci"}:</div>
+                <ul className="list-disc list-inside space-y-1 text-slate-700 dark:text-slate-300 pl-1">
+                  {funnelPackData.sourceAudit.keyFacts.map((fact, idx) => (
+                    <li key={idx}>{fact}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {funnelPackData.sourceAudit.angleShift && (
+              <div>
+                <span className="font-semibold pg-text-heading">💡 {locale === "en" ? "Angle Shift" : "Inversi Sudut Pandang (Angle Shift)"}: </span>
+                <span className="text-slate-700 dark:text-slate-300">{funnelPackData.sourceAudit.angleShift}</span>
+              </div>
+            )}
+            {funnelPackData.sourceAudit.pillarBridge && (
+              <div>
+                <span className="font-semibold pg-text-heading">🌉 {locale === "en" ? "Funnel Bridge" : "Jembatan Funnel"}: </span>
+                <span className="text-slate-700 dark:text-slate-300">{funnelPackData.sourceAudit.pillarBridge}</span>
+              </div>
+            )}
+            {funnelPackData.sourceAudit.disclaimer && (
+              <div className="text-[11px] text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 p-2 rounded-lg border border-amber-200/50 dark:border-amber-900/30">
+                ⚠️ <strong>{locale === "en" ? "Integrity Note" : "Catatan Integritas"}:</strong> {funnelPackData.sourceAudit.disclaimer}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    )}
     {/* Detected Remotion Code Alert Banner */}
     {detectedRemotionCode && (
       <div className="glass-panel p-4 rounded-2xl border border-[var(--pg-brand)]/40 bg-gradient-to-r from-[var(--pg-brand)]/10 via-blue-500/10 to-indigo-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
