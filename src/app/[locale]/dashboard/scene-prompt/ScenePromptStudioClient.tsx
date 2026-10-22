@@ -11,6 +11,7 @@ import {
   extractCaption,
   extractHashtags,
   extractHtmlBlog,
+  extractBlogPublishingPack,
   extractAffiliateRecommendations,
   parseScenes,
   extractRemotionCode,
@@ -24,7 +25,7 @@ import {
   formatAsHashtags,
   buildCombinedYouTubeTags,
 } from "@/lib/parsers";
-import type { ThumbnailData, AffiliateRecommendation, Scene, ThreeTierSeoData } from "@/lib/parsers";
+import type { ThumbnailData, AffiliateRecommendation, Scene, ThreeTierSeoData, BlogPublishingPack } from "@/lib/parsers";
 import { GEMINI_TTS_VOICES, GEMINI_TTS_MODELS, DEFAULT_TTS_VOICE, DEFAULT_TTS_MODEL, TTS_PITCH_PRESETS, DEFAULT_TTS_PITCH, type TtsPitchPresetId } from "@/lib/ttsVoices";
 import {
   buildOverlayVisualCopyText,
@@ -99,6 +100,103 @@ interface TtsResult {
   mimeType?: string;
   errorMessage?: string;
   durationSec?: number; // durasi audio, dibaca dari onLoadedMetadata
+}
+
+const BLOG_SANITIZE_OPTIONS = {
+  allowedTags: [
+    "h1","h2","h3","h4","h5","h6","p","ul","ol","li","strong","em","b","i","a","br","hr","blockquote","pre","code",
+    "table","thead","tbody","tfoot","tr","th","td","caption","colgroup","col",
+    "svg","g","path","rect","circle","line","polyline","polygon","text","defs","linearGradient","stop",
+    "div","span","label","input","button","select","option","output"
+  ],
+  allowedAttributes: {
+    a: ["href", "target", "rel", "class"],
+    table: ["class", "style", "border", "cellpadding", "cellspacing"],
+    thead: ["class", "style"],
+    tbody: ["class", "style"],
+    tfoot: ["class", "style"],
+    tr: ["class", "style"],
+    th: ["class", "style", "scope", "colspan", "rowspan"],
+    td: ["class", "style", "colspan", "rowspan"],
+    caption: ["class", "style"],
+    svg: ["class", "style", "width", "height", "viewBox", "xmlns", "fill", "stroke"],
+    g: ["class", "style", "fill", "stroke", "transform"],
+    path: ["class", "style", "d", "fill", "stroke", "stroke-width"],
+    rect: ["class", "style", "x", "y", "width", "height", "rx", "ry", "fill", "stroke"],
+    circle: ["class", "style", "cx", "cy", "r", "fill", "stroke"],
+    line: ["class", "style", "x1", "y1", "x2", "y2", "stroke", "stroke-width"],
+    polyline: ["class", "style", "points", "fill", "stroke"],
+    polygon: ["class", "style", "points", "fill", "stroke"],
+    text: ["class", "style", "x", "y", "fill", "font-size", "font-weight", "text-anchor"],
+    div: ["class", "style", "id"],
+    span: ["class", "style", "id"],
+    label: ["class", "style", "for"],
+    input: ["class", "style", "type", "id", "name", "value", "placeholder", "min", "max", "step", "oninput", "change"],
+    button: ["class", "style", "type", "id", "onclick"],
+    select: ["class", "style", "id", "name", "onchange"],
+    option: ["value", "selected"],
+    output: ["class", "style", "id", "for"]
+  }
+};
+
+function buildBlogIframeDoc(htmlContent: string): string {
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.7;
+      color: #e2e8f0;
+      background: #090d16;
+      padding: 1.5rem;
+      margin: 0;
+    }
+    h1 { font-size: 1.75rem; color: #f8fafc; margin-bottom: 1rem; border-bottom: 1px solid #1e293b; padding-bottom: 0.5rem; }
+    h2 { font-size: 1.35rem; color: #38bdf8; margin-top: 1.75rem; margin-bottom: 0.75rem; }
+    h3 { font-size: 1.15rem; color: #34d399; margin-top: 1.25rem; margin-bottom: 0.5rem; }
+    p { margin-bottom: 1rem; }
+    table { width: 100%; border-collapse: collapse; margin: 1.25rem 0; font-size: 0.9rem; }
+    th { background: #0f172a; color: #38bdf8; text-align: left; padding: 0.6rem 0.8rem; border: 1px solid #334155; }
+    td { padding: 0.6rem 0.8rem; border: 1px solid #334155; }
+    caption { font-size: 0.8rem; color: #94a3b8; text-align: right; margin-top: 0.4rem; font-style: italic; }
+    svg { max-width: 100%; height: auto; display: block; margin: 1.25rem auto; }
+    .interactive-calculator {
+      background: #0f172a;
+      border: 1px solid #0284c7;
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+      margin: 1.5rem 0;
+    }
+    input, select {
+      background: #1e293b;
+      border: 1px solid #475569;
+      color: #f8fafc;
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.375rem;
+      margin: 0.4rem 0;
+      font-size: 0.9rem;
+    }
+    button {
+      background: #0284c7;
+      color: #ffffff;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 0.375rem;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: background 0.2s;
+    }
+    button:hover { background: #0369a1; }
+  </style>
+</head>
+<body>
+  ${htmlContent}
+</body>
+</html>`;
 }
 
 
@@ -181,6 +279,10 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
   const [activeTab, setActiveTab] = useState<"scenes"|"thumbnail"|"platform"|"voiceStudio"|"htmlBlog"|"seo2026"|"fullVideo">("scenes");
   const [currentTimeline, setCurrentTimeline] = useState<VideoTimeline | null>(null);
   const [markedTitles, setMarkedTitles] = useState<string[]>([]);
+  const [blogPack, setBlogPack] = useState<BlogPublishingPack>(() =>
+    extractBlogPublishingPack(defaultSource?.raw || "")
+  );
+  const [blogPreviewMode, setBlogPreviewMode] = useState<"interactive" | "standard" | "code">("interactive");
   const [htmlBlog, setHtmlBlog] = useState(() => (defaultSource?.raw ? extractHtmlBlog(defaultSource.raw) : ""));
   const [affiliateRecs, setAffiliateRecs] = useState<AffiliateRecommendation[]>(() => (defaultSource?.raw ? extractAffiliateRecommendations(defaultSource.raw) : []));
   const [detectedRemotionCode, setDetectedRemotionCode] = useState<string | null>(() => (defaultSource?.raw ? extractRemotionCode(defaultSource.raw) : null));
@@ -338,7 +440,9 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
           const chosen = extractChosenTitle(raw) || titles[0] || "";
           if (chosen) setDraftTitle(chosen);
         }
-        setHtmlBlog(extractHtmlBlog(raw));
+        const pack = extractBlogPublishingPack(raw);
+        setBlogPack(pack);
+        setHtmlBlog(pack.html);
         setAffiliateRecs(extractAffiliateRecommendations(raw));
         toast.success(t("draftLoadedSuccess"));
       });
@@ -759,7 +863,9 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
               setParsedTitles(titles);
               const chosen = extractChosenTitle(p.rawText) || titles[0] || "";
               setDraftTitle(chosen || t("defaultDraftTitle"));
-              setHtmlBlog(extractHtmlBlog(p.rawText));
+              const bp = extractBlogPublishingPack(p.rawText);
+              setBlogPack(bp);
+              setHtmlBlog(bp.html);
               setAffiliateRecs(extractAffiliateRecommendations(p.rawText));
             }
             if (p.selectedChannelId && channels.some(c => c.id === p.selectedChannelId)) setSelectedChannelId(p.selectedChannelId);
@@ -801,7 +907,9 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
             setParsedTitles(titles);
             const chosen = extractChosenTitle(p.rawText) || titles[0] || "";
             setDraftTitle(chosen || t("defaultDraftTitle"));
-            setHtmlBlog(extractHtmlBlog(p.rawText));
+            const bp = extractBlogPublishingPack(p.rawText);
+            setBlogPack(bp);
+            setHtmlBlog(bp.html);
             setAffiliateRecs(extractAffiliateRecommendations(p.rawText));
           }
           if (p.selectedChannelId && channels.some(c => c.id === p.selectedChannelId)) setSelectedChannelId(p.selectedChannelId);
@@ -887,6 +995,21 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
  navigator.clipboard.writeText(text).then(() => { setCopiedId(id); setTimeout(() => setCopiedId(null), 2000); });
  }, []);
 
+ const handleDownloadHtml = useCallback(() => {
+   const content = blogPack.html || htmlBlog;
+   if (!content) return;
+   const blob = new Blob([content], { type: "text/html;charset=utf-8" });
+   const url = URL.createObjectURL(blob);
+   const a = document.createElement("a");
+   a.href = url;
+   a.download = `${(draftTitle || "artikel-blog").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.html`;
+   document.body.appendChild(a);
+   a.click();
+   document.body.removeChild(a);
+   URL.revokeObjectURL(url);
+   toast.success(locale === "id" ? "File HTML berhasil diunduh!" : "HTML file downloaded successfully!");
+ }, [blogPack.html, htmlBlog, draftTitle, locale]);
+
   const applyParsedOutput = useCallback((item: SerializedParsedOutput) => {
     const raw = item.rawInput;
     setRawText(raw);
@@ -904,7 +1027,9 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
     setParsedTitles(titles);
     const chosen = extractChosenTitle(raw) || titles[0] || "";
     setDraftTitle(chosen || t("defaultDraftTitle"));
-    setHtmlBlog(extractHtmlBlog(raw));
+    const bp = extractBlogPublishingPack(raw);
+    setBlogPack(bp);
+    setHtmlBlog(bp.html);
     setAffiliateRecs(extractAffiliateRecommendations(raw));
     setDetectedRemotionCode(extractRemotionCode(raw));
     setSelectedHistoryId(item.id);
@@ -925,6 +1050,9 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
     setParsedTitles(titles);
     const chosen = extractChosenTitle(rawText) || titles[0] || "";
     setDraftTitle(chosen || t("defaultDraftTitle"));
+    const blogP = extractBlogPublishingPack(rawText);
+    setBlogPack(blogP);
+    setHtmlBlog(blogP.html);
     setAffiliateRecs(extractAffiliateRecommendations(rawText));
     const remCode = extractRemotionCode(rawText);
     setDetectedRemotionCode(remCode);
@@ -1024,7 +1152,9 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
   if (!scenes.length) return;
   setSaving(true); setSaveMsg(null);
   try {
-  const htmlBlogContent = extractHtmlBlog(rawText);
+  const bp = extractBlogPublishingPack(rawText);
+  setBlogPack(bp);
+  const htmlBlogContent = bp.html;
   setHtmlBlog(htmlBlogContent);
 
   const selectedChannel = channels.find(c => c.id === selectedChannelId);
@@ -2888,18 +3018,257 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
  </div>
  )}
 
- {activeTab === "htmlBlog" && htmlBlog && (
+ {activeTab === "htmlBlog" && (htmlBlog || blogPack.html) && (
+   <div className="space-y-6">
+     {/* ── Top Header & Action Bar ── */}
+     <div className="glass-panel rounded-xl p-6 space-y-4">
+       <div className="flex flex-wrap items-center justify-between gap-3">
+         <div>
+           <div className="flex items-center gap-2">
+             <h2 className="font-bold text-lg pg-text-heading">📝 HTML Blog & Publishing Pack</h2>
+           </div>
+           <p className="text-xs pg-text-muted mt-1">
+             {locale === "id"
+               ? "Paket lengkap penerbitan blog: artikel HTML SEO, data visual terstruktur, metadata, dan prompt gambar."
+               : "Complete blog publishing pack: SEO HTML article, structured visual data, metadata, and image prompts."}
+           </p>
+         </div>
 
- <div className="glass-panel rounded-xl p-6 space-y-4">
- <div className="flex items-center justify-between mb-4">
- <h2 className="font-bold pg-text-heading">📝 HTML Blog Article</h2>
- <button onClick={() => copy("blog", htmlBlog)} className="text-xs px-4 py-1.5 pg-surface-dim pg-text-heading rounded transition-colors shadow-sm">
- {copiedId === "blog" ? "✓ " + t("copied") : t("copyHtml")}
- </button>
- </div>
-  {/* P0-1 Security Fix: sanitizeHtml prevents XSS from user-pasted AI output */}
- <div className="pg-surface p-6 rounded-lg border pg-border shadow-inner overflow-y-auto max-h-[60vh] prose dark:prose-invert max-w-none text-sm" dangerouslySetInnerHTML={{ __html: sanitizeHtml(htmlBlog, { allowedTags: ['h1','h2','h3','h4','h5','h6','p','ul','ol','li','strong','em','b','i','a','br','hr','blockquote','pre','code'], allowedAttributes: { a: ['href', 'target', 'rel'] } }) }} />
- </div>
+         {/* Badges for detected dynamic elements */}
+         <div className="flex flex-wrap items-center gap-2">
+           {blogPack.hasTable && (
+             <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-medium">
+               📊 {locale === "id" ? "Tabel Data" : "Data Table"}
+             </span>
+           )}
+           {blogPack.hasSvgChart && (
+             <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 font-medium">
+               📈 {locale === "id" ? "Diagram SVG" : "SVG Chart"}
+             </span>
+           )}
+           {blogPack.hasInteractiveCalculator && (
+             <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 font-medium">
+               ⚡ {locale === "id" ? "Kalkulator Interaktif" : "Interactive Calculator"}
+             </span>
+           )}
+         </div>
+
+         {/* Action buttons */}
+         <div className="flex items-center gap-2">
+           <button
+             onClick={handleDownloadHtml}
+             className="text-xs px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-sm flex items-center gap-1.5"
+             title={locale === "id" ? "Unduh file .html siap upload" : "Download .html file"}
+           >
+             📥 {locale === "id" ? "Unduh .HTML" : "Download .HTML"}
+           </button>
+           <button
+             onClick={() => copy("blog", blogPack.html || htmlBlog)}
+             className="text-xs px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors shadow-sm flex items-center gap-1.5"
+           >
+             {copiedId === "blog" ? "✓ " + t("copied") : "📋 " + (locale === "id" ? "Salin HTML Artikel" : t("copyHtml"))}
+           </button>
+         </div>
+       </div>
+
+       {/* View Mode Tabs */}
+       <div className="flex items-center gap-1 border-b pg-border pb-2">
+         <button
+           onClick={() => setBlogPreviewMode("interactive")}
+           className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
+             blogPreviewMode === "interactive"
+               ? "bg-emerald-600 text-white shadow-sm"
+               : "pg-surface-dim pg-text-muted hover:pg-text-heading"
+           }`}
+         >
+           ⚡ {locale === "id" ? "Live Interaktif (Iframe)" : "Interactive Live Preview"}
+         </button>
+         <button
+           onClick={() => setBlogPreviewMode("standard")}
+           className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
+             blogPreviewMode === "standard"
+               ? "bg-emerald-600 text-white shadow-sm"
+               : "pg-surface-dim pg-text-muted hover:pg-text-heading"
+           }`}
+         >
+           👁️ {locale === "id" ? "Tampilan Bersih" : "Clean Rendered"}
+         </button>
+         <button
+           onClick={() => setBlogPreviewMode("code")}
+           className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
+             blogPreviewMode === "code"
+               ? "bg-emerald-600 text-white shadow-sm"
+               : "pg-surface-dim pg-text-muted hover:pg-text-heading"
+           }`}
+         >
+           💻 {locale === "id" ? "Kode Sumber HTML" : "HTML Source Code"}
+         </button>
+       </div>
+
+       {/* Main Article Preview Container */}
+       {blogPreviewMode === "interactive" && (
+         <div className="rounded-lg border pg-border overflow-hidden bg-slate-950">
+           <div className="bg-slate-900 px-3 py-1.5 border-b border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+             <span>⚡ Sandboxed Live Preview (Kalkulator &amp; grafik dinamis aktif berjalan)</span>
+             <span>100% Client-Side Safe</span>
+           </div>
+           <iframe
+             srcDoc={buildBlogIframeDoc(blogPack.html || htmlBlog)}
+             sandbox="allow-scripts"
+             className="w-full h-[650px] border-none bg-[#090d16]"
+             title="Interactive Blog Preview"
+           />
+         </div>
+       )}
+
+       {blogPreviewMode === "standard" && (
+         <div
+           className="pg-surface p-6 rounded-lg border pg-border shadow-inner overflow-y-auto max-h-[65vh] prose dark:prose-invert max-w-none text-sm"
+           dangerouslySetInnerHTML={{
+             __html: sanitizeHtml(blogPack.html || htmlBlog, BLOG_SANITIZE_OPTIONS),
+           }}
+         />
+       )}
+
+       {blogPreviewMode === "code" && (
+         <div className="relative">
+           <pre className="pg-surface p-4 rounded-lg border pg-border font-mono text-xs overflow-x-auto max-h-[60vh] text-slate-200">
+             {blogPack.html || htmlBlog}
+           </pre>
+           <button
+             onClick={() => copy("rawBlogCode", blogPack.html || htmlBlog)}
+             className="absolute top-3 right-3 text-xs px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded border border-slate-700 shadow-sm"
+           >
+             {copiedId === "rawBlogCode" ? "✓ " + t("copied") : "📋 " + (locale === "id" ? "Salin Kode" : "Copy Code")}
+           </button>
+         </div>
+       )}
+     </div>
+
+     {/* ── Metadata & Media Prompts Cards ── */}
+     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+       {/* SEO Meta Box */}
+       {blogPack.metaDescription && (
+         <div className="glass-panel rounded-xl p-5 space-y-3">
+           <div className="flex items-center justify-between">
+             <h3 className="text-sm font-semibold pg-text-heading flex items-center gap-1.5">
+               🔍 {locale === "id" ? "Metadata SEO Blog" : "Blog SEO Metadata"}
+             </h3>
+             <button
+               onClick={() => copy("blogMetaDesc", blogPack.metaDescription)}
+               className="text-xs px-2.5 py-1 pg-surface-dim pg-text-heading rounded hover:bg-slate-700 transition-colors"
+             >
+               {copiedId === "blogMetaDesc" ? "✓ " + t("copied") : "📋 " + (locale === "id" ? "Salin" : "Copy")}
+             </button>
+           </div>
+           <div>
+             <div className="flex justify-between items-center text-xs pg-text-muted mb-1">
+               <span>Meta Description (Google Snippet)</span>
+               <span className={`text-[11px] font-mono ${blogPack.metaDescription.length > 160 ? "text-amber-400" : "text-emerald-400"}`}>
+                 {blogPack.metaDescription.length}/160 char
+               </span>
+             </div>
+             <p className="text-xs pg-surface p-3 rounded-lg border pg-border pg-text-heading leading-relaxed">
+               {blogPack.metaDescription}
+             </p>
+           </div>
+           {blogPack.tags.length > 0 && (
+             <div>
+               <span className="text-xs pg-text-muted block mb-1.5">{locale === "id" ? "Kategori / Label Tags" : "Category / Label Tags"}</span>
+               <div className="flex flex-wrap gap-1.5">
+                 {blogPack.tags.map((tag: string, idx: number) => (
+                   <span key={idx} className="text-xs px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/30">
+                     #{tag}
+                   </span>
+                 ))}
+               </div>
+             </div>
+           )}
+         </div>
+       )}
+
+       {/* 16:9 Thumbnail Prompt */}
+       {blogPack.thumbnailPrompt && (
+         <div className="glass-panel rounded-xl p-5 space-y-3">
+           <div className="flex items-center justify-between">
+             <div className="flex items-center gap-2">
+               <h3 className="text-sm font-semibold pg-text-heading flex items-center gap-1.5">
+                 🖼️ {locale === "id" ? "Prompt Thumbnail Banner (16:9)" : "16:9 Banner Thumbnail Prompt"}
+               </h3>
+               <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-mono">16:9 Horizontal</span>
+             </div>
+             <button
+               onClick={() => copy("blogThumb", blogPack.thumbnailPrompt)}
+               className="text-xs px-2.5 py-1 pg-surface-dim pg-text-heading rounded hover:bg-slate-700 transition-colors"
+             >
+               {copiedId === "blogThumb" ? "✓ " + t("copied") : "📋 " + (locale === "id" ? "Salin Prompt" : "Copy Prompt")}
+             </button>
+           </div>
+           <p className="text-xs pg-surface p-3 rounded-lg border pg-border font-mono text-slate-300 leading-relaxed max-h-36 overflow-y-auto">
+             {blogPack.thumbnailPrompt}
+           </p>
+         </div>
+       )}
+
+       {/* In-Article Supporting Images */}
+       {blogPack.supportingImagePrompts.length > 0 && (
+         <div className="glass-panel rounded-xl p-5 space-y-3 md:col-span-2">
+           <div className="flex items-center justify-between">
+             <h3 className="text-sm font-semibold pg-text-heading flex items-center gap-1.5">
+               🎨 {locale === "id" ? "Prompt Gambar Pendukung Isi Artikel" : "In-Article Supporting Image Prompts"} ({blogPack.supportingImagePrompts.length})
+             </h3>
+             <button
+               onClick={() => copy("allSupportImg", blogPack.supportingImagePrompts.join("\n\n"))}
+               className="text-xs px-2.5 py-1 pg-surface-dim pg-text-heading rounded hover:bg-slate-700 transition-colors"
+             >
+               {copiedId === "allSupportImg" ? "✓ " + t("copied") : "📋 " + (locale === "id" ? "Salin Semua" : "Copy All")}
+             </button>
+           </div>
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+             {blogPack.supportingImagePrompts.map((prompt: string, idx: number) => (
+               <div key={idx} className="pg-surface p-3 rounded-lg border pg-border space-y-2">
+                 <div className="flex items-center justify-between text-xs font-semibold text-emerald-400">
+                   <span>Ilustrasi #{idx + 1}</span>
+                   <button
+                     onClick={() => copy(`supportImg_${idx}`, prompt)}
+                     className="text-[11px] px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+                   >
+                     {copiedId === `supportImg_${idx}` ? "✓" : "📋 " + (locale === "id" ? "Salin" : "Copy")}
+                   </button>
+                 </div>
+                 <p className="text-xs font-mono text-slate-300 leading-relaxed">{prompt}</p>
+               </div>
+             ))}
+           </div>
+         </div>
+       )}
+
+       {/* Affiliate Recommendations */}
+       {blogPack.affiliateCallouts.length > 0 && (
+         <div className="glass-panel rounded-xl p-5 space-y-3 md:col-span-2">
+           <div className="flex items-center justify-between">
+             <h3 className="text-sm font-semibold pg-text-heading flex items-center gap-1.5">
+               🛒 {locale === "id" ? "Rekomendasi Produk Afiliasi Blog" : "Blog Affiliate Recommendations"}
+             </h3>
+             <button
+               onClick={() => copy("blogAffiliate", blogPack.affiliateCallouts.join("\n"))}
+               className="text-xs px-2.5 py-1 pg-surface-dim pg-text-heading rounded hover:bg-slate-700 transition-colors"
+             >
+               {copiedId === "blogAffiliate" ? "✓ " + t("copied") : "📋 " + (locale === "id" ? "Salin" : "Copy")}
+             </button>
+           </div>
+           <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+             {blogPack.affiliateCallouts.map((aff: string, idx: number) => (
+               <li key={idx} className="pg-surface p-2.5 rounded-lg border pg-border text-slate-300 flex items-start gap-2">
+                 <span className="text-emerald-400 font-bold">•</span>
+                 <span>{aff}</span>
+               </li>
+             ))}
+           </ul>
+         </div>
+       )}
+     </div>
+   </div>
  )}
 
  {/* ── Full Video Studio Tab ── */}

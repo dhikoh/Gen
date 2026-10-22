@@ -1176,7 +1176,49 @@ PENTING: Tulis kode secara LENGKAP dan deterministik tanpa placeholder agar vide
   // Fix 2.1: htmlBlog section — paid feature gate; must appear in output when enabled
   const hasHtmlBlog = videoConfig.htmlBlog === true;
   if (hasHtmlBlog) {
-    formatOutputWajib += `\n## HTML BLOG\nTulis sebuah artikel blog berbasis naskah video di atas dengan ketentuan berikut:\n1. Panjang artikel: 400–600 kata, SEO-friendly, dengan sub-heading menggunakan tag <h2> dan <h3>.\n2. Meta Description: Tulis meta description 150-160 karakter di bawah judul artikel (label: META DESCRIPTION:).\n3. Judul Artikel (H1): Tulis judul artikel blog yang mengandung kata kunci utama, menarik untuk diklik.\n4. Isi Artikel: Kembangkan narasi video menjadi artikel lengkap. Gunakan paragraf pendek (2-4 kalimat), tambahkan contoh konkret, statistik fiktif yang masuk akal, dan CTA di akhir.\n5. Format output WAJIB HTML murni (bukan Markdown), siap ditempel ke CMS. Mulai dari <h1> hingga paragraf penutup.\n`;
+    if (isEnglishOutput) {
+      formatOutputWajib += `\n## HTML BLOG
+Write a comprehensive, credible, and engaging SEO blog article based on the video script above with the following requirements:
+
+[BLOG METADATA & SUPPORTING PROMPTS]
+1. META DESCRIPTION: Write an engaging 150–160 character preview containing the primary keyword (label: META DESCRIPTION:).
+2. CATEGORY/TAGS: 3–5 relevant comma-separated tags (label: CATEGORY/TAGS:).
+3. 16:9 BLOG THUMBNAIL PROMPT: 1 prompt for horizontal landscape 16:9 banner image (for Midjourney/DALL-E), featuring bold center-aligned provocative title text, striking contrast, and a clear focal object without human faces (label: PROMPT THUMBNAIL 16:9:).
+4. IN-ARTICLE IMAGE PROMPTS: 2–3 detailed visual prompts for key illustrative moments within the article body (label: PROMPT GAMBAR PENDUKUNG:).
+5. AFFILIATE RECOMMENDATIONS: 1–2 natural contextual product recommendation callouts for organic gardening tools, natural inputs, or relevant equipment (label: REKOMENDASI PRODUK AFILIASI:).
+
+[COMPLETE HTML ARTICLE CODE]
+Tulis artikel HTML lengkap (dibungkus code fence \`\`\`html ... \`\`\`):
+1. Title (H1): High-CTR, keyword-rich title.
+2. Structure: 500–800 words, scannable short paragraphs (2–4 sentences), organized with <h2> and <h3> subheadings.
+3. Factual Rigor: Ground all claims in real botanical/scientific principles. DO NOT fabricate statistics or overclaim.
+4. Rich Visual Data & Dynamic Elements (Include ONLY IF strictly appropriate for the topic — DO NOT force them if not relevant):
+   - Structured HTML Table (<table>): ONLY IF the topic involves comparisons, ingredient ratios, dosages, or schedules, format them in a clean responsive HTML table with <thead>, <tbody>, and a <caption class="source-caption">.
+   - Inline SVG Diagram (<svg>): ONLY IF explaining cycles, phases, or step-by-step workflows, include a lightweight inline SVG diagram with clear readable labels and contrasting colors.
+   - Interactive Mini-Calculator / Dynamic Tool: ONLY IF the topic involves practical calculations (e.g. fertilizer dilution ratios, potting soil mix formulas, plant spacing, or seed estimation), provide a self-contained <div class="interactive-calculator"> complete with input fields, calculate button, output display, and scoped inline vanilla JavaScript ((function(){ ... })()) that functions interactively right inside the browser or CMS! IF the topic is purely narrative/conceptual without numerical calculations, DO NOT include a calculator.
+5. Output format: Valid pure HTML, from <h1> to concluding paragraph.\n`;
+    } else {
+      formatOutputWajib += `\n## HTML BLOG
+Tulis sebuah artikel blog mendalam, kredibel, dan sangat SEO-friendly berbasis naskah video di atas dengan ketentuan berikut:
+
+[METADATA & PROMPT PENDUKUNG BLOG]
+1. META DESCRIPTION: Tulis ringkasan padat 150–160 karakter yang memikat dan mengandung kata kunci primer (label: META DESCRIPTION:).
+2. KATEGORI/TAGS: 3–5 label/kategori artikel relevan dipisahkan koma (label: KATEGORI/TAGS:).
+3. PROMPT THUMBNAIL 16:9: 1 prompt generator gambar horizontal (16:9) untuk banner blog (Midjourney/DALL-E), dengan teks judul provokatif di posisi tengah (middle center), kontras warna tajam, dan fokal poin jelas tanpa sosok wajah manusia (label: PROMPT THUMBNAIL 16:9:).
+4. PROMPT GAMBAR PENDUKUNG: 2–3 prompt gambar ilustratif detail untuk disisipkan di sela-sela artikel (label: PROMPT GAMBAR PENDUKUNG:).
+5. REKOMENDASI PRODUK AFILIASI: 1–2 rekomendasi produk/alat berkebun organik yang relevan secara kontekstual (label: REKOMENDASI PRODUK AFILIASI:).
+
+[KODE ARTIKEL HTML UTUH]
+Tulis kode artikel HTML murni (dibungkus code fence \`\`\`html ... \`\`\`):
+1. Judul Artikel (H1): Mengandung kata kunci utama, memicu klik dan rasa penasaran.
+2. Struktur: 500–800 kata, paragraf pendek nyaman dibaca di mobile (2–4 kalimat), dengan sub-heading <h2> dan <h3>.
+3. Kredibilitas Ilmiah: Berdasarkan prinsip botani/pertanian yang valid. DILARANG membuat data fiktif atau overclaim berlebihan.
+4. Elemen Visual & Data Interaktif (Sertakan HANYA JIKA relevan dan dibutuhkan topik — JANGAN memaksakan jika tidak ada kebutuhan):
+   - Tabel Terstruktur (<table>): HANYA JIKA materi membahas perbandingan bahan, dosis/takaran, jadwal aplikasi, atau rasio campuran, sajikan dalam tag <table> responsif yang rapi dengan <thead>, <tbody>, dan <caption class="source-caption">.
+   - Diagram Alur / Grafik Visual (<svg>): HANYA JIKA membahas tahapan siklus, alur proses, atau persentase visual, sertakan diagram inline berbasis <svg> mandiri yang bersih dan berlabel jelas.
+   - Mini Kalkulator Interaktif (Dynamic Widget): HANYA JIKA topik melibatkan perhitungan teknis praktis (misal: kalkulator pengenceran pupuk cair/MOL, rasio pencampuran media tanam, kalkulator jarak tanam/kebutuhan bibit, atau estimasi panen), sediakan blok <div class="interactive-calculator"> mandiri lengkap dengan input angka, tombol hitung, tampilan hasil, dan skrip vanilla JavaScript inline berskop aman ((function(){ ... })()) yang langsung aktif dan berfungsi interaktif saat ditempel ke Blogger/WordPress/CMS! JIKA topik bersifat naratif/umum tanpa kebutuhan perhitungan angka, JANGAN sertakan kalkulator ini.
+5. Format output: HTML murni yang rapi, mulai dari <h1> hingga paragraf penutup artikel.\n`;
+    }
   }
 
   // Patch #104: Reuse earlyTimingCalc (already computed above) to avoid double calculation

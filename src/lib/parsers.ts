@@ -532,29 +532,132 @@ export function parseImageContent(text: string): ImageContentData {
 
 // ── HTML Blog Extraction (Fix 2.4) ───────────────────────────────────────────
 
+export interface BlogPublishingPack {
+  html: string;
+  metaDescription: string;
+  tags: string[];
+  thumbnailPrompt: string;
+  supportingImagePrompts: string[];
+  affiliateCallouts: string[];
+  hasTable: boolean;
+  hasSvgChart: boolean;
+  hasInteractiveCalculator: boolean;
+}
+
 /**
- * Extract the ## HTML BLOG section from a video generator Markdown output.
- * Returns the raw HTML string (which may contain <h1>, <p>, <h2>, <h3> tags)
- * ready to be stored in parsedData.html_blog and rendered via sanitize-html.
- *
- * Stops at the next ## header or end-of-string.
+ * Extract structured Blog Publishing Pack elements from Markdown output,
+ * including clean pure HTML, SEO meta description, 16:9 thumbnail prompt,
+ * in-article image prompts, affiliate callouts, and feature detection flags.
  */
-export function extractHtmlBlog(text: string): string {
-  if (!text) return "";
+export function extractBlogPublishingPack(text: string): BlogPublishingPack {
+  const emptyResult: BlogPublishingPack = {
+    html: "",
+    metaDescription: "",
+    tags: [],
+    thumbnailPrompt: "",
+    supportingImagePrompts: [],
+    affiliateCallouts: [],
+    hasTable: false,
+    hasSvgChart: false,
+    hasInteractiveCalculator: false,
+  };
+
+  if (!text) return emptyResult;
 
   // Find the HTML BLOG section header (supports ## header, **bold**, or plain text)
   const match = text.match(/(?:##\s*|###\s*|\*\*\s*|\b)HTML\s*BLOG\s*/i);
-  if (!match || match.index === undefined) return "";
+  if (!match || match.index === undefined) return emptyResult;
 
   const startIdx = match.index + match[0].length;
-  // Stop at the next ## header or REKOMENDASI PRODUK / THUMBNAIL header or end of text
+  // Stop at the next major ## header (that is NOT an internal sub-heading) or end of text
   const afterSection = text.substring(startIdx);
-  const nextHeader = afterSection.search(/(?:\n##\s+|\n(?:\*\*\s*)?REKOMENDASI\s+PRODUK|\n(?:\*\*\s*)?THUMBNAIL)/i);
+  const nextHeader = afterSection.search(/(?:\n##\s+(?!#|HTML|KODE|PROMPT|META)[^\n]+)/i);
   const rawBlock = nextHeader !== -1
     ? afterSection.substring(0, nextHeader).trim()
     : afterSection.trim();
 
-  return rawBlock;
+  if (!rawBlock) return emptyResult;
+
+  // 1. Meta Description
+  const metaDescMatch = rawBlock.match(/(?:META\s+DESCRIPTION|DESKRIPSI\s+META)\s*:\s*([^\n]+)/i);
+  const metaDescription = metaDescMatch ? cleanParsedValue(metaDescMatch[1]) : "";
+
+  // 2. Tags / Labels / Categories
+  const tagsMatch = rawBlock.match(/(?:KATEGORI(?:\/TAGS)?|TAGS|LABELS|CATEGORIES|CATEGORY\/TAGS)\s*:\s*([^\n]+)/i);
+  const tags = tagsMatch
+    ? tagsMatch[1].split(",").map(t => cleanParsedValue(t.trim())).filter(Boolean)
+    : [];
+
+  // 3. 16:9 Blog Thumbnail Prompt
+  const thumbMatch = rawBlock.match(
+    /(?:PROMPT\s+THUMBNAIL\s+16:9|16:9\s+BLOG\s+THUMBNAIL\s+PROMPT|THUMBNAIL\s+PROMPT)\s*:\s*([^\n]+(?:\n(?!(?:PROMPT|REKOMENDASI|AFFILIATE|```|<h1|<h2|<p|##))[^\n]+)*)/i
+  );
+  const thumbnailPrompt = thumbMatch ? thumbMatch[1].trim() : "";
+
+  // 4. In-Article Supporting Image Prompts
+  const supportingMatch = rawBlock.match(
+    /(?:PROMPT\s+GAMBAR\s+PENDUKUNG|IN-ARTICLE\s+IMAGE\s+PROMPTS)\s*:\s*([\s\S]*?)(?=(?:REKOMENDASI|AFFILIATE|```|<h1|<h2|<p|##|$))/i
+  );
+  let supportingImagePrompts: string[] = [];
+  if (supportingMatch) {
+    supportingImagePrompts = supportingMatch[1]
+      .split(/\n\s*(?:\d+[\.\)]|-|\*)\s+/)
+      .map(s => s.trim())
+      .filter(s => s.length > 5);
+  }
+
+  // 5. Affiliate Callouts
+  const affiliateMatch = rawBlock.match(
+    /(?:REKOMENDASI\s+PRODUK\s+AFILIASI|AFFILIATE\s+RECOMMENDATIONS?)\s*:\s*([\s\S]*?)(?=(?:```|<h1|<h2|<p|##|$))/i
+  );
+  let affiliateCallouts: string[] = [];
+  if (affiliateMatch) {
+    affiliateCallouts = affiliateMatch[1]
+      .split(/\n\s*(?:\d+[\.\)]|-|\*)\s+/)
+      .map(s => s.trim())
+      .filter(s => s.length > 3);
+  }
+
+  // 6. Extract clean HTML
+  let html = rawBlock;
+  const codeBlockMatch = rawBlock.match(/```(?:html)?\s*([\s\S]*?)```/i);
+  if (codeBlockMatch) {
+    html = codeBlockMatch[1].trim();
+  } else {
+    // If no code fence, strip any metadata block preceding the first HTML tag
+    const firstTagIdx = rawBlock.search(/<(?:h1|h2|p|article|div|table|main)/i);
+    if (firstTagIdx !== -1) {
+      html = rawBlock.substring(firstTagIdx).trim();
+    }
+  }
+
+  // Detect rich dynamic elements
+  const hasTable = /<table\b/i.test(html);
+  const hasSvgChart = /<svg\b/i.test(html);
+  const hasInteractiveCalculator = /interactive-calculator|calculator|<input|<select|<button/i.test(html);
+
+  return {
+    html,
+    metaDescription,
+    tags,
+    thumbnailPrompt,
+    supportingImagePrompts,
+    affiliateCallouts,
+    hasTable,
+    hasSvgChart,
+    hasInteractiveCalculator,
+  };
+}
+
+/**
+ * Extract the ## HTML BLOG section from a video generator Markdown output.
+ * Returns the clean pure HTML string (which may contain <h1>, <p>, <h2>, <h3>, <table>, <svg> tags)
+ * ready to be stored in parsedData.html_blog and rendered safely.
+ */
+export function extractHtmlBlog(text: string): string {
+  if (!text) return "";
+  const pack = extractBlogPublishingPack(text);
+  return pack.html || "";
 }
 
 // ── Affiliate Product Recommendations ──────────────────────────────────────

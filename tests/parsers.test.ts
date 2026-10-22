@@ -19,6 +19,8 @@ import {
   buildCombinedYouTubeTags,
   extractAudioCues,
   extractVisualAudioHint,
+  extractHtmlBlog,
+  extractBlogPublishingPack,
 } from "@/lib/parsers";
 
 describe("parsers", () => {
@@ -1014,5 +1016,91 @@ DURASI: 5s
       expect(scenes[0].narasi).toBe("Di tengah hutan tropis yang lebat.");
     });
   });
+
+  describe("extractBlogPublishingPack and extractHtmlBlog", () => {
+    it("extracts full publishing pack with table, svg, calculator, and metadata", () => {
+      const markdown = `
+## HTML BLOG
+META DESCRIPTION: Panduan lengkap cara membuat pupuk organik cair dari limbah dapur secara mandiri.
+KATEGORI/TAGS: Pupuk Organik, Tips Berkebun, Zero Waste
+PROMPT THUMBNAIL 16:9: Horizontal landscape 16:9 banner of glistening organic liquid fertilizer in a glass jar, vibrant green background, bold centered text "POC SUPER", no human faces.
+PROMPT GAMBAR PENDUKUNG:
+1. Close-up of fermented fruit skins in airtight bucket.
+2. Macro view of white beneficial yeast colonies.
+
+REKOMENDASI PRODUK AFILIASI:
+- Botol spray kaca amber 500ml
+- Starter bakteri fermentasi anaerob
+
+\`\`\`html
+<h1>Panduan Lengkap Membuat Pupuk Organik Cair (POC)</h1>
+<p>Membuat pupuk organik cair sendiri sangat mudah dan hemat biaya.</p>
+
+<table class="table-auto">
+  <thead><tr><th>Bahan</th><th>Nutrisi</th></tr></thead>
+  <tbody><tr><td>Kulit Pisang</td><td>Kalium Tinggi</td></tr></tbody>
+</table>
+
+<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="green"/></svg>
+
+<div class="interactive-calculator">
+  <input type="number" id="air" value="5" />
+  <button id="calcBtn">Hitung</button>
+  <div id="result">Hasil</div>
+</div>
+<script>
+(function() {
+  document.getElementById('calcBtn').onclick = function() { alert('hit'); };
+})();
+</script>
+\`\`\`
+      `;
+
+      const pack = extractBlogPublishingPack(markdown);
+      expect(pack.metaDescription).toBe("Panduan lengkap cara membuat pupuk organik cair dari limbah dapur secara mandiri.");
+      expect(pack.tags).toEqual(["Pupuk Organik", "Tips Berkebun", "Zero Waste"]);
+      expect(pack.thumbnailPrompt).toContain("POC SUPER");
+      expect(pack.supportingImagePrompts).toHaveLength(2);
+      expect(pack.affiliateCallouts).toHaveLength(2);
+      expect(pack.hasTable).toBe(true);
+      expect(pack.hasSvgChart).toBe(true);
+      expect(pack.hasInteractiveCalculator).toBe(true);
+      expect(pack.html).toContain("<h1>Panduan Lengkap Membuat Pupuk Organik Cair (POC)</h1>");
+      expect(pack.html).toContain("<table class=\"table-auto\">");
+      expect(pack.html).toContain("<svg viewBox=\"0 0 100 100\">");
+      expect(pack.html).toContain("<div class=\"interactive-calculator\">");
+      expect(pack.html).toContain("<script>");
+
+      // extractHtmlBlog should match pack.html
+      const htmlOnly = extractHtmlBlog(markdown);
+      expect(htmlOnly).toBe(pack.html);
+    });
+
+    it("handles plain HTML without code fences and preserves tags", () => {
+      const markdown = `
+## HTML BLOG
+<h1>Panduan Menanam Tomat</h1>
+<p>Tomat membutuhkan sinar matahari minimal 6 jam sehari.</p>
+<table><tr><td>Varietas</td><td>Cherry</td></tr></table>
+      `;
+
+      const pack = extractBlogPublishingPack(markdown);
+      expect(pack.hasTable).toBe(true);
+      expect(pack.hasSvgChart).toBe(false);
+      expect(pack.hasInteractiveCalculator).toBe(false);
+      expect(pack.html).toContain("<h1>Panduan Menanam Tomat</h1>");
+      expect(pack.html).toContain("<table><tr><td>Varietas</td><td>Cherry</td></tr></table>");
+    });
+
+    it("returns empty values gracefully for empty text", () => {
+      const pack = extractBlogPublishingPack("");
+      expect(pack.html).toBe("");
+      expect(pack.metaDescription).toBe("");
+      expect(pack.tags).toEqual([]);
+      expect(pack.hasTable).toBe(false);
+      expect(extractHtmlBlog("")).toBe("");
+    });
+  });
 });
+
 
