@@ -211,15 +211,142 @@ export async function getOrCreateAppFolder(
 }
 
 /**
- * Mengunggah berkas ke Google Drive menggunakan Resumable Upload protocol.
+ * Membersihkan nama folder dari karakter terlarang Windows / Google Drive.
  */
-export async function uploadToDrive(
+export function sanitizeFolderName(name: string): string {
+  return (
+    name
+      .replace(/[/\\:*?"<>|]/g, "_")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 100) || "Untitled_Project"
+  );
+}
+
+/**
+ * Mencari atau membuat subfolder di bawah parentFolderId secara idempoten.
+ */
+export async function getOrCreateSubfolder(
+  accessToken: string,
+  folderName: string,
+  parentFolderId: string
+): Promise<string> {
+  const safeName = sanitizeFolderName(folderName);
+  const escapedName = safeName.replace(/'/g, "\\'");
+  const query = `name = '${escapedName}' and '${parentFolderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
+
+  try {
+    const searchRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name)`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }
+    );
+
+    if (searchRes.ok) {
+      const searchData = (await searchRes.json()) as { files?: Array<{ id: string; name: string }> };
+      if (searchData.files && searchData.files.length > 0) {
+        return searchData.files[0].id;
+      }
+    }
+  } catch (err) {
+    console.warn("[GoogleDrive] Search subfolder failed:", err);
+  }
+
+  // Buat subfolder jika belum ada
+  const createRes = await fetch("https://www.googleapis.com/drive/v3/files?fields=id", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      name: safeName,
+      parents: [parentFolderId],
+      mimeType: "application/vnd.google-apps.folder",
+    }),
+  });
+
+  if (!createRes.ok) {
+    const errText = await createRes.text();
+    throw new Error(`Failed to create Google Drive subfolder '${safeName}': ${errText}`);
+  }
+
+  const createdData = (await createRes.json()) as { id: string };
+  return createdData.id;
+}
+
+/**
+ * Mengambil tautan webViewLink publik dari folder Google Drive.
+ */
+export async function getFolderWebViewLink(
+  accessToken: string,
+  folderId: string
+): Promise<string | undefined> {
+  try {
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${folderId}?fields=id,webViewLink`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (res.ok) {
+      const data = (await res.json()) as { webViewLink?: string };
+      return data.webViewLink;
+    }
+  } catch (err) {
+    console.warn("[GoogleDrive] Failed to fetch folder webViewLink:", err);
+  }
+  return undefined;
+}
+
+/**
+ * Memastikan struktur folder proyek lengkap (Prompt Gen Videos -> Channel -> Project [-> Segment])
+ * secara idempoten dan mengembalikan targetFolderId serta link folder.
+ */
+export async function ensureProjectFolderHierarchy(
   userId: string,
   accessToken: string,
-  file: DriveUploadInput
-): Promise<DriveUploadResult> {
-  const folderId = await getOrCreateAppFolder(userId, accessToken);
+  channelName: string,
+  projectFolderName: string,
+  segmentFolderName?: string
+): Promise<{ targetFolderId: string; projectFolderId: string; folderWebViewLink?: string }> {
+  // 1. Root folder ("Prompt Gen Videos")
+  const rootId = await getOrCreateAppFolder(userId, accessToken);
 
+  // 2. Channel folder
+  const safeChannel = sanitizeFolderName(channelName || "Default Channel");
+  const channelFolderId = await getOrCreateSubfolder(accessToken, safeChannel, rootId);
+
+  // 3. Project folder
+  const safeProject = sanitizeFolderName(projectFolderName || "Project_Untitled");
+  const projectFolderId = await getOrCreateSubfolder(accessToken, safeProject, channelFolderId);
+
+  // 4. Target folder (segmen jika diberikan, atau langsung folder proyek)
+  let targetFolderId = projectFolderId;
+  if (segmentFolderName && segmentFolderName.trim()) {
+    const safeSegment = sanitizeFolderName(segmentFolderName.trim());
+    targetFolderId = await getOrCreateSubfolder(accessToken, safeSegment, projectFolderId);
+  }
+
+  // 5. Ambil webViewLink folder target
+  const folderWebViewLink =
+    (await getFolderWebViewLink(accessToken, targetFolderId)) ||
+    (await getFolderWebViewLink(accessToken, projectFolderId));
+
+  return {
+    targetFolderId,
+    projectFolderId,
+    folderWebViewLink,
+  };
+}
+
+/**
+ * Mengunggah berkas ke Google Drive pada folder spesifik menggunakan Resumable Upload protocol.
+ */
+export async function uploadToSpecificFolder(
+  userId: string,
+  accessToken: string,
+  file: DriveUploadInput,
+  targetFolderId: string
+): Promise<DriveUploadResult> {
   // Langkah 1: Inisiasi Resumable Upload Session
   const initRes = await fetch(
     "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name,webViewLink",
@@ -233,7 +360,7 @@ export async function uploadToDrive(
       },
       body: JSON.stringify({
         name: file.filename,
-        parents: [folderId],
+        parents: [targetFolderId],
       }),
     }
   );
@@ -272,6 +399,18 @@ export async function uploadToDrive(
     fileId: result.id,
     webViewLink: result.webViewLink,
   };
+}
+
+/**
+ * Mengunggah berkas ke folder root Prompt Gen Videos menggunakan Resumable Upload protocol.
+ */
+export async function uploadToDrive(
+  userId: string,
+  accessToken: string,
+  file: DriveUploadInput
+): Promise<DriveUploadResult> {
+  const folderId = await getOrCreateAppFolder(userId, accessToken);
+  return uploadToSpecificFolder(userId, accessToken, file, folderId);
 }
 
 /**

@@ -59,6 +59,28 @@
 > | `[#102]` | Fitur #102 | Pop-up Validasi Komposisi & Redesain Docking Tombol Generate Desktop/PWA | 2026-10-19 |
 > | `[#103]` | Fitur #103 | Dedicated Ambient Audio & Foley Natural Sound Layer ([AMBIENT: ...]) | 2026-10-19 |
 > | `[#104]` | Fitur #104 | Proportional Scene-Duration Guard & Guided-Flexible Scene Count (4–10s/scene) | 2026-10-19 |
+> | `[#105]` | Fitur #105 (Bagian 54) | Scene Prompt Studio — Google Drive Content Package Upload Engine (Pemisahan Metadata 4 Platform, Dual Media Dropzone & Idempotent Subfolder Hierarchy) | 2026-10-22 |
+
+---
+
+## [#105] — 2026-10-22 | Scene Prompt Studio — Google Drive Content Package Upload Engine
+
+### Problem
+Kreator memerlukan alur kerja terpadu untuk mencadangkan (backup) seluruh aset naskah, metadata media sosial, dan hasil render video/thumbnail ke Google Drive dalam folder yang terorganisir per Channel dan Proyek. Penggabungan seluruh metadata ke dalam satu file panjang menyulitkan kreator saat memposting konten via smartphone, dan pengguna tidak memiliki cara untuk mengunggah video/thumbnail hasil olahan eksternal dari laptop/PC mereka secara berdampingan.
+
+### Solution
+1. **Pemisahan File Teks Metadata per Platform (`src/lib/gdrivePackageFormat.ts`)**:
+   - Berkas terpisah untuk tiap platform: `youtube_metadata.txt`, `tiktok_metadata.txt`, `instagram_metadata.txt`, `facebook_metadata.txt`, `naskah_scene_lengkap.txt`, dan `thumbnail_prompt.txt`.
+2. **Hirarki Subfolder Idempoten & Multi-Segment Funnel (`src/lib/googleDrive.ts`)**:
+   - `ensureProjectFolderHierarchy` menyusun struktur `Prompt Gen Videos` > `[Channel]` > `[Project]` > `[Segment]`.
+   - Idempoten: Deteksi folder proyek yang sama mencegah duplikasi saat pengguna mengunggah Short 1 dan Short 2 di hari berbeda.
+3. **Dual Dropzone Media PC (`DrivePackageUploadModal.tsx`)**:
+   - Dropzone video lokal (`.mp4`, `.mov`, `.webm` maks 250 MB).
+   - Dropzone thumbnail lokal (`.png`, `.jpg`, `.webp` maks 15 MB).
+4. **Backend Resumable Batch Upload (`/api/user/google-drive/upload-package`)**:
+   - Dilindungi autentikasi sesi NextAuth, plan guard fail-closed (`googleDriveUpload`), rate limit, dan audit logging `GOOGLE_DRIVE_PACKAGE_UPLOAD_SUCCESS`.
+5. **Kualitas & Verifikasi**:
+   - 46 test suites lulus 100% (417 unit tests), 0 TypeScript error.
 
 ---
 

@@ -2762,6 +2762,53 @@ Sebagai penutup siklus pipeline produksi video, platform **Prompt Gen** memberik
 - Masalah: Panggilan `NextResponse.redirect(new URL(..., req.url))` di dalam kontainer Docker yang berada di balik reverse proxy (Coolify/Traefik) membaca `req.url` sebagai `http://localhost:3000`, menyebabkan peramban diarahkan ke `localhost:3000` (ERR_CONNECTION_REFUSED) setelah autentikasi Google OAuth berhasil.
 - Solusi: Implementasi fungsi helper `getPublicRedirectUrl(path, req)` pada `src/app/api/auth/google-drive/callback/route.ts` yang memprioritaskan origin publik dari `GOOGLE_DRIVE_REDIRECT_URI` atau `NEXTAUTH_URL` atau header `x-forwarded-host`/`x-forwarded-proto`, sehingga redirect selalu diarahkan kembali secara tepat ke domain publik produksi (misal: `https://muatin.id/id/dashboard/settings?gdrive=connected`).
 
+### 54. SCENE PROMPT STUDIO — GOOGLE DRIVE CONTENT PACKAGE UPLOAD ENGINE (2026-10-22)
+
+#### 54.1 Latar Belakang & Kebutuhan Workflow Kreator
+- Memungkinkan kreator mengarsipkan seluruh paket aset konten dari Scene Prompt Studio langsung ke Google Drive pribadi pengguna dengan struktur folder rapi, terisolasi, dan idempoten.
+- Mengatasi masalah pemindahan aset naskah dan caption dari PC ke smartphone untuk publikasi media sosial (TikTok, Instagram, YouTube, Facebook).
+
+#### 54.2 Struktur Hirarki Folder Terorganisir (Idempoten & Non-Duplikasi)
+- Root Folder: `Prompt Gen Videos` (folder induk di Google Drive pengguna).
+- Channel Subfolder: `[Nama Channel / Profil]` (misal: "Horor Nusantara ID").
+- Project Subfolder: `[Judul Video]_[YYYY-MM-DD]` (atau `[FUNNEL] [Judul]_[Tanggal]`).
+- Segment Subfolder (Khusus Funnel Pack):
+  - `01_Short_1_Hook (Top of Funnel - 9:16)`
+  - `02_Short_2_Value (Middle of Funnel - 9:16)`
+  - `03_Long_Convert (Pillar Long-Form - 16:9)`
+- Sifat Idempoten: Pencarian folder berbasis `'parentFolderId' in parents and name = '...' and trashed = false` memastikan upload segmen yang dilakukan di hari berbeda tetap masuk ke folder proyek yang sama tanpa menciptakan folder duplikat.
+
+#### 54.3 Berkas Teks Terpisah per Platform & Naskah (`src/lib/gdrivePackageFormat.ts`)
+- Berkas yang dibuat secara otomatis oleh sistem:
+  1. `youtube_metadata.txt`: Deskripsi SEO-rich + Value Promise + 3-Tier Tags + Hashtags.
+  2. `tiktok_metadata.txt`: Caption ringkas <300 karakter + Predictive Search Bar Keywords + Targeted Hashtags.
+  3. `instagram_metadata.txt`: Hook baris-1 sebelum "...more" + Spacing paragraf bersih + Curated Community Hashtags.
+  4. `facebook_metadata.txt`: Caption narasi ramah komunitas + Pertanyaan pemantik diskusi + Clean Hashtags.
+  5. `naskah_scene_lengkap.txt`: Breakdown linimasa scene, narasi VO, petunjuk akting `[...]`, visual prompt, setting kamera / komponen remotion.
+  6. `thumbnail_prompt.txt`: Konsep visual, overlay text, palet warna, dan prompt Midjourney v6.1 (jika ada data Thumbnail Studio).
+
+#### 54.4 Dual Dropzone Media Lokal dari PC/Laptop
+- Kotak 1 (Dropzone Video): Menerima berkas video hasil render/edit PC (`.mp4`, `.mov`, `.webm`) maks 250 MB.
+- Kotak 2 (Dropzone Thumbnail): Menerima berkas gambar thumbnail hasil desain PC (`.png`, `.jpg`, `.webp`) maks 15 MB.
+
+#### 54.5 Backend Endpoint & Keamanan (`/api/user/google-drive/upload-package`)
+- Autentikasi NextAuth via `getServerSession`.
+- Pengecekan fitur paket langganan fail-closed: `hasFeature(plan.features, "googleDriveUpload")`.
+- Rate limiting: 10 paket unggahan per 60 detik per user.
+- Sanitasi nama folder & nama berkas via `sanitizeFolderName` (membersihkan karakter terlarang Windows / Google Drive `\ / : * ? " < > |`).
+- Pengunggahan streaming Resumable Upload ke Google Drive API v3.
+- Audit Log: `GOOGLE_DRIVE_PACKAGE_UPLOAD_SUCCESS`.
+
+#### 54.6 Antarmuka Pengguna & Hook Klien (`DrivePackageUploadModal.tsx`, `useDrivePackageUpload.ts`)
+- Tombol aksi "☁️ Upload Paket ke Drive" di toolbar studio.
+- Modal interaktif dengan input kustomisasi nama folder, dropdown pemilihan segmen funnel, checklist berkas teks otomatis, dual dropzone media PC, bilah kemajuan (progress bar), serta tautan langsung "↗️ Buka Folder di Google Drive" (`webViewLink`).
+
+#### 54.7 Verifikasi Kualitas
+- `npx tsc --noEmit`: Exit 0 (Zero TypeScript errors)
+- `npx vitest run src/lib/__tests__/gdrivePackageFormat.test.ts`: 6 passed (100% pass rate)
+- `npx vitest run`: 46 test suites passed, 417 tests passed (100% pass rate)
+
+
 
 
 

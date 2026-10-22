@@ -43,6 +43,7 @@ import {
 } from "@/lib/sceneExportFormat";
 import { getUserItem, setUserItem } from "@/lib/clientStorage";
 import VideoTimelineTab from "@/components/video/VideoTimelineTab";
+import { DrivePackageUploadModal } from "@/components/video/DrivePackageUploadModal";
 import { buildTimeline, validateTimeline } from "@/lib/timelineBuilder";
 import type { VideoTimeline } from "@/types/videoTimeline";
 
@@ -329,6 +330,11 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
   const [affiliateRecs, setAffiliateRecs] = useState<AffiliateRecommendation[]>(() => (defaultSource?.raw ? extractAffiliateRecommendations(defaultSource.raw) : []));
   const [detectedRemotionCode, setDetectedRemotionCode] = useState<string | null>(() => (defaultSource?.raw ? extractRemotionCode(defaultSource.raw) : null));
   const [completedChecklist, setCompletedChecklist] = useState<Record<number, boolean>>({});
+  const [drivePackageModalOpen, setDrivePackageModalOpen] = useState(false);
+  const currentChannel = useMemo(
+    () => channels.find((c) => c.id === selectedChannelId) || channels[0],
+    [channels, selectedChannelId]
+  );
 
   const switchFunnelSegment = useCallback((segId: "short1" | "short2" | "long") => {
     if (!funnelPackData) return;
@@ -1497,7 +1503,8 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
 
  {scenes.length > 0 && (
  <>
- <div className="glass-panel p-1.5 rounded-2xl border pg-border flex gap-1.5 overflow-x-auto whitespace-nowrap custom-scrollbar shadow-sm">
+ <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+ <div className="glass-panel p-1.5 rounded-2xl border pg-border flex gap-1.5 overflow-x-auto whitespace-nowrap custom-scrollbar shadow-sm flex-1">
  {(["scenes","thumbnail","seo2026","platform","voiceStudio","htmlBlog","fullVideo"] as const).map(tab => {
  if (tab === "seo2026" && !threeTierSeo) return null;
  if (tab === "htmlBlog" && !htmlBlog) return null;
@@ -1507,6 +1514,19 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
  </button>
  );
  })}
+ </div>
+
+ {planFeatures.googleDriveUpload && (
+ <button
+ type="button"
+ onClick={() => setDrivePackageModalOpen(true)}
+ className="px-4 py-2 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-1.5 shrink-0"
+ title={locale === "en" ? "Upload content package to Google Drive" : "Upload paket konten ke Google Drive"}
+ >
+ <span>☁️</span>
+ <span>{locale === "en" ? "Upload Package to Drive" : "Upload Paket ke Drive"}</span>
+ </button>
+ )}
  </div>
 
  {affiliateRecs.length > 0 && (
@@ -3914,6 +3934,21 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
  </button>
  {saveMsg && <p className="text-xs pg-text-muted">{saveMsg}</p>}
  </div>
+
+ <DrivePackageUploadModal
+ isOpen={drivePackageModalOpen}
+ onClose={() => setDrivePackageModalOpen(false)}
+ locale={locale}
+ channelName={currentChannel?.channelName || "Default Channel"}
+ defaultTitle={draftTitle}
+ scenes={scenes}
+ multiPlatformSeo={multiPlatformSeo}
+ thumbnailData={thumbnailData}
+ isFunnel={!!funnelPackData}
+ funnelPackData={funnelPackData}
+ activeSegmentId={activeFunnelSegment}
+ onSelectSegment={(seg) => switchFunnelSegment(seg)}
+ />
  </>
  )}
  </div>
