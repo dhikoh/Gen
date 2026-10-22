@@ -1083,6 +1083,27 @@ TAG SPESIFIK: [5-8 kata kunci utama]
 TAG UMUM: [3-5 kategori niche luas]
 TAG MAJEMUK (LONG-TAIL): [5-8 frasa pencarian alami]
 DESKRIPSI YOUTUBE (SEO & EMPATI): [Deskripsi YouTube ramah algoritma & manusia]
+
+## KONTEN PLATFORM & METADATA SEO 4 PLATFORM (2026)
+### [PLATFORM: YOUTUBE]
+DESKRIPSI: [800–1.500 karakter. 100–150 karakter pertama WAJIB hook SEO bernilai tinggi. Ramah pembaca & kaya kata kunci alami]
+HASHTAGS: [3–5 hashtag fokus relevan tanpa keyword stuffing]
+TAGS REKOMENDASI: [10–15 kata kunci spesifik, umum, dan long-tail dipisah koma tanpa #, total maks 450 karakter untuk box Tag YouTube Studio]
+
+### [PLATFORM: TIKTOK]
+DESKRIPSI: [150–300 karakter (maksimal 400). 70–100 karakter pertama WAJIB hook memikat & search keywords alami TikTok]
+HASHTAGS: [3–5 hyper-targeted niche & audiens hashtags]
+TAGS REKOMENDASI: [5–8 frasa pencarian prediktif TikTok Search Bar dipisah koma]
+
+### [PLATFORM: INSTAGRAM]
+DESKRIPSI: [200–500 karakter. 125 karakter pertama WAJIB hook penahan scroll sebelum tombol '...more'. Diakhiri CTA save & share]
+HASHTAGS: [5–8 hashtag kurasi niche & komunitas]
+TAGS REKOMENDASI: [5–8 keyword pencarian explore & topik minat dipisah koma]
+
+### [PLATFORM: FACEBOOK]
+DESKRIPSI: [250–500 karakter. Gaya narasi ramah komunitas dengan spasi lega, diakhiri pertanyaan pemantik diskusi aktif di komentar]
+HASHTAGS: [2–4 hashtag bersih & relevan]
+TAGS REKOMENDASI: [5–8 topik minat & grup Facebook dipisah koma]
 `;
   } else {
   if (hasTitleSection) {
@@ -1136,15 +1157,39 @@ ${structural.hookStrategyDirective}`;
   const hasScene    = !videoConfig.selectedSections || videoConfig.selectedSections.some(s => ["HOOK","BODY","CTA"].includes(s));
 
   if (hasCaption || hasHashtag) {
-    formatOutputWajib += `\n## KONTEN PLATFORM\n`;
-    if (hasCaption) {
-      let socialLinksStr = "";
-      if (channel.socialLinks && channel.socialLinks.length > 0) {
-        socialLinksStr = " (Sertakan link berikut: " + channel.socialLinks.map(s => s.url).join(" ") + ")";
-      }
-      formatOutputWajib += `CAPTION: [Teks caption menarik.${socialLinksStr} Sertakan link sosial media dari profil channel jika ada, dalam format RAW URL bukan markdown link.]\n`;
+    let socialLinksStr = "";
+    if (channel.socialLinks && channel.socialLinks.length > 0) {
+      socialLinksStr = " (Sertakan link berikut: " + channel.socialLinks.map(s => s.url).join(" ") + ")";
     }
-    if (hasHashtag) formatOutputWajib += `HASHTAGS: [Kumpulan hashtag optimasi jangkauan viral]\n`;
+
+    formatOutputWajib += `\n## KONTEN PLATFORM & METADATA SEO 4 PLATFORM (2026)\n`;
+    if (hasCaption) {
+      formatOutputWajib += `CAPTION: [Teks caption ringkas umum.${socialLinksStr} Sertakan link sosial media channel jika ada, format RAW URL bukan markdown link.]\n`;
+    }
+    if (hasHashtag) {
+      formatOutputWajib += `HASHTAGS: [Kumpulan hashtag umum optimasi jangkauan viral]\n`;
+    }
+
+    formatOutputWajib += `\n### [PLATFORM: YOUTUBE]
+DESKRIPSI: [800–1.500 karakter. 100–150 karakter pertama WAJIB hook SEO bernilai tinggi sebelum titik potong snippet pencarian. Ramah pembaca & kaya kata kunci alami.${socialLinksStr}]
+HASHTAGS: [3–5 hashtag fokus relevan tanpa keyword stuffing, contoh: #TopikUtama #Niche #Edukasi]
+TAGS REKOMENDASI: [10–15 kata kunci spesifik, umum, dan long-tail dipisah koma tanpa #, total maks 450 karakter untuk box Tag YouTube Studio]
+
+### [PLATFORM: TIKTOK]
+DESKRIPSI: [150–300 karakter (maksimal 400). 70–100 karakter pertama WAJIB hook memikat & mengandung search keywords alami TikTok. Hindari menutupi video di layar HP]
+HASHTAGS: [3–5 hyper-targeted niche & audiens hashtags]
+TAGS REKOMENDASI: [5–8 frasa pencarian prediktif TikTok Search Bar dipisah koma]
+
+### [PLATFORM: INSTAGRAM]
+DESKRIPSI: [200–500 karakter. 125 karakter pertama WAJIB hook penahan scroll sebelum tombol '...more'. Tata dengan spasi baris bersih dan akhiri dengan CTA ajakan save & share]
+HASHTAGS: [5–8 hashtag kurasi niche & komunitas berkualitas]
+TAGS REKOMENDASI: [5–8 keyword pencarian explore & topik minat dipisah koma]
+
+### [PLATFORM: FACEBOOK]
+DESKRIPSI: [250–500 karakter. Gaya narasi ramah komunitas dengan spasi antar-paragraf lega, diakhiri pertanyaan terbuka pemantik diskusi aktif di kolom komentar]
+HASHTAGS: [2–4 hashtag bersih & relevan]
+TAGS REKOMENDASI: [5–8 topik minat & grup Facebook dipisah koma]
+`;
   }
 
   // Patch #104: Unify sceneCount with timingCalc (moved calculation earlier)

@@ -27,8 +27,10 @@ import {
   detectOutputStructure,
   extractSourceAudit,
   parseFunnelPack,
+  extractMultiPlatformSeo,
+  evaluatePlatformSeoStatus,
 } from "@/lib/parsers";
-import type { ThumbnailData, AffiliateRecommendation, Scene, ThreeTierSeoData, BlogPublishingPack } from "@/lib/parsers";
+import type { ThumbnailData, AffiliateRecommendation, Scene, ThreeTierSeoData, BlogPublishingPack, MultiPlatformSeoData, PlatformSeoItem } from "@/lib/parsers";
 import type { FunnelPackData, SourceAuditData } from "@/types/generator";
 import { GEMINI_TTS_VOICES, GEMINI_TTS_MODELS, DEFAULT_TTS_VOICE, DEFAULT_TTS_MODEL, TTS_PITCH_PRESETS, DEFAULT_TTS_PITCH, type TtsPitchPresetId } from "@/lib/ttsVoices";
 import {
@@ -293,6 +295,8 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
   const [hashtags, setHashtags] = useState(() => (defaultSource?.raw ? extractHashtags(defaultSource.raw) : ""));
   const [thumbnailData, setThumbnailData] = useState<ThumbnailData | null>(() => (defaultSource?.raw ? extractThumbnailData(defaultSource.raw) : null));
   const [threeTierSeo, setThreeTierSeo] = useState<ThreeTierSeoData | null>(() => (defaultSource?.raw ? extractThreeTierSeo(defaultSource.raw) : null));
+  const [multiPlatformSeo, setMultiPlatformSeo] = useState<MultiPlatformSeoData | null>(() => (defaultSource?.raw ? extractMultiPlatformSeo(defaultSource.raw) : null));
+  const [selectedPlatformTab, setSelectedPlatformTab] = useState<"youtube" | "tiktok" | "instagram" | "facebook">("youtube");
   const [parsedTitles, setParsedTitles] = useState<string[]>(() => (defaultSource?.raw ? extractTitles(defaultSource.raw) : []));
   const [draftTitle, setDraftTitle] = useState(() => {
     if (initialDraft?.title) return initialDraft.title;
@@ -339,6 +343,11 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
       setThumbnailData(target.thumbnailData);
     } else if (segId === "long" && funnelPackData.segments.long.thumbnailData) {
       setThumbnailData(funnelPackData.segments.long.thumbnailData);
+    }
+    if (target.multiPlatformSeo) {
+      setMultiPlatformSeo(target.multiPlatformSeo);
+    } else if (funnelPackData.multiPlatformSeo) {
+      setMultiPlatformSeo(funnelPackData.multiPlatformSeo);
     }
   }, [funnelPackData]);
 
@@ -493,6 +502,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
           setHashtags(fp.segments.short1.hashtags || extractHashtags(raw));
           setThumbnailData(fp.segments.long.thumbnailData || extractThumbnailData(raw));
           setThreeTierSeo(fp.threeTierSeo || extractThreeTierSeo(raw));
+          setMultiPlatformSeo(fp.segments.short1.multiPlatformSeo || fp.multiPlatformSeo || extractMultiPlatformSeo(raw));
         } else {
           setFunnelPackData(null);
           const parsed = parseScenes(raw, draftSpeechRate);
@@ -502,6 +512,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
           setHashtags(extractHashtags(raw));
           setThumbnailData(extractThumbnailData(raw));
           setThreeTierSeo(extractThreeTierSeo(raw));
+          setMultiPlatformSeo(extractMultiPlatformSeo(raw));
         }
         const titles = extractTitles(raw);
         setParsedTitles(titles);
@@ -928,6 +939,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
               setHashtags(extractHashtags(p.rawText));
               setThumbnailData(extractThumbnailData(p.rawText));
               setThreeTierSeo(extractThreeTierSeo(p.rawText));
+              setMultiPlatformSeo(extractMultiPlatformSeo(p.rawText));
               const titles = extractTitles(p.rawText);
               setParsedTitles(titles);
               const chosen = extractChosenTitle(p.rawText) || titles[0] || "";
@@ -972,6 +984,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
             setHashtags(extractHashtags(p.rawText));
             setThumbnailData(extractThumbnailData(p.rawText));
             setThreeTierSeo(extractThreeTierSeo(p.rawText));
+            setMultiPlatformSeo(extractMultiPlatformSeo(p.rawText));
             const titles = extractTitles(p.rawText);
             setParsedTitles(titles);
             const chosen = extractChosenTitle(p.rawText) || titles[0] || "";
@@ -1095,6 +1108,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
       setHashtags(fp.segments.short1.hashtags || extractHashtags(raw));
       setThumbnailData(fp.segments.long.thumbnailData || extractThumbnailData(raw));
       setThreeTierSeo(fp.threeTierSeo || extractThreeTierSeo(raw));
+      setMultiPlatformSeo(fp.segments.short1.multiPlatformSeo || fp.multiPlatformSeo || extractMultiPlatformSeo(raw));
     } else {
       setFunnelPackData(null);
       const parsed = Array.isArray(item.parsedResult) && (item.parsedResult as unknown[]).length > 0
@@ -1107,6 +1121,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
       setHashtags(extractHashtags(raw));
       setThumbnailData(extractThumbnailData(raw));
       setThreeTierSeo(extractThreeTierSeo(raw));
+      setMultiPlatformSeo(extractMultiPlatformSeo(raw));
     }
     const titles = extractTitles(raw);
     setParsedTitles(titles);
@@ -1136,6 +1151,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
       setHashtags(fp.segments.short1.hashtags || extractHashtags(rawText));
       setThumbnailData(fp.segments.long.thumbnailData || extractThumbnailData(rawText));
       setThreeTierSeo(fp.threeTierSeo || extractThreeTierSeo(rawText));
+      setMultiPlatformSeo(fp.segments.short1.multiPlatformSeo || fp.multiPlatformSeo || extractMultiPlatformSeo(rawText));
       const titles = extractTitles(rawText);
       setParsedTitles(titles);
       const chosen = extractChosenTitle(rawText) || titles[0] || "";
@@ -1179,6 +1195,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
     setHashtags(extractHashtags(rawText));
     setThumbnailData(extractThumbnailData(rawText));
     setThreeTierSeo(extractThreeTierSeo(rawText));
+    setMultiPlatformSeo(extractMultiPlatformSeo(rawText));
     const titles = extractTitles(rawText);
     setParsedTitles(titles);
     const chosen = extractChosenTitle(rawText) || titles[0] || "";
@@ -2961,33 +2978,310 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
     </div>
   )}
 
- {/* Platform Content */}
- {activeTab === "platform" && (
- <div className="space-y-6">
- <div className="glass-panel rounded-xl p-6 space-y-4">
- <h2 className="font-bold pg-text-heading">📱 {t("platformContent")}</h2>
- {caption && (
- <div>
- <div className="flex items-center justify-between mb-1">
- <span className="text-xs font-semibold pg-text-muted">Caption</span>
- <button onClick={() => copy("cap", caption)} className="text-xs text-blue-500 hover:underline">{copiedId === "cap" ? "✓ " + t("copied") : t("copy")}</button>
- </div>
- <p className="text-sm pg-text-sub pg-surface-dim rounded p-3 whitespace-pre-wrap">{caption}</p>
- </div>
- )}
- {hashtags && (
- <div>
- <div className="flex items-center justify-between mb-1">
- <span className="text-xs font-semibold pg-text-muted">Hashtags</span>
- <button onClick={() => copy("htg", hashtags)} className="text-xs text-blue-500 hover:underline">{copiedId === "htg" ? "✓ " + t("copied") : t("copy")}</button>
- </div>
- <p className="text-sm pg-text-sub pg-surface-dim rounded p-3">{hashtags}</p>
- </div>
- )}
- </div>
+ {/* Platform Content & Multi-Platform SEO 2026 */}
+ {activeTab === "platform" && (() => {
+    const platformList: Array<{
+      key: "youtube" | "tiktok" | "instagram" | "facebook";
+      label: string;
+      icon: string;
+      limitDesc: string;
+    }> = [
+      {
+        key: "youtube",
+        label: t("platformYoutube"),
+        icon: "🔴",
+        limitDesc: locale === "id"
+          ? "Batas: 5.000 kar. | Optimal: 800–1.500 kar. (Hook 150 kar. pertama krusial)"
+          : "Limit: 5,000 chars | Optimal: 800–1,500 chars (First 150 chars crucial for snippet)",
+      },
+      {
+        key: "tiktok",
+        label: t("platformTiktok"),
+        icon: "⚫",
+        limitDesc: locale === "id"
+          ? "Batas: 2.200 kar. | Optimal: 150–300 kar. (Cut-off 70–100 kar. di layar HP)"
+          : "Limit: 2,200 chars | Optimal: 150–300 chars (Screen cut-off at 70–100 chars)",
+      },
+      {
+        key: "instagram",
+        label: t("platformInstagram"),
+        icon: "🟣",
+        limitDesc: locale === "id"
+          ? "Batas: 2.200 kar. | Optimal: 200–500 kar. (Hook WAJIB tuntas sebelum 125 kar.)"
+          : "Limit: 2,200 chars | Optimal: 200–500 chars (Hook must complete before 125 chars)",
+      },
+      {
+        key: "facebook",
+        label: t("platformFacebook"),
+        icon: "🔵",
+        limitDesc: locale === "id"
+          ? "Batas: 2.000 kar. (Reels) | Optimal: 250–500 kar. (Diskusi ramah komunitas)"
+          : "Limit: 2,000 chars (Reels) | Optimal: 250–500 chars (Community discussion)",
+      },
+    ];
 
- </div>
- )}
+    const activeItem: PlatformSeoItem | undefined = multiPlatformSeo?.[selectedPlatformTab];
+    const hasAnyContent = Boolean(
+      activeItem?.description ||
+      activeItem?.hashtags ||
+      activeItem?.tags ||
+      caption ||
+      hashtags
+    );
+
+    const effectiveItem: PlatformSeoItem = activeItem || {
+      platform: selectedPlatformTab,
+      description: caption || "",
+      hashtags: hashtags || "",
+      tags: "",
+      charCount: {
+        description: (caption || "").length,
+        hashtags: (hashtags || "").length,
+        tags: 0,
+      },
+      status: evaluatePlatformSeoStatus(selectedPlatformTab, (caption || "").length, 0),
+    };
+
+    const currentMeta = platformList.find((p) => p.key === selectedPlatformTab) || platformList[0];
+
+    const handleCopyAllPlatform = () => {
+      const parts: string[] = [];
+      if (effectiveItem.description) parts.push(effectiveItem.description);
+      if (effectiveItem.hashtags) parts.push(effectiveItem.hashtags);
+      const combined = parts.join("\n\n");
+      if (!combined) return;
+      copy(`plat-all-${selectedPlatformTab}`, combined);
+      toast.success(t("allCopiedSuccess"));
+    };
+
+    return (
+      <div className="space-y-6">
+        {/* Header & Subtitle */}
+        <div className="glass-panel rounded-2xl p-6 border pg-border shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-bold pg-text-heading flex items-center gap-2">
+                <span>📱</span> {t("platformContent")}
+              </h2>
+              <p className="text-xs pg-text-muted mt-1 max-w-2xl leading-relaxed">
+                {t("platformSeoSubtitle")}
+              </p>
+            </div>
+
+            {hasAnyContent && (
+              <button
+                type="button"
+                onClick={handleCopyAllPlatform}
+                className="inline-flex items-center gap-2 text-xs font-semibold px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition-all active:scale-95 shrink-0"
+              >
+                <span>{copiedId === `plat-all-${selectedPlatformTab}` ? "✓" : "🚀"}</span>
+                <span>
+                  {copiedId === `plat-all-${selectedPlatformTab}`
+                    ? t("copied")
+                    : `${t("copyAllPlatform")} (${currentMeta.label})`}
+                </span>
+              </button>
+            )}
+          </div>
+
+          {/* Sub-Tab Platform Selector */}
+          <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar pt-2 pb-1 border-t pg-border">
+            {platformList.map((p) => {
+              const isSelected = selectedPlatformTab === p.key;
+              const hasData = Boolean(
+                multiPlatformSeo?.[p.key]?.description ||
+                (caption && p.key === "youtube")
+              );
+
+              return (
+                <button
+                  key={p.key}
+                  type="button"
+                  onClick={() => setSelectedPlatformTab(p.key)}
+                  className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 border ${
+                    isSelected
+                      ? "bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-500/20"
+                      : "pg-surface-dim hover:pg-surface text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800"
+                  }`}
+                >
+                  <span>{p.icon}</span>
+                  <span>{p.label}</span>
+                  {hasData && (
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        isSelected ? "bg-white" : "bg-emerald-500"
+                      }`}
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {!hasAnyContent ? (
+          <div className="glass-panel rounded-2xl p-8 border pg-border text-center space-y-3">
+            <span className="text-3xl">📭</span>
+            <h3 className="text-sm font-semibold pg-text-heading">
+              {locale === "id" ? "Belum ada konten platform" : "No platform content available"}
+            </h3>
+            <p className="text-xs pg-text-muted max-w-sm mx-auto">
+              {locale === "id"
+                ? "Generate atau parse naskah dengan bagian KONTEN PLATFORM aktif untuk melihat deskripsi, hashtag, dan tag SEO."
+                : "Generate or parse a script with PLATFORM CONTENT enabled to view tailored descriptions, hashtags, and SEO tags."}
+            </p>
+          </div>
+        ) : (
+          <div className="glass-panel rounded-2xl p-6 border pg-border shadow-sm space-y-6">
+            {/* Platform Status & Character Health Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/40 border pg-border">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold pg-text-heading flex items-center gap-1.5">
+                    <span>{currentMeta.icon}</span> {currentMeta.label} SEO Hub
+                  </span>
+                  {effectiveItem.status.descriptionIdeal ? (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                      {t("charCountIdeal")}
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
+                      {t("charCountWarning")}
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] pg-text-muted">
+                  {currentMeta.limitDesc}
+                </p>
+              </div>
+
+              <div className="text-right">
+                <span className="text-xs font-mono font-bold pg-text-heading">
+                  {effectiveItem.charCount.description}
+                </span>
+                <span className="text-[11px] pg-text-muted font-mono ml-1">
+                  {locale === "id" ? "Karakter Deskripsi" : "Desc Characters"}
+                </span>
+              </div>
+            </div>
+
+            {/* Warnings if any */}
+            {effectiveItem.status.descriptionWarning && (
+              <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2">
+                <span className="shrink-0 mt-0.5">⚠️</span>
+                <span>{effectiveItem.status.descriptionWarning}</span>
+              </div>
+            )}
+            {effectiveItem.status.tagsWarning && (
+              <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-xs text-red-800 dark:text-red-300 flex items-start gap-2">
+                <span className="shrink-0 mt-0.5">🚨</span>
+                <span>{effectiveItem.status.tagsWarning}</span>
+              </div>
+            )}
+
+            {/* Description Block */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold pg-text-heading flex items-center gap-1.5">
+                  <span>📝</span> {t("platformDescTitle")}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => copy(`plat-desc-${selectedPlatformTab}`, effectiveItem.description)}
+                  className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  {copiedId === `plat-desc-${selectedPlatformTab}` ? `✓ ${t("copied")}` : t("copyDescription")}
+                </button>
+              </div>
+              <p className="text-sm pg-text-sub pg-surface-dim rounded-xl p-4 whitespace-pre-wrap leading-relaxed border pg-border">
+                {effectiveItem.description || (
+                  <span className="text-slate-400 italic">
+                    {locale === "id" ? "Deskripsi tidak tersedia." : "Description not available."}
+                  </span>
+                )}
+              </p>
+            </div>
+
+            {/* Hashtags Block */}
+            {effectiveItem.hashtags && (
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold pg-text-heading flex items-center gap-1.5">
+                    <span>#️⃣</span> {t("platformHashtagsTitle")}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => copy(`plat-hash-${selectedPlatformTab}`, effectiveItem.hashtags)}
+                    className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    {copiedId === `plat-hash-${selectedPlatformTab}` ? `✓ ${t("copied")}` : t("copyHashtags")}
+                  </button>
+                </div>
+                <div className="pg-surface-dim rounded-xl p-3.5 border pg-border space-y-2.5">
+                  <p className="text-xs font-mono pg-text-sub">{effectiveItem.hashtags}</p>
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {effectiveItem.hashtags
+                      .split(/\s+/)
+                      .filter((h) => h.startsWith("#"))
+                      .map((tag, idx) => (
+                        <span
+                          key={idx}
+                          className="inline-block text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Tags / Kata Kunci Rekomendasi Block */}
+            {effectiveItem.tags && (
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold pg-text-heading flex items-center gap-1.5">
+                      <span>🎯</span> {t("platformTagsTitle")}
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                      {effectiveItem.charCount.tags} / 500 kar.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const formatted = formatAsYouTubeTags(effectiveItem.tags) || effectiveItem.tags;
+                      copy(`plat-tags-${selectedPlatformTab}`, formatted);
+                    }}
+                    className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    {copiedId === `plat-tags-${selectedPlatformTab}` ? `✓ ${t("copied")}` : t("copyTags")}
+                  </button>
+                </div>
+                <div className="pg-surface-dim rounded-xl p-3.5 border pg-border space-y-2">
+                  <div className="flex flex-wrap gap-1.5">
+                    {effectiveItem.tags
+                      .split(/[,;\n]+/)
+                      .map((t) => t.trim())
+                      .filter(Boolean)
+                      .map((tag, idx) => (
+                        <span
+                          key={idx}
+                          className="inline-block text-[11px] font-medium px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  })()}
 
  {/* ── Voice Studio Tab ── */}
  {activeTab === "voiceStudio" && (

@@ -24,6 +24,10 @@
 #    - Fitur 3-in-1 Funnel Bundle (2 Short + 1 Long Pillar), Smart Preset Inheritance Engine.
 #    - Fitur Link Content Audit & Repurposing (Anti-Halusinasi, Inversi Sudut Pandang).
 #    - Multi-Segment Parse Engine (ID 101+, 201+, 301+), Segment Switcher di Scene Studio & Drafts.
+# 6. Periode Optimasi SEO Multi-Platform 2026 (2026-10-22): [Bagian 53 / 4-Platform SEO Engine]
+#    - Fitur Metadata SEO 4 Platform: YouTube, TikTok, Instagram, Facebook.
+#    - Standar Batas Karakter & Truncation Thresholds (Sweet-spot SEO).
+#    - Multi-Platform SEO Parser & Interactive Scene Studio Platform Hub.
 # =====================================================================
 
 0. PERAN, MANDAT, DAN ATURAN KERJA AGENT
@@ -2700,6 +2704,60 @@ Sebagai penutup siklus pipeline produksi video, platform **Prompt Gen** memberik
 - `npx tsc --noEmit`: Exit 0 (Zero TypeScript errors)
 - `npx vitest run tests/funnelPackParser.test.ts`: 4 passed (100% pass rate)
 - `npx vitest run`: 44 test suites passed, 405 tests passed (100% pass rate)
+
+### 53. 4-PLATFORM SEO & METADATA OPTIMIZATION ENGINE (2026-10-22)
+
+#### 53.1 Latar Belakang & Kebutuhan Kreator Multi-Platform
+- Mengatasi keterbatasan caption tunggal generik. Di era 2026, setiap platform (YouTube, TikTok, Instagram, Facebook) memiliki algoritma pencarian, batasan tampilan layar, dan perilaku audiens yang berbeda drastis.
+- Mengintegrasikan matriks batas karakter teknis (*hard limit*) dan batas pemotongan teks (*truncation cut-off threshold*) langsung ke dalam prompt AI, parse engine, dan antarmuka pengguna agar naskah siap posting tanpa terpotong secara canggung.
+
+#### 53.2 Matriks Karakter & Karakteristik Platform 2026
+1. YouTube:
+   - Hard limit deskripsi 5.000 karakter, tags Studio 500 karakter total, hashtags maks 15.
+   - Sweet-spot: Deskripsi 800–1.500 karakter dengan 100–150 karakter awal sebagai hook snippet, 3–5 hashtag fokus, 10–15 tag 3-tier.
+2. TikTok:
+   - Hard limit caption 2.200 karakter.
+   - Sweet-spot: Caption 150–300 karakter (maks 400). 70–100 karakter awal sebagai hook pencarian agar tidak menutupi video di layar HP vertikal 9:16. 3–5 hyper-targeted hashtags dan frasa pencarian prediktif TikTok Search Bar.
+3. Instagram (Reels & Feed):
+   - Hard limit caption 2.200 karakter, hashtags maks 30.
+   - Sweet-spot: Caption 200–500 karakter. Hook baris 1 WAJIB selesai sebelum batas cut-off 125 karakter (sebelum tombol "...more"). 5–8 hashtag terkurasi niche & komunitas (tanpa hashtag spam).
+4. Facebook (Reels & Video):
+   - Hard limit status 63.206 karakter, Reels 2.000 karakter.
+   - Sweet-spot: Caption 250–500 karakter dengan spasi antar-paragraf lega, 2–4 hashtag bersih, dan pertanyaan terbuka pemantik diskusi di kolom komentar (*Meaningful Social Interactions*).
+
+#### 53.3 Kontrak Tipe Data (`src/types/generator.ts` & `src/lib/parsers.ts`)
+- `PlatformSeoItem`: Metadata spesifik platform memuat description, hashtags, tags, charCount (description, hashtags, tags), dan status evaluasi (descriptionIdeal, descriptionWarning, tagsWarning).
+- `MultiPlatformSeoData`: Pemetaan objek berstruktur untuk `youtube`, `tiktok`, `instagram`, dan `facebook`.
+- Integrasi ke `FunnelSegment` dan `FunnelPackData`.
+
+#### 53.4 Prompt Generator 2026 (`src/lib/promptGenerator.ts`)
+- Menghasilkan format output standar:
+  `## KONTEN PLATFORM & METADATA SEO 4 PLATFORM (2026)`
+  - `### [PLATFORM: YOUTUBE]`: Deskripsi SEO-rich + Value Promise, 3-5 hashtag, 10-15 tag YouTube Studio (<450 karakter).
+  - `### [PLATFORM: TIKTOK]`: Caption 150-300 karakter + Search Keywords, 3-5 targeted hashtags, kata kunci pencarian TikTok.
+  - `### [PLATFORM: INSTAGRAM]`: Hook <125 karakter + spacing rapi + CTA save/share, 5-8 hashtag kurasi, kata kunci explore.
+  - `### [PLATFORM: FACEBOOK]`: Narasi ramah komunitas + pertanyaan pemantik diskusi, 2-4 hashtag, topik minat grup.
+- Diterapkan pada Single Video Mode dan Funnel Bundle Mode.
+
+#### 53.5 Parse Engine Resilien & Boundary Extraction (`src/lib/parsers.ts`)
+- `evaluatePlatformSeoStatus`: Menghitung keselarasan panjang karakter dan memberikan peringatan otomatis jika melanggar batas pemotongan layar atau batas teknis.
+- `extractMultiPlatformSeo`: Memindai blok 4 platform menggunakan boundary-based extraction yang kebal terhadap variasi Markdown bold, huruf kecil, dan penomoran.
+- Backward Compatibility: Jika naskah lama tidak memiliki pemisah 4 platform, parser secara otomatis memetakan `caption` dan `hashtags` umum ke dalam profil platform sehingga sistem 100% aman tanpa crash.
+
+#### 53.6 Scene Prompt Studio UI (`ScenePromptStudioClient.tsx`)
+- Sub-Tab Platform Selector Pills: 🔴 YouTube, ⚫ TikTok, 🟣 Instagram, 🔵 Facebook dengan indikator ketersediaan data.
+- Health Bar & Character Indicator: Menampilkan jumlah karakter realtime, status `✨ Ideal` atau `⚠️ Perhatian`, serta ringkasan batas karakter per platform.
+- Card Tampilan Terstruktur:
+  - Deskripsi Card + Tombol 1-klik Salin Deskripsi.
+  - Hashtags Card + Visualisasi Pill Badges + Tombol Salin Hashtags.
+  - Tags Rekomendasi Card + Pill Badges Kata Kunci + Tombol Salin Comma-Separated.
+  - Tombol Cepat "🚀 Salin Semua Siap Posting (Platform)": Menyalin seluruh aset naskah siap tempel ke platform tujuan.
+
+#### 53.7 Verifikasi Kualitas
+- `npx tsc --noEmit`: Exit 0 (Zero TypeScript errors)
+- `npx vitest run tests/multiPlatformSeoParser.test.ts`: 6 passed (100% pass rate)
+- `npx vitest run`: 45 test suites passed, 411 tests passed (100% pass rate)
+
 
 
 

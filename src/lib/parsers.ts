@@ -1014,7 +1014,7 @@ export function parseScenes(text: string, speechRateSec: number = 0.35, idOffset
       const sceneStartOffset = charOffset;
       charOffset += content.length;
 
-      const stop = /(?:^|\r?\n)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:TOTAL\s*DURASI|TOTAL|RINGKASAN|THUMBNAIL|ARTIKEL|HASHTAG|CAPTION|JUDUL\s*TERPILIH|HTML\s*BLOG|REKOMENDASI|METADATA\s*SEO|KODE\s*REMOTION|REMOTION\s*CODE)/i;
+      const stop = /(?:^|\r?\n)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:TOTAL\s*DURASI|TOTAL|RINGKASAN|THUMBNAIL|ARTIKEL|HASHTAG|CAPTION|JUDUL\s*TERPILIH|HTML\s*BLOG|REKOMENDASI|METADATA\s*SEO|KONTEN\s*PLATFORM|PLATFORM|KODE\s*REMOTION|REMOTION\s*CODE)/i;
       const m = content.match(stop);
       const c = m ? content.slice(0, m.index) : content;
 
@@ -1272,6 +1272,252 @@ export function buildCombinedYouTubeTags(
   return result.join(", ");
 }
 
+// ── Multi-Platform SEO & Metadata (YouTube, TikTok, Instagram, Facebook 2026) ──
+
+export interface PlatformSeoItem {
+  platform: "youtube" | "tiktok" | "instagram" | "facebook";
+  description: string;
+  hashtags: string;
+  tags: string;
+  charCount: {
+    description: number;
+    hashtags: number;
+    tags: number;
+  };
+  status: {
+    descriptionIdeal: boolean;
+    descriptionWarning?: string;
+    tagsWarning?: string;
+  };
+}
+
+export interface MultiPlatformSeoData {
+  youtube?: PlatformSeoItem;
+  tiktok?: PlatformSeoItem;
+  instagram?: PlatformSeoItem;
+  facebook?: PlatformSeoItem;
+}
+
+/**
+ * Menghitung keselarasan batasan karakter teknis & sweet-spot SEO per platform.
+ */
+export function evaluatePlatformSeoStatus(
+  platform: "youtube" | "tiktok" | "instagram" | "facebook",
+  descLen: number,
+  tagsLen: number
+): { descriptionIdeal: boolean; descriptionWarning?: string; tagsWarning?: string } {
+  let descriptionIdeal = false;
+  let descriptionWarning: string | undefined;
+  let tagsWarning: string | undefined;
+
+  switch (platform) {
+    case "youtube":
+      descriptionIdeal = descLen >= 150 && descLen <= 2500;
+      if (descLen > 5000) {
+        descriptionWarning = "Melebihi batas maksimal 5.000 karakter YouTube";
+      } else if (descLen > 0 && descLen < 150) {
+        descriptionWarning = "Deskripsi relatif pendek untuk optimasi SEO YouTube (rekomendasi: 800–1.500 karakter)";
+      }
+      if (tagsLen > 500) {
+        tagsWarning = "Total tag melebihi batas 500 karakter YouTube Studio";
+      }
+      break;
+
+    case "tiktok":
+      descriptionIdeal = descLen >= 70 && descLen <= 350;
+      if (descLen > 2200) {
+        descriptionWarning = "Melebihi batas maksimal TikTok";
+      } else if (descLen > 350) {
+        descriptionWarning = "Caption panjang berpotensi menutupi video di layar HP (rekomendasi: 150–300 karakter)";
+      }
+      break;
+
+    case "instagram":
+      descriptionIdeal = descLen >= 100 && descLen <= 500;
+      if (descLen > 2200) {
+        descriptionWarning = "Melebihi batas maksimal 2.200 karakter Instagram";
+      } else if (descLen > 500) {
+        descriptionWarning = "Caption panjang, pastikan hook utama tuntas sebelum titik potong 125 karakter (...more)";
+      }
+      break;
+
+    case "facebook":
+      descriptionIdeal = descLen >= 150 && descLen <= 600;
+      if (descLen > 2000) {
+        descriptionWarning = "Caption relatif panjang untuk format video/Reels Facebook";
+      }
+      break;
+  }
+
+  return { descriptionIdeal, descriptionWarning, tagsWarning };
+}
+
+/**
+ * Ekstrak metadata SEO & Konten khusus 4 Platform (YouTube, TikTok, Instagram, Facebook).
+ * Mendukung variasi sintaks, backward compatibility untuk naskah format lama,
+ * dan kalkulasi otomatis jumlah karakter beserta evaluasi sweet-spot SEO.
+ */
+export function extractMultiPlatformSeo(text: string): MultiPlatformSeoData | null {
+  if (!text || typeof text !== "string") return null;
+
+  const platforms: Array<{
+    key: "youtube" | "tiktok" | "instagram" | "facebook";
+    pattern: RegExp;
+  }> = [
+    {
+      key: "youtube",
+      pattern: /(?:^|\r?\n)(?:#{1,6}\s*|\*{1,3}\s*|={2,4}\s*)*(?:\[?(?:PLATFORM\s*[:\-]\s*)?(?:1[\.\-]?\s*)?YOUTUBE(?:(?:\s*SHORTS)?(?:\s*SEO)?(?:(?:\s*2026)?)?)\]?)(?::\s*)?(?:\r?\n|$)/i,
+    },
+    {
+      key: "tiktok",
+      pattern: /(?:^|\r?\n)(?:#{1,6}\s*|\*{1,3}\s*|={2,4}\s*)*(?:\[?(?:PLATFORM\s*[:\-]\s*)?(?:2[\.\-]?\s*)?TIKTOK(?:(?:\s*SEO)?(?:(?:\s*2026)?)?)\]?)(?::\s*)?(?:\r?\n|$)/i,
+    },
+    {
+      key: "instagram",
+      pattern: /(?:^|\r?\n)(?:#{1,6}\s*|\*{1,3}\s*|={2,4}\s*)*(?:\[?(?:PLATFORM\s*[:\-]\s*)?(?:3[\.\-]?\s*)?(?:INSTAGRAM|IG)(?:(?:\s*REELS)?(?:\s*SEO)?(?:(?:\s*2026)?)?)\]?)(?::\s*)?(?:\r?\n|$)/i,
+    },
+    {
+      key: "facebook",
+      pattern: /(?:^|\r?\n)(?:#{1,6}\s*|\*{1,3}\s*|={2,4}\s*)*(?:\[?(?:PLATFORM\s*[:\-]\s*)?(?:4[\.\-]?\s*)?(?:FACEBOOK|FB)(?:(?:\s*REELS)?(?:\s*SEO)?(?:(?:\s*2026)?)?)\]?)(?::\s*)?(?:\r?\n|$)/i,
+    },
+  ];
+
+  const matchedPositions: Array<{
+    key: "youtube" | "tiktok" | "instagram" | "facebook";
+    index: number;
+    matchLength: number;
+  }> = [];
+
+  for (const p of platforms) {
+    const match = p.pattern.exec(text);
+    if (match && match.index !== undefined) {
+      matchedPositions.push({
+        key: p.key,
+        index: match.index,
+        matchLength: match[0].length,
+      });
+    }
+  }
+
+  const result: MultiPlatformSeoData = {};
+
+  if (matchedPositions.length > 0) {
+    matchedPositions.sort((a, b) => a.index - b.index);
+
+    for (let i = 0; i < matchedPositions.length; i++) {
+      const cur = matchedPositions[i];
+      const startContent = cur.index + cur.matchLength;
+      let endContent = text.length;
+
+      if (i + 1 < matchedPositions.length) {
+        endContent = matchedPositions[i + 1].index;
+      } else {
+        const nextHeaderMatch = text.slice(startContent).search(/(?:\r?\n)(?:#{1,6}\s*|\*{2,3}\s*)*(?:THUMBNAIL|SCENE|ADEGAN|SEGMENT|CHECKLIST|HTML\s*BLOG|REKOMENDASI|KODE\s*REMOTION)/i);
+        if (nextHeaderMatch !== -1) {
+          endContent = startContent + nextHeaderMatch;
+        }
+      }
+
+      const blockText = text.substring(startContent, endContent).trim();
+
+      const descPattern = /(?:^|\r?\n)\s*(?:\*\*)?(?:DESKRIPSI|CAPTION|STATUS)(?:\s+(?:YOUTUBE|TIKTOK|INSTAGRAM|FACEBOOK|STATUS))?(?:\s*\([^)]*\))?(?::\s*\*\*|\*\*\s*:|:)\s*/i;
+      const hashPattern = /(?:^|\r?\n)\s*(?:\*\*)?(?:HASHTAGS?)(?:\s+(?:YOUTUBE|TIKTOK|INSTAGRAM|FACEBOOK))?(?:\s*\([^)]*\))?(?::\s*\*\*|\*\*\s*:|:)\s*/i;
+      const tagsPattern = /(?:^|\r?\n)\s*(?:\*\*)?(?:TAGS?[^\n:]*|TAG\s*REKOMENDASI|KATA\s*KUNCI[^\n:]*|REKOMENDASI\s*(?:KEYWORD|KATA\s*KUNCI)[^\n:]*|TOPIK[^\n:]*)(?:\s*\([^)]*\))?(?::\s*\*\*|\*\*\s*:|:)\s*/i;
+      const allFieldPatterns = [descPattern, hashPattern, tagsPattern];
+
+      const extractField = (pattern: RegExp) => {
+        const m = pattern.exec(blockText);
+        if (!m || m.index === undefined) return "";
+        const start = m.index + m[0].length;
+        let end = blockText.length;
+        for (const p of allFieldPatterns) {
+          if (p === pattern) continue;
+          const other = p.exec(blockText);
+          if (other && other.index !== undefined && other.index > m.index) {
+            if (other.index < end) {
+              end = other.index;
+            }
+          }
+        }
+        return cleanMarkdownLinks(cleanParsedValue(blockText.substring(start, end)));
+      };
+
+      const description = extractField(descPattern);
+      const hashtags = extractField(hashPattern);
+      const tags = extractField(tagsPattern);
+
+      const charCount = {
+        description: description.length,
+        hashtags: hashtags.length,
+        tags: tags.length,
+      };
+
+      const status = evaluatePlatformSeoStatus(cur.key, charCount.description, charCount.tags);
+
+      result[cur.key] = {
+        platform: cur.key,
+        description,
+        hashtags,
+        tags,
+        charCount,
+        status,
+      };
+    }
+  }
+
+  // Graceful fallback: If no platform sections were found, check if legacy caption/hashtags exist
+  const legacyCaption = extractCaption(text);
+  const legacyHashtags = extractHashtags(text);
+  const legacySeo = extractThreeTierSeo(text);
+
+  if (Object.keys(result).length === 0) {
+    if (legacyCaption || legacyHashtags || legacySeo) {
+      const combinedLegacyTags = legacySeo ? [legacySeo.tagSpesifik, legacySeo.tagUmum, legacySeo.tagMajemuk].filter(Boolean).join(", ") : "";
+      const ytDesc = legacySeo?.deskripsi || legacyCaption;
+      const ytTags = combinedLegacyTags;
+      const ytHashtags = legacyHashtags;
+
+      const ytCharCount = {
+        description: ytDesc.length,
+        hashtags: ytHashtags.length,
+        tags: ytTags.length,
+      };
+
+      result.youtube = {
+        platform: "youtube",
+        description: ytDesc,
+        hashtags: ytHashtags,
+        tags: ytTags,
+        charCount: ytCharCount,
+        status: evaluatePlatformSeoStatus("youtube", ytCharCount.description, ytCharCount.tags),
+      };
+
+      // Also provide fallback for other platforms using legacy caption & hashtags
+      if (legacyCaption || legacyHashtags) {
+        for (const p of ["tiktok", "instagram", "facebook"] as const) {
+          const charCount = {
+            description: legacyCaption.length,
+            hashtags: legacyHashtags.length,
+            tags: 0,
+          };
+          result[p] = {
+            platform: p,
+            description: legacyCaption,
+            hashtags: legacyHashtags,
+            tags: "",
+            charCount,
+            status: evaluatePlatformSeoStatus(p, charCount.description, charCount.tags),
+          };
+        }
+      }
+    } else {
+      return null;
+    }
+  }
+
+  return result;
+}
+
 /**
  * Ekstrak blok kode TypeScript/TSX Remotion dari teks naskah jika ada.
  * Mendeteksi blok ```tsx atau ```typescript yang memuat import dari 'remotion'
@@ -1461,6 +1707,12 @@ export function parseFunnelPack(text: string, speechRateSec: number = 0.35): Fun
   const globalHtmlBlog = extractHtmlBlog(text);
   const globalBlogPack = extractBlogPublishingPack(text);
 
+  // Multi-Platform SEO 2026
+  const s1MultiPlatform = extractMultiPlatformSeo(s1Text);
+  const s2MultiPlatform = extractMultiPlatformSeo(s2Text);
+  const longMultiPlatform = extractMultiPlatformSeo(longText);
+  const globalMultiPlatform = extractMultiPlatformSeo(text) || longMultiPlatform || s1MultiPlatform || null;
+
   return {
     isFunnel: true,
     sourceAudit,
@@ -1475,6 +1727,7 @@ export function parseFunnelPack(text: string, speechRateSec: number = 0.35): Fun
         caption: s1Caption,
         hashtags: s1Hashtags,
         thumbnailData: s1Thumbnail,
+        multiPlatformSeo: s1MultiPlatform || globalMultiPlatform || null,
       },
       short2: {
         id: "short2",
@@ -1486,6 +1739,7 @@ export function parseFunnelPack(text: string, speechRateSec: number = 0.35): Fun
         caption: s2Caption,
         hashtags: s2Hashtags,
         thumbnailData: s2Thumbnail,
+        multiPlatformSeo: s2MultiPlatform || globalMultiPlatform || null,
       },
       long: {
         id: "long",
@@ -1497,11 +1751,13 @@ export function parseFunnelPack(text: string, speechRateSec: number = 0.35): Fun
         caption: longCaption,
         hashtags: longHashtags,
         thumbnailData: longThumbnail,
+        multiPlatformSeo: longMultiPlatform || globalMultiPlatform || null,
       },
     },
     globalHtmlBlog,
     globalBlogPack,
     threeTierSeo,
+    multiPlatformSeo: globalMultiPlatform,
   };
 }
 

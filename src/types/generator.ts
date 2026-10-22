@@ -4,7 +4,7 @@
  * user preferences synchronization (/api/user/preferences), and ContentArchetype models.
  */
 
-import type { Scene, ScriptTimingSummary, ThumbnailData, BlogPublishingPack, ThreeTierSeoData } from "@/lib/parsers";
+import type { Scene, ScriptTimingSummary, ThumbnailData, BlogPublishingPack, ThreeTierSeoData, MultiPlatformSeoData } from "@/lib/parsers";
 
 export interface SourceAuditData {
   sourceUrl?: string;
@@ -35,6 +35,7 @@ export interface FunnelSegment {
   caption?: string;
   hashtags?: string;
   thumbnailData?: ThumbnailData | null;
+  multiPlatformSeo?: MultiPlatformSeoData | null;
 }
 
 export interface FunnelPackData {
@@ -48,6 +49,7 @@ export interface FunnelPackData {
   globalHtmlBlog?: string | null;
   globalBlogPack?: BlogPublishingPack | null;
   threeTierSeo?: ThreeTierSeoData | null;
+  multiPlatformSeo?: MultiPlatformSeoData | null;
 }
 
 export interface ContentArchetypeIncludedSections {
