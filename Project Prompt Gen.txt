@@ -2808,16 +2808,34 @@ Sebagai penutup siklus pipeline produksi video, platform **Prompt Gen** memberik
 - `npx vitest run src/lib/__tests__/gdrivePackageFormat.test.ts`: 6 passed (100% pass rate)
 - `npx vitest run`: 46 test suites passed, 417 tests passed (100% pass rate)
 
+### 55. MULTI-SEGMENT FUNNEL UPLOAD ENGINE & IN-PLACE FILE OVERWRITE DEDUPLICATION (2026-10-23)
 
+#### 55.1 Latar Belakang & Masalah
+- Re-upload revisi naskah atau media PC pada Google Drive API secara default menghasilkan berkas kembar dengan nama identik di folder yang sama.
+- Pada konten Funnel Pack (3 segmen: Short 1 Hook, Short 2 Value, Long Convert), kreator membutuhkan fleksibilitas untuk mengunggah 1, 2, atau 3 segmen sekaligus dengan dropzone video dan thumbnail masing-masing, tanpa harus mengulang proses satu per satu.
 
+#### 55.2 Mitigasi Duplikasi Berkas In-Place (In-Place File Overwrite)
+- Pada `src/lib/googleDrive.ts` (`uploadToSpecificFolder`):
+  1. Sebelum inisiasi upload, sistem mencari berkas eksisting: `name = '${escapedName}' and '${targetFolderId}' in parents and trashed = false`.
+  2. Jika berkas sudah ada: Sistem menggunakan metode `PATCH /upload/drive/v3/files/{existingFileId}?uploadType=resumable` untuk menimpa konten berkas secara in-place tanpa mengubah file ID atau membuat berkas kembar.
+  3. Jika berkas belum ada: Sistem menggunakan metode `POST /upload/drive/v3/files?uploadType=resumable` dengan `parents: [targetFolderId]`.
 
+#### 55.3 Multi-Segment Dropzone & Kartu Terpisah (`DrivePackageUploadModal.tsx`)
+- Jika konten bertipe Funnel Pack:
+  - Tiga kartu segmen independen (`01_Short_1_Hook`, `02_Short_2_Value`, `03_Long_Convert`).
+  - Masing-masing kartu memiliki: Checkbox sertakan segmen, input nama subfolder, badge berkas teks otomatis, Dropzone Video PC (maks 250 MB), dan Dropzone Thumbnail PC (maks 15 MB) lengkap dengan image preview.
+  - Kreator bebas memilih mengunggah 1 segmen (misal Short 1 saja), 2 segmen (Short 1 + Short 2), atau 3 segmen sekaligus.
+- Jika konten bertipe Single Video: Menampilkan 1 panel bersih fokus untuk video tunggal.
 
+#### 55.4 Pengunggahan Sekuensial Terproteksi (`useDrivePackageUpload.ts`)
+- Fungsi `uploadMultiSegmentPackage` mengirim paket per segmen secara sekuensial ke `/api/user/google-drive/upload-package`.
+- Mencegah ledakan memori peramban dan server (OOM) serta bypass batas payload 413.
+- Rate limiter backend disesuaikan menjadi 30 request/menit untuk menampung alur multi-segmen secara aman.
+- Indikator progres animasi menunjukkan tahap per segmen: `[1/3] Menyiapkan... (33%) -> [2/3] Mengunggah... (66%) -> Selesai! (100%)`.
 
-
-
-
-
-
-
+#### 55.5 Verifikasi Kualitas
+- `npx tsc --noEmit`: Exit 0 (Zero TypeScript errors)
+- `npx vitest run src/lib/__tests__/googleDrive.test.ts`: 13 passed (100% pass rate)
+- `npx vitest run`: 46 test suites passed, 419 tests passed (100% pass rate)
 
 

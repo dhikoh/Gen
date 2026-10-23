@@ -3,6 +3,7 @@ import {
   getValidAccessToken,
   getOrCreateAppFolder,
   uploadToDrive,
+  uploadToSpecificFolder,
   revokeGoogleDriveToken,
 } from "@/lib/googleDrive";
 import { prisma } from "@/lib/db";
@@ -225,12 +226,17 @@ describe("googleDrive service", () => {
           ok: true,
           json: async () => ({ id: "folder_target_123", trashed: false }),
         })
-        // 2. Initiate resumable upload session
+        // 2. Search existing file in target folder (tidak ada)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ files: [] }),
+        })
+        // 3. Initiate resumable upload session
         .mockResolvedValueOnce({
           ok: true,
           headers: new Headers({ Location: fakeUploadUrl }),
         })
-        // 3. PUT payload data
+        // 4. PUT payload data
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({
@@ -262,7 +268,12 @@ describe("googleDrive service", () => {
           ok: true,
           json: async () => ({ id: "folder_target_123", trashed: false }),
         })
-        // 2. Initiate resumable upload session fails
+        // 2. Search existing file in target folder
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ files: [] }),
+        })
+        // 3. Initiate resumable upload session fails
         .mockResolvedValueOnce({
           ok: false,
           status: 500,
@@ -280,8 +291,97 @@ describe("googleDrive service", () => {
     });
   });
 
+  describe("uploadToSpecificFolder (Deduplikasi In-Place Overwrite)", () => {
+    it("10. Melakukan POST baru jika berkas belum ada di targetFolderId", async () => {
+      const fakeUploadUrl = "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=session_new";
+
+      globalThis.fetch = vi
+        .fn()
+        // 1. Search existing file (kosong)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ files: [] }),
+        })
+        // 2. POST create resumable session
+        .mockResolvedValueOnce({
+          ok: true,
+          headers: new Headers({ Location: fakeUploadUrl }),
+        })
+        // 3. PUT binary payload
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            id: "file_new_123",
+            webViewLink: "https://drive.google.com/file/d/file_new_123/view",
+          }),
+        });
+
+      const buffer = Buffer.from("new text content");
+      const result = await uploadToSpecificFolder(
+        userId,
+        "mock_access_token",
+        {
+          filename: "youtube_metadata.txt",
+          mimeType: "text/plain",
+          buffer,
+        },
+        "target_subfolder_456"
+      );
+
+      expect(result.fileId).toBe("file_new_123");
+      expect(result.webViewLink).toBe("https://drive.google.com/file/d/file_new_123/view");
+      // Memastikan pemanggilan ke-2 adalah POST
+      expect(vi.mocked(globalThis.fetch).mock.calls[1][1]?.method).toBe("POST");
+    });
+
+    it("11. Melakukan PATCH in-place update jika berkas dengan nama yang sama sudah ada di targetFolderId", async () => {
+      const fakeUploadUrl = "https://www.googleapis.com/upload/drive/v3/files/file_existing_789?uploadType=resumable&upload_id=session_patch";
+
+      globalThis.fetch = vi
+        .fn()
+        // 1. Search existing file (ditemukan file_existing_789)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            files: [{ id: "file_existing_789", name: "youtube_metadata.txt" }],
+          }),
+        })
+        // 2. PATCH update resumable session
+        .mockResolvedValueOnce({
+          ok: true,
+          headers: new Headers({ Location: fakeUploadUrl }),
+        })
+        // 3. PUT binary payload
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            id: "file_existing_789",
+            webViewLink: "https://drive.google.com/file/d/file_existing_789/view",
+          }),
+        });
+
+      const buffer = Buffer.from("updated text content");
+      const result = await uploadToSpecificFolder(
+        userId,
+        "mock_access_token",
+        {
+          filename: "youtube_metadata.txt",
+          mimeType: "text/plain",
+          buffer,
+        },
+        "target_subfolder_456"
+      );
+
+      expect(result.fileId).toBe("file_existing_789");
+      expect(result.webViewLink).toBe("https://drive.google.com/file/d/file_existing_789/view");
+      // Memastikan pemanggilan ke-2 adalah PATCH (In-Place Overwrite)
+      expect(vi.mocked(globalThis.fetch).mock.calls[1][1]?.method).toBe("PATCH");
+      expect(vi.mocked(globalThis.fetch).mock.calls[1][0]).toContain("/files/file_existing_789?");
+    });
+  });
+
   describe("revokeGoogleDriveToken", () => {
-    it("10. Melakukan revoke token ke Google OAuth dan menghapus data dari DB", async () => {
+    it("12. Melakukan revoke token ke Google OAuth dan menghapus data dari DB", async () => {
       const encryptedRefresh = encryptSecret("1//revoke_me", aad);
 
       vi.mocked(prisma.userGoogleDriveToken.findUnique).mockResolvedValueOnce(
@@ -300,7 +400,7 @@ describe("googleDrive service", () => {
       });
     });
 
-    it("11. Idempoten: mengembalikan true meskipun user tidak memiliki data token di DB", async () => {
+    it("13. Idempoten: mengembalikan true meskipun user tidak memiliki data token di DB", async () => {
       vi.mocked(prisma.userGoogleDriveToken.findUnique).mockResolvedValueOnce(null);
 
       const result = await revokeGoogleDriveToken(userId);

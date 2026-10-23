@@ -60,6 +60,31 @@
 > | `[#103]` | Fitur #103 | Dedicated Ambient Audio & Foley Natural Sound Layer ([AMBIENT: ...]) | 2026-10-19 |
 > | `[#104]` | Fitur #104 | Proportional Scene-Duration Guard & Guided-Flexible Scene Count (4–10s/scene) | 2026-10-19 |
 > | `[#105]` | Fitur #105 (Bagian 54) | Scene Prompt Studio — Google Drive Content Package Upload Engine (Pemisahan Metadata 4 Platform, Dual Media Dropzone & Idempotent Subfolder Hierarchy) | 2026-10-22 |
+> | `[#106]` | Fitur #106 (Bagian 55) | Google Drive Multi-Segment Funnel Upload (1/2/3 Segmen Dropzone) & In-Place File Overwrite Deduplication | 2026-10-23 |
+
+---
+
+## [#106] — 2026-10-23 | Google Drive Multi-Segment Funnel Upload & In-Place File Overwrite Deduplication
+
+### Problem
+1. **Duplikasi Berkas Saat Re-upload**: Google Drive API secara bawaan mengizinkan nama file yang sama di dalam folder yang sama. Jika kreator melakukan revisi naskah atau mengunggah ulang video, berkas lama tidak tertimpa melainkan menduplikasi berkas baru dengan nama kembar (`youtube_metadata.txt`, `video_final.mp4`).
+2. **Keterbatasan Upload Funnel Pack**: Konten bertipe Funnel Pack memiliki 3 segmen (Short 1 Hook, Short 2 Value, Long Convert). Kreator sebelumnya hanya dapat mengunggah satu per satu segmen melalui dropdown tunggal dan tidak dapat mengisi video untuk 2 atau 3 segmen sekaligus dalam satu alur kerja.
+
+### Solution
+1. **Mitigasi Duplikasi Berkas In-Place (`src/lib/googleDrive.ts`)**:
+   - `uploadToSpecificFolder` kini mencari berkas eksisting dengan nama yang sama di `targetFolderId`.
+   - Jika berkas ditemukan, sistem mengeksekusi `PATCH /upload/drive/v3/files/{existingFileId}?uploadType=resumable` untuk menimpa berkas lama secara in-place tanpa mengubah file ID atau membuat berkas kembar.
+   - Jika berkas belum ada, sistem mengeksekusi `POST /upload/drive/v3/files?uploadType=resumable` (membuat baru).
+2. **Multi-Segment UI & Field Dropzone Masing-Masing (`DrivePackageUploadModal.tsx`)**:
+   - Pada mode Funnel Pack, modal menyediakan 3 kartu segmen terpisah: `01_Short_1_Hook (9:16)`, `02_Short_2_Value (9:16)`, dan `03_Long_Convert (16:9)`.
+   - Setiap kartu memiliki toggle checkbox independen (kreator bebas mengunggah 1, 2, atau 3 segmen sekaligus), input nama folder segmen, preview teks otomatis, Dropzone Video PC (maks 250 MB), dan Dropzone Thumbnail PC (maks 15 MB).
+   - Tombol dinamis menghitung segmen yang dipilih (*"Upload 2 Segmen Terpilih ke Drive"*).
+3. **Pengunggahan Sekuensial & Toleransi Beban (`useDrivePackageUpload.ts`)**:
+   - Klien mengunggah per segmen aktif secara berurutan untuk mencegah lonjakan memori (OOM) dan error payload 413.
+   - Rate limit API dinaikkan ke 30 request/menit untuk menampung alur multi-segmen secara aman.
+4. **Kualitas & Verifikasi**:
+   - 46 test suites lulus 100% (419 unit tests, +2 tes baru untuk POST create vs PATCH in-place overwrite).
+   - 0 TypeScript compiler error (`tsc --noEmit` exit 0).
 
 ---
 

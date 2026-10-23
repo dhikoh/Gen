@@ -340,6 +340,8 @@ export async function ensureProjectFolderHierarchy(
 
 /**
  * Mengunggah berkas ke Google Drive pada folder spesifik menggunakan Resumable Upload protocol.
+ * Dilengkapi mitigasi in-place file overwrite: jika berkas dengan nama yang sama sudah ada
+ * di folder target, sistem akan menggunakan PATCH resumable update alih-alih membuat berkas kembar.
  */
 export async function uploadToSpecificFolder(
   userId: string,
@@ -347,23 +349,50 @@ export async function uploadToSpecificFolder(
   file: DriveUploadInput,
   targetFolderId: string
 ): Promise<DriveUploadResult> {
-  // Langkah 1: Inisiasi Resumable Upload Session
-  const initRes = await fetch(
-    "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name,webViewLink",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json; charset=UTF-8",
-        "X-Upload-Content-Type": file.mimeType,
-        "X-Upload-Content-Length": file.buffer.length.toString(),
-      },
-      body: JSON.stringify({
+  // Langkah 0: Cek apakah berkas dengan nama yang sama sudah ada di target folder (Deduplikasi In-Place)
+  let existingFileId: string | null = null;
+  try {
+    const escapedName = file.filename.replace(/'/g, "\\'");
+    const query = `name = '${escapedName}' and '${targetFolderId}' in parents and trashed = false`;
+    const searchRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name)`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }
+    );
+    if (searchRes.ok) {
+      const searchData = (await searchRes.json()) as { files?: Array<{ id: string; name: string }> };
+      if (searchData.files && searchData.files.length > 0) {
+        existingFileId = searchData.files[0].id;
+      }
+    }
+  } catch (err) {
+    console.warn("[GoogleDrive] Search existing file failed, falling back to POST create:", err);
+  }
+
+  // Langkah 1: Inisiasi Resumable Upload Session (PATCH jika sudah ada, POST jika belum)
+  const initUrl = existingFileId
+    ? `https://www.googleapis.com/upload/drive/v3/files/${existingFileId}?uploadType=resumable&fields=id,name,webViewLink`
+    : `https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name,webViewLink`;
+
+  const initMethod = existingFileId ? "PATCH" : "POST";
+  const initBody = existingFileId
+    ? JSON.stringify({ name: file.filename })
+    : JSON.stringify({
         name: file.filename,
         parents: [targetFolderId],
-      }),
-    }
-  );
+      });
+
+  const initRes = await fetch(initUrl, {
+    method: initMethod,
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json; charset=UTF-8",
+      "X-Upload-Content-Type": file.mimeType,
+      "X-Upload-Content-Length": file.buffer.length.toString(),
+    },
+    body: initBody,
+  });
 
   if (!initRes.ok) {
     const errText = await initRes.text();

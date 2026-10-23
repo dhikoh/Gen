@@ -57,8 +57,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
   }
 
-  // Rate limit: 10 package uploads per 60 seconds per user
-  const allowed = await applyRateLimit(`gdrive_pkg_${session.user.id}`, 10, 60);
+  // Rate limit: 30 package uploads per 60 seconds per user (mendukung multi-segment upload sekuensial)
+  const allowed = await applyRateLimit(`gdrive_pkg_${session.user.id}`, 30, 60);
   if (!allowed) {
     return NextResponse.json({ error: t("rateLimit") }, { status: 429 });
   }

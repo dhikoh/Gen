@@ -36,6 +36,15 @@ export interface PackageUploadResponse {
   error?: string;
 }
 
+export interface MultiSegmentUploadItem {
+  segmentKey: string;
+  segmentFolderName?: string;
+  label: string;
+  textFiles: Array<{ filename: string; mimeType: string; content: string }>;
+  videoFile?: File | null;
+  thumbnailFile?: File | null;
+}
+
 export function useDrivePackageUpload() {
   const [isUploading, setIsUploading] = useState(false);
   const [progressStatus, setProgressStatus] = useState<string>("");
@@ -142,6 +151,112 @@ export function useDrivePackageUpload() {
     []
   );
 
+  const uploadMultiSegmentPackage = useCallback(
+    async (params: {
+      channelName: string;
+      projectFolderName: string;
+      segments: MultiSegmentUploadItem[];
+    }): Promise<boolean> => {
+      if (!params.segments || params.segments.length === 0) {
+        setUploadError("Pilih minimal satu segmen untuk diunggah");
+        return false;
+      }
+
+      setIsUploading(true);
+      setUploadError(null);
+      setProgressPercent(5);
+      setProgressStatus(`Mempersiapkan ${params.segments.length} segmen untuk diunggah...`);
+
+      const totalSegments = params.segments.length;
+      let lastFolderUrl: string | null = null;
+
+      try {
+        for (let i = 0; i < totalSegments; i++) {
+          const seg = params.segments[i];
+          const segBasePercent = Math.round((i / totalSegments) * 100);
+          const segMaxPercent = Math.round(((i + 1) / totalSegments) * 100);
+
+          setProgressStatus(`[${i + 1}/${totalSegments}] Menyiapkan berkas ${seg.label}...`);
+          setProgressPercent(Math.min(99, segBasePercent + 5));
+
+          const payloadFiles: PackageUploadItem[] = [];
+
+          // 1. Berkas teks per segmen
+          for (const tf of seg.textFiles) {
+            payloadFiles.push({
+              filename: tf.filename,
+              mimeType: tf.mimeType || "text/plain",
+              base64Data: stringToBase64(tf.content),
+            });
+          }
+
+          // 2. Berkas video per segmen jika ada
+          if (seg.videoFile) {
+            setProgressStatus(`[${i + 1}/${totalSegments}] Membaca video ${seg.label} (${seg.videoFile.name})...`);
+            const videoBase64 = await fileToBase64(seg.videoFile);
+            payloadFiles.push({
+              filename: seg.videoFile.name,
+              mimeType: seg.videoFile.type || "video/mp4",
+              base64Data: videoBase64,
+            });
+          }
+
+          // 3. Berkas thumbnail per segmen jika ada
+          if (seg.thumbnailFile) {
+            setProgressStatus(`[${i + 1}/${totalSegments}] Membaca thumbnail ${seg.label} (${seg.thumbnailFile.name})...`);
+            const thumbBase64 = await fileToBase64(seg.thumbnailFile);
+            payloadFiles.push({
+              filename: seg.thumbnailFile.name,
+              mimeType: seg.thumbnailFile.type || "image/jpeg",
+              base64Data: thumbBase64,
+            });
+          }
+
+          setProgressStatus(`[${i + 1}/${totalSegments}] Mengunggah ${seg.label} ke Google Drive...`);
+          setProgressPercent(Math.min(99, segBasePercent + Math.round((segMaxPercent - segBasePercent) * 0.7)));
+
+          const res = await fetch("/api/user/google-drive/upload-package", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              channelName: params.channelName,
+              projectFolderName: params.projectFolderName,
+              segmentFolderName: seg.segmentFolderName || null,
+              files: payloadFiles,
+            }),
+          });
+
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(
+              errData.error || `Upload gagal pada ${seg.label} dengan kode status ${res.status}`
+            );
+          }
+
+          const data = (await res.json()) as PackageUploadResponse;
+          if (data.folderWebViewLink) {
+            lastFolderUrl = data.folderWebViewLink;
+          }
+
+          setProgressPercent(segMaxPercent);
+        }
+
+        setProgressPercent(100);
+        setProgressStatus(`Berhasil mengunggah ${totalSegments} segmen ke Google Drive!`);
+        setFolderUrl(lastFolderUrl);
+        return true;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Terjadi kesalahan saat mengunggah paket";
+        setUploadError(msg);
+        setProgressStatus("Gagal mengunggah");
+        return false;
+      } finally {
+        setIsUploading(false);
+      }
+    },
+    []
+  );
+
   return {
     isUploading,
     progressStatus,
@@ -149,6 +264,7 @@ export function useDrivePackageUpload() {
     folderUrl,
     uploadError,
     uploadPackage,
+    uploadMultiSegmentPackage,
     resetUploadState,
   };
 }
