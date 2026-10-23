@@ -189,6 +189,7 @@ model ProfileChannel {
   usedTitles      UsedTitle[]
   contentArchetypeId String?
   contentArchetype   ContentArchetype? @relation(fields: [contentArchetypeId], references: [id], onDelete: SetNull)
+  socialConnection   ChannelSocialConnection?
 }
 
 model Product {
@@ -529,3 +530,35 @@ model UserGoogleDriveToken {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 }
+
+model ChannelSocialConnection {
+  id                     String         @id @default(cuid())
+  channelId              String         @unique
+  channel                ProfileChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  // ── Google Ecosystem (Drive & YouTube) ──
+  googleEmail            String?
+  encryptedGoogleAccess  String?        @db.Text
+  encryptedGoogleRefresh String?        @db.Text
+  googleExpiresAt        DateTime?
+  googleScopes           String?        @default("https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/youtube.upload")
+  googleDriveFolderId    String?        // ID folder khusus aset channel ini di Drive
+  googleDriveFolderName  String?        // Nama folder, misal: "Prompt Gen - [Nama Channel]"
+  youtubeChannelId       String?        // ID channel YouTube
+  youtubeChannelTitle    String?        // Nama channel YouTube
+
+  // ── Meta Ecosystem (Facebook & Instagram) ──
+  encryptedMetaToken     String?        @db.Text
+  metaExpiresAt          DateTime?
+  metaScopes             String?        // Scopes yang di-grant oleh user
+  fbPageId               String?        // ID Facebook Page yang dipilih
+  fbPageName             String?        // Nama Facebook Page
+  igUserId               String?        // ID Instagram Business/Creator Account
+  igUsername             String?        // @username Instagram
+
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+
+  @@index([channelId])
+}
+

@@ -27,6 +27,11 @@ export function googleDriveAad(userId: string): string {
   return `gdrive:${userId}`;
 }
 
+/** AAD untuk token koneksi sosial/storage channel (mengikat ciphertext ke channelId + provider). */
+export function channelConnectionAad(channelId: string, provider: "google" | "meta"): string {
+  return `channel_conn:${channelId}:${provider}`;
+}
+
 /**
  * Enkripsi ke format:
  * - dengan aad  : "v2:<iv_b64>:<authTag_b64>:<ciphertext_b64>"

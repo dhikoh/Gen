@@ -117,4 +117,21 @@ describe("Channel Bundle Contract & Validation", () => {
     };
     expect(channelBundleSchema.safeParse(missingName).success).toBe(false);
   });
+
+  it("accepts rich visual aesthetic descriptions exceeding 200 characters", () => {
+    const richVisualBundle = {
+      version: "1.0",
+      app: "Prompt Gen",
+      exportedAt: new Date().toISOString(),
+      channel: {
+        channelName: "Organictopia",
+        visualAesthetic: "Stylized 3D semi-realistic animation, DreamWorks aesthetic, warm earthy tactile textures, weathered wood and mossy stone, rich sun-drenched golden hour lighting, subtle volumetric dust motes, macro botanical focus. ABSOLUTELY NO full-body human characters, single focal object per scene, physically plausible.",
+        personaPov: "Expert botanical researcher & master storyteller communicating university-backed urban farming science with persuasive storytelling and curiosity hooks.",
+      },
+      products: [],
+      usedTitles: [],
+      generatorSettings: null,
+    };
+    expect(channelBundleSchema.safeParse(richVisualBundle).success).toBe(true);
+  });
 });

@@ -224,43 +224,81 @@ export function formatThumbnailPromptText(
 export function buildTextPackageFiles(params: {
   projectTitle: string;
   scenes: Scene[];
+  caption?: string;
+  hashtags?: string;
   multiPlatformSeo?: MultiPlatformSeoData | null;
   thumbnailData?: ThumbnailData | null;
   segmentLabel?: string;
+  aspectRatio?: string;
 }): Array<{ filename: string; mimeType: string; content: string }> {
-  const { projectTitle, scenes, multiPlatformSeo, thumbnailData, segmentLabel } = params;
+  const { projectTitle, scenes, caption, hashtags, multiPlatformSeo, thumbnailData, segmentLabel, aspectRatio } = params;
   const files: Array<{ filename: string; mimeType: string; content: string }> = [];
 
-  // 1. Metadata 4 Platform terpisah
-  if (multiPlatformSeo) {
-    if (multiPlatformSeo.youtube) {
-      files.push({
-        filename: "youtube_metadata.txt",
-        mimeType: "text/plain",
-        content: formatPlatformSeoText("youtube", multiPlatformSeo.youtube, projectTitle),
-      });
-    }
-    if (multiPlatformSeo.tiktok) {
-      files.push({
-        filename: "tiktok_metadata.txt",
-        mimeType: "text/plain",
-        content: formatPlatformSeoText("tiktok", multiPlatformSeo.tiktok, projectTitle),
-      });
-    }
-    if (multiPlatformSeo.instagram) {
-      files.push({
-        filename: "instagram_metadata.txt",
-        mimeType: "text/plain",
-        content: formatPlatformSeoText("instagram", multiPlatformSeo.instagram, projectTitle),
-      });
-    }
-    if (multiPlatformSeo.facebook) {
-      files.push({
-        filename: "facebook_metadata.txt",
-        mimeType: "text/plain",
-        content: formatPlatformSeoText("facebook", multiPlatformSeo.facebook, projectTitle),
-      });
-    }
+  const defaultDesc = caption || "";
+  const defaultHashtags = hashtags || "";
+  const hasPlatformData = Boolean(
+    multiPlatformSeo ||
+    defaultDesc ||
+    defaultHashtags
+  );
+
+  // 1. Metadata 4 Platform terpisah (Gunakan multiPlatformSeo jika ada, fallback ke caption & hashtags)
+  if (hasPlatformData) {
+    const ytData = multiPlatformSeo?.youtube || {
+      platform: "youtube" as const,
+      description: defaultDesc,
+      hashtags: defaultHashtags,
+      tags: "",
+      charCount: { description: defaultDesc.length, hashtags: defaultHashtags.length, tags: 0 },
+      status: { descriptionIdeal: true },
+    };
+    files.push({
+      filename: "youtube_metadata.txt",
+      mimeType: "text/plain",
+      content: formatPlatformSeoText("youtube", ytData, projectTitle),
+    });
+
+    const ttData = multiPlatformSeo?.tiktok || {
+      platform: "tiktok" as const,
+      description: defaultDesc.slice(0, 300),
+      hashtags: defaultHashtags,
+      tags: "",
+      charCount: { description: Math.min(defaultDesc.length, 300), hashtags: defaultHashtags.length, tags: 0 },
+      status: { descriptionIdeal: true },
+    };
+    files.push({
+      filename: "tiktok_metadata.txt",
+      mimeType: "text/plain",
+      content: formatPlatformSeoText("tiktok", ttData, projectTitle),
+    });
+
+    const igData = multiPlatformSeo?.instagram || {
+      platform: "instagram" as const,
+      description: defaultDesc,
+      hashtags: defaultHashtags,
+      tags: "",
+      charCount: { description: defaultDesc.length, hashtags: defaultHashtags.length, tags: 0 },
+      status: { descriptionIdeal: true },
+    };
+    files.push({
+      filename: "instagram_metadata.txt",
+      mimeType: "text/plain",
+      content: formatPlatformSeoText("instagram", igData, projectTitle),
+    });
+
+    const fbData = multiPlatformSeo?.facebook || {
+      platform: "facebook" as const,
+      description: defaultDesc,
+      hashtags: defaultHashtags,
+      tags: "",
+      charCount: { description: defaultDesc.length, hashtags: defaultHashtags.length, tags: 0 },
+      status: { descriptionIdeal: true },
+    };
+    files.push({
+      filename: "facebook_metadata.txt",
+      mimeType: "text/plain",
+      content: formatPlatformSeoText("facebook", fbData, projectTitle),
+    });
   }
 
   // 2. Naskah scene lengkap

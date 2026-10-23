@@ -2838,4 +2838,96 @@ Sebagai penutup siklus pipeline produksi video, platform **Prompt Gen** memberik
 - `npx vitest run src/lib/__tests__/googleDrive.test.ts`: 13 passed (100% pass rate)
 - `npx vitest run`: 46 test suites passed, 419 tests passed (100% pass rate)
 
+================================================================================
+BAGIAN 56: ARSITEKTUR KONEKSI SOSIAL & CLOUD STORAGE TERISOLASI PER PROFILE CHANNEL (2026-10-23)
+================================================================================
+
+### 56.1 Motivasi & Arsitektur Multi-Channel Terisolasi
+- Menghapus keterikatan global koneksi Google Drive pada tingkat User (`UserGoogleDriveToken`).
+- Kreator yang mengelola banyak channel (misalnya channel agrikultur *Organictopia* dan channel edukasi AI) membutuhkan isolasi total:
+  - Setiap ProfileChannel memiliki akun Google Drive sendiri (folder terisolasi `"Prompt Gen - [Nama Channel]"`).
+  - Setiap ProfileChannel terhubung ke akun YouTube, Facebook Page, dan Instagram yang berbeda secara independen.
+  - Pemutusan koneksi pada satu channel tidak mempengaruhi channel lainnya.
+
+### 56.2 Model Prisma & Enkripsi AES-256-GCM AAD Terikat
+- **Model `ChannelSocialConnection` (`prisma/schema.prisma`)**:
+  - Relasi 1-to-1 dengan `ProfileChannel` (`channelId String @unique`, `onDelete: Cascade`).
+  - Field: `encryptedGoogleAccess`, `encryptedGoogleRefresh`, `googleExpiresAt`, `googleScopes`, `googleEmail`, `youtubeChannelId`, `youtubeChannelTitle`, `encryptedMetaAccess`, `metaExpiresAt`, `metaScopes`, `facebookPageId`, `facebookPageName`, `instagramAccountId`, `instagramUsername`.
+- **Kriptografi Terikat Channel (`src/lib/crypto.ts`)**:
+  - Fungsi `channelConnectionAad(channelId, provider)` membentuk AAD unik yang mengunci token terenkripsi ke ID channel bersangkutan.
+- **Token Management & Lifecycle (`src/lib/channelSocial.ts`)**:
+  - `getValidChannelGoogleAccessToken(channelId)`: Otomatis me-refresh token jika kadaluarsa dalam < 5 menit.
+  - `getOrCreateChannelDriveFolder(channelId, channelName)`: Memastikan folder channel otomatis tersedia di Drive.
+  - `getChannelConnectionSummary(channelId)`: Mengembalikan status koneksi untuk UI.
+
+### 56.3 Alur OAuth & Migrasi Manual
+- **OAuth Callback Router (`/api/auth/google-drive` & `/api/auth/google-drive/callback`)**:
+  - Menerima `?channelId=...` dan meminta scopes terpadu: Google Drive file (`drive.file`), YouTube Upload (`youtube.upload`), dan identitas Google.
+  - Menyimpan token langsung ke `ChannelSocialConnection` channel terpilih.
+- **Migrasi Token**:
+  - Diputuskan melalui alur rekoneksi manual per channel demi keamanan dan pemisahan akun yang bersih.
+- **UI Integrasi Channel**:
+  - Komponen `ChannelConnectionsClient.tsx` disematkan pada `EditChannelClient.tsx`.
+  - Halaman Settings utama menampilkan banner panduan pengalihan koneksi per channel.
+
+================================================================================
+BAGIAN 57: 1-TOMBOL AUTO PUBLISH ORCHESTRATOR & DUAL-SOURCE METADATA ENGINE (2026-10-23)
+================================================================================
+
+### 57.1 Motivasi & Alur Kerja 1-Klik
+- Menggantikan proses manual salin-tempel metadata video antar platform setelah render selesai.
+- Kreator dapat memilih platform target (YouTube, Instagram, Facebook), mengatur privasi (Public/Unlisted/Private), dan menerbitkan video dalam 1 klik.
+
+### 57.2 Modal Auto Upload (`AutoPublishModal.tsx`)
+- Ditempatkan di Scene Prompt Studio melalui banner peluncur **🚀 Auto Upload Sekarang**.
+- **Dukungan Dual-Source**:
+  - **Opsi A (Google Drive)**: Mengunggah langsung dari berkas video yang tersimpan di Google Drive Channel tanpa membebani bandwidth upload perangkat pengguna.
+  - **Opsi B (Local Upload)**: Pengguna dapat men-drop berkas `.mp4` langsung dari komputer lokal mereka.
+- **Funnel Segment Switcher**: Menyediakan tombol pilih segmen Short 1, Short 2, atau Long Video dengan penyesuaian metadata instan.
+- **Live Preview Tabs**: Pratinjau WYSIWYG untuk format YouTube, Instagram Reels, dan Facebook Post sebelum video dipublikasikan.
+
+### 57.3 Mesin Resumable YouTube Upload & Adapter Metadata
+- **`src/lib/youtubeUpload.ts`**:
+  - Implementasi YouTube Data API v3 Resumable Upload protocol.
+  - Mendukung upload dari buffer memori (`Uint8Array`) maupun streaming pipa langsung dari Google Drive File ID.
+- **`src/lib/publishMetadataAdapter.ts`**:
+  - Mengonversi skrip, caption, hashtag, dan rasio aspek secara otomatis ke standar platform:
+    - YouTube: Judul maks 100 kar, `#Shorts` otomatis untuk 9:16, deskripsi maks 5.000 kar dengan Call to Action channel dan timestamp chapter markers otomatis, serta tags YouTube Studio.
+    - Instagram: Hook baris pertama, format caption berjarak bersih, maks 30 hashtag, CTA bio.
+    - Facebook: Postingan ramah diskusi komunitas.
+- **Endpoint Orchestrator (`/api/channels/[id]/publish`)**:
+  - Mengeksekusi publikasi paralel ke platform yang dicentang dan mengembalikan status laporan terperinci.
+
+================================================================================
+BAGIAN 58: FUNNEL PACK TITLE EXTRACTION, ZERO-MISSING METADATA FALLBACK & CHANNEL BUNDLE HARDENING (2026-10-23)
+================================================================================
+
+### 58.1 Ekstraksi Judul Funnel Independen
+- **Problem**: Judul antara Short 1, Short 2, dan Long Video pada mode Funnel Pack sebelumnya seragam sehingga tidak mencerminkan tahapan corong marketing.
+- **Solusi**:
+  - Properti `title?: string;` ditambahkan ke `FunnelSegment` (`src/types/generator.ts`).
+  - Fungsi `extractSegmentTitle()` pada `parsers.ts` mengekstrak:
+    - Short 1: Variasi judul penasaran/hook.
+    - Short 2: Variasi judul problem/contrarian.
+    - Long Pillar: Judul utama masterclass.
+  - `switchFunnelSegment()` pada `ScenePromptStudioClient.tsx` otomatis memperbarui `draftTitle` saat pengguna beralih segmen.
+
+### 58.2 Zero-Missing Metadata Fallback & Ekspor .txt Lokal
+- **Problem**: Jika prompt AI tidak menghasilkan blok SEO 4-platform secara eksplisit, fungsi paket Drive tidak menghasilkan berkas teks metadata.
+- **Solusi (`src/lib/gdrivePackageFormat.ts`)**:
+  - `buildTextPackageFiles()` kini menerima parameter `caption`, `hashtags`, dan `aspectRatio`.
+  - Menggunakan `caption` dan `hashtags` sebagai fallback cerdas sehingga `youtube_metadata.txt`, `tiktok_metadata.txt`, `instagram_metadata.txt`, dan `facebook_metadata.txt` selalu terbuat dan terisi.
+  - Tombol **"💾 Unduh .txt"** ditambahkan di tab Platform SEO studio untuk menyimpan file metadata siap pakai langsung ke komputer pengguna.
+
+### 58.3 Hardening Ekosistem Bundle Channel (`channelBundle.ts`)
+- **Problem**: File `organictopia_channel_bundle.json` gagal diimpor karena field `visualAesthetic` (342 karakter) melampaui batas lama `max(200)` pada Zod schema `channelBundleSchema`.
+- **Solusi**:
+  - Batasan `visualAesthetic` dinaikkan menjadi `max(2000)` dan `personaPov` menjadi `max(1000)`.
+  - Menjamin kompatibilitas 100% untuk profil channel dengan deskripsi visual dan persona yang kaya.
+
+### 58.4 Verifikasi Kualitas Keseluruhan
+- `npx tsc --noEmit`: Exit 0 (Zero TypeScript errors)
+- Vitest: 48 test suites passed, 431 tests passed (100% pass rate)
+
+
 

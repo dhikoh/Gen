@@ -1633,6 +1633,20 @@ export function extractSourceAudit(text: string): SourceAuditData | null {
 }
 
 /**
+ * Extract specific segment title from segment text (e.g., "Judul: [Judul Short 1 - Hook Penasaran]").
+ */
+export function extractSegmentTitle(segmentText: string): string | undefined {
+  if (!segmentText) return undefined;
+  const match = segmentText.match(
+    /(?:^|\r?\n)\s*(?:[-*•]\s*)?(?:\*{1,2})?(?:Judul|Title|Judul\s+Video|Judul\s+Segmen|Segment\s+Title)(?:\*{1,2})?\s*:\s*([^\r\n]+)/i
+  );
+  if (!match) return undefined;
+  let raw = match[1].replace(/[[\]"*]/g, "").trim();
+  raw = raw.replace(/^\*+|\*+$/g, "").trim();
+  return raw || undefined;
+}
+
+/**
  * Parses a 3-in-1 Funnel Pack script containing:
  * - SOURCE AUDIT
  * - SEGMENT: SHORT 1 (9:16)
@@ -1679,6 +1693,11 @@ export function parseFunnelPack(text: string, speechRateSec: number = 0.35): Fun
     }
   }
 
+  // Titles for each segment
+  const s1Title = extractSegmentTitle(s1Text);
+  const s2Title = extractSegmentTitle(s2Text);
+  const longTitle = extractSegmentTitle(longText);
+
   // Parse scenes for each segment with dedicated isolated namespace IDs
   const s1Scenes = parseScenes(s1Text, speechRateSec, 100);
   const s2Scenes = parseScenes(s2Text, speechRateSec, 200);
@@ -1720,6 +1739,7 @@ export function parseFunnelPack(text: string, speechRateSec: number = 0.35): Fun
       short1: {
         id: "short1",
         label: "Short 1 (Spark Hook)",
+        title: s1Title,
         aspectRatio: "9:16",
         targetDurationSec: s1Timing.totalDurationSec || 45,
         scenes: s1Scenes,
@@ -1732,6 +1752,7 @@ export function parseFunnelPack(text: string, speechRateSec: number = 0.35): Fun
       short2: {
         id: "short2",
         label: "Short 2 (Problem & Contrarian)",
+        title: s2Title,
         aspectRatio: "9:16",
         targetDurationSec: s2Timing.totalDurationSec || 45,
         scenes: s2Scenes,
@@ -1744,6 +1765,7 @@ export function parseFunnelPack(text: string, speechRateSec: number = 0.35): Fun
       long: {
         id: "long",
         label: "Long Pillar (Masterclass)",
+        title: longTitle,
         aspectRatio: "16:9",
         targetDurationSec: longTiming.totalDurationSec || 600,
         scenes: longScenes,

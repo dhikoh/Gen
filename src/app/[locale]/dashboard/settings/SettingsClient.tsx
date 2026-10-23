@@ -496,6 +496,12 @@ export default function SettingsClient() {
             <p className="text-xs pg-text-sub mt-1 leading-relaxed">
               {t("googleDriveDesc")}
             </p>
+            <div className="mt-2.5 p-2.5 rounded-xl bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200/50 dark:border-blue-900/30 text-xs text-blue-800 dark:text-blue-300 flex flex-wrap items-center justify-between gap-2">
+              <span>💡 Butuh akun Google Drive atau YouTube terpisah untuk tiap channel?</span>
+              <Link href="/dashboard/channels" className="font-semibold underline shrink-0 hover:text-blue-600">
+                Atur di Menu Channels →
+              </Link>
+            </div>
           </div>
 
           <div>

@@ -159,6 +159,7 @@ DURASI: 5 detik
     // Short 1 Checks
     const s1 = pack.segments.short1;
     expect(s1.id).toBe("short1");
+    expect(s1.title).toBe("90% Creator Salah Bikin Video Pendek!");
     expect(s1.aspectRatio).toBe("9:16");
     expect(s1.scenes.length).toBe(2);
     expect(s1.scenes[0].id).toBe(101); // Isolated ID offset 100
@@ -169,6 +170,7 @@ DURASI: 5 detik
     // Short 2 Checks
     const s2 = pack.segments.short2;
     expect(s2.id).toBe("short2");
+    expect(s2.title).toBe("Kenapa Video Panjangmu Sepi Penonton?");
     expect(s2.aspectRatio).toBe("9:16");
     expect(s2.scenes.length).toBe(2);
     expect(s2.scenes[0].id).toBe(201); // Isolated ID offset 200
@@ -178,6 +180,7 @@ DURASI: 5 detik
     // Long Pillar Checks
     const long = pack.segments.long;
     expect(long.id).toBe("long");
+    expect(long.title).toBe("Masterclass Funnel Konten 2026: Dari 0 ke 100K Views");
     expect(long.aspectRatio).toBe("16:9");
     expect(long.scenes.length).toBe(2);
     expect(long.scenes[0].id).toBe(301); // Isolated ID offset 300

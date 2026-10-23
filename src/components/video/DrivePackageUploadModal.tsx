@@ -24,6 +24,8 @@ interface DrivePackageUploadModalProps {
   channelName: string;
   defaultTitle: string;
   scenes: Scene[];
+  caption?: string;
+  hashtags?: string;
   multiPlatformSeo?: MultiPlatformSeoData | null;
   thumbnailData?: ThumbnailData | null;
   isFunnel?: boolean;
@@ -74,6 +76,8 @@ export function DrivePackageUploadModal({
   channelName,
   defaultTitle,
   scenes,
+  caption,
+  hashtags,
   multiPlatformSeo,
   thumbnailData,
   isFunnel = false,
@@ -278,22 +282,27 @@ export function DrivePackageUploadModal({
       if (isFunnel && funnelPackData?.segments?.[segKey]) {
         const seg = funnelPackData.segments[segKey];
         return buildTextPackageFiles({
-          projectTitle: defaultTitle || projectFolderName,
+          projectTitle: seg.title || defaultTitle || projectFolderName,
           scenes: seg.scenes,
+          caption: seg.caption || caption,
+          hashtags: seg.hashtags || hashtags,
           multiPlatformSeo: seg.multiPlatformSeo || multiPlatformSeo,
           thumbnailData: seg.thumbnailData || thumbnailData,
           segmentLabel: seg.label || FUNNEL_CONFIG[segKey].label,
+          aspectRatio: seg.aspectRatio,
         });
       }
       return buildTextPackageFiles({
         projectTitle: defaultTitle || projectFolderName,
         scenes,
+        caption,
+        hashtags,
         multiPlatformSeo,
         thumbnailData,
         segmentLabel: FUNNEL_CONFIG[segKey].label,
       });
     },
-    [isFunnel, funnelPackData, defaultTitle, projectFolderName, scenes, multiPlatformSeo, thumbnailData]
+    [isFunnel, funnelPackData, defaultTitle, projectFolderName, scenes, caption, hashtags, multiPlatformSeo, thumbnailData]
   );
 
   // Helper: Berkas teks untuk single video
@@ -301,10 +310,12 @@ export function DrivePackageUploadModal({
     return buildTextPackageFiles({
       projectTitle: defaultTitle || projectFolderName,
       scenes,
+      caption,
+      hashtags,
       multiPlatformSeo,
       thumbnailData,
     });
-  }, [defaultTitle, projectFolderName, scenes, multiPlatformSeo, thumbnailData]);
+  }, [defaultTitle, projectFolderName, scenes, caption, hashtags, multiPlatformSeo, thumbnailData]);
 
   // Hitung jumlah segmen yang aktif dicentang
   const activeSegmentsList = useMemo(() => {

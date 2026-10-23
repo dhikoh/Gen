@@ -44,6 +44,8 @@ import {
 import { getUserItem, setUserItem } from "@/lib/clientStorage";
 import VideoTimelineTab from "@/components/video/VideoTimelineTab";
 import { DrivePackageUploadModal } from "@/components/video/DrivePackageUploadModal";
+import { AutoPublishModal } from "@/components/publish/AutoPublishModal";
+import { formatPlatformSeoText } from "@/lib/gdrivePackageFormat";
 import { buildTimeline, validateTimeline } from "@/lib/timelineBuilder";
 import type { VideoTimeline } from "@/types/videoTimeline";
 
@@ -331,6 +333,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
   const [detectedRemotionCode, setDetectedRemotionCode] = useState<string | null>(() => (defaultSource?.raw ? extractRemotionCode(defaultSource.raw) : null));
   const [completedChecklist, setCompletedChecklist] = useState<Record<number, boolean>>({});
   const [drivePackageModalOpen, setDrivePackageModalOpen] = useState(false);
+  const [autoPublishModalOpen, setAutoPublishModalOpen] = useState(false);
   const currentChannel = useMemo(
     () => channels.find((c) => c.id === selectedChannelId) || channels[0],
     [channels, selectedChannelId]
@@ -340,6 +343,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
     if (!funnelPackData) return;
     setActiveFunnelSegment(segId);
     const target = funnelPackData.segments[segId];
+    if (target.title) setDraftTitle(target.title);
     setScenes(target.scenes);
     setAr(target.aspectRatio);
     setSelectedSceneIds(new Set(target.scenes.map((s) => s.id)));
@@ -1676,7 +1680,9 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
                 9:16
               </span>
             </div>
-            <div className="text-[11px] opacity-90 truncate font-semibold">The Spark Hook</div>
+            <div className="text-[11px] opacity-90 truncate font-semibold" title={funnelPackData.segments.short1.title || "The Spark Hook"}>
+              {funnelPackData.segments.short1.title || "The Spark Hook"}
+            </div>
             <div className="text-[10px] opacity-75 mt-0.5">
               {funnelPackData.segments.short1.scenes.length} Scene • ~{funnelPackData.segments.short1.timingSummary.formattedTotalDuration}
             </div>
@@ -1702,7 +1708,9 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
                 9:16
               </span>
             </div>
-            <div className="text-[11px] opacity-90 truncate font-semibold">Problem & Contrarian</div>
+            <div className="text-[11px] opacity-90 truncate font-semibold" title={funnelPackData.segments.short2.title || "Problem & Contrarian"}>
+              {funnelPackData.segments.short2.title || "Problem & Contrarian"}
+            </div>
             <div className="text-[10px] opacity-75 mt-0.5">
               {funnelPackData.segments.short2.scenes.length} Scene • ~{funnelPackData.segments.short2.timingSummary.formattedTotalDuration}
             </div>
@@ -1728,7 +1736,9 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
                 16:9
               </span>
             </div>
-            <div className="text-[11px] opacity-90 truncate font-semibold">Masterclass Berbab</div>
+            <div className="text-[11px] opacity-90 truncate font-semibold" title={funnelPackData.segments.long.title || "Masterclass Berbab"}>
+              {funnelPackData.segments.long.title || "Masterclass Berbab"}
+            </div>
             <div className="text-[10px] opacity-75 mt-0.5">
               {funnelPackData.segments.long.scenes.length} Scene • ~{funnelPackData.segments.long.timingSummary.formattedTotalDuration}
             </div>
@@ -3074,6 +3084,20 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
       toast.success(t("allCopiedSuccess"));
     };
 
+    const handleDownloadPlatformTxt = () => {
+      const text = formatPlatformSeoText(selectedPlatformTab, effectiveItem, draftTitle || "Untitled");
+      const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${selectedPlatformTab}_metadata_${(draftTitle || "konten").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(locale === "id" ? `File ${selectedPlatformTab}_metadata.txt berhasil diunduh!` : `${selectedPlatformTab}_metadata.txt downloaded!`);
+    };
+
     return (
       <div className="space-y-6">
         {/* Header & Subtitle */}
@@ -3089,18 +3113,29 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
             </div>
 
             {hasAnyContent && (
-              <button
-                type="button"
-                onClick={handleCopyAllPlatform}
-                className="inline-flex items-center gap-2 text-xs font-semibold px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition-all active:scale-95 shrink-0"
-              >
-                <span>{copiedId === `plat-all-${selectedPlatformTab}` ? "✓" : "🚀"}</span>
-                <span>
-                  {copiedId === `plat-all-${selectedPlatformTab}`
-                    ? t("copied")
-                    : `${t("copyAllPlatform")} (${currentMeta.label})`}
-                </span>
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleCopyAllPlatform}
+                  className="inline-flex items-center gap-2 text-xs font-semibold px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition-all active:scale-95"
+                >
+                  <span>{copiedId === `plat-all-${selectedPlatformTab}` ? "✓" : "📋"}</span>
+                  <span>
+                    {copiedId === `plat-all-${selectedPlatformTab}`
+                      ? t("copied")
+                      : `${t("copyAllPlatform")} (${currentMeta.label})`}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadPlatformTxt}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200 shadow-sm transition-all active:scale-95"
+                  title="Unduh metadata file .txt untuk platform ini"
+                >
+                  <span>💾</span>
+                  <span>Unduh .txt</span>
+                </button>
+              </div>
             )}
           </div>
 
@@ -3925,6 +3960,42 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
  </div>
  )}
 
+  {/* 🚀 1-Tombol Auto Upload & Publish Banner */}
+  <div className="glass-panel rounded-2xl p-5 border border-indigo-500/30 bg-gradient-to-r from-blue-600/10 via-indigo-600/10 to-purple-600/10 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-1">
+      <div className="flex items-center gap-2">
+        <span className="text-2xl">🚀</span>
+        <h3 className="text-base font-bold pg-text-heading flex items-center gap-2">
+          <span>1-Tombol Auto Upload & Publish</span>
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold shadow-xs">
+            Multi-Platform
+          </span>
+        </h3>
+      </div>
+      <p className="text-xs pg-text-sub max-w-xl">
+        Upload video (dari Google Drive channel atau langsung dari PC) dan otomatis publikasikan ke YouTube, Instagram & Facebook dengan judul, deskripsi, dan hashtag hasil Parse Engine.
+      </p>
+    </div>
+    <div className="flex items-center gap-2 shrink-0">
+      <button
+        type="button"
+        onClick={() => setDrivePackageModalOpen(true)}
+        className="px-4 py-2.5 rounded-xl border pg-border bg-[var(--pg-surface)] hover:bg-[var(--pg-surface-dim)] text-xs font-semibold pg-text-heading transition-colors"
+      >
+        ☁️ Backup Drive Saja
+      </button>
+      <button
+        type="button"
+        onClick={() => setAutoPublishModalOpen(true)}
+        disabled={!scenes.length}
+        className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:opacity-95 text-white text-xs font-bold shadow-md transition-all active:scale-95 disabled:opacity-50 flex items-center gap-1.5"
+      >
+        <span>🚀</span>
+        <span>Auto Upload Sekarang</span>
+      </button>
+    </div>
+  </div>
+
  {/* Save Draft Panel */}
  <div className="glass-panel rounded-xl p-5 space-y-3">
  <h3 className="text-sm font-semibold pg-text-heading">💾 {t("saveDraft")}</h3>
@@ -3942,12 +4013,33 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
  channelName={currentChannel?.channelName || "Default Channel"}
  defaultTitle={draftTitle}
  scenes={scenes}
+ caption={caption}
+ hashtags={hashtags}
  multiPlatformSeo={multiPlatformSeo}
  thumbnailData={thumbnailData}
  isFunnel={!!funnelPackData}
  funnelPackData={funnelPackData}
  activeSegmentId={activeFunnelSegment}
  onSelectSegment={(seg) => switchFunnelSegment(seg)}
+ />
+
+ <AutoPublishModal
+ isOpen={autoPublishModalOpen}
+ onClose={() => setAutoPublishModalOpen(false)}
+ channelId={selectedChannelId || currentChannel?.id || ""}
+ channelName={currentChannel?.channelName || "Default Channel"}
+ content={{
+   title: draftTitle,
+   projectTitle: draftTitle,
+   scenes,
+   caption,
+   hashtags,
+   multiPlatformSeo,
+   aspectRatio: ar,
+ }}
+ isFunnel={!!funnelPackData}
+ funnelPackData={funnelPackData}
+ activeSegmentId={activeFunnelSegment}
  />
  </>
  )}

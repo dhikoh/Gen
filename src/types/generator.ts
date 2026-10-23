@@ -28,6 +28,7 @@ export interface FunnelConfigSnapshot {
 export interface FunnelSegment {
   id: "short1" | "short2" | "long";
   label: string;
+  title?: string;
   aspectRatio: "9:16" | "16:9";
   targetDurationSec: number;
   scenes: Scene[];

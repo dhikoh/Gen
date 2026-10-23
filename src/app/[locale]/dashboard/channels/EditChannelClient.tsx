@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import ProductsClient from "./ProductsClient";
+import ChannelConnectionsClient from "./ChannelConnectionsClient";
 import UsedTitlesDirectory from "@/components/dashboard/UsedTitlesDirectory";
 import { PresetSelect, PresetOption } from "@/components/ui/PresetSelect";
 
@@ -470,6 +471,10 @@ export default function EditChannelClient({
 
       {!isNew && channel?.id && (
         <>
+          <div className="pt-4 border-t pg-border">
+            <ChannelConnectionsClient channelId={channel.id} channelName={channel.channelName || ""} />
+          </div>
+
           <div className="pt-4 border-t pg-border">
             <ProductsClient channelId={channel.id} />
           </div>
