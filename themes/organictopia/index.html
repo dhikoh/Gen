@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+  <title>Organictopia — Urban Organic Gardening & Micro-Farming Lab</title>
+  <meta name="description" content="Where small spaces grow big harvests. Research-backed urban organic gardening guides for balconies, windowsills, and small spaces. Backed by science, zero clickbait.">
+  <meta name="author" content="Organictopia Science Team">
+  <meta name="keywords" content="urban farming, organic gardening, apartment garden, liquid fertilizer, container potting mix, micro-farming">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://organictopia.blogspot.com/">
+  <meta property="og:title" content="Organictopia — Urban Organic Gardening & Micro-Farming Lab">
+  <meta property="og:description" content="Where small spaces grow big harvests. Research-backed guides for container gardening.">
+  <meta property="og:image" content="https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&w=1200&q=80">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-body: #f8faf7;
+      --bg-surface: #ffffff;
+      --bg-surface-elevated: #ffffff;
+      --bg-surface-subtle: #f1f5ef;
+      --border-color: #e2e8df;
+      --border-subtle: #edf2eb;
+      
+      --brand-primary: #047857;
+      --brand-primary-hover: #065f46;
+      --brand-primary-light: #ecfdf5;
+      --brand-emerald-dark: #064e3b;
+      --brand-accent: #10b981;
+      --brand-accent-glow: rgba(16, 185, 129, 0.15);
+      --brand-orange: #f97316;
+      
+      --text-main: #192a24;
+      --text-muted: #566860;
+      --text-subtle: #84958e;
+      
+      --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-heading: 'Outfit', sans-serif;
+      
+      --shadow-sm: 0 1px 3px rgba(16, 42, 33, 0.05);
+      --shadow-md: 0 4px 12px rgba(16, 42, 33, 0.08);
+      --shadow-lg: 0 12px 30px rgba(16, 42, 33, 0.12);
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-full: 9999px;
+      --transition-base: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    [data-theme="dark"] {
+      --bg-body: #0a110f;
+      --bg-surface: #101c18;
+      --bg-surface-elevated: #162520;
+      --bg-surface-subtle: #0d1714;
+      --border-color: #1e332c;
+      --border-subtle: #14241f;
+      
+      --brand-primary: #10b981;
+      --brand-primary-hover: #34d399;
+      --brand-primary-light: rgba(16, 185, 129, 0.12);
+      --brand-emerald-dark: #064e3b;
+      --brand-accent: #34d399;
+      --brand-accent-glow: rgba(52, 211, 153, 0.2);
+      
+      --text-main: #ecf5f1;
+      --text-muted: #95aaa0;
+      --text-subtle: #62776e;
+      
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.4);
+      --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-body);
+      background-color: var(--bg-body);
+      color: var(--text-main);
+      line-height: 1.65;
+      transition: background-color 0.3s ease, color 0.3s ease;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    /* Site Header */
+    header.site-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(248, 250, 247, 0.9);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color);
+    }
+    [data-theme="dark"] header.site-header {
+      background: rgba(10, 17, 15, 0.9);
+    }
+
+    .nav-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 72px;
+    }
+
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: var(--text-main);
+    }
+
+    .brand-badge-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, var(--brand-emerald-dark), var(--brand-accent));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-size: 1.25rem;
+      box-shadow: 0 4px 10px var(--brand-accent-glow);
+    }
+
+    .brand-text h1 {
+      font-family: var(--font-heading);
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      color: var(--text-main);
+    }
+
+    .brand-text span {
+      font-size: 0.75rem;
+      color: var(--brand-primary);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 1.75rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      text-decoration: none;
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.92rem;
+      transition: var(--transition-base);
+    }
+    .nav-links a:hover, .nav-links a.active { color: var(--brand-primary); }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .theme-toggle-btn {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1.1rem;
+      transition: var(--transition-base);
+    }
+    .theme-toggle-btn:hover {
+      border-color: var(--brand-accent);
+      transform: translateY(-1px);
+    }
+
+    .btn-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--brand-primary);
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 0.88rem;
+      padding: 0.65rem 1.25rem;
+      border-radius: var(--radius-full);
+      text-decoration: none;
+      transition: var(--transition-base);
+      box-shadow: 0 4px 14px var(--brand-accent-glow);
+      border: none;
+      cursor: pointer;
+    }
+    .btn-cta:hover {
+      background: var(--brand-primary-hover);
+      transform: translateY(-2px);
+    }
+
+    /* Hero Section */
+    .hero-section {
+      padding: 4.5rem 0 3rem;
+      text-align: center;
+    }
+    .hero-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 1rem;
+      background: var(--brand-primary-light);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: var(--brand-primary);
+      font-weight: 700;
+      font-size: 0.8rem;
+      border-radius: var(--radius-full);
+      margin-bottom: 1.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .hero-title {
+      font-family: var(--font-heading);
+      font-size: clamp(2.2rem, 5vw, 3.5rem);
+      font-weight: 800;
+      line-height: 1.15;
+      color: var(--text-main);
+      max-width: 860px;
+      margin: 0 auto 1.25rem;
+    }
+    .hero-title .gradient-text {
+      background: linear-gradient(135deg, var(--brand-primary), var(--brand-accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-subtitle {
+      font-size: 1.15rem;
+      color: var(--text-muted);
+      max-width: 680px;
+      margin: 0 auto 2rem;
+      line-height: 1.7;
+    }
+
+    /* Calculator Widget */
+    .calculator-section {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 2.5rem;
+      margin: 2rem 0 4rem;
+      box-shadow: var(--shadow-md);
+    }
+    .calc-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .calc-title h3 {
+      font-family: var(--font-heading);
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .calc-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2.5rem;
+      align-items: center;
+    }
+    @media (max-width: 820px) {
+      .calc-grid { grid-template-columns: 1fr; }
+    }
+    .calc-form-group { margin-bottom: 1.25rem; }
+    .calc-form-group label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 0.5rem;
+    }
+    .calc-slider {
+      width: 100%;
+      height: 6px;
+      accent-color: var(--brand-primary);
+    }
+    .calc-select {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      background: var(--bg-body);
+      color: var(--text-main);
+      font-size: 0.95rem;
+    }
+    .calc-result-box {
+      background: linear-gradient(135deg, rgba(6, 78, 59, 0.08), rgba(16, 185, 129, 0.05));
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      border-radius: var(--radius-md);
+      padding: 2rem;
+      text-align: center;
+    }
+    [data-theme="dark"] .calc-result-box {
+      background: linear-gradient(135deg, rgba(6, 78, 59, 0.35), rgba(16, 185, 129, 0.15));
+    }
+    .result-number {
+      font-family: var(--font-heading);
+      font-size: 3.2rem;
+      font-weight: 800;
+      color: var(--text-main);
+      line-height: 1;
+    }
+
+    /* Articles Grid */
+    .articles-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 2rem;
+      margin-bottom: 4rem;
+    }
+    @media (max-width: 640px) { .articles-grid { grid-template-columns: 1fr; } }
+
+    .article-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: var(--transition-base);
+      cursor: pointer;
+    }
+    .article-card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow-lg);
+      border-color: var(--brand-accent);
+    }
+    .card-thumb-wrap {
+      height: 220px;
+      overflow: hidden;
+      background: #11201a;
+      position: relative;
+    }
+    .card-thumb-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.4s ease;
+    }
+    .article-card:hover .card-thumb-wrap img { transform: scale(1.04); }
+
+    .card-content {
+      padding: 1.5rem;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .card-meta {
+      font-size: 0.8rem;
+      color: var(--text-subtle);
+      margin-bottom: 0.75rem;
+    }
+    .card-title {
+      font-family: var(--font-heading);
+      font-size: 1.3rem;
+      font-weight: 700;
+      line-height: 1.35;
+      color: var(--text-main);
+      margin-bottom: 0.75rem;
+    }
+    .article-card:hover .card-title { color: var(--brand-primary); }
+    .card-snippet {
+      font-size: 0.92rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 1.25rem;
+      flex: 1;
+    }
+    .card-footer {
+      display: flex;
+      justify-content: space-between;
+      border-top: 1px solid var(--border-subtle);
+      padding-top: 1rem;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--brand-primary);
+    }
+
+    /* Newsletter */
+    .newsletter-section {
+      background: linear-gradient(135deg, var(--brand-emerald-dark), #0f2c23);
+      color: #ffffff;
+      border-radius: var(--radius-lg);
+      padding: 3rem 2.5rem;
+      margin: 3.5rem 0;
+      text-align: center;
+    }
+    .newsletter-section h3 {
+      font-family: var(--font-heading);
+      font-size: 2rem;
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+    }
+    .newsletter-section p {
+      color: #a7f3d0;
+      font-size: 1rem;
+      max-width: 600px;
+      margin: 0 auto 1.5rem;
+    }
+    .newsletter-form {
+      display: flex;
+      gap: 0.75rem;
+      max-width: 500px;
+      margin: 0 auto;
+      flex-wrap: wrap;
+    }
+    .newsletter-input {
+      flex: 1;
+      padding: 0.8rem 1.25rem;
+      border-radius: var(--radius-full);
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.1);
+      color: #ffffff;
+      outline: none;
+    }
+    .newsletter-input::placeholder { color: #a7f3d0; }
+    .btn-subscribe {
+      background: var(--brand-accent);
+      color: #064e3b;
+      font-weight: 800;
+      padding: 0.8rem 1.5rem;
+      border-radius: var(--radius-full);
+      border: none;
+      cursor: pointer;
+    }
+
+    /* Footer */
+    footer.site-footer {
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border-color);
+      padding: 4rem 0 2rem;
+      margin-top: 5rem;
+    }
+    .footer-bottom {
+      border-top: 1px solid var(--border-subtle);
+      padding-top: 2rem;
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-subtle);
+      font-size: 0.85rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Site Header -->
+  <header class="site-header">
+    <div class="container">
+      <div class="nav-wrapper">
+        <a href="#" class="brand-logo">
+          <div class="brand-badge-icon">🌿</div>
+          <div class="brand-text">
+            <h1>Organictopia</h1>
+            <span>Micro-Farming Lab</span>
+          </div>
+        </a>
+
+        <ul class="nav-links">
+          <li><a href="#calculator" class="active">Nutrient Calculator</a></li>
+          <li><a href="#guides">Research Guides</a></li>
+          <li><a href="#products">Starter Kit</a></li>
+          <li><a href="#about">About Lab</a></li>
+        </ul>
+
+        <div class="header-actions">
+          <button class="theme-toggle-btn" id="themeToggle" title="Toggle Dark/Light Mode">
+            🌙
+          </button>
+          <a href="#calculator" class="btn-cta">
+            <span>Calculate Dosage</span> ➜
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="container">
+      <div class="hero-pill">
+        🌱 University-Backed Research • 0% Clickbait
+      </div>
+      <h2 class="hero-title">
+        Where <span class="gradient-text">Small Spaces</span> Grow Big Harvests.
+      </h2>
+      <p class="hero-subtitle">
+        We help apartment and small-home dwellers grow fresh, nutrient-dense organic harvests on balconies, windowsills, and tiny patios. Backed by biological soil research — zero guesswork.
+      </p>
+    </div>
+  </section>
+
+  <!-- Smart POC Calculator (English) -->
+  <section class="container" id="calculator">
+    <div class="calculator-section">
+      <div class="calc-header">
+        <div class="calc-title">
+          <h3>🧪 Smart Liquid Fertilizer (POC) Dilution Calculator</h3>
+          <p>Calculate the exact liquid organic nutrient dosage per liter of watering volume.</p>
+        </div>
+      </div>
+
+      <div class="calc-grid">
+        <div class="calc-inputs">
+          <div class="calc-form-group">
+            <label>
+              <span>Water Volume</span>
+              <span id="waterVolDisplay" style="color:var(--brand-primary); font-family:monospace; font-weight:700;">5 Litres</span>
+            </label>
+            <input type="range" class="calc-slider" id="waterVolInput" min="1" max="25" value="5" step="1" oninput="updatePocCalc()">
+          </div>
+
+          <div class="calc-form-group">
+            <label>Plant Growth Phase</label>
+            <select class="calc-select" id="pocPhaseInput" onchange="updatePocCalc()">
+              <option value="veg">Vegetative Phase (Foliage & Stems — 1:100 Ratio)</option>
+              <option value="gen">Generative Phase (Flowers & Fruit Set — 1:50 Ratio)</option>
+              <option value="recovery">Seedling Recovery / Root Shock (1:200 Ratio)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="calc-result-box">
+          <div style="font-size:0.75rem; text-transform:uppercase; font-weight:800; color:var(--brand-primary); margin-bottom:0.5rem;">
+            Required Organic Concentrate
+          </div>
+          <div class="result-number" id="pocResultMl">50</div>
+          <div style="font-size:0.95rem; color:var(--text-muted); font-weight:600;">Milliliters (ml)</div>
+          <div id="pocSpoonDisplay" style="margin-top:1rem; font-size:0.9rem; font-weight:700; color:var(--text-main);">
+            ~3.5 Tablespoons
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Research Guides (English) -->
+  <section class="container" id="guides">
+    <div style="margin-bottom: 2rem;">
+      <h2 style="font-family: var(--font-heading); font-size: 2rem; font-weight: 800;">Latest Research Guides</h2>
+      <p style="color: var(--text-muted);">Peer-reviewed container gardening techniques from our apartment test lab.</p>
+    </div>
+
+    <div class="articles-grid">
+      <!-- Article 1 -->
+      <article class="article-card">
+        <div class="card-thumb-wrap">
+          <img src="https://images.unsplash.com/photo-1592841200221-a6898f307baa?auto=format&fit=crop&w=800&q=80" alt="Balcony Cherry Tomatoes">
+        </div>
+        <div class="card-content">
+          <div class="card-meta">📅 October 22, 2026 • Plant Physiology</div>
+          <h3 class="card-title">How to Harvest 5kg Cherry Tomatoes on a 1-Meter Balcony</h3>
+          <p class="card-snippet">Learn the single-stem pruning system and vertical trellis training that maximized tomato yields in a tiny space without synthetic pesticides.</p>
+          <div class="card-footer">
+            <span>Read Full Guide</span>
+            <span>➜</span>
+          </div>
+        </div>
+      </article>
+
+      <!-- Article 2 -->
+      <article class="article-card">
+        <div class="card-thumb-wrap">
+          <img src="https://images.unsplash.com/photo-1416879595882-3373a0480b5b?auto=format&fit=crop&w=800&q=80" alt="Container Pot Drainage">
+        </div>
+        <div class="card-content">
+          <div class="card-meta">📅 October 18, 2026 • Soil Mechanics</div>
+          <h3 class="card-title">The #1 Mistake Apartment Gardeners Make with Pot Drainage</h3>
+          <p class="card-snippet">Why putting gravel at the bottom of pots actually causes root rot. Understanding the perched water table effect and sub-irrigation physics.</p>
+          <div class="card-footer">
+            <span>Read Full Guide</span>
+            <span>➜</span>
+          </div>
+        </div>
+      </article>
+
+      <!-- Article 3 -->
+      <article class="article-card">
+        <div class="card-thumb-wrap">
+          <img src="https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&w=800&q=80" alt="Garden Soil vs Potting Mix">
+        </div>
+        <div class="card-content">
+          <div class="card-meta">📅 October 14, 2026 • Agronomy</div>
+          <h3 class="card-title">Why You Should Never Use Garden Soil in Container Pots</h3>
+          <p class="card-snippet">A microscopic look at soil compaction and oxygen starvation in closed pots, plus our 3-part golden soilless formulation.</p>
+          <div class="card-footer">
+            <span>Read Full Guide</span>
+            <span>➜</span>
+          </div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- Newsletter Banner -->
+  <section class="container">
+    <div class="newsletter-section">
+      <h3>Join 15,000+ Urban Micro-Farmers</h3>
+      <p>Subscribe to our weekly lab dispatches. Receive university-backed container gardening guides directly to your inbox.</p>
+      <form class="newsletter-form" onsubmit="event.preventDefault(); alert('Subscribed successfully!');">
+        <input class="newsletter-input" placeholder="Enter your email address..." required type="email">
+        <button class="btn-subscribe" type="submit">Subscribe Free</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="site-footer" id="about">
+    <div class="container">
+      <div class="footer-bottom">
+        <div>© 2026 Organictopia Lab. Where small spaces grow big harvests.</div>
+        <div>Core Web Vitals 100% • Pure Vanilla Tech</div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const themeToggleBtn = document.getElementById('themeToggle');
+    function applyTheme(theme) {
+      if (theme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        themeToggleBtn.textContent = '☀️';
+        localStorage.setItem('organictopia_theme', 'dark');
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+        themeToggleBtn.textContent = '🌙';
+        localStorage.setItem('organictopia_theme', 'light');
+      }
+    }
+
+    const savedTheme = localStorage.getItem('organictopia_theme') || 
+      (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    applyTheme(savedTheme);
+
+    themeToggleBtn.addEventListener('click', () => {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      applyTheme(isDark ? 'light' : 'dark');
+    });
+
+    function updatePocCalc() {
+      const litres = parseInt(document.getElementById('waterVolInput').value, 10);
+      document.getElementById('waterVolDisplay').textContent = `${litres} Litres`;
+      const phase = document.getElementById('pocPhaseInput').value;
+      let mlPerLitre = 10;
+      if (phase === 'gen') mlPerLitre = 20;
+      if (phase === 'recovery') mlPerLitre = 5;
+
+      const totalMl = litres * mlPerLitre;
+      document.getElementById('pocResultMl').textContent = totalMl;
+      document.getElementById('pocSpoonDisplay').textContent = `~${(totalMl / 15).toFixed(1)} Tablespoons`;
+    }
+
+    updatePocCalc();
+  </script>
+</body>
+</html>

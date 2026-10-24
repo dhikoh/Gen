@@ -1,0 +1,1321 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html>
+<html b:version='2' class='v2' expr:dir='data:blog.languageDirection' lang='en' xmlns='http://www.w3.org/1999/xhtml' xmlns:b='http://www.google.com/2005/gml/b' xmlns:data='http://www.google.com/2005/gml/data' xmlns:expr='http://www.google.com/2005/gml/expr'>
+<head>
+  <meta content='ETZFnPJGSfVBrjWP-Y-v9o8GEy14386UGUz1rUObHys' name='google-site-verification'/>
+  <meta content='3ca5dd45587f4a7e' name='yandex-verification'/>
+  <meta content='width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=5' name='viewport'/>
+
+  <title>
+    <b:if cond='data:blog.pageType == &quot;index&quot;'>
+      <data:blog.pageTitle/>
+    <b:else/>
+      <b:if cond='data:blog.pageType != &quot;error_page&quot;'>
+        <data:blog.pageName/> — Organictopia
+      <b:else/>
+        Page Not Found (404) — Organictopia
+      </b:if>
+    </b:if>
+  </title>
+
+  <b:include data='blog' name='all-head-content'/>
+
+  <!-- Google Fonts: Plus Jakarta Sans & Outfit -->
+  <link rel='preconnect' href='https://fonts.googleapis.com'/>
+  <link crossorigin='anonymous' href='https://fonts.gstatic.com' rel='preconnect'/>
+  <link href='https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&amp;family=Outfit:wght@400;600;700;800&amp;display=swap' rel='stylesheet'/>
+  <link href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css' rel='stylesheet'/>
+
+  <!-- SEO & Social Open Graph -->
+  <b:if cond='data:blog.pageType in {&quot;item&quot;, &quot;static_page&quot;}'>
+    <meta expr:content='data:blog.pageName' property='og:title'/>
+    <meta expr:content='data:blog.canonicalUrl' property='og:url'/>
+    <meta content='article' property='og:type'/>
+    <b:if cond='data:blog.postImageUrl'>
+      <meta expr:content='data:blog.postImageUrl' property='og:image'/>
+    <b:else/>
+      <meta content='https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&amp;fit=crop&amp;w=1200&amp;q=80' property='og:image'/>
+    </b:if>
+  <b:else/>
+    <meta expr:content='data:blog.title' property='og:title'/>
+    <meta content='website' property='og:type'/>
+    <meta expr:content='data:blog.canonicalUrl' property='og:url'/>
+    <meta content='https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&amp;fit=crop&amp;w=1200&amp;q=80' property='og:image'/>
+  </b:if>
+  <meta content='Where small spaces grow big harvests. Research-backed urban organic gardening guides for apartments, balconies, and tiny patios.' name='description'/>
+
+  <!-- Schema.org JSON-LD -->
+  <script type='application/ld+json'>
+  //<![CDATA[
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Organictopia",
+    "url": "https://organictopia.blogspot.com/",
+    "description": "Where small spaces grow big harvests. Urban Organic Gardening & Micro-Farming Research.",
+    "publisher": {
+      "@type": "Organization",
+      "name": "Organictopia Lab",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&w=600&q=80"
+      }
+    }
+  }
+  //]]>
+  </script>
+
+  <b:skin><![CDATA[
+    :root {
+      --bg-body: #f8faf7;
+      --bg-surface: #ffffff;
+      --bg-surface-elevated: #ffffff;
+      --bg-surface-subtle: #f1f5ef;
+      --border-color: #e2e8df;
+      --border-subtle: #edf2eb;
+      
+      --brand-primary: #047857;
+      --brand-primary-hover: #065f46;
+      --brand-primary-light: #ecfdf5;
+      --brand-emerald-dark: #064e3b;
+      --brand-accent: #10b981;
+      --brand-accent-glow: rgba(16, 185, 129, 0.15);
+      --brand-orange: #f97316;
+      
+      --text-main: #192a24;
+      --text-muted: #566860;
+      --text-subtle: #84958e;
+      
+      --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-heading: 'Outfit', sans-serif;
+      
+      --shadow-sm: 0 1px 3px rgba(16, 42, 33, 0.05);
+      --shadow-md: 0 4px 12px rgba(16, 42, 33, 0.08);
+      --shadow-lg: 0 12px 30px rgba(16, 42, 33, 0.12);
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-full: 9999px;
+      --transition-base: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    [data-theme="dark"] {
+      --bg-body: #0a110f;
+      --bg-surface: #101c18;
+      --bg-surface-elevated: #162520;
+      --bg-surface-subtle: #0d1714;
+      --border-color: #1e332c;
+      --border-subtle: #14241f;
+      
+      --brand-primary: #10b981;
+      --brand-primary-hover: #34d399;
+      --brand-primary-light: rgba(16, 185, 129, 0.12);
+      --brand-emerald-dark: #064e3b;
+      --brand-accent: #34d399;
+      --brand-accent-glow: rgba(52, 211, 153, 0.2);
+      
+      --text-main: #ecf5f1;
+      --text-muted: #95aaa0;
+      --text-subtle: #62776e;
+      
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.4);
+      --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Reset Blogger Defs */
+    .quickedit, .widget-item-control, .post-feeds, .feed-links, #navbar-iframe { display: none !important; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-body);
+      background-color: var(--bg-body);
+      color: var(--text-main);
+      line-height: 1.65;
+      transition: background-color 0.3s ease, color 0.3s ease;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    /* Site Header */
+    header.site-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(248, 250, 247, 0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color);
+    }
+    [data-theme="dark"] header.site-header {
+      background: rgba(10, 17, 15, 0.92);
+    }
+
+    .nav-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 72px;
+    }
+
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: var(--text-main);
+    }
+
+    .brand-badge-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, var(--brand-emerald-dark), var(--brand-accent));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-size: 1.25rem;
+      box-shadow: 0 4px 10px var(--brand-accent-glow);
+    }
+
+    .brand-text .logo-title {
+      font-family: var(--font-heading);
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      color: var(--text-main);
+    }
+
+    .brand-text span {
+      font-size: 0.75rem;
+      color: var(--brand-primary);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 1.75rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      text-decoration: none;
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.92rem;
+      transition: var(--transition-base);
+    }
+    .nav-links a:hover { color: var(--brand-primary); }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .search-toggle-btn, .theme-toggle-btn {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: var(--transition-base);
+    }
+    .search-toggle-btn:hover, .theme-toggle-btn:hover {
+      border-color: var(--brand-accent);
+      transform: translateY(-1px);
+    }
+
+    .btn-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--brand-primary);
+      color: #ffffff !important;
+      font-weight: 700;
+      font-size: 0.88rem;
+      padding: 0.65rem 1.25rem;
+      border-radius: var(--radius-full);
+      text-decoration: none;
+      transition: var(--transition-base);
+      box-shadow: 0 4px 14px var(--brand-accent-glow);
+      border: none;
+      cursor: pointer;
+    }
+    .btn-cta:hover {
+      background: var(--brand-primary-hover);
+      transform: translateY(-2px);
+    }
+
+    /* Expandable Search Bar */
+    .search-bar-wrap {
+      display: none;
+      background: var(--bg-surface-elevated);
+      border-bottom: 1px solid var(--border-color);
+      padding: 1rem 0;
+    }
+    .search-bar-wrap.active {
+      display: block;
+    }
+    .search-form-inner {
+      display: flex;
+      gap: 0.75rem;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .search-input {
+      flex: 1;
+      padding: 0.75rem 1.25rem;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border-color);
+      background: var(--bg-body);
+      color: var(--text-main);
+      outline: none;
+      font-size: 0.95rem;
+    }
+    .search-input:focus {
+      border-color: var(--brand-primary);
+    }
+
+    /* Hero Banner */
+    .hero-banner {
+      padding: 4rem 0 2.5rem;
+      text-align: center;
+    }
+    .hero-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 1rem;
+      background: var(--brand-primary-light);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: var(--brand-primary);
+      font-weight: 700;
+      font-size: 0.8rem;
+      border-radius: var(--radius-full);
+      margin-bottom: 1.25rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .hero-banner h2 {
+      font-family: var(--font-heading);
+      font-size: clamp(2rem, 4.5vw, 3.2rem);
+      font-weight: 800;
+      line-height: 1.2;
+      color: var(--text-main);
+      max-width: 840px;
+      margin: 0 auto 1rem;
+    }
+    .hero-banner p {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      max-width: 680px;
+      margin: 0 auto;
+      line-height: 1.7;
+    }
+
+    /* Interactive Calculator Widget */
+    .calculator-widget {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 2.25rem;
+      margin: 1.5rem 0 3.5rem;
+      box-shadow: var(--shadow-md);
+    }
+    .calc-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .calc-header-row h3 {
+      font-family: var(--font-heading);
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .calc-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      align-items: center;
+    }
+    @media (max-width: 768px) {
+      .calc-grid-2 { grid-template-columns: 1fr; }
+      .nav-links { display: none; }
+    }
+    .calc-slider {
+      width: 100%;
+      accent-color: var(--brand-primary);
+      margin: 0.5rem 0;
+    }
+    .calc-select {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      background: var(--bg-body);
+      color: var(--text-main);
+      margin-top: 0.4rem;
+      font-size: 0.95rem;
+    }
+    .calc-output-box {
+      background: linear-gradient(135deg, rgba(6, 78, 59, 0.1), rgba(16, 185, 129, 0.05));
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      border-radius: var(--radius-md);
+      padding: 1.75rem;
+      text-align: center;
+    }
+    [data-theme="dark"] .calc-output-box {
+      background: linear-gradient(135deg, rgba(6, 78, 59, 0.35), rgba(16, 185, 129, 0.15));
+    }
+    .calc-number {
+      font-family: var(--font-heading);
+      font-size: 2.75rem;
+      font-weight: 800;
+      color: var(--text-main);
+      line-height: 1;
+    }
+
+    /* Main Layout with Sidebar */
+    .layout-row {
+      display: grid;
+      grid-template-columns: 2.5fr 1fr;
+      gap: 2.5rem;
+      margin-bottom: 4rem;
+    }
+    @media (max-width: 900px) {
+      .layout-row { grid-template-columns: 1fr; }
+    }
+
+    /* Post Card Stream (Homepage / Archive) */
+    .blog-posts {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    .post-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      transition: var(--transition-base);
+    }
+    .post-card:hover {
+      border-color: var(--brand-accent);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-3px);
+    }
+
+    .post-thumb {
+      height: 260px;
+      overflow: hidden;
+      background: #11201a;
+      position: relative;
+    }
+    .post-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.4s ease;
+      display: block;
+    }
+    .post-card:hover .post-thumb img {
+      transform: scale(1.04);
+    }
+
+    .post-card-body {
+      padding: 2rem;
+    }
+
+    .post-card-tag {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.6rem;
+      flex-wrap: wrap;
+    }
+    .post-card-tag a {
+      background: var(--brand-primary-light);
+      color: var(--brand-primary);
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.25rem 0.65rem;
+      border-radius: var(--radius-full);
+      text-decoration: none;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .post-card h2.post-card-title {
+      font-family: var(--font-heading);
+      font-size: 1.55rem;
+      font-weight: 700;
+      line-height: 1.3;
+      margin-bottom: 0.75rem;
+    }
+    .post-card h2.post-card-title a {
+      color: var(--text-main);
+      text-decoration: none;
+      transition: var(--transition-base);
+    }
+    .post-card h2.post-card-title a:hover {
+      color: var(--brand-primary);
+    }
+
+    .post-card-snippet {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.7;
+      margin-bottom: 1.5rem;
+    }
+
+    .post-card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid var(--border-subtle);
+      padding-top: 1rem;
+      font-size: 0.85rem;
+      color: var(--text-subtle);
+    }
+
+    .btn-read-more {
+      color: var(--brand-primary);
+      font-weight: 700;
+      text-decoration: none;
+      transition: var(--transition-base);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .btn-read-more:hover {
+      color: var(--brand-primary-hover);
+      transform: translateX(3px);
+    }
+
+    /* Single Post Detail Typography */
+    .single-post-wrapper {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 3rem 2.5rem;
+      color: var(--text-main);
+    }
+
+    .breadcrumbs {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      color: var(--text-subtle);
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .breadcrumbs a {
+      color: var(--brand-primary);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .breadcrumbs .sep {
+      color: var(--border-color);
+    }
+
+    .single-post-wrapper h1.post-title {
+      font-family: var(--font-heading);
+      font-size: clamp(1.8rem, 3.5vw, 2.5rem);
+      line-height: 1.25;
+      margin-bottom: 0.75rem;
+      color: var(--text-main);
+    }
+
+    .post-meta-bar {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      font-size: 0.85rem;
+      color: var(--text-subtle);
+      margin-bottom: 2rem;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border-subtle);
+      flex-wrap: wrap;
+    }
+
+    .post-body.entry-content {
+      font-size: 1.05rem;
+      line-height: 1.85;
+      color: var(--text-main);
+    }
+    .post-body.entry-content h2 {
+      font-family: var(--font-heading);
+      font-size: 1.5rem;
+      color: var(--brand-primary);
+      margin: 2.25rem 0 0.85rem;
+    }
+    .post-body.entry-content h3 {
+      font-family: var(--font-heading);
+      font-size: 1.25rem;
+      margin: 1.75rem 0 0.5rem;
+      color: var(--text-main);
+    }
+    .post-body.entry-content p {
+      margin-bottom: 1.35rem;
+    }
+    .post-body.entry-content ul, .post-body.entry-content ol {
+      margin: 1rem 0 1.5rem 1.75rem;
+    }
+    .post-body.entry-content li {
+      margin-bottom: 0.5rem;
+    }
+    .post-body.entry-content img {
+      max-width: 100%;
+      height: auto;
+      border-radius: var(--radius-md);
+      margin: 1.75rem 0;
+      display: block;
+    }
+    .post-body.entry-content table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.75rem 0;
+      font-size: 0.95rem;
+    }
+    .post-body.entry-content th, .post-body.entry-content td {
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border-color);
+      text-align: left;
+    }
+    .post-body.entry-content th {
+      background: var(--bg-surface-subtle);
+      color: var(--brand-primary);
+    }
+    .post-body.entry-content blockquote {
+      border-left: 4px solid var(--brand-primary);
+      padding: 0.75rem 1.25rem;
+      margin: 1.5rem 0;
+      font-style: italic;
+      color: var(--text-muted);
+      background: var(--bg-surface-subtle);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    }
+
+    /* Social Share Section */
+    .post-share-wrap {
+      margin-top: 2.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .share-buttons {
+      display: flex;
+      gap: 0.6rem;
+    }
+    .btn-share {
+      width: 38px;
+      height: 38px;
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      text-decoration: none;
+      font-size: 0.95rem;
+      transition: var(--transition-base);
+    }
+    .btn-share.facebook { background: #1877f2; }
+    .btn-share.twitter { background: #1da1f2; }
+    .btn-share.whatsapp { background: #25d366; }
+    .btn-share:hover { transform: translateY(-2px); opacity: 0.9; }
+
+    /* Author Bio Box */
+    .author-box {
+      margin-top: 2.5rem;
+      padding: 1.75rem;
+      border-radius: var(--radius-md);
+      background: var(--bg-surface-subtle);
+      border: 1px solid var(--border-color);
+      display: flex;
+      gap: 1.25rem;
+      align-items: center;
+    }
+    .author-avatar {
+      width: 70px;
+      height: 70px;
+      border-radius: var(--radius-full);
+      object-fit: cover;
+      border: 3px solid var(--brand-accent);
+    }
+    .author-details h4 {
+      font-family: var(--font-heading);
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .author-details p {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+      line-height: 1.5;
+    }
+
+    /* Newsletter Subscribe Banner */
+    .newsletter-section {
+      background: linear-gradient(135deg, var(--brand-emerald-dark), #0f2c23);
+      color: #ffffff;
+      border-radius: var(--radius-lg);
+      padding: 3rem 2.5rem;
+      margin: 3.5rem 0;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .newsletter-section h3 {
+      font-family: var(--font-heading);
+      font-size: 1.85rem;
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+    }
+    .newsletter-section p {
+      color: #a7f3d0;
+      font-size: 1rem;
+      max-width: 600px;
+      margin: 0 auto 1.5rem;
+    }
+    .newsletter-form {
+      display: flex;
+      gap: 0.75rem;
+      max-width: 500px;
+      margin: 0 auto;
+      flex-wrap: wrap;
+    }
+    .newsletter-input {
+      flex: 1;
+      padding: 0.8rem 1.25rem;
+      border-radius: var(--radius-full);
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.1);
+      color: #ffffff;
+      outline: none;
+      font-size: 0.95rem;
+    }
+    .newsletter-input::placeholder { color: #a7f3d0; }
+    .btn-subscribe {
+      background: var(--brand-accent);
+      color: #064e3b;
+      font-weight: 800;
+      padding: 0.8rem 1.5rem;
+      border-radius: var(--radius-full);
+      border: none;
+      cursor: pointer;
+      transition: var(--transition-base);
+    }
+    .btn-subscribe:hover { background: #6ee7b7; }
+
+    /* Pagination */
+    .blog-pager {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 2.5rem;
+    }
+    .pager-link {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 0.6rem 1.25rem;
+      border-radius: var(--radius-full);
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 0.88rem;
+      transition: var(--transition-base);
+    }
+    .pager-link:hover {
+      border-color: var(--brand-primary);
+      color: var(--brand-primary);
+    }
+
+    /* Sidebar Widgets */
+    aside.sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    .sidebar-widget {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 1.75rem;
+    }
+    .sidebar-widget h4.widget-title {
+      font-family: var(--font-heading);
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 1rem;
+      border-bottom: 2px solid var(--brand-primary-light);
+      padding-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .product-callout {
+      border: 1px dashed var(--brand-primary);
+      border-radius: var(--radius-sm);
+      padding: 1.25rem;
+      background: var(--brand-primary-light);
+      margin-bottom: 1rem;
+    }
+    .product-callout strong {
+      display: block;
+      color: var(--brand-emerald-dark);
+      margin-bottom: 0.25rem;
+    }
+    [data-theme="dark"] .product-callout strong {
+      color: var(--brand-accent);
+    }
+
+    /* Floating Back-to-Top Button */
+    .fab-scroll-top {
+      position: fixed;
+      bottom: 25px;
+      right: 25px;
+      width: 44px;
+      height: 44px;
+      background: var(--brand-primary);
+      color: #ffffff;
+      border-radius: var(--radius-full);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: var(--shadow-md);
+      z-index: 999;
+      border: none;
+      font-size: 1.1rem;
+      transition: var(--transition-base);
+    }
+    .fab-scroll-top.visible { display: flex; }
+    .fab-scroll-top:hover {
+      background: var(--brand-primary-hover);
+      transform: translateY(-3px);
+    }
+
+    /* Comments Section */
+    #comments {
+      margin-top: 3rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border-color);
+    }
+    #comments h4 {
+      font-family: var(--font-heading);
+      font-size: 1.35rem;
+      margin-bottom: 1.25rem;
+    }
+
+    /* Footer */
+    footer.site-footer {
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border-color);
+      padding: 3.5rem 0 2rem;
+      margin-top: 5rem;
+    }
+    .footer-flex {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+  ]]></b:skin>
+</head>
+<body>
+
+  <!-- Hidden Header Section for Blogger compliance -->
+  <div style='display:none;'>
+    <b:section class='header' id='header' maxwidgets='1' showaddelement='no'>
+      <b:widget id='Header1' locked='true' title='Organictopia Header' type='Header'>
+        <b:includable id='main'>
+          <data:title/>
+        </b:includable>
+      </b:widget>
+    </b:section>
+  </div>
+
+  <!-- Visible Site Navigation (English) -->
+  <header class='site-header'>
+    <div class='container'>
+      <div class='nav-wrapper'>
+        <a class='brand-logo' expr:href='data:blog.homepageUrl'>
+          <div class='brand-badge-icon'>🌿</div>
+          <div class='brand-text'>
+            <div class='logo-title'>Organictopia</div>
+            <span>Micro-Farming Lab</span>
+          </div>
+        </a>
+
+        <ul class='nav-links'>
+          <li><a expr:href='data:blog.homepageUrl'>Home</a></li>
+          <li><a href='#calculator'>Nutrient Calculator</a></li>
+          <li><a href='#products'>Starter Kit</a></li>
+          <li><a href='https://instagram.com/organictopia' rel='noopener' target='_blank'>Instagram</a></li>
+          <li><a href='https://tiktok.com/@organictopia' rel='noopener' target='_blank'>TikTok</a></li>
+        </ul>
+
+        <div class='header-actions'>
+          <button aria-label='Search articles' class='search-toggle-btn' id='searchToggleBtn' onclick='toggleSearchBar()' title='Search Guides' type='button'>
+            🔍
+          </button>
+          <button aria-label='Toggle theme' class='theme-toggle-btn' id='themeToggleBtn' title='Toggle Dark/Light Mode' type='button'>
+            🌙
+          </button>
+          <a class='btn-cta' href='#calculator'>
+            Calculate Dosage ➜
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Expandable Search Form -->
+  <div class='search-bar-wrap' id='searchBarWrap'>
+    <div class='container'>
+      <form action='/search' class='search-form-inner' method='get'>
+        <input class='search-input' name='q' placeholder='Search research guides (e.g., tomatoes, pot drainage, nutrients)...' type='text'/>
+        <button class='btn-cta' type='submit'>Search</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Hero Banner (Only on Homepage / Index) -->
+  <b:if cond='data:blog.pageType == &quot;index&quot;'>
+    <section class='hero-banner'>
+      <div class='container'>
+        <div class='hero-pill'>
+          🌱 University-Backed Research • 0% Clickbait
+        </div>
+        <h2>Where <span style='color: var(--brand-primary);'>Small Spaces</span> Grow Big Harvests.</h2>
+        <p>Scientific organic gardening guides for apartments, balconies, windowsills, and tiny patios. Backed by biological soil research — zero guesswork.</p>
+      </div>
+    </section>
+
+    <!-- Interactive POC Nutrient Calculator (English) -->
+    <section class='container' id='calculator'>
+      <div class='calculator-widget'>
+        <div class='calc-header-row'>
+          <div>
+            <h3>🧪 Smart Liquid Fertilizer (POC) Dilution Calculator</h3>
+            <p style='color: var(--text-muted); font-size: 0.9rem;'>Calculate the exact liquid organic nutrient dosage per liter of watering volume.</p>
+          </div>
+        </div>
+
+        <div class='calc-grid-2'>
+          <div>
+            <div style='margin-bottom: 1.25rem;'>
+              <label style='display:flex; justify-content:space-between; font-weight:600; font-size:0.9rem;'>
+                <span>Water Volume</span>
+                <span id='bloggerWaterDisplay' style='color: var(--brand-primary); font-family: monospace;'>5 Litres</span>
+              </label>
+              <input class='calc-slider' id='bloggerWaterSlider' max='20' min='1' oninput='runBloggerPocCalc()' type='range' value='5'/>
+            </div>
+
+            <div>
+              <label style='display:block; font-weight:600; font-size:0.9rem; margin-bottom: 0.4rem;'>Plant Growth Phase</label>
+              <select class='calc-select' id='bloggerPhaseSelect' onchange='runBloggerPocCalc()'>
+                <option value='veg'>Vegetative Phase (Foliage &amp; Stems — 1:100 Ratio)</option>
+                <option value='gen'>Generative Phase (Flowers &amp; Fruit Set — 1:50 Ratio)</option>
+                <option value='rec'>Seedling Recovery / Root Shock (1:200 Ratio)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class='calc-output-box'>
+            <div style='font-size:0.75rem; text-transform:uppercase; font-weight:800; color:var(--brand-primary);'>Required Organic Concentrate</div>
+            <div class='calc-number' id='bloggerPocOutput'>50</div>
+            <div style='font-size:0.95rem; color:var(--text-muted); font-weight:600;'>Milliliters (ml)</div>
+            <div id='bloggerPocSpoon' style='margin-top:1rem; font-size:0.85rem; font-weight:700; color:var(--text-main);'>~3.5 Tablespoons</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </b:if>
+
+  <!-- Main Content Layout (Post Simulation Area) -->
+  <main class='container' style='margin-top: 2rem;'>
+    <div class='layout-row'>
+      <!-- Posts Stream / Single Post Entry -->
+      <div class='content-area'>
+        <b:section class='main' id='main' maxwidgets='1' showaddelement='no'>
+          <b:widget id='Blog1' locked='true' title='Blog Posts' type='Blog'>
+            <b:includable id='main' var='top'>
+              <b:if cond='data:blog.pageType in {&quot;item&quot;, &quot;static_page&quot;}'>
+                <!-- Single Article Detail View -->
+                <b:loop values='data:posts' var='post'>
+                  <article class='single-post-wrapper'>
+                    <!-- Breadcrumbs -->
+                    <div class='breadcrumbs'>
+                      <a expr:href='data:blog.homepageUrl'>Home</a>
+                      <span class='sep'>/</span>
+                      <b:if cond='data:post.labels'>
+                        <b:loop values='data:post.labels' var='label'>
+                          <a expr:href='data:label.url'><data:label.name/></a>
+                          <span class='sep'>/</span>
+                        </b:loop>
+                      </b:if>
+                      <span><data:post.title/></span>
+                    </div>
+
+                    <h1 class='post-title'><data:post.title/></h1>
+
+                    <div class='post-meta-bar'>
+                      <span>📅 <data:post.timestamp/></span>
+                      <span>•</span>
+                      <span>✍️ <b:if cond='data:post.author'><data:post.author/><b:else/>Organictopia Contributor</b:if></span>
+                      <b:if cond='data:post.labels'>
+                        <span>•</span>
+                        <span>🏷️ <b:loop values='data:post.labels' var='label'><data:label.name/> </b:loop></span>
+                      </b:if>
+                    </div>
+
+                    <div class='post-body entry-content'>
+                      <data:post.body/>
+                    </div>
+
+                    <!-- Social Share Buttons -->
+                    <div class='post-share-wrap'>
+                      <strong style='font-size: 0.9rem;'>Share this guide:</strong>
+                      <div class='share-buttons'>
+                        <a class='btn-share facebook' expr:href='&quot;https://www.facebook.com/sharer/sharer.php?u=&quot; + data:post.url' target='_blank'><i class='fa-brands fa-facebook-f'/></a>
+                        <a class='btn-share twitter' expr:href='&quot;https://twitter.com/intent/tweet?url=&quot; + data:post.url + &quot;&amp;text=&quot; + data:post.title' target='_blank'><i class='fa-brands fa-x-twitter'/></a>
+                        <a class='btn-share whatsapp' expr:href='&quot;https://api.whatsapp.com/send?text=&quot; + data:post.title + &quot; &quot; + data:post.url' target='_blank'><i class='fa-brands fa-whatsapp'/></a>
+                      </div>
+                    </div>
+
+                    <!-- Dynamic Author Box (Supports Multiple Authors) -->
+                    <div class='author-box'>
+                      <b:if cond='data:post.authorPhoto.url'>
+                        <img expr:alt='data:post.author' class='author-avatar' expr:src='data:post.authorPhoto.url'/>
+                      <b:else/>
+                        <img alt='Organictopia Author' class='author-avatar' src='https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&amp;fit=crop&amp;w=200&amp;q=80'/>
+                      </b:if>
+                      <div class='author-details'>
+                        <h4>
+                          <b:if cond='data:post.author'>
+                            <data:post.author/>
+                          <b:else/>
+                            Organictopia Science Team
+                          </b:if>
+                        </h4>
+                        <p>
+                          <b:if cond='data:post.authorAboutMe'>
+                            <data:post.authorAboutMe/>
+                          <b:else/>
+                            Urban farming researcher &amp; biological science communicator. Dedicated to proving that small balcony spaces can grow massive, nutrient-dense organic harvests.
+                          </b:if>
+                        </p>
+                        <b:if cond='data:post.authorUrl'>
+                          <a expr:href='data:post.authorUrl' rel='author' style='font-size: 0.8rem; font-weight: 700; color: var(--brand-primary); text-decoration: none;'>View Profile ➜</a>
+                        </b:if>
+                      </div>
+                    </div>
+                  </article>
+                  
+                  <!-- Comments Section (Existing Comments + Form) -->
+                  <div id='comments' style='margin-top: 2.5rem; padding-top: 2rem; border-top: 1px solid var(--border-color);'>
+                    <b:if cond='data:post.allowComments'>
+                      <h4 style='font-family: var(--font-heading); font-size: 1.3rem; margin-bottom: 1.25rem; color: var(--text-main);'>
+                        Reader Discussion (<data:post.numComments/>)
+                      </h4>
+
+                      <!-- Existing Comments Thread -->
+                      <b:if cond='data:post.comments'>
+                        <div class='comments-thread' style='display:flex; flex-direction:column; gap:1rem; margin-bottom: 2rem;'>
+                          <b:loop values='data:post.comments' var='comment'>
+                            <div class='comment-bubble' style='background: var(--bg-surface-subtle); padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);'>
+                              <div style='display:flex; justify-content:space-between; margin-bottom: 0.5rem; font-size: 0.85rem;'>
+                                <strong style='color: var(--brand-primary);'><data:comment.author/></strong>
+                                <span style='color: var(--text-subtle);'><data:comment.timestamp/></span>
+                              </div>
+                              <div style='font-size: 0.95rem; line-height: 1.6; color: var(--text-main);'>
+                                <data:comment.body/>
+                              </div>
+                            </div>
+                          </b:loop>
+                        </div>
+                      </b:if>
+
+                      <h5 style='font-size: 1rem; margin-bottom: 0.75rem; color: var(--text-muted);'>Leave a Comment</h5>
+                      <b:include data='post' name='comment-form'/>
+                    </b:if>
+                  </div>
+                </b:loop>
+              <b:else/>
+                <!-- Search & Label Topic Banner -->
+                <b:if cond='data:blog.searchLabel'>
+                  <div class='filter-banner' style='background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem 1.5rem; margin-bottom: 1.5rem;'>
+                    <span style='font-size: 0.75rem; text-transform: uppercase; font-weight: 800; color: var(--brand-primary);'>Filtered Topic</span>
+                    <h2 style='font-family: var(--font-heading); font-size: 1.35rem; margin-top: 0.25rem; color: var(--text-main);'>
+                      Articles filed under: <span style='color: var(--brand-primary);'>&quot;<data:blog.searchLabel/>&quot;</span>
+                    </h2>
+                  </div>
+                </b:if>
+                <b:if cond='data:blog.searchQuery'>
+                  <div class='filter-banner' style='background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem 1.5rem; margin-bottom: 1.5rem;'>
+                    <span style='font-size: 0.75rem; text-transform: uppercase; font-weight: 800; color: var(--brand-primary);'>Search Query</span>
+                    <h2 style='font-family: var(--font-heading); font-size: 1.35rem; margin-top: 0.25rem; color: var(--text-main);'>
+                      Search results for: <span style='color: var(--brand-primary);'>&quot;<data:blog.searchQuery/>&quot;</span>
+                    </h2>
+                  </div>
+                </b:if>
+
+                <!-- Homepage Card Stream (Guaranteed Fallback & Loop) -->
+                <div class='blog-posts'>
+                  <b:loop values='data:posts' var='post'>
+                    <article class='post-card'>
+                      <!-- Thumbnail with reliable fallbacks -->
+                      <div class='post-thumb'>
+                        <a expr:href='data:post.url'>
+                          <b:if cond='data:post.firstImageUrl'>
+                            <img expr:alt='data:post.title' expr:src='data:post.firstImageUrl'/>
+                          <b:else/>
+                            <b:if cond='data:post.thumbnailUrl'>
+                              <img expr:alt='data:post.title' expr:src='data:post.thumbnailUrl'/>
+                            <b:else/>
+                              <img alt='Organictopia Research' src='https://images.unsplash.com/photo-1592841200221-a6898f307baa?auto=format&amp;fit=crop&amp;w=800&amp;q=80'/>
+                            </b:if>
+                          </b:if>
+                        </a>
+                      </div>
+
+                      <div class='post-card-body'>
+                        <b:if cond='data:post.labels'>
+                          <div class='post-card-tag'>
+                            <b:loop values='data:post.labels' var='label'>
+                              <a expr:href='data:label.url'><data:label.name/></a>
+                            </b:loop>
+                          </div>
+                        </b:if>
+
+                        <h2 class='post-card-title'>
+                          <a expr:href='data:post.url'><data:post.title/></a>
+                        </h2>
+
+                        <div class='post-card-snippet'>
+                          <b:if cond='data:post.snippet'>
+                            <data:post.snippet/>
+                          <b:else/>
+                            Read this comprehensive research guide on urban organic gardening techniques.
+                          </b:if>
+                        </div>
+
+                        <div class='post-card-footer'>
+                          <span>📅 <data:post.timestamp/> • ✍️ <data:post.author/></span>
+                          <a class='btn-read-more' expr:href='data:post.url'>
+                            Read Guide ➜
+                          </a>
+                        </div>
+                      </div>
+                    </article>
+                  </b:loop>
+                </div>
+
+                <!-- Navigation Pager -->
+                <div class='blog-pager'>
+                  <b:if cond='data:newerPageUrl'>
+                    <a class='pager-link' expr:href='data:newerPageUrl'>← Newer Research</a>
+                  </b:if>
+                  <b:if cond='data:olderPageUrl'>
+                    <a class='pager-link' expr:href='data:olderPageUrl'>Older Research →</a>
+                  </b:if>
+                </div>
+              </b:if>
+            </b:includable>
+
+            <!-- Standard Comment Form -->
+            <b:includable id='comment-form' var='post'>
+              <div class='comment-form'>
+                <iframe expr:src='data:post.commentFormIframeSrc' id='comment-editor' style='width:100%; height:250px; border:none;'/>
+              </div>
+            </b:includable>
+          </b:widget>
+        </b:section>
+      </div>
+
+      <!-- Sidebar -->
+      <aside class='sidebar' id='products'>
+        <!-- About Lab Widget -->
+        <div class='sidebar-widget'>
+          <h4 class='widget-title'>🌿 Organictopia Lab</h4>
+          <p style='font-size:0.9rem; color:var(--text-muted); line-height:1.6;'>
+            Where small spaces grow big harvests. We help apartment dwellers grow organic food on balconies, windowsills, and small patios through scientific biology.
+          </p>
+        </div>
+
+        <!-- Official Products Showcase -->
+        <div class='sidebar-widget'>
+          <h4 class='widget-title'>🛍️ Research-Grade Kits</h4>
+          
+          <div class='product-callout'>
+            <strong>Balcony Starter Pack</strong>
+            <p style='font-size:0.85rem; color:var(--text-muted); margin-bottom:0.5rem;'>Micronized volcanic rock dust &amp; pure organic worm castings.</p>
+            <a class='btn-cta' href='/p/starter-pack.html' style='font-size:0.78rem; padding:0.4rem 0.8rem;'>View Starter Pack ➜</a>
+          </div>
+
+          <div class='product-callout'>
+            <strong>Sub-Irrigated Planter</strong>
+            <p style='font-size:0.85rem; color:var(--text-muted); margin-bottom:0.5rem;'>Self-watering reservoir box designed for hot, sunny apartment balconies.</p>
+            <a class='btn-cta' href='/p/planter-kit.html' style='font-size:0.78rem; padding:0.4rem 0.8rem;'>View Planter Kit ➜</a>
+          </div>
+        </div>
+
+        <!-- Social Channels -->
+        <div class='sidebar-widget'>
+          <h4 class='widget-title'>📡 Official Social Channels</h4>
+          <div style='display:flex; flex-direction:column; gap:0.5rem;'>
+            <a href='https://instagram.com/organictopia' rel='noopener' style='color:var(--brand-primary); font-weight:600; text-decoration:none; font-size:0.9rem;' target='_blank'>
+              📸 Follow on Instagram (@organictopia)
+            </a>
+            <a href='https://tiktok.com/@organictopia' rel='noopener' style='color:var(--brand-primary); font-weight:600; text-decoration:none; font-size:0.9rem;' target='_blank'>
+              🎥 Daily Guides on TikTok
+            </a>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <!-- Newsletter Banner -->
+  <section class='container'>
+    <div class='newsletter-section'>
+      <h3>Join 15,000+ Urban Micro-Farmers</h3>
+      <p>Subscribe to our weekly lab dispatches. Receive university-backed container gardening guides directly to your inbox — no spam, unsubscribe anytime.</p>
+      <form class='newsletter-form' onsubmit='event.preventDefault(); alert("Thank you for subscribing to Organictopia Lab dispatches!");'>
+        <input class='newsletter-input' placeholder='Enter your email address...' required='required' type='email'/>
+        <button class='btn-subscribe' type='submit'>Subscribe Free</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- Site Footer -->
+  <footer class='site-footer'>
+    <div class='container'>
+      <div class='footer-flex'>
+        <div>
+          <strong style='font-family: var(--font-heading); font-size:1.15rem; color:var(--text-main);'>Organictopia</strong>
+          <p style='font-size:0.85rem; color:var(--text-subtle); margin-top:0.25rem;'>© 2026 Organictopia. Where small spaces grow big harvests. All rights reserved.</p>
+        </div>
+        <div style='font-size:0.85rem; color:var(--text-muted);'>
+          Clean Editorial Theme • Core Web Vitals 100%
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Floating Scroll To Top -->
+  <button aria-label='Scroll to top' class='fab-scroll-top' id='fabScrollTop' onclick='window.scrollTo({top:0, behavior:&quot;smooth&quot;})' type='button'>
+    ↑
+  </button>
+
+  <script type='text/javascript'>
+  //<![CDATA[
+    // Search Bar Toggle
+    function toggleSearchBar() {
+      var wrap = document.getElementById('searchBarWrap');
+      if (wrap) {
+        wrap.classList.toggle('active');
+        if (wrap.classList.contains('active')) {
+          var input = wrap.querySelector('input');
+          if (input) input.focus();
+        }
+      }
+    }
+
+    // Scroll to Top visibility
+    window.addEventListener('scroll', function() {
+      var fab = document.getElementById('fabScrollTop');
+      if (fab) {
+        if (window.scrollY > 400) {
+          fab.classList.add('visible');
+        } else {
+          fab.classList.remove('visible');
+        }
+      }
+    });
+
+    // Dark Mode Toggle for Blogger
+    var toggleBtn = document.getElementById('themeToggleBtn');
+    function setBlogTheme(mode) {
+      if (mode === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        if (toggleBtn) toggleBtn.textContent = '☀️';
+        localStorage.setItem('organictopia_theme', 'dark');
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+        if (toggleBtn) toggleBtn.textContent = '🌙';
+        localStorage.setItem('organictopia_theme', 'light');
+      }
+    }
+
+    var currentTheme = localStorage.getItem('organictopia_theme') || 
+      (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    setBlogTheme(currentTheme);
+
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', function() {
+        var isD = document.documentElement.getAttribute('data-theme') === 'dark';
+        setBlogTheme(isD ? 'light' : 'dark');
+      });
+    }
+
+    // POC Calculator for Blogger (English metrics)
+    function runBloggerPocCalc() {
+      var slider = document.getElementById('bloggerWaterSlider');
+      var display = document.getElementById('bloggerWaterDisplay');
+      var sel = document.getElementById('bloggerPhaseSelect');
+      var out = document.getElementById('bloggerPocOutput');
+      var spoon = document.getElementById('bloggerPocSpoon');
+
+      if (!slider || !out) return;
+
+      var lit = parseInt(slider.value, 10);
+      display.textContent = lit + ' Litres';
+
+      var mult = 10;
+      if (sel.value === 'gen') mult = 20;
+      if (sel.value === 'rec') mult = 5;
+
+      var total = lit * mult;
+      out.textContent = total;
+      spoon.textContent = '~' + (total / 15).toFixed(1) + ' Tablespoons';
+    }
+
+    runBloggerPocCalc();
+  //]]>
+  </script>
+</body>
+</html>
