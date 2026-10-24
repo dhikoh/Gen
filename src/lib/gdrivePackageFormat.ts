@@ -1,4 +1,10 @@
-import type { Scene, ThumbnailData, PlatformSeoItem, MultiPlatformSeoData } from "@/lib/parsers";
+import {
+  buildSegmentMultiPlatformSeo,
+  type Scene,
+  type ThumbnailData,
+  type PlatformSeoItem,
+  type MultiPlatformSeoData,
+} from "@/lib/parsers";
 
 /**
  * Format teks metadata SEO per platform untuk Google Drive.
@@ -242,9 +248,17 @@ export function buildTextPackageFiles(params: {
     defaultHashtags
   );
 
-  // 1. Metadata 4 Platform terpisah (Gunakan multiPlatformSeo jika ada, fallback ke caption & hashtags)
+  // 1. Metadata 4 Platform terpisah (Gunakan multiPlatformSeo jika ada, atau adaptasikan cerdas dari segmen)
   if (hasPlatformData) {
-    const ytData = multiPlatformSeo?.youtube || {
+    const effectiveSeo = multiPlatformSeo || buildSegmentMultiPlatformSeo({
+      title: projectTitle,
+      caption: defaultDesc,
+      hashtags: defaultHashtags,
+      scenes,
+      aspectRatio: aspectRatio === "9:16" ? "9:16" : "16:9",
+    });
+
+    const ytData = effectiveSeo.youtube || {
       platform: "youtube" as const,
       description: defaultDesc,
       hashtags: defaultHashtags,
@@ -258,7 +272,7 @@ export function buildTextPackageFiles(params: {
       content: formatPlatformSeoText("youtube", ytData, projectTitle),
     });
 
-    const ttData = multiPlatformSeo?.tiktok || {
+    const ttData = effectiveSeo.tiktok || {
       platform: "tiktok" as const,
       description: defaultDesc.slice(0, 300),
       hashtags: defaultHashtags,
@@ -272,7 +286,7 @@ export function buildTextPackageFiles(params: {
       content: formatPlatformSeoText("tiktok", ttData, projectTitle),
     });
 
-    const igData = multiPlatformSeo?.instagram || {
+    const igData = effectiveSeo.instagram || {
       platform: "instagram" as const,
       description: defaultDesc,
       hashtags: defaultHashtags,
@@ -286,7 +300,7 @@ export function buildTextPackageFiles(params: {
       content: formatPlatformSeoText("instagram", igData, projectTitle),
     });
 
-    const fbData = multiPlatformSeo?.facebook || {
+    const fbData = effectiveSeo.facebook || {
       platform: "facebook" as const,
       description: defaultDesc,
       hashtags: defaultHashtags,

@@ -64,6 +64,51 @@
 > | `[#107]` | Fitur #107 (Bagian 56) | Per-Channel Social Connection & Isolated Cloud Storage (Google Drive, YouTube, Facebook & Instagram) | 2026-10-23 |
 > | `[#108]` | Fitur #108 (Bagian 57) | 1-Tombol Auto Publish Orchestrator, Dual-Source (Drive/Local), Resumable YouTube Upload & Adaptive Metadata Engine | 2026-10-23 |
 > | `[#109]` | Fitur #109 (Bagian 58) | Funnel Pack Title Extraction, GDrive Zero-Missing Fallback, Direct .txt Download & Channel Bundle Hardening | 2026-10-23 |
+> | `[#110]` | Fitur #110 (Bagian 59) | Funnel Multi-Platform SEO Isolation, GDrive Segments Leakage Fix, Smart Platform Adaptation & HTML Blog Hardening | 2026-10-24 |
+
+---
+
+## [#110] — 2026-10-24 | Funnel Multi-Platform SEO Isolation, GDrive Segments Leakage Fix, Smart Platform Adaptation & HTML Blog Publishing Pack Hardening
+
+### Problem
+1. **Duplikasi Metadata Corong Funnel**: Pada mode 3-in-1 Funnel Pack (Short 1, Short 2, Long Pillar), caption, hashtag, dan metadata SEO 4-platform (YouTube, TikTok, Instagram, Facebook) terduplikasi dan mencomot teks masterclass video utama (Long Pillar).
+2. **Keterbatasan UI Tab Platform**: Switcher segmen Funnel hanya tersedia di Tab Adegan (`activeTab === "scenes"`). Di Tab Platform, pengguna terkunci melihat data Long Pillar tanpa bisa meninjau dan menyalin metadata Short 1 dan Short 2.
+3. **Kebocoran File Google Drive Segmen**: Pada paket Google Drive mode Funnel, berkas `thumbnail_prompt.txt` 16:9 milik Long Pillar ikut terunggah ke folder `01_Short_1_Hook` dan `02_Short_2_Value`. Selain itu, jika blok multi-platform tidak eksplisit, berkas teks diisi salinan mentah dengan daftar tag kosong (`0 tags`).
+4. **Kebutuhan Alur Blog / HTML**: Pengguna memerlukan kejelasan alur hulu-ke-hilir untuk ekstraksi artikel blog HTML murni, deteksi komponen dinamis (Tabel, SVG Chart, Mini-Kalkulator), dan aksi satu-klik salin HTML untuk ditempelkan langsung ke CMS/Blogger/WordPress.
+
+### Solution
+1. **Prompt Generator Layer (`src/lib/promptGenerator.ts`)**:
+   - Menambahkan instruksi isolasi eksplisit: `CAPTION:` dan `HASHTAGS:` pada `[SEGMENT: SHORT 1]` dan `[SEGMENT: SHORT 2]` wajib dibuat khusus dan mandiri.
+   - Menegaskan bahwa blok `## METADATA SEO YOUTUBE 2026` dan `## KONTEN PLATFORM & METADATA SEO 4 PLATFORM (2026)` difokuskan khusus untuk video utama `[SEGMENT: LONG PILLAR]`.
+2. **Parser Engine Layer (`src/lib/parsers.ts`)**:
+   - Menghapus fallback agresif `s1MultiPlatform || globalMultiPlatform` pada `parseFunnelPack`.
+   - Mengembangkan `buildSegmentMultiPlatformSeo()`: menyintesis metadata 4-platform cerdas untuk Short 1 dan Short 2 dengan format yang disesuaikan:
+     - YouTube Shorts (9:16): menyisipkan `#Shorts` otomatis jika belum ada dan menyertakan CTA ke video utama.
+     - TikTok: teks narasi ringkas/hook, hashtag vertikal, dan tag pencarian otomatis dari kata kunci judul.
+     - Instagram Reels: menambahkan CTA interaksi (`👉 Simpan & share video ini ke teman kamu!`).
+     - Facebook: format diskusi komunitas (`Bagaimana menurut Anda? Tulis pendapat Anda...`).
+     - Otomatisasi Tags: mengurai kata kunci dari judul dan hashtag segmen sehingga kolom rekomendasi tag tidak lagi kosong (`0 tags`).
+   - Menambahkan parameter `requireExplicitBlocks: boolean = false` pada `extractMultiPlatformSeo()` sehingga pencarian blok per segmen tidak menyalahartikan teks umum sebagai blok platform lengkap.
+   - Memperluas regex header HTML blog agar mengenali variasi sintaks (`## HTML BLOG`, `## HTML BLOG & PUBLISHING PACK`, `[HTML BLOG]`, `## ARTIKEL BLOG HTML`) dan auto-healing sisa trailing backticks.
+3. **Studio UI Layer (`src/app/[locale]/dashboard/scene-prompt/ScenePromptStudioClient.tsx`)**:
+   - Menambahkan 3-in-1 Funnel Segment Switcher langsung di Tab Platform (`activeTab === "platform"`), memungkinkan pengguna memeriksa dan menyalin metadata platform masing-masing video secara mandiri.
+   - Memastikan `caption`, `hashtags`, `multiPlatformSeo`, dan `thumbnailData` dibersihkan dan disegarkan secara bersih tanpa data usang (*stale state*).
+   - Menambahkan badge penjelas di Tab SEO 2026 bahwa analisis 3-tier tertuju pada video induk (Long Pillar).
+   - Memperbarui pengecekan visibilitas Tab HTML Blog agar tampil jika `htmlBlog` atau `blogPack.html` terdeteksi.
+4. **Google Drive & Publishing Layer (`gdrivePackageFormat.ts`, `DrivePackageUploadModal.tsx`, `AutoPublishModal.tsx`)**:
+   - `buildTextPackageFiles()` memanfaatkan `buildSegmentMultiPlatformSeo()` untuk menjamin file `youtube_metadata.txt`, `tiktok_metadata.txt`, `instagram_metadata.txt`, dan `facebook_metadata.txt` selalu terformat cerdas dan memiliki tag pencarian valid di Single Mode maupun Funnel Mode.
+   - `DrivePackageUploadModal.tsx`: memastikan berkas `thumbnail_prompt.txt` hanya disertakan pada segmen yang benar-benar memilikinya (`long`), tidak bocor ke folder Short 1 atau Short 2.
+   - `AutoPublishModal.tsx`: isolasi konten pada saat pemilihan segmen Short 1 atau Short 2 saat publikasi otomatis ke YouTube / Reels.
+
+### Verifikasi & Pengujian
+- `npx tsc --noEmit`: Exit 0 (Zero TypeScript errors)
+- Vitest: 6 test suites passed, 42 tests passed (100% pass rate) mencakup:
+  - `parsers.funnel.test.ts` (5 tests)
+  - `parsers.scenes.test.ts` (8 tests)
+  - `parsers.blog.test.ts` (5 tests)
+  - `gdrivePackageFormat.test.ts` (8 tests)
+  - `publishMetadataAdapter.test.ts` (3 tests)
+  - `googleDrive.test.ts` (13 tests)
 
 ---
 

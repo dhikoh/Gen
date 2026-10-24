@@ -639,8 +639,8 @@ export function extractBlogPublishingPack(text: string): BlogPublishingPack {
 
   if (!text) return emptyResult;
 
-  // Find the HTML BLOG section header (supports ## header, **bold**, or plain text)
-  const match = text.match(/(?:##\s*|###\s*|\*\*\s*|\b)HTML\s*BLOG\s*/i);
+  // Find the HTML BLOG section header (supports ## HTML BLOG, ## ARTIKEL BLOG, [HTML BLOG], etc.)
+  const match = text.match(/(?:^|\r?\n)\s*(?:#{1,6}\s*|\*{1,3}\s*|={2,4}\s*)*(?:\[?(?:HTML\s*BLOG|BLOG\s*(?:POST|HTML|ARTICLE)|ARTIKEL\s*BLOG(?:\s*\(?HTML\)?)?|HTML\s*ARTICLE)\]?)/i);
   if (!match || match.index === undefined) return emptyResult;
 
   const startIdx = match.index + match[0].length;
@@ -705,6 +705,7 @@ export function extractBlogPublishingPack(text: string): BlogPublishingPack {
       html = rawBlock.substring(firstTagIdx).trim();
     }
   }
+  html = html.replace(/```\s*$/i, "").trim();
 
   // Detect rich dynamic elements
   const hasTable = /<table\b/i.test(html);
@@ -1432,7 +1433,7 @@ export function evaluatePlatformSeoStatus(
  * Mendukung variasi sintaks, backward compatibility untuk naskah format lama,
  * dan kalkulasi otomatis jumlah karakter beserta evaluasi sweet-spot SEO.
  */
-export function extractMultiPlatformSeo(text: string): MultiPlatformSeoData | null {
+export function extractMultiPlatformSeo(text: string, requireExplicitBlocks: boolean = false): MultiPlatformSeoData | null {
   if (!text || typeof text !== "string") return null;
 
   const platforms: Array<{
@@ -1546,51 +1547,146 @@ export function extractMultiPlatformSeo(text: string): MultiPlatformSeoData | nu
   const legacySeo = extractThreeTierSeo(text);
 
   if (Object.keys(result).length === 0) {
+    if (requireExplicitBlocks) {
+      return null;
+    }
+
+    const legacyCaption = extractCaption(text);
+    const legacyHashtags = extractHashtags(text);
+    const legacySeo = extractThreeTierSeo(text);
+
     if (legacyCaption || legacyHashtags || legacySeo) {
-      const combinedLegacyTags = legacySeo ? [legacySeo.tagSpesifik, legacySeo.tagUmum, legacySeo.tagMajemuk].filter(Boolean).join(", ") : "";
-      const ytDesc = legacySeo?.deskripsi || legacyCaption;
-      const ytTags = combinedLegacyTags;
-      const ytHashtags = legacyHashtags;
-
-      const ytCharCount = {
-        description: ytDesc.length,
-        hashtags: ytHashtags.length,
-        tags: ytTags.length,
-      };
-
-      result.youtube = {
-        platform: "youtube",
-        description: ytDesc,
-        hashtags: ytHashtags,
-        tags: ytTags,
-        charCount: ytCharCount,
-        status: evaluatePlatformSeoStatus("youtube", ytCharCount.description, ytCharCount.tags),
-      };
-
-      // Also provide fallback for other platforms using legacy caption & hashtags
-      if (legacyCaption || legacyHashtags) {
-        for (const p of ["tiktok", "instagram", "facebook"] as const) {
-          const charCount = {
-            description: legacyCaption.length,
-            hashtags: legacyHashtags.length,
-            tags: 0,
-          };
-          result[p] = {
-            platform: p,
-            description: legacyCaption,
-            hashtags: legacyHashtags,
-            tags: "",
-            charCount,
-            status: evaluatePlatformSeoStatus(p, charCount.description, charCount.tags),
-          };
-        }
-      }
+      const title = extractSegmentTitle(text);
+      const isVertical = /(?:9:16|vertikal|vertical|reels|tiktok|shorts)/i.test(text);
+      return buildSegmentMultiPlatformSeo({
+        title,
+        caption: legacyCaption || legacySeo?.deskripsi,
+        hashtags: legacyHashtags,
+        aspectRatio: isVertical ? "9:16" : "16:9",
+      });
     } else {
       return null;
     }
   }
 
   return result;
+}
+
+/**
+ * Membangun MultiPlatformSeoData khusus untuk suatu segmen Funnel (misal Short 1 atau Short 2)
+ * berdasarkan data unik segmen tersebut (title, caption, hashtags, scenes).
+ * Hal ini memastikan setiap video segmen memiliki metadata platform independen dan tidak tertimpa oleh naskah Long Pillar.
+ */
+export function buildSegmentMultiPlatformSeo(opts: {
+  title?: string;
+  caption?: string;
+  hashtags?: string;
+  scenes?: Scene[];
+  aspectRatio?: "9:16" | "16:9";
+}): MultiPlatformSeoData {
+  const title = (opts.title || "").trim();
+  const rawCaption = (opts.caption || "").trim();
+  const rawHashtags = (opts.hashtags || "").trim();
+  const isVertical = opts.aspectRatio === "9:16";
+
+  // Narasi ringkas dari 2 scene pertama jika caption kosong
+  const sceneNarration = (opts.scenes || [])
+    .slice(0, 2)
+    .map((s) => s.narasi)
+    .filter((n) => n && n !== "—")
+    .join(" ");
+
+  const baseText = rawCaption || sceneNarration || title || "Video Segmen";
+
+  // Format hashtag list
+  const rawTokens = rawHashtags ? rawHashtags.split(/[\s,]+/).filter(Boolean) : [];
+  const hashtagList = rawTokens.map((t) => (t.startsWith("#") ? t : `#${t}`));
+  const cleanHashtags = hashtagList.join(" ");
+
+  // Kumpulkan tag pencarian relevan dari judul dan hashtag
+  const titleWords = title
+    .replace(/[^\w\s-]/g, "")
+    .split(/\s+/)
+    .filter((w) => w.length > 3);
+  const tagList = Array.from(
+    new Set([
+      ...titleWords,
+      ...hashtagList.map((h) => h.replace(/^#/, "")),
+    ])
+  );
+  const cleanTags = tagList.slice(0, 15).join(", ");
+
+  // 1. TikTok (fokus punchy hook, ringkas)
+  const tiktokDesc = baseText;
+  const tiktokItem: PlatformSeoItem = {
+    platform: "tiktok",
+    description: tiktokDesc,
+    hashtags: cleanHashtags,
+    tags: cleanTags,
+    charCount: {
+      description: tiktokDesc.length,
+      hashtags: cleanHashtags.length,
+      tags: cleanTags.length,
+    },
+    status: evaluatePlatformSeoStatus("tiktok", tiktokDesc.length, cleanTags.length),
+  };
+
+  // 2. Instagram Reels (Hook + CTA interaksi)
+  const igDesc = `${baseText}\n\n👉 Simpan & share video ini ke teman kamu!`;
+  const igItem: PlatformSeoItem = {
+    platform: "instagram",
+    description: igDesc,
+    hashtags: cleanHashtags,
+    tags: cleanTags,
+    charCount: {
+      description: igDesc.length,
+      hashtags: cleanHashtags.length,
+      tags: cleanTags.length,
+    },
+    status: evaluatePlatformSeoStatus("instagram", igDesc.length, cleanTags.length),
+  };
+
+  // 3. YouTube (Shorts untuk 9:16 atau video standar untuk 16:9)
+  const ytHashtags = isVertical && !cleanHashtags.toLowerCase().includes("#shorts")
+    ? `${cleanHashtags} #Shorts`.trim()
+    : cleanHashtags;
+  const ytDesc = isVertical
+    ? `${baseText}\n\nTonton video utama selengkapnya di channel ini!`
+    : baseText;
+  const ytItem: PlatformSeoItem = {
+    platform: "youtube",
+    description: ytDesc,
+    hashtags: ytHashtags,
+    tags: cleanTags,
+    charCount: {
+      description: ytDesc.length,
+      hashtags: ytHashtags.length,
+      tags: cleanTags.length,
+    },
+    status: evaluatePlatformSeoStatus("youtube", ytDesc.length, cleanTags.length),
+  };
+
+  // 4. Facebook (Gaya ramah komunitas & ajakan diskusi)
+  const fbDesc = `${baseText}\n\nBagaimana menurut Anda? Tulis pendapat Anda di kolom komentar!`;
+  const fbItem: PlatformSeoItem = {
+    platform: "facebook",
+    description: fbDesc,
+    hashtags: cleanHashtags,
+    tags: cleanTags,
+    charCount: {
+      description: fbDesc.length,
+      hashtags: cleanHashtags.length,
+      tags: cleanTags.length,
+    },
+    status: evaluatePlatformSeoStatus("facebook", fbDesc.length, cleanTags.length),
+  };
+
+  return {
+    youtube: ytItem,
+    tiktok: tiktokItem,
+    instagram: igItem,
+    facebook: fbItem,
+  };
 }
 
 /**
@@ -1805,10 +1901,35 @@ export function parseFunnelPack(rawText: string, speechRateSec: number = 0.35): 
   const globalBlogPack = extractBlogPublishingPack(text);
 
   // Multi-Platform SEO 2026
-  const s1MultiPlatform = extractMultiPlatformSeo(s1Text);
-  const s2MultiPlatform = extractMultiPlatformSeo(s2Text);
-  const longMultiPlatform = extractMultiPlatformSeo(longText);
-  const globalMultiPlatform = extractMultiPlatformSeo(text) || longMultiPlatform || s1MultiPlatform || null;
+  const s1MultiPlatform = extractMultiPlatformSeo(s1Text, true);
+  const s2MultiPlatform = extractMultiPlatformSeo(s2Text, true);
+  const longMultiPlatform = extractMultiPlatformSeo(longText, true);
+  const globalMultiPlatform = extractMultiPlatformSeo(text, false) || longMultiPlatform || null;
+
+  // Build segment-specific SEO for Short 1 & Short 2 if dedicated platform block was not written
+  const s1FinalMultiPlatform = s1MultiPlatform || buildSegmentMultiPlatformSeo({
+    title: s1Title,
+    caption: s1Caption,
+    hashtags: s1Hashtags,
+    scenes: s1Scenes,
+    aspectRatio: "9:16",
+  });
+
+  const s2FinalMultiPlatform = s2MultiPlatform || buildSegmentMultiPlatformSeo({
+    title: s2Title,
+    caption: s2Caption,
+    hashtags: s2Hashtags,
+    scenes: s2Scenes,
+    aspectRatio: "9:16",
+  });
+
+  const longFinalMultiPlatform = longMultiPlatform || globalMultiPlatform || buildSegmentMultiPlatformSeo({
+    title: longTitle,
+    caption: longCaption,
+    hashtags: longHashtags,
+    scenes: longScenes,
+    aspectRatio: "16:9",
+  });
 
   return {
     isFunnel: true,
@@ -1825,7 +1946,7 @@ export function parseFunnelPack(rawText: string, speechRateSec: number = 0.35): 
         caption: s1Caption,
         hashtags: s1Hashtags,
         thumbnailData: s1Thumbnail,
-        multiPlatformSeo: s1MultiPlatform || globalMultiPlatform || null,
+        multiPlatformSeo: s1FinalMultiPlatform,
       },
       short2: {
         id: "short2",
@@ -1838,7 +1959,7 @@ export function parseFunnelPack(rawText: string, speechRateSec: number = 0.35): 
         caption: s2Caption,
         hashtags: s2Hashtags,
         thumbnailData: s2Thumbnail,
-        multiPlatformSeo: s2MultiPlatform || globalMultiPlatform || null,
+        multiPlatformSeo: s2FinalMultiPlatform,
       },
       long: {
         id: "long",
@@ -1851,13 +1972,13 @@ export function parseFunnelPack(rawText: string, speechRateSec: number = 0.35): 
         caption: longCaption,
         hashtags: longHashtags,
         thumbnailData: longThumbnail,
-        multiPlatformSeo: longMultiPlatform || globalMultiPlatform || null,
+        multiPlatformSeo: longFinalMultiPlatform,
       },
     },
     globalHtmlBlog,
     globalBlogPack,
     threeTierSeo,
-    multiPlatformSeo: globalMultiPlatform,
+    multiPlatformSeo: longFinalMultiPlatform || globalMultiPlatform,
   };
 }
 

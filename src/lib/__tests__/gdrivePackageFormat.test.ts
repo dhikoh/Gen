@@ -204,4 +204,59 @@ describe("Google Drive Package Format & Sanitizer", () => {
     expect(fileNames).toContain("thumbnail_prompt.txt");
     expect(files.length).toBe(6);
   });
+
+  it("Single Mode: builds smart platform-adapted files even without explicit multiPlatformSeo", () => {
+    const files = buildTextPackageFiles({
+      projectTitle: "Rahasia Berkebun Organik di Apartemen",
+      scenes: [
+        { id: 1, sceneNumber: "1", narasi: "Tomat hidroponik vs living soil di balkon Anda.", durasi: "5s", visual: "Close up tomat ceri di balkon" },
+      ],
+      caption: "Panduan praktis memulai kebun sayur organik di balkon sempit tanpa ribet.",
+      hashtags: "#Berkebun #Organik #LivingSoil",
+      aspectRatio: "9:16",
+    });
+
+    const yt = files.find((f) => f.filename === "youtube_metadata.txt")?.content || "";
+    const ig = files.find((f) => f.filename === "instagram_metadata.txt")?.content || "";
+    const fb = files.find((f) => f.filename === "facebook_metadata.txt")?.content || "";
+
+    // YouTube Shorts 9:16 harus memuat #Shorts dan kata kunci tag
+    expect(yt).toContain("#Shorts");
+    expect(yt).toContain("Berkebun");
+    expect(yt).toContain("LivingSoil");
+
+    // Instagram harus memuat CTA simpan & share
+    expect(ig).toContain("Simpan & share");
+
+    // Facebook harus memuat CTA diskusi komunitas
+    expect(fb).toContain("Bagaimana menurut Anda");
+
+    // Tidak boleh menyertakan thumbnail_prompt.txt jika tidak disediakan
+    expect(files.some((f) => f.filename === "thumbnail_prompt.txt")).toBe(false);
+  });
+
+  it("Funnel Mode: Short 1 package strictly isolates 9:16 metadata and omits long-form 16:9 thumbnail prompt", () => {
+    const short1Files = buildTextPackageFiles({
+      projectTitle: "Hook Rahasia Tomat",
+      scenes: [{ id: 101, sceneNumber: "1", narasi: "Pernahkah Anda tahu akar tomat saling berbisik?", durasi: "5s", visual: "Akar tomat di tanah" }],
+      caption: "Fakta mengejutkan tentang rhizosphere tomat organik di pot.",
+      hashtags: "#TomatoTips #BalconyLiving",
+      aspectRatio: "9:16",
+      segmentLabel: "01_Short_1_Hook",
+      thumbnailData: null, // Short 1 tidak punya 16:9 thumbnail studio
+    });
+
+    const fileNames = short1Files.map((f) => f.filename);
+    expect(fileNames).toContain("youtube_metadata.txt");
+    expect(fileNames).toContain("tiktok_metadata.txt");
+    expect(fileNames).toContain("instagram_metadata.txt");
+    expect(fileNames).toContain("facebook_metadata.txt");
+    expect(fileNames).toContain("naskah_scene_lengkap.txt");
+    expect(fileNames).not.toContain("thumbnail_prompt.txt");
+
+    const ytContent = short1Files.find((f) => f.filename === "youtube_metadata.txt")?.content || "";
+    expect(ytContent).toContain("#Shorts");
+    expect(ytContent).toContain("Tonton video utama selengkapnya di channel ini!");
+    expect(ytContent).not.toContain("4-minute deep-dive masterclass");
+  });
 });

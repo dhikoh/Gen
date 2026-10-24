@@ -1000,8 +1000,8 @@ Aturan 3 Detik Awal: Pattern interrupt visual & audio ekstrem.
 Aturan CTA Penutup: Jembatan Funnel — wajib arahkan penonton untuk menonton video panjang di channel ini.
 Gaya Loop: Seamless Loop aktif (ending menyambung mulus ke hook Scene 1).
 
-CAPTION: [Caption memicu engagement + ajakan tonton video panjang]
-HASHTAGS: [Hashtag viral relevan]
+CAPTION: [Caption vertikal khusus materi Short 1 memicu engagement + ajakan tonton video utama]
+HASHTAGS: [3-6 hashtag viral spesifik Short 1]
 
 ## SCENE 1
 KONTEKS SCENE: [Konteks Hook]
@@ -1027,8 +1027,8 @@ Aturan 3 Detik Awal: Pertanyaan provokatif / mematahkan mitos ("Jangan lakukan i
 Aturan CTA Penutup: Jembatan Funnel — ajak tonton video panjang untuk melihat solusi dan studi kasus lengkap.
 Gaya Loop: Question / Cliffhanger Loop aktif.
 
-CAPTION: [Caption solutif + ajakan tonton video panjang]
-HASHTAGS: [Hashtag viral relevan]
+CAPTION: [Caption kontrarian/solusi khusus materi Short 2 + ajakan tonton video utama]
+HASHTAGS: [3-6 hashtag viral spesifik Short 2]
 
 ## SCENE 1
 KONTEKS SCENE: [Konteks Problem]
@@ -1054,7 +1054,7 @@ Struktur: Berbab (BAB 1, BAB 2, BAB 3...) dengan [CHAPTER TITLE] di teks overlay
 Aturan Pembuka: Sinematik intro 15-30 detik + Value Promise jelas apa yang akan dikuasai penonton.
 Aturan CTA Penutup: Ekosistem Channel (Subscribe, ajak diskusi di kolom komentar, tonton playlist lanjutan). Looping dimatikan (gunakan outro card).
 
-CAPTION: [Deskripsi video YouTube komprehensif 2-3 paragraf]
+CAPTION: [Deskripsi video YouTube utama komprehensif 2-3 paragraf]
 
 ## SCENE 1
 KONTEKS SCENE: [Sinematik Intro]
@@ -1078,13 +1078,14 @@ OPSI 2 PROMPT: [Visual prompt alternatif 16:9] --ar 16:9
 OPSI 2 TEKS OVERLAY: [Teks alternatif]
 REKOMENDASI WARNA & ELEMEN: [Palet kontras tinggi]
 
-## METADATA SEO YOUTUBE 2026
+## METADATA SEO YOUTUBE 2026 (KHUSUS VIDEO UTAMA LONG PILLAR)
 TAG SPESIFIK: [5-8 kata kunci utama]
 TAG UMUM: [3-5 kategori niche luas]
 TAG MAJEMUK (LONG-TAIL): [5-8 frasa pencarian alami]
 DESKRIPSI YOUTUBE (SEO & EMPATI): [Deskripsi YouTube ramah algoritma & manusia]
 
-## KONTEN PLATFORM & METADATA SEO 4 PLATFORM (2026)
+## KONTEN PLATFORM & METADATA SEO 4 PLATFORM (2026) (DISTRIBUSI VIDEO UTAMA LONG PILLAR)
+Catatan: Bagian ini merangkum dan mendistribusikan Video Utama (Long Pillar) ke 4 ekosistem sosial media.
 ### [PLATFORM: YOUTUBE]
 DESKRIPSI: [800–1.500 karakter. 100–150 karakter pertama WAJIB hook SEO bernilai tinggi. Ramah pembaca & kaya kata kunci alami]
 HASHTAGS: [3–5 hashtag fokus relevan tanpa keyword stuffing]

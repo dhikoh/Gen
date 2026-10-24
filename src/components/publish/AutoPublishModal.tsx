@@ -73,18 +73,19 @@ export function AutoPublishModal({
   const currentContent = useMemo(() => {
     if (isFunnel && funnelPackData?.segments?.[selectedSegment]) {
       const seg = funnelPackData.segments[selectedSegment];
+      const isCurrentActive = activeSegmentId === selectedSegment;
       return {
-        title: seg.title || content.title,
+        title: seg.title || (isCurrentActive ? content.title : `Segmen ${selectedSegment}`),
         projectTitle: content.projectTitle,
         scenes: seg.scenes,
-        caption: seg.caption || content.caption,
-        hashtags: seg.hashtags || content.hashtags,
-        multiPlatformSeo: seg.multiPlatformSeo || content.multiPlatformSeo,
-        aspectRatio: seg.aspectRatio || content.aspectRatio,
+        caption: seg.caption || (isCurrentActive ? content.caption : ""),
+        hashtags: seg.hashtags || (isCurrentActive ? content.hashtags : ""),
+        multiPlatformSeo: seg.multiPlatformSeo || (isCurrentActive ? content.multiPlatformSeo : null),
+        aspectRatio: seg.aspectRatio || (selectedSegment === "long" ? "16:9" : "9:16"),
       };
     }
     return content;
-  }, [isFunnel, funnelPackData, selectedSegment, content]);
+  }, [isFunnel, funnelPackData, selectedSegment, content, activeSegmentId]);
 
   // Adaptasi otomatis metadata parse engine
   const adaptedMetadata: AdaptedPublishMetadata = useMemo(() => {

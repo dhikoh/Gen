@@ -281,13 +281,14 @@ export function DrivePackageUploadModal({
     (segKey: FunnelSegmentKey) => {
       if (isFunnel && funnelPackData?.segments?.[segKey]) {
         const seg = funnelPackData.segments[segKey];
+        const isCurrentActive = activeSegmentId === segKey;
         return buildTextPackageFiles({
-          projectTitle: seg.title || defaultTitle || projectFolderName,
+          projectTitle: seg.title || (isCurrentActive ? defaultTitle : "") || FUNNEL_CONFIG[segKey].defaultName,
           scenes: seg.scenes,
-          caption: seg.caption || caption,
-          hashtags: seg.hashtags || hashtags,
-          multiPlatformSeo: seg.multiPlatformSeo || multiPlatformSeo,
-          thumbnailData: seg.thumbnailData || thumbnailData,
+          caption: seg.caption || (isCurrentActive ? caption : ""),
+          hashtags: seg.hashtags || (isCurrentActive ? hashtags : ""),
+          multiPlatformSeo: seg.multiPlatformSeo || (isCurrentActive ? multiPlatformSeo : null),
+          thumbnailData: seg.thumbnailData || (segKey === "long" ? thumbnailData : null),
           segmentLabel: seg.label || FUNNEL_CONFIG[segKey].label,
           aspectRatio: seg.aspectRatio,
         });
@@ -302,7 +303,7 @@ export function DrivePackageUploadModal({
         segmentLabel: FUNNEL_CONFIG[segKey].label,
       });
     },
-    [isFunnel, funnelPackData, defaultTitle, projectFolderName, scenes, caption, hashtags, multiPlatformSeo, thumbnailData]
+    [isFunnel, funnelPackData, defaultTitle, projectFolderName, scenes, caption, hashtags, multiPlatformSeo, thumbnailData, activeSegmentId]
   );
 
   // Helper: Berkas teks untuk single video

@@ -2929,5 +2929,59 @@ BAGIAN 58: FUNNEL PACK TITLE EXTRACTION, ZERO-MISSING METADATA FALLBACK & CHANNE
 - `npx tsc --noEmit`: Exit 0 (Zero TypeScript errors)
 - Vitest: 48 test suites passed, 431 tests passed (100% pass rate)
 
+================================================================================
+BAGIAN 59: FUNNEL MULTI-PLATFORM SEO ISOLATION, GDRIVE SEGMENT LEAKAGE FIX, SMART PLATFORM ADAPTATION & BLOG PUBLISHING PACK HARDENING (2026-10-24)
+================================================================================
+
+### 59.1 Isolasi Metadata Funnel Multi-Platform & Prompt Layer
+- **Problem**: Pengguna melaporkan bahwa dalam mode Funnel (Short 1, Short 2, Long Pillar), caption, hashtag, dan metadata SEO per platform (YouTube, TikTok, Instagram, Facebook) terduplikasi dan sama persis dengan masterclass video utama (Long Pillar).
+- **Akar Masalah**:
+  1. *Prompt Generator Layer*: AI hanya diinstruksikan menyusun satu blok 4-platform di akhir video utama, sementara segmen Short 1 dan Short 2 tidak diwajibkan memiliki caption & hashtag mandiri.
+  2. *Parser Layer*: `parseFunnelPack` pada `parsers.ts` memiliki fallback agresif `s1MultiPlatform || globalMultiPlatform`, sehingga Short 1 & Short 2 mencomot metadata masterclass jika blok eksplisit tidak ada.
+  3. *UI Layer*: Funnel Segment Switcher sebelumnya hanya ada di Tab Adegan (`activeTab === "scenes"`), sehingga di Tab Platform pengguna terkunci melihat data Long Pillar tanpa bisa meninjau metadata Short 1/Short 2.
+- **Solusi**:
+  - `promptGenerator.ts`: Menegaskan isolasi eksplisit `CAPTION:` dan `HASHTAGS:` per short video, serta mengalokasikan blok 4-platform 2026 secara fokus pada Long Pillar.
+  - `parsers.ts`:
+    - Mengeliminasi fallback global yang menimpa `short1` dan `short2`.
+    - Mengembangkan `buildSegmentMultiPlatformSeo()`: menyintesis metadata 4-platform cerdas untuk Short 1 dan Short 2 dengan format yang disesuaikan:
+      - YouTube Shorts: menyisipkan `#Shorts` otomatis jika 9:16 dan link ajakan ke video utama.
+      - TikTok: deskripsi hook ringkas (<300 char) dan tag kata kunci.
+      - Instagram Reels: CTA interaksi simpan & share.
+      - Facebook: ajakan diskusi komunitas.
+      - Rekomendasi Tag: otomatis mengekstrak kata kunci dari judul dan hashtag, mengeliminasi masalah `0 tags`.
+    - Menambahkan parameter `requireExplicitBlocks: boolean = false` pada `extractMultiPlatformSeo()` agar tidak salah mendeteksi teks umum sebagai blok platform lengkap.
+  - `ScenePromptStudioClient.tsx`:
+    - Menambahkan 3-in-1 Funnel Segment Switcher langsung di Tab Platform (`activeTab === "platform"`).
+    - Memastikan pembersihan state (`caption`, `hashtags`, `multiPlatformSeo`, `thumbnailData`) berjalan bersih saat pengguna berpindah segmen.
+    - Menambahkan badge penjelas di Tab SEO 2026 bahwa analisis 3-tier tertuju pada video Long Pillar.
+
+### 59.2 Pencegahan Kebocoran Google Drive Segments & Auto-Publishing
+- **Problem**: Pada paket Google Drive mode Funnel, berkas `thumbnail_prompt.txt` milik Long Pillar bocor ke folder `01_Short_1_Hook` dan `02_Short_2_Value`. Selain itu, jika `multiPlatformSeo` kosong, berkas teks diisi salinan mentah dengan daftar tag kosong.
+- **Solusi**:
+  - `DrivePackageUploadModal.tsx`:
+    - `getSegmentTextFiles()` kini strictly isolated: `thumbnailData` hanya dikirimkan ke segmen yang benar-benar memilikinya (`long` atau segmen yang memiliki thumbnail khusus), mencegah file 16:9 Midjourney/Flux prompt bocor ke folder Short 1/2.
+    - State `caption`, `hashtags`, dan `multiPlatformSeo` tidak lagi jatuh ke variabel outer kecuali pengguna sedang aktif mengedit segmen tersebut di studio.
+  - `gdrivePackageFormat.ts`:
+    - `buildTextPackageFiles()` memanfaatkan `buildSegmentMultiPlatformSeo()` untuk mengisi `youtube_metadata.txt`, `tiktok_metadata.txt`, `instagram_metadata.txt`, dan `facebook_metadata.txt` secara cerdas dan ber-tag lengkap untuk Single Mode maupun Funnel Mode.
+  - `AutoPublishModal.tsx`:
+    - Memperbaiki `currentContent` agar pilihan segmen Short 1/Short 2 tidak mewarisi metadata Long Pillar saat publikasi otomatis ke YouTube Shorts / Reels.
+
+### 59.3 Hardening Ekstraksi & Preview HTML Blog Publishing Pack
+- **Fitur Lengkap Blog Engine**:
+  - `extractBlogPublishingPack()` mengekstrak: HTML artikel bersih (tanpa fence), Meta Description (Google snippet counter), Kategori/Tags, 16:9 Thumbnail Prompt, In-Article Image Prompts, Rekomendasi Afiliasi, serta deteksi elemen dinamis (`hasTable`, `hasSvgChart`, `hasInteractiveCalculator`).
+  - Studio UI menyediakan 3 mode preview: *⚡ Live Interaktif (Iframe Sandbox)*, *👁️ Tampilan Bersih (Clean Rendered Prose)*, dan *💻 Kode Sumber HTML*.
+  - Ekspor sekali klik: tombol **"📋 Salin HTML Artikel"** (langsung siap paste ke WordPress/Blogger/CMS) dan **"📥 Unduh .HTML"**.
+  - Header regex diperluas untuk mencakup variasi `## HTML BLOG`, `## ARTIKEL BLOG HTML`, `[HTML BLOG]`, dan pembersihan otomatis sisa trailing backticks.
+
+### 59.4 Verifikasi Kualitas & Regresi
+- `npx tsc --noEmit`: Exit 0 (Zero TypeScript errors)
+- Vitest: 6 test suites passed, 42 tests passed (100% pass rate) mencakup:
+  - `parsers.funnel.test.ts` (5 tests)
+  - `parsers.scenes.test.ts` (8 tests)
+  - `parsers.blog.test.ts` (5 tests)
+  - `gdrivePackageFormat.test.ts` (8 tests)
+  - `publishMetadataAdapter.test.ts` (3 tests)
+  - `googleDrive.test.ts` (13 tests)
+
 
 

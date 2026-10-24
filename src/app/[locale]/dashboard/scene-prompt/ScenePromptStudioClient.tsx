@@ -348,17 +348,21 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
     setScenes(target.scenes);
     setAr(target.aspectRatio);
     setSelectedSceneIds(new Set(target.scenes.map((s) => s.id)));
-    if (target.caption) setCaption(target.caption);
-    if (target.hashtags) setHashtags(target.hashtags);
+    setCaption(target.caption || "");
+    setHashtags(target.hashtags || "");
     if (target.thumbnailData) {
       setThumbnailData(target.thumbnailData);
     } else if (segId === "long" && funnelPackData.segments.long.thumbnailData) {
       setThumbnailData(funnelPackData.segments.long.thumbnailData);
+    } else {
+      setThumbnailData(null);
     }
     if (target.multiPlatformSeo) {
       setMultiPlatformSeo(target.multiPlatformSeo);
-    } else if (funnelPackData.multiPlatformSeo) {
+    } else if (segId === "long" && funnelPackData.multiPlatformSeo) {
       setMultiPlatformSeo(funnelPackData.multiPlatformSeo);
+    } else {
+      setMultiPlatformSeo(null);
     }
   }, [funnelPackData]);
 
@@ -1516,7 +1520,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
  <div className="glass-panel p-1.5 rounded-2xl border pg-border flex gap-1.5 overflow-x-auto whitespace-nowrap custom-scrollbar shadow-sm flex-1">
  {(["scenes","thumbnail","seo2026","platform","voiceStudio","htmlBlog","fullVideo"] as const).map(tab => {
  if (tab === "seo2026" && !threeTierSeo) return null;
- if (tab === "htmlBlog" && !htmlBlog) return null;
+ if (tab === "htmlBlog" && !htmlBlog && !blogPack?.html) return null;
  return (
  <button key={tab} onClick={() => setActiveTab(tab)} className={btn(activeTab === tab)}>
  {tab === "scenes" ? `🎬 ${t("sceneViewerTab")} (${scenes.length})` : tab === "thumbnail" ? `🖼️ ${t("thumbnailTab")}` : tab === "seo2026" ? t("seo2026Tab") : tab === "htmlBlog" ? t("htmlBlogTab") : tab === "voiceStudio" ? `🎙️ ${t("voiceStudioTab")}` : tab === "fullVideo" ? `🎞️ ${t("tabFullVideo")}` : `📱 ${t("platformTab")}`}
@@ -2686,6 +2690,11 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
               <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">
                 Algorithm Ready
               </span>
+              {funnelPackData && (
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 border border-purple-300 dark:border-purple-800">
+                  📺 {locale === "en" ? "Linked to Long Pillar (16:9)" : "Terhubung ke Long Pillar (16:9)"}
+                </span>
+              )}
             </div>
             <p className="text-xs pg-text-muted mt-1">
               {t("seoStudioSubtitle")}
@@ -3105,6 +3114,106 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
 
     return (
       <div className="space-y-6">
+        {/* 3-in-1 Funnel Pack Segment Selector for Platform Metadata */}
+        {funnelPackData && (
+          <div className="glass-panel p-3.5 rounded-2xl border pg-border bg-[var(--pg-surface-dim)]/50 shadow-xs space-y-2.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b pg-border/40">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🌪️</span>
+                <div>
+                  <div className="text-xs font-bold pg-text-heading flex items-center gap-2">
+                    <span>{locale === "en" ? "3-in-1 Funnel Pack" : "Paket Funnel 3-in-1"}</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 font-semibold border border-purple-500/20">
+                      {locale === "en" ? "Isolated Video Metadata" : "Metadata Spesifik Segmen"}
+                    </span>
+                  </div>
+                  <p className="text-[11px] pg-text-muted mt-0.5">
+                    {locale === "en"
+                      ? "Select which video in the funnel ecosystem you want to view, copy, or download metadata for"
+                      : "Pilih video di dalam paket funnel yang ingin Anda tinjau, salin, atau unduh metadatanya"}
+                  </p>
+                </div>
+              </div>
+              <span className="text-[10px] font-mono px-2 py-1 rounded bg-[var(--pg-surface)] border pg-border self-start sm:self-auto">
+                {locale === "en" ? "Active" : "Aktif"}: <strong className="uppercase">{activeFunnelSegment}</strong> ({ar})
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              <button
+                type="button"
+                onClick={() => switchFunnelSegment("short1")}
+                className={`p-2.5 rounded-xl border text-left transition-all ${
+                  activeFunnelSegment === "short1"
+                    ? "bg-[var(--pg-brand)] text-white border-[var(--pg-brand)] shadow-sm ring-2 ring-[var(--pg-brand)]/30"
+                    : "bg-[var(--pg-surface)] hover:bg-[var(--pg-surface-dim)] pg-border text-slate-700 dark:text-slate-300"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-0.5">
+                  <span className="text-xs font-bold flex items-center gap-1.5">
+                    <span>⚡</span> Short 1
+                  </span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-semibold ${
+                    activeFunnelSegment === "short1" ? "bg-white/20 text-white" : "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                  }`}>
+                    9:16
+                  </span>
+                </div>
+                <div className="text-[11px] truncate font-medium" title={funnelPackData.segments.short1.title || "The Spark Hook"}>
+                  {funnelPackData.segments.short1.title || "The Spark Hook"}
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => switchFunnelSegment("short2")}
+                className={`p-2.5 rounded-xl border text-left transition-all ${
+                  activeFunnelSegment === "short2"
+                    ? "bg-[var(--pg-brand)] text-white border-[var(--pg-brand)] shadow-sm ring-2 ring-[var(--pg-brand)]/30"
+                    : "bg-[var(--pg-surface)] hover:bg-[var(--pg-surface-dim)] pg-border text-slate-700 dark:text-slate-300"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-0.5">
+                  <span className="text-xs font-bold flex items-center gap-1.5">
+                    <span>🎯</span> Short 2
+                  </span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-semibold ${
+                    activeFunnelSegment === "short2" ? "bg-white/20 text-white" : "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                  }`}>
+                    9:16
+                  </span>
+                </div>
+                <div className="text-[11px] truncate font-medium" title={funnelPackData.segments.short2.title || "Problem & Contrarian"}>
+                  {funnelPackData.segments.short2.title || "Problem & Contrarian"}
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => switchFunnelSegment("long")}
+                className={`p-2.5 rounded-xl border text-left transition-all ${
+                  activeFunnelSegment === "long"
+                    ? "bg-[var(--pg-brand)] text-white border-[var(--pg-brand)] shadow-sm ring-2 ring-[var(--pg-brand)]/30"
+                    : "bg-[var(--pg-surface)] hover:bg-[var(--pg-surface-dim)] pg-border text-slate-700 dark:text-slate-300"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-0.5">
+                  <span className="text-xs font-bold flex items-center gap-1.5">
+                    <span>📺</span> Long Pillar
+                  </span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-semibold ${
+                    activeFunnelSegment === "long" ? "bg-white/20 text-white" : "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                  }`}>
+                    16:9
+                  </span>
+                </div>
+                <div className="text-[11px] truncate font-medium" title={funnelPackData.segments.long.title || "Masterclass Video"}>
+                  {funnelPackData.segments.long.title || "Masterclass Video"}
+                </div>
+              </button>
+            </div>
+          </div>
+        )}
         {/* Header & Subtitle */}
         <div className="glass-panel rounded-2xl p-6 border pg-border shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
