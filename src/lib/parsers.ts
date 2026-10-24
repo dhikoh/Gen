@@ -50,6 +50,80 @@ export function cleanParsedValue(val: string): string {
   return cleaned;
 }
 
+// ── Script Whitespace Auto-Healing ────────────────────────────────────────
+
+/**
+ * Normalizes and repairs script text where newline breaks may have been
+ * lost, collapsed into spaces, or flattened (e.g. from clipboard copy,
+ * json serialization/deserialization, or markdown renderers).
+ */
+export function normalizeScriptWhitespace(raw: string): string {
+  if (!raw || typeof raw !== "string") return "";
+  let s = raw;
+
+  // 1. Newlines before [SOURCE AUDIT] and [SEGMENT: ...] if preceded by non-newline
+  s = s.replace(/([^\r\n])\s*(\[SOURCE\s*AUDIT\])/gi, "$1\n\n$2\n");
+  s = s.replace(
+    /([^\r\n])\s*(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(\[?SEGMENT[:\s]+(?:SHORT\s*\d|\d\s*[-:]\s*SHORT|LONG\s*PILLAR|LONG|\d\s*[-:]\s*LONG)[^\]]*\]?)/gi,
+    "$1\n\n$2\n"
+  );
+
+  // 2. Newlines before segment metadata fields
+  s = s.replace(
+    /([^\r\n])\s+(Judul|Title|Aspek\s*Rasio|Aspect\s*Ratio|Platform|Target\s*Durasi|Target\s*Duration|Aturan\s*3\s*Detik\s*Awal|Aturan\s*CTA\s*Penutup|Gaya\s*Loop|Loop\s*Style|CAPTION|HASHTAGS):\s*/gi,
+    "$1\n$2: "
+  );
+
+  // 3. Newlines before chapters
+  s = s.replace(/([^\r\n])\s+(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(BAB|CHAPTER)\s+(\d+)\s*:\s*/gi, "$1\n\n## $2 $3: ");
+
+  // 4. Newlines before and after SCENE headers:
+  // Case A: Preceded by non-newline, attached to a known scene opening field (e.g. "... detik SCENE 1KONTEKS SCENE:" or "... SCENE 1: KONTEKS")
+  s = s.replace(
+    /([^\r\n])\s*(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:Scene|Adegan|Bagian|Part)\s*(\d+[a-zA-Z]?)\s*(?:[:\s\*\-=_]*)(KONTEKS|SCENE\s*CONTEXT|NARASI|NARRATION)/gi,
+    "$1\n\n## SCENE $2\n$3"
+  );
+  // Case B: At start of string or preceded by newline, attached to next field (e.g. "\nSCENE 1KONTEKS SCENE:")
+  s = s.replace(
+    /(?:^|\r?\n)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:Scene|Adegan|Bagian|Part)\s*(\d+[a-zA-Z]?)\s*(?:[:\s\*\-=_]*)(KONTEKS|SCENE\s*CONTEXT|NARASI|NARRATION)/gi,
+    "\n\n## SCENE $1\n$2"
+  );
+  // Case C: Preceded by multiple spaces or tabs (collapsed newlines), e.g. "... detik   SCENE 2: "
+  s = s.replace(
+    /([^\r\n])(?:\s{2,}|\t)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:Scene|Adegan|Bagian|Part)\s*(\d+[a-zA-Z]?)(?:[:\s\*\-=_]+)(?=[^\r\n])/gi,
+    "$1\n\n## SCENE $2\n"
+  );
+
+  // 5. Newlines before scene fields
+  const sceneFields = [
+    "KONTEKS\\s*SCENE", "KONTEKS\\s*ADEGAN", "SCENE\\s*CONTEXT", "KONTEKS", "CONTEXT",
+    "NARASI", "NARRATION", "DIALOG", "VOICE\\s*OVER", "VO",
+    "TARGET\\s*EMOSI(?:\\s*\\(VET\\))?", "TARGET\\s*EMOTION", "EMOSI",
+    "TEKNIK\\s*(?:EDITING(?:\\s*&\\s*PACING)?|PACING)", "PACING", "EDITING",
+    "TEKS\\s*OVERLAY", "TEXT\\s*OVERLAY",
+    "PANDUAN\\s*SUARA", "VOICE\\s*GUIDELINES",
+    "SETTING\\s*KAMERA", "CAMERA\\s*SETUP",
+    "VISUAL\\s*PROMPT", "DESKRIPSI\\s*VISUAL",
+    "DURASI", "DURATION",
+  ];
+  for (const f of sceneFields) {
+    const reg = new RegExp(`([^\\r\\n])\\s+(${f}:\\s*)`, "gi");
+    s = s.replace(reg, "$1\n$2");
+  }
+
+  // 6. Newlines before Studio, SEO, & Platforms
+  s = s.replace(/([^\r\n])\s+(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(THUMBNAIL\s*STUDIO)\s*(TEKS|OPSI)/gi, "$1\n\n## $2\n$3");
+  s = s.replace(/([^\r\n])\s+(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(METADATA\s*SEO[^\n\r:]*)\s*(TAG|DESKRIPSI)/gi, "$1\n\n## $2\n$3");
+  s = s.replace(/([^\r\n])\s+(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(KONTEN\s*PLATFORM[^\n\r]*)\s*(\[PLATFORM)/gi, "$1\n\n## $2\n$3");
+  s = s.replace(/([^\r\n])\s+(\[PLATFORM:[^\]]+\])\s*(DESKRIPSI|HASHTAGS|TAGS)/gi, "$1\n\n$2\n$3");
+
+  // 7. Newlines before specific SEO sub-fields
+  s = s.replace(/([^\r\n])\s+(TAG\\s*SPESIFIK|TAG\\s*UMUM|TAG\\s*MAJEMUK[^:]*|DESKRIPSI\\s*YOUTUBE[^:]*|TAGS\\s*REKOMENDASI):\s*/gi, "$1\n$2: ");
+  s = s.replace(/([^\r\n])\s+(TEKS\\s*OVERLAY\\s*SEO|OPSI\\s*\\d+\\s*PROMPT|OPSI\\s*\\d+\\s*TEKS\\s*OVERLAY|REKOMENDASI\\s*WARNA[^:]*):\s*/gi, "$1\n$2: ");
+
+  return s;
+}
+
 // ── Thumbnail Extraction ──────────────────────────────────────────────────
 
 export interface ThumbnailData {
@@ -959,8 +1033,9 @@ export function calculateScriptTiming(
  * - Overlay types (Chapter Title / Key Point)
  * - Visual prompts and durations
  */
-export function parseScenes(text: string, speechRateSec: number = 0.35, idOffset: number = 0): Scene[] {
-  if (!text || !text.trim()) return [];
+export function parseScenes(rawText: string, speechRateSec: number = 0.35, idOffset: number = 0): Scene[] {
+  if (!rawText || !rawText.trim()) return [];
+  const text = normalizeScriptWhitespace(rawText);
 
   // Extract chapter markers: ## BAB N: Title or ## CHAPTER N: Title
   const chapterMarkers: { index: number; prefix: string; num: number; title: string }[] = [];
@@ -1559,8 +1634,9 @@ export function extractRemotionCode(text: string): string | null {
 /**
  * Detects whether the generated script contains a 3-in-1 Funnel Pack or Single video.
  */
-export function detectOutputStructure(text: string): "FUNNEL_BUNDLE" | "SINGLE" {
-  if (!text || typeof text !== "string") return "SINGLE";
+export function detectOutputStructure(rawText: string): "FUNNEL_BUNDLE" | "SINGLE" {
+  if (!rawText || typeof rawText !== "string") return "SINGLE";
+  const text = normalizeScriptWhitespace(rawText);
 
   const hasShort1 = /(?:^|\r?\n)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:\[?SEGMENT[:\s]+(?:SHORT\s*1|1\s*[-:]\s*SHORT)\]?)/i.test(text);
   const hasShort2 = /(?:^|\r?\n)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:\[?SEGMENT[:\s]+(?:SHORT\s*2|2\s*[-:]\s*SHORT)\]?)/i.test(text);
@@ -1577,8 +1653,9 @@ export function detectOutputStructure(text: string): "FUNNEL_BUNDLE" | "SINGLE" 
 /**
  * Extracts structured source audit and anti-hallucination metadata from the script.
  */
-export function extractSourceAudit(text: string): SourceAuditData | null {
-  if (!text || typeof text !== "string") return null;
+export function extractSourceAudit(rawText: string): SourceAuditData | null {
+  if (!rawText || typeof rawText !== "string") return null;
+  const text = normalizeScriptWhitespace(rawText);
 
   const headerRegex = /(?:^|\r?\n)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:\[?SOURCE\s*AUDIT\]?|\[?AUDIT\s*(?:LINK\s*REFERENSI|DATA\s*SUMBER)\]?)[^\n]*/i;
   const match = text.match(headerRegex);
@@ -1653,7 +1730,8 @@ export function extractSegmentTitle(segmentText: string): string | undefined {
  * - SEGMENT: SHORT 2 (9:16)
  * - SEGMENT: LONG PILLAR (16:9)
  */
-export function parseFunnelPack(text: string, speechRateSec: number = 0.35): FunnelPackData {
+export function parseFunnelPack(rawText: string, speechRateSec: number = 0.35): FunnelPackData {
+  const text = normalizeScriptWhitespace(rawText);
   const sourceAudit = extractSourceAudit(text);
 
   // Delimiters for segments

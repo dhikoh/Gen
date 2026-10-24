@@ -29,6 +29,7 @@ import {
   parseFunnelPack,
   extractMultiPlatformSeo,
   evaluatePlatformSeoStatus,
+  normalizeScriptWhitespace,
 } from "@/lib/parsers";
 import type { ThumbnailData, AffiliateRecommendation, Scene, ThreeTierSeoData, BlogPublishingPack, MultiPlatformSeoData, PlatformSeoItem } from "@/lib/parsers";
 import type { FunnelPackData, SourceAuditData } from "@/types/generator";
@@ -1148,9 +1149,13 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
 
   const handleParse = async () => {
     if (!rawText.trim()) return;
-    const isFunnel = detectOutputStructure(rawText) === "FUNNEL_BUNDLE";
+    const textToParse = normalizeScriptWhitespace(rawText);
+    if (textToParse !== rawText) {
+      setRawText(textToParse);
+    }
+    const isFunnel = detectOutputStructure(textToParse) === "FUNNEL_BUNDLE";
     if (isFunnel) {
-      const fp = parseFunnelPack(rawText, speechRate);
+      const fp = parseFunnelPack(textToParse, speechRate);
       setFunnelPackData(fp);
       setActiveFunnelSegment("short1");
       setScenes(fp.segments.short1.scenes);

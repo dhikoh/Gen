@@ -209,4 +209,18 @@ DURASI: 5s
     expect(scenes[0].id).toBe(1);
     expect(scenes[1].id).toBe(2);
   });
+
+  it("auto-heals collapsed script whitespace with missing newlines and glued scene headers", () => {
+    const collapsed = `[SOURCE AUDIT]URL Sumber: https://example.com/source   Fakta & Data Kunci: Data 1. Data 2.   [SEGMENT: SHORT 1]Judul: Short 1 Viral Hook   CAPTION: Test caption   HASHTAGS: #viral   SCENE 1KONTEKS SCENE: Hook penasaran NARASI: Narasi scene 1 DURASI: 5 detik   SCENE 2KONTEKS SCENE: Masalah NARASI: Narasi scene 2 DURASI: 6 detik   [SEGMENT: SHORT 2]Judul: Short 2 Contrarian   CAPTION: Short 2 caption   HASHTAGS: #problem   SCENE 1KONTEKS SCENE: Problem hook NARASI: Narasi s2 scene 1 DURASI: 5 detik   [SEGMENT: LONG PILLAR]Judul: Long Pillar Tutorial   CAPTION: Long caption   SCENE 1KONTEKS SCENE: Intro NARASI: Narasi long scene 1 DURASI: 10 detik`;
+
+    expect(detectOutputStructure(collapsed)).toBe("FUNNEL_BUNDLE");
+    const pack = parseFunnelPack(collapsed, 0.35);
+    expect(pack.segments.short1.scenes.length).toBe(2);
+    expect(pack.segments.short2.scenes.length).toBe(1);
+    expect(pack.segments.long.scenes.length).toBe(1);
+    expect(pack.segments.short1.scenes[0].sceneContext).toContain("Hook penasaran");
+    expect(pack.segments.short1.scenes[0].narasi).toContain("Narasi scene 1");
+    expect(pack.segments.short1.scenes[1].narasi).toContain("Narasi scene 2");
+  });
 });
+
