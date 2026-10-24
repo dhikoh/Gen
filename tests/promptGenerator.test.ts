@@ -719,6 +719,59 @@ describe("promptGenerator", () => {
         expect(idResult.masterPrompt).toContain("[pause], [beat], [sigh], [whisper], [gasp], [chuckle], [clears throat]");
       });
     });
+
+    describe("Statistical Data Motion Graphics & Blog Chart Instructions", () => {
+      it("instructs motion graphics and animated data visualization for video scenes discussing statistics", () => {
+        const result = generateMasterPrompt(
+          dummyChannel,
+          "Statistik Pertumbuhan Ekonomi Global",
+          "Berdasarkan 85 studi kasus dan riset data ekonomi",
+          {
+            targetPlatform: "YOUTUBE",
+            aspectRatio: "16:9",
+          }
+        );
+
+        expect(result.masterPrompt).toContain("KHUSUS SCENE BERISI PEMBAHASAN DATA/STATISTIK/RISET:");
+        expect(result.masterPrompt).toContain("VISUALISASI DATA & STATISTIK (WAJIB JIKA NARASI MEMBAHAS DATA/ANGKA):");
+        expect(result.masterPrompt).toContain("motion graphic, animated 3D bar/pie chart, glowing holographic data HUD");
+      });
+
+      it("instructs code-based SVG/CSS charts in HTML blog for both Indonesian and English locales", () => {
+        // Indonesian Blog
+        const idBlogResult = generateMasterPrompt(
+          dummyChannel,
+          "Panduan Berkebun Organik Berbasis Data",
+          "Riset 50 sampel tanaman organik",
+          {
+            targetPlatform: "YOUTUBE",
+            aspectRatio: "16:9",
+            htmlBlog: true,
+          }
+        );
+        expect(idBlogResult.masterPrompt).toContain("## HTML BLOG");
+        expect(idBlogResult.masterPrompt).toContain("Grafik Statistik & Visualisasi Data (<svg> / Chart CSS):");
+        expect(idBlogResult.masterPrompt).toContain("responsive inline <svg> bar chart / pie chart / progress bar chart");
+
+        // English Blog
+        const enBlogResult = generateMasterPrompt(
+          dummyChannel,
+          "Organic Gardening Statistical Guide",
+          "Research on 50 organic plant samples",
+          {
+            targetPlatform: "YOUTUBE",
+            aspectRatio: "16:9",
+            htmlBlog: true,
+          },
+          undefined,
+          [],
+          "English"
+        );
+        expect(enBlogResult.masterPrompt).toContain("## HTML BLOG");
+        expect(enBlogResult.masterPrompt).toContain("Statistical Charts & Data Infographics (<svg> / Clean CSS):");
+        expect(enBlogResult.masterPrompt).toContain("responsive inline <svg> bar chart / pie chart / progress comparison chart");
+      });
+    });
   });
 });
 
