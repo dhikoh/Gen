@@ -22,7 +22,7 @@ function base64ToUint8Array(base64Str: string): Uint8Array {
   return new Uint8Array(buf.buffer, buf.byteOffset, buf.length);
 }
 
-const REMOTION_VERSION = "4.0.536";
+const REMOTION_VERSION = "4.0.538";
 
 /**
  * Buat paket ZIP mandiri yang siap di-render di PC pengguna via terminal / render.bat.
@@ -114,6 +114,25 @@ echo ========================================================
 pause
 `;
   zip.file("render.bat", renderBat);
+
+  // 7b. buka-studio.bat (Windows one-click Studio launcher)
+  const studioBat = `@echo off
+title Remotion Studio
+cd /d "%~dp0"
+echo ========================================================
+echo               MEMBUKA REMOTION STUDIO
+echo ========================================================
+echo.
+echo Sedang menjalankan server Remotion...
+echo Browser akan otomatis terbuka di http://localhost:3000
+echo.
+echo (Tutup jendela ini jika ingin mematikan Remotion Studio)
+echo ========================================================
+echo.
+npx remotion studio
+pause
+`;
+  zip.file("buka-studio.bat", studioBat);
 
   // 8. render.sh (Mac / Linux)
   const renderSh = `#!/bin/bash
