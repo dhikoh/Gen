@@ -1796,96 +1796,144 @@ export default function GeneratorForm({
       <p className="text-[11px] pg-text-muted mt-1">Struktur berbab komprehensif (~10 menit), 12-25 scene mendalam A to Z.</p>
      </div>
     </div>
-   ) : (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-     {/* Short 1 Manual */}
-     <div className="p-3 rounded-lg border pg-border bg-white dark:bg-slate-800 space-y-2.5">
-      <div className="flex items-center justify-between">
-       <span className="text-xs font-semibold pg-text-heading">📱 Short 1 (Hook)</span>
-       <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 font-mono">9:16</span>
-      </div>
-      <div>
-       <label className="text-[11px] pg-text-muted block mb-1">Target Scene:</label>
-       <NumericInputField
-        min={2}
-        max={20}
-        step={1}
-        value={short1Scenes}
-        onChange={setShort1Scenes}
-       />
-      </div>
-      <div>
-       <label className="text-[11px] pg-text-muted block mb-1">Target Durasi (Detik):</label>
-       <NumericInputField
-        min={15}
-        max={180}
-        step={5}
-        unit="detik"
-        value={short1DurationSec}
-        onChange={setShort1DurationSec}
-       />
-      </div>
-     </div>
+    ) : (
+     <div className="space-y-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+       {/* Short 1 Manual */}
+       <div className="p-3 rounded-lg border pg-border bg-white dark:bg-slate-800/90 shadow-2xs space-y-2.5">
+        <div className="flex items-center justify-between pb-1.5 border-b pg-border">
+         <span className="text-xs font-bold pg-text-heading">📱 Short 1 (Hook)</span>
+         <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">9:16</span>
+        </div>
+        <div>
+         <div className="flex items-center justify-between text-[11px] mb-1">
+          <label className="pg-text-muted font-medium">Target Scene:</label>
+          <span className="text-[10px] text-purple-600 dark:text-purple-400 font-mono">2–20</span>
+         </div>
+         <NumericInputField
+          min={2}
+          max={20}
+          step={1}
+          value={short1Scenes}
+          onChange={setShort1Scenes}
+          ariaLabel="Target scene Short 1"
+         />
+        </div>
+        <div>
+         <div className="flex items-center justify-between text-[11px] mb-1">
+          <label className="pg-text-muted font-medium">Target Durasi:</label>
+          <span className="text-[10px] text-purple-600 dark:text-purple-400 font-mono">15–180s</span>
+         </div>
+         <NumericInputField
+          min={15}
+          max={180}
+          step={5}
+          unit="s"
+          value={short1DurationSec}
+          onChange={setShort1DurationSec}
+          ariaLabel="Target durasi detik Short 1"
+         />
+        </div>
+        <div className="pt-1 border-t border-dashed pg-border text-[10px] text-center font-medium text-purple-700 dark:text-purple-300">
+         ⚡ ~{(short1DurationSec / Math.max(1, short1Scenes)).toFixed(1)}s / scene
+        </div>
+       </div>
 
-     {/* Short 2 Manual */}
-     <div className="p-3 rounded-lg border pg-border bg-white dark:bg-slate-800 space-y-2.5">
-      <div className="flex items-center justify-between">
-       <span className="text-xs font-semibold pg-text-heading">📱 Short 2 (Problem)</span>
-       <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 font-mono">9:16</span>
-      </div>
-      <div>
-       <label className="text-[11px] pg-text-muted block mb-1">Target Scene:</label>
-       <NumericInputField
-        min={2}
-        max={20}
-        step={1}
-        value={short2Scenes}
-        onChange={setShort2Scenes}
-       />
-      </div>
-      <div>
-       <label className="text-[11px] pg-text-muted block mb-1">Target Durasi (Detik):</label>
-       <NumericInputField
-        min={15}
-        max={180}
-        step={5}
-        unit="detik"
-        value={short2DurationSec}
-        onChange={setShort2DurationSec}
-       />
-      </div>
-     </div>
+       {/* Short 2 Manual */}
+       <div className="p-3 rounded-lg border pg-border bg-white dark:bg-slate-800/90 shadow-2xs space-y-2.5">
+        <div className="flex items-center justify-between pb-1.5 border-b pg-border">
+         <span className="text-xs font-bold pg-text-heading">📱 Short 2 (Problem)</span>
+         <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">9:16</span>
+        </div>
+        <div>
+         <div className="flex items-center justify-between text-[11px] mb-1">
+          <label className="pg-text-muted font-medium">Target Scene:</label>
+          <span className="text-[10px] text-purple-600 dark:text-purple-400 font-mono">2–20</span>
+         </div>
+         <NumericInputField
+          min={2}
+          max={20}
+          step={1}
+          value={short2Scenes}
+          onChange={setShort2Scenes}
+          ariaLabel="Target scene Short 2"
+         />
+        </div>
+        <div>
+         <div className="flex items-center justify-between text-[11px] mb-1">
+          <label className="pg-text-muted font-medium">Target Durasi:</label>
+          <span className="text-[10px] text-purple-600 dark:text-purple-400 font-mono">15–180s</span>
+         </div>
+         <NumericInputField
+          min={15}
+          max={180}
+          step={5}
+          unit="s"
+          value={short2DurationSec}
+          onChange={setShort2DurationSec}
+          ariaLabel="Target durasi detik Short 2"
+         />
+        </div>
+        <div className="pt-1 border-t border-dashed pg-border text-[10px] text-center font-medium text-purple-700 dark:text-purple-300">
+         ⚡ ~{(short2DurationSec / Math.max(1, short2Scenes)).toFixed(1)}s / scene
+        </div>
+       </div>
 
-     {/* Long Pillar Manual */}
-     <div className="p-3 rounded-lg border pg-border bg-white dark:bg-slate-800 space-y-2.5">
-      <div className="flex items-center justify-between">
-       <span className="text-xs font-semibold pg-text-heading">🎥 Long Pillar (Full)</span>
-       <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 font-mono">16:9</span>
+       {/* Long Pillar Manual */}
+       <div className="p-3 rounded-lg border pg-border bg-white dark:bg-slate-800/90 shadow-2xs space-y-2.5">
+        <div className="flex items-center justify-between pb-1.5 border-b pg-border">
+         <span className="text-xs font-bold pg-text-heading">🎥 Long Pillar (Full)</span>
+         <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300">16:9</span>
+        </div>
+        <div>
+         <div className="flex items-center justify-between text-[11px] mb-1">
+          <label className="pg-text-muted font-medium">Target Scene:</label>
+          <span className="text-[10px] text-purple-600 dark:text-purple-400 font-mono">5–60</span>
+         </div>
+         <NumericInputField
+          min={5}
+          max={60}
+          step={1}
+          value={longScenes}
+          onChange={setLongScenes}
+          ariaLabel="Target scene Long Pillar"
+         />
+        </div>
+        <div>
+         <div className="flex items-center justify-between text-[11px] mb-1">
+          <label className="pg-text-muted font-medium">Target Durasi:</label>
+          <span className="text-[10px] text-purple-600 dark:text-purple-400 font-mono">1–60m</span>
+         </div>
+         <NumericInputField
+          min={1}
+          max={60}
+          step={1}
+          unit="m"
+          value={longDurationMinutes}
+          onChange={setLongDurationMinutes}
+          ariaLabel="Target durasi menit Long Pillar"
+         />
+        </div>
+        <div className="pt-1 border-t border-dashed pg-border text-[10px] text-center font-medium text-purple-700 dark:text-purple-300">
+         ⚡ ~{((longDurationMinutes * 60) / Math.max(1, longScenes)).toFixed(1)}s / scene
+        </div>
+       </div>
       </div>
-      <div>
-       <label className="text-[11px] pg-text-muted block mb-1">Target Scene:</label>
-       <NumericInputField
-        min={5}
-        max={60}
-        step={1}
-        value={longScenes}
-        onChange={setLongScenes}
-       />
-      </div>
-      <div>
-       <label className="text-[11px] pg-text-muted block mb-1">Target Durasi (Menit):</label>
-       <NumericInputField
-        min={1}
-        max={60}
-        step={1}
-        unit="menit"
-        value={longDurationMinutes}
-        onChange={setLongDurationMinutes}
-       />
+
+      {/* Real-time Funnel Pack Stats Summary Bar */}
+      <div className="p-2.5 rounded-lg border border-purple-500/20 bg-purple-100/50 dark:bg-purple-900/20 flex flex-wrap items-center justify-between gap-2 text-xs">
+       <div className="flex items-center gap-2">
+        <span className="font-semibold text-purple-800 dark:text-purple-300">📊 Ringkasan Paket:</span>
+        <span className="text-slate-700 dark:text-slate-300 font-medium">
+         3 Video • {short1Scenes + short2Scenes + longScenes} Scene • ~{Math.floor((short1DurationSec + short2DurationSec + longDurationMinutes * 60) / 60)}m {(short1DurationSec + short2DurationSec + longDurationMinutes * 60) % 60}s
+        </span>
+       </div>
+       <div className="text-[11px] font-medium text-purple-700 dark:text-purple-300">
+        Estimasi Total: ~{Math.round((short1DurationSec + short2DurationSec + longDurationMinutes * 60) / 0.35)} kata
+       </div>
       </div>
      </div>
-    </div>
-   )}
+    )}
   </div>
  )}
 
@@ -2076,10 +2124,11 @@ export default function GeneratorForm({
    min={MIN_TARGET_DURATION_SEC}
    max={MAX_TARGET_DURATION_SEC}
    step={5}
-   unit="detik"
+   unit="s"
    value={videoConfig.targetDurationSec ?? DEFAULT_TARGET_DURATION_SEC}
    onChange={(val) => handleVideoConfigChange("targetDurationSec", val)}
-   className="w-16 px-2 py-1 text-xs bg-white dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white text-center"
+   wrapperClassName="w-28"
+   ariaLabel="Target durasi custom dalam detik"
   />
   </div>
   </div>
@@ -2127,7 +2176,7 @@ export default function GeneratorForm({
     unit="scene"
     value={videoConfig.targetSceneCount ?? DEFAULT_SCENE_COUNT}
     onChange={(val) => handleVideoConfigChange("targetSceneCount", val)}
-    className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white text-center"
+    wrapperClassName="w-full"
    />
    )}
    {sceneCountMode === "auto" && (() => {

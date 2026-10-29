@@ -66,10 +66,33 @@
 > | `[#109]` | Fitur #109 (Bagian 58) | Funnel Pack Title Extraction, GDrive Zero-Missing Fallback, Direct .txt Download & Channel Bundle Hardening | 2026-10-23 |
 > | `[#110]` | Fitur #110 (Bagian 59) | Funnel Multi-Platform SEO Isolation, GDrive Segments Leakage Fix, Smart Platform Adaptation & HTML Blog Hardening | 2026-10-24 |
 > | `[#111]` | Fitur #111 (Bagian 60) | Funnel Pack Timing Isolation, Numeric Input UX Fluidity & Auto Scene Pacing Calibration (6–8s Scene Economy) | 2026-10-29 |
+> | `[#112]` | Fitur #112 (Bagian 61) | Funnel Pack Scene & Duration Card Responsive Sizing, Native Spinner Suppression & Real-Time Pacing Feedback | 2026-10-29 |
 
 ---
 
-## [#111] — 2026-10-29 | Funnel Pack Timing Isolation, Numeric Input UX Fluidity & Auto Scene Pacing Calibration (6–8s Scene Economy)
+## [#112] — 2026-10-29 | Funnel Pack Scene & Duration Card Responsive Sizing, Native Spinner Suppression & Real-Time Pacing Feedback
+
+### Problem
+1. **Input Durasi Terpotong/Kosong pada Card Funnel Pack**:
+   - Pada kolom "Tentukan Sendiri" Funnel Pack (`Short 1`, `Short 2`, `Long Pillar`), ketiga card disusun horizontal dalam `grid-cols-3` berlebar ~140px per card di panel form kiri.
+   - Suffix label eksternal (`detik` dan `menit`) ditempatkan di luar stepper button `+` sehingga memakan ruang ~35px.
+   - Browser Chromium/Blink memunculkan native spinner arrows (`⬍`) di dalam `<input type="number">` sebesar ~18px.
+   - Akibatnya, area pengetikan angka durasi menyusut drastis ke 0–15px (di bawah lebar spinner bawaan), menyebabkan angka durasi (`70`, `45`, `10`) terpotong habis atau tidak terlihat (tampak seperti kotak kosong).
+2. **Ketiadaan Feedback Rasio Pacing Scene per Detik**:
+   - Pengguna tidak memiliki indikator visual seberapa cepat ritme scene yang mereka atur (apakah terlalu cepat atau terlalu lambat).
+
+### Solution
+1. **Redesain Terpadu Stepper `NumericInputField.tsx`**:
+   - Mengintegrasikan tombol stepper `−` dan `+` langsung ke dalam kontainer berbingkai tunggal (`rounded-lg border pg-border bg-slate-50 dark:bg-slate-700/60 overflow-hidden`).
+   - Menyembunyikan native browser spinner arrows secara total dengan utility `[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`.
+   - Menambahkan `min-w-0 flex-1` pada input untuk menjamin text area tidak pernah overflow atau mendorong tombol offscreen.
+   - Memindahkan suffix unit (`s`, `m`, `scene`) menjadi inline chip halus di dalam kontainer input.
+2. **Refaktor Layout Card Funnel Pack di `GeneratorForm.tsx`**:
+   - Menghapus label unit redundan di luar tombol stepper dan menyematkan badge rentang nilai (`2–20`, `15–180s`, `5–60`, `1–60m`) langsung di header label.
+   - Menambahkan indikator pacing dinamis real-time pada setiap card: `⚡ ~Xs / scene`.
+   - Menambahkan bilah ringkasan paket terpadu (`📊 Ringkasan Paket`): menampilkan total 3 video, total scene gabungan, total durasi (menit & detik), serta estimasi total kata narasi TTS secara live.
+3. **Penyempurnaan Parser Fallback Legacy (`src/lib/parsers.ts`)**:
+   - Memperbaiki parsing legacy fallback pada `extractMultiPlatformSeo` agar teks caption asli tidak tertumpuk variasi CTA otomatis saat script lama di-parse.
 
 ### Problem
 1. **Injeksi Kontradiksi Prompt Funnel Pack (300 Detik / 9 Scene)**:

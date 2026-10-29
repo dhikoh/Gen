@@ -1556,14 +1556,22 @@ export function extractMultiPlatformSeo(text: string, requireExplicitBlocks: boo
     const legacySeo = extractThreeTierSeo(text);
 
     if (legacyCaption || legacyHashtags || legacySeo) {
-      const title = extractSegmentTitle(text);
-      const isVertical = /(?:9:16|vertikal|vertical|reels|tiktok|shorts)/i.test(text);
-      return buildSegmentMultiPlatformSeo({
-        title,
-        caption: legacyCaption || legacySeo?.deskripsi,
-        hashtags: legacyHashtags,
-        aspectRatio: isVertical ? "9:16" : "16:9",
+      const cap = legacyCaption || legacySeo?.deskripsi || "";
+      const hash = legacyHashtags || "";
+      const makeItem = (platform: "youtube" | "tiktok" | "instagram" | "facebook"): PlatformSeoItem => ({
+        platform,
+        description: cap,
+        hashtags: hash,
+        tags: "",
+        charCount: { description: cap.length, hashtags: hash.length, tags: 0 },
+        status: evaluatePlatformSeoStatus(platform, cap.length, 0),
       });
+      return {
+        youtube: makeItem("youtube"),
+        tiktok: makeItem("tiktok"),
+        instagram: makeItem("instagram"),
+        facebook: makeItem("facebook"),
+      };
     } else {
       return null;
     }

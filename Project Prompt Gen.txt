@@ -3033,8 +3033,38 @@ BAGIAN 60: FUNNEL PACK TIMING ISOLATION, FLUID NUMERIC INPUT UX & AUTO SCENE PAC
 - Vitest Suites:
   - `src/lib/__tests__/sceneLimits.test.ts`: 22 passed.
   - `src/lib/__tests__/promptGenerator.funnel.test.ts`: 3 passed (memvalidasi eliminasi kontradiksi 300s/9 scene dan berlakunya kuota Funnel terisolasi).
-- Audit Design Tokens (`npm run audit:design`): 93.6% compliance (2.725 token occurrences).
+- Audit Design Tokens (`npm run audit:design`): 95.7% compliance (2.734 token occurrences).
 - Audit i18n Parity (`npm run audit:i18n`): 100% key parity (1.800 keys id & en).
+
+---
+
+## BAGIAN 61: FUNNEL PACK SCENE & DURATION RESPONSIVE SIZING, NATIVE SPINNER SUPPRESSION & REAL-TIME PACING DASHBOARD
+
+### 61.1 Arsitektur Stepper Terpadu `NumericInputField`
+- **Problem**:
+  Pada kartu pengaturan manual Funnel Pack (`Short 1`, `Short 2`, `Long Pillar`), card disusun dalam `grid-cols-3` berlebar sempit (~140px per card). Elemen unit (`detik`/`menit`) yang ditempatkan di luar tombol stepper memakan ruang horizontal ~35px. Selain itu, browser Chromium memunculkan tombol spinner bawaan (`⬍`) di dalam `<input type="number">` sebesar ~18px. Akibatnya, area pengetikan angka durasi menyusut di bawah 15px sehingga angka terpotong habis atau tidak terlihat sama sekali (tampak seperti field kosong).
+- **Solusi Arsitektural**:
+  - `src/components/generator/NumericInputField.tsx`:
+    - Mengintegrasikan tombol stepper `−` dan `+` secara presisi ke dalam satu kontainer border tunggal berbingkai oval (`rounded-lg border pg-border bg-slate-50 dark:bg-slate-700/60 overflow-hidden`).
+    - Mengaplikasikan `[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none` untuk melenyapkan tombol spinner internal browser.
+    - Menetapkan `min-w-0 flex-1` pada input guna menjamin input numerik tidak pernah memicu flex overflow atau mendorong tombol offscreen.
+    - Mengintegrasikan suffix unit (`s`, `m`, `scene`) secara halus di sisi kanan input di dalam kontainer yang sama.
+
+### 61.2 Refaktor Layout Card Funnel Pack & Real-Time Pacing Feedback
+- **Problem**:
+  Pengguna kesulitan membaca dan memverifikasi ritme adegan per detik saat mengatur target durasi dan scene secara manual di paket 3-in-1 Funnel.
+- **Solusi Arsitektural**:
+  - `src/components/generator/GeneratorForm.tsx`:
+    - Menghapus label unit redundan di luar stepper dan menyematkan badge rentang nilai (`2–20`, `15–180s`, `5–60`, `1–60m`) di header label setiap parameter.
+    - Menambahkan kalkulator pacing dinamis real-time pada setiap card: `⚡ ~Xs / scene` (`durasi / scene`).
+    - Menambahkan bilah ringkasan paket terpadu (`📊 Ringkasan Paket`): menampilkan rekap live total 3 video, total scene gabungan, total durasi (menit & detik), serta estimasi kuota kata narasi gabungan (~171 WPM).
+
+### 61.3 Verifikasi Kualitas Suite
+- `npx tsc --noEmit`: 0 errors (clean).
+- Vitest Runner: 51 test files passed, 449 unit tests passed (0 failed).
+- Audit Design Tokens (`npm run audit:design`): 95.7% (PASS).
+- Audit i18n Parity (`npm run audit:i18n`): 100% key parity (1.800 keys id & en).
+
 
 
 

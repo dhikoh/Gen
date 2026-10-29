@@ -8,6 +8,7 @@ export interface NumericInputFieldProps {
   step?: number;
   unit?: string;
   className?: string;
+  wrapperClassName?: string;
   id?: string;
   ariaLabel?: string;
 }
@@ -19,7 +20,8 @@ export const NumericInputField: React.FC<NumericInputFieldProps> = ({
   max,
   step = 1,
   unit,
-  className = "w-full px-2 py-1 text-xs bg-slate-50 dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white text-center",
+  className = "",
+  wrapperClassName = "w-full",
   id,
   ariaLabel,
 }) => {
@@ -49,43 +51,51 @@ export const NumericInputField: React.FC<NumericInputFieldProps> = ({
   };
 
   return (
-    <div className="flex items-center gap-1">
+    <div
+      className={`flex items-center rounded-lg border pg-border bg-slate-50 dark:bg-slate-700/60 overflow-hidden focus-within:ring-2 focus-within:ring-purple-500/50 transition-all ${wrapperClassName}`}
+    >
       <button
         type="button"
         tabIndex={-1}
         onClick={() => handleStep(-step)}
-        className="w-6 h-6 shrink-0 flex items-center justify-center rounded border pg-border bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-xs font-bold text-slate-700 dark:text-slate-200 transition-colors select-none"
+        className="w-7 h-7 shrink-0 flex items-center justify-center bg-slate-100/80 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-xs font-bold text-slate-700 dark:text-slate-200 border-r pg-border select-none active:scale-95 transition-colors cursor-pointer"
         aria-label="Kurangi nilai"
       >
         −
       </button>
-      <input
-        id={id}
-        aria-label={ariaLabel}
-        type="number"
-        min={min}
-        max={max}
-        step={step}
-        value={raw}
-        onChange={(e) => setRaw(e.target.value)}
-        onBlur={(e) => commitValue(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            commitValue(e.currentTarget.value);
-          }
-        }}
-        className={className}
-      />
+      <div className="relative flex-1 min-w-0 flex items-center justify-center px-1">
+        <input
+          id={id}
+          aria-label={ariaLabel}
+          type="number"
+          min={min}
+          max={max}
+          step={step}
+          value={raw}
+          onChange={(e) => setRaw(e.target.value)}
+          onBlur={(e) => commitValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              commitValue(e.currentTarget.value);
+            }
+          }}
+          className={`w-full h-7 bg-transparent text-center text-xs font-semibold text-slate-900 dark:text-white outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${className}`}
+        />
+        {unit && (
+          <span className="text-[10px] text-slate-400 dark:text-slate-400 shrink-0 select-none pr-1 font-medium">
+            {unit}
+          </span>
+        )}
+      </div>
       <button
         type="button"
         tabIndex={-1}
         onClick={() => handleStep(step)}
-        className="w-6 h-6 shrink-0 flex items-center justify-center rounded border pg-border bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-xs font-bold text-slate-700 dark:text-slate-200 transition-colors select-none"
+        className="w-7 h-7 shrink-0 flex items-center justify-center bg-slate-100/80 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-xs font-bold text-slate-700 dark:text-slate-200 border-l pg-border select-none active:scale-95 transition-colors cursor-pointer"
         aria-label="Tambah nilai"
       >
         +
       </button>
-      {unit && <span className="text-[11px] pg-text-muted shrink-0 ml-0.5">{unit}</span>}
     </div>
   );
 };
