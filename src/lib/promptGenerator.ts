@@ -477,6 +477,84 @@ function detectFactualContent(topic: string, additionalContext: string): boolean
   return signalCount >= 2;
 }
 
+/**
+ * Membangun instruksi pembuatan thumbnail studio dengan formula psikologis High-CTR Curiosity Gap
+ * dan klausul tipografi in-image eksplisit untuk AI eksternal (FLUX.1, Midjourney v6, Ideogram v2).
+ */
+export function buildThumbnailStudioPromptSection(videoConfig: VideoConfigData, isFunnel: boolean = false): string {
+  const ar = isFunnel ? "16:9" : (videoConfig.aspectRatio || "9:16");
+  const arSuffix = ` --ar ${ar}`;
+  const isFaceDominant = videoConfig.thumbnailFaceDominance !== false;
+
+  const presetRaw = (videoConfig.thumbnailStylePreset || "anti_gagal").toLowerCase();
+
+  let presetGuide = "";
+  if (presetRaw.includes("anti_gagal") || presetRaw === "anti gagal") {
+    presetGuide = `
+- FORMULA PRESET: "ANTI GAGAL" (TUTORIAL / SOLUSI PASTI / PREVENTING FATAL MISTAKES)
+  * TARGET PSIKOLOGIS: Memicu rasa takut rugi (Loss Aversion) atau jaminan kepastian berhasil.
+  * ATURAN KRUSIAL: DILARANG KERAS hanya menulis kata template mentah "ANTI GAGAL"!
+  * WAJIB padukan dengan topik spesifik naskah (2–4 kata kapital memicu klik)!
+  * CONTOH FORMULA SANGAT MENARIK: "JANGAN DISIRAM!", "STOP CARA INI!", "TERNYATA SALAH?!", "RAHASIA 3 HARI", "100% PASTI JADI".`;
+  } else if (presetRaw.includes("gila")) {
+    presetGuide = `
+- FORMULA PRESET: "GILA!" (SHOCKING FACT / REAKSI EKSTREM / KONSEKUENSI ANOMALI)
+  * TARGET PSIKOLOGIS: Membanting ekspektasi penonton dengan fakta liar yang mengejutkan.
+  * ATURAN KRUSIAL: DILARANG KERAS hanya menulis kata template mentah "GILA!"!
+  * WAJIB padukan dengan objek/kejadian dramatis dari topik (2–4 kata kapital memicu klik)!
+  * CONTOH FORMULA SANGAT MENARIK: "HANCUR TOTAL?!", "BAHAYA BESAR!", "GAK MASUK AKAL!", "KOK BISA GINI?!", "JANGAN DICOBA!".`;
+  } else if (presetRaw.includes("3_langkah") || presetRaw.includes("langkah")) {
+    presetGuide = `
+- FORMULA PRESET: "3 LANGKAH SAJA" (KEMUDAHAN EKSTREM / JALAN PINTAS INSTAN)
+  * TARGET PSIKOLOGIS: Menawarkan solusi cepat tanpa ribet dan tanpa modal.
+  * ATURAN KRUSIAL: DILARANG KERAS hanya menulis kata template mentah "3 LANGKAH SAJA"!
+  * CONTOH FORMULA SANGAT MENARIK: "CUMA 1 MENIT!", "TRIK CEPAT INI", "TANPA MODAL?!", "3 HARI TEMBUS".`;
+  } else if (presetRaw.includes("booyah")) {
+    presetGuide = `
+- FORMULA PRESET: "BOOYAH!" (KEMENANGAN TELAK / HASIL TRANSFORMASI SPEKTAKULER)
+  * TARGET PSIKOLOGIS: Memperlihatkan hasil akhir yang luar biasa dan membuat penonton iri/penasaran.
+  * ATURAN KRUSIAL: DILARANG KERAS hanya menulis kata template mentah "BOOYAH!"!
+  * CONTOH FORMULA SANGAT MENARIK: "HASILNYA MELEDAK!", "TEMBUS 100X!", "AKHIRNYA BISA!", "BERHASIL BESAR!".`;
+  } else if (presetRaw.includes("kaget")) {
+    presetGuide = `
+- FORMULA PRESET: "KAGET!" (MIND-BLOWING CURIOSITY / OPEN LOOP MISTERI)
+  * TARGET PSIKOLOGIS: Menyerang rasa penasaran dengan pertanyaan menggantung yang tak tertahankan.
+  * ATURAN KRUSIAL: DILARANG KERAS hanya menulis kata template mentah "KAGET!"!
+  * CONTOH FORMULA SANGAT MENARIK: "SIAPA SANGKA?!", "KORBAN BERIKUTNYA?", "RAHASIA BOCOR!", "JANGAN DILIHAT!".`;
+  } else {
+    presetGuide = `
+- FORMULA PRESET: HIGH-CTR CURIOSITY GAP (OPEN LOOP FORMULA)
+  * TARGET PSIKOLOGIS: 2–4 kata kapital tebal yang relevan dengan topik, menyentuh rasa penasaran/urgensi ekstrem tanpa clickbait kosong.`;
+  }
+
+  const faceDominanceInstruction = isFaceDominant
+    ? "Subject with intense, hyper-expressive emotional facial expression (shocked, wide-eyed, or intense curiosity filling 60–80% of the frame looking directly into the lens)"
+    : "Primary dramatic focal object with high-contrast scale, extreme transformation or glowing anomaly filling 60–80% of the frame";
+
+  return `## THUMBNAIL STUDIO
+PANDUAN STRATEGI THUMBNAIL & TIPOGRAFI HIGH-CTR 2026:
+${presetGuide}
+- ATURAN EMAS TEKS OVERLAY (2–4 KATA KAPITAL TEBAL):
+  1. WAJIB membuat teks overlay yang membuat penonton MERASA RUGI jika scroll lewat tanpa klik (High Click-Through Rate / CTR).
+  2. Teks TIDAK BOLEH hanya mengulang apa yang sudah terlihat di gambar, melainkan WAJIB membuka pertanyaan besar (Curiosity Gap / Open Loop).
+  3. DILARANG KERAS hanya menyalin kata mentah preset! Teks harus menyatu dengan topik naskah.
+
+- STANDAR PROMPT GAMBAR UNTUK AI EKSTERNAL (MIDJOURNEY v6 / FLUX.1 / IDEOGRAM v2):
+  Prompt visual di OPSI 1 PROMPT & OPSI 2 PROMPT ditulis dalam BAHASA INGGRIS.
+  WAJIB menyertakan deskripsi visual sinematik LENGKAP dengan KLAUSUL RENDERING TIPOGRAFI EKSPLISIT:
+  1. Subjek & Framing: ${faceDominanceInstruction}.
+  2. Pencahayaan & Nuansa: Cinematic dramatic lighting, volumetric rim light, high contrast foreground vs moody atmospheric background.
+  3. Negative Space: Sisakan 1/3 frame bersih di sisi kiri atau kanan untuk penempatan tipografi.
+  4. KLAUSUL TIPOGRAFI TERSEMAT (IN-IMAGE TYPOGRAPHY CLAUSE): Prompt visual WAJIB menyertakan kalimat rendering teks grafis tebal dengan tanda kutip ganda, contoh wajib: featuring bold stylized 3D typography text reading "[TEKS OVERLAY]" seamlessly rendered in the clean [left/right] third negative space, vibrant high-contrast color palette, thick dark outline sticker effect, volumetric drop shadow, professional YouTube click-worthy thumbnail typography aesthetics.
+
+TEKS OVERLAY SEO: [Teks hook utama 2-4 kata huruf kapital tebal memicu curiosity gap kontekstual video]
+OPSI 1 PROMPT: [Visual prompt lengkap bahasa Inggris (Shot type, ${faceDominanceInstruction}, environment, cinematic lighting, negative space, dan KLAUSUL TIPOGRAFI EKSPLISIT featuring bold typography text reading "...") siap render di Midjourney/FLUX]${arSuffix}
+OPSI 1 TEKS OVERLAY: [Teks singkat 2-4 kata punchy yang ditempel pada gambar Opsi 1]
+OPSI 2 PROMPT: [Visual prompt alternatif kontras sudut pandang/A-B testing split composition bahasa Inggris dengan KLAUSUL TIPOGRAFI EKSPLISIT featuring bold typography text reading "..."]${arSuffix}
+OPSI 2 TEKS OVERLAY: [Teks alternatif 2-4 kata punchy untuk A/B testing]
+REKOMENDASI WARNA & ELEMEN: [Palet kontras tinggi (misal teks kuning neon / putih ber-outline hitam tebal di latar gelap), peletakan di area negative space, elemen grafis penegas visual]`;
+}
+
 export function generateMasterPrompt(
   channel: ProfileChannelData,
   topic: string,
@@ -1070,13 +1148,7 @@ DURASI: [10 detik]
 ## SCENE 2
 ...dan seterusnya hingga selesai (${longScenes} scene).
 
-## THUMBNAIL STUDIO
-TEKS OVERLAY SEO: [1-3 kata huruf kapital tebal]
-OPSI 1 PROMPT: [Visual prompt thumbnail horizontal 16:9 widescreen, ekspresi wajah 60-80% frame, negative space untuk teks, bahasa Inggris] --ar 16:9
-OPSI 1 TEKS OVERLAY: [Teks singkat punchy]
-OPSI 2 PROMPT: [Visual prompt alternatif 16:9] --ar 16:9
-OPSI 2 TEKS OVERLAY: [Teks alternatif]
-REKOMENDASI WARNA & ELEMEN: [Palet kontras tinggi]
+${buildThumbnailStudioPromptSection(videoConfig, true)}
 
 ## METADATA SEO YOUTUBE 2026 (KHUSUS VIDEO UTAMA LONG PILLAR)
 TAG SPESIFIK: [5-8 kata kunci utama]
@@ -1384,10 +1456,7 @@ PRINSIP EFISIENSI & KEBUTUHAN SCENE (SCENE ECONOMY):
   }
 
   if (hasThumbnail) {
-    const thumbStyleNote = videoConfig.thumbnailStylePreset && videoConfig.thumbnailStylePreset !== "CUSTOM" && videoConfig.thumbnailStylePreset !== "AUTO"
-      ? ` WAJIB gunakan atau adaptasi formula template teks "${videoConfig.thumbnailStylePreset.replace("_", " ")}" (pilihan anti-gagal 2026: "GILA!", "ANTI GAGAL", "3 LANGKAH SAJA", "BOOYAH!", "KAGET!").`
-      : "";
-    formatOutputWajib += `\n## THUMBNAIL STUDIO\nTEKS OVERLAY SEO: [Maksimal 1-3 kata huruf kapital tebal, memicu curiosity gap/reaksi ekstrem.${thumbStyleNote}]\nOPSI 1 PROMPT: [Shot Type & Camera Angle (Close-up / Medium Close-up), Subject with Extreme Emotional Facial Expression (wajah emosional mengisi 60-80% frame), Environment & High Contrast Background, Cinematic Lighting (Rim light, split lighting, warm foreground vs cool background). Sisakan 1/3 negative space bersih untuk teks di sisi kiri/kanan. Bahasa Inggris.]${arSuffix}\nOPSI 1 TEKS OVERLAY: [Teks singkat ditempel pada gambar Opsi 1 (maks 1-3 kata, punchy, font tebal)]\nOPSI 2 PROMPT: [Visual prompt alternatif kontras sudut pandang/komposisi untuk A/B testing (wajah emosional 60-80% frame, negative space bersih). Bahasa Inggris.]${arSuffix}\nOPSI 2 TEKS OVERLAY: [Teks singkat ditempel pada gambar Opsi 2 (maks 1-3 kata)]\nREKOMENDASI WARNA & ELEMEN: [Palet kontras tinggi (misal: teks kuning di latar hitam atau putih di latar biru), penempatan teks di area negative space, elemen grafis penegas]\n`;
+    formatOutputWajib += `\n${buildThumbnailStudioPromptSection(videoConfig, false)}\n`;
   }
 
   // ── Three-Tier YouTube SEO & Pre-Flight Checklist (Strategi YouTube 2026) ──

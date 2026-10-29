@@ -3065,6 +3065,53 @@ BAGIAN 60: FUNNEL PACK TIMING ISOLATION, FLUID NUMERIC INPUT UX & AUTO SCENE PAC
 - Audit Design Tokens (`npm run audit:design`): 95.7% (PASS).
 - Audit i18n Parity (`npm run audit:i18n`): 100% key parity (1.800 keys id & en).
 
+---
+
+## BAGIAN 62: HIGH-CTR THUMBNAIL OVERLAY RE-ENGINEERING, IN-IMAGE TYPOGRAPHY PROMPT FOR EXTERNAL AI & SHRUNK-TEST SIMULATOR
+
+### 62.1 Rekayasa Ulang Formula Psikologis Teks Overlay (Curiosity Gap & Anti-Literal Guard)
+- **Problem**:
+  Sistem prompt thumbnail sebelumnya memiliki instruksi kaku: `WAJIB gunakan formula template teks "${videoConfig.thumbnailStylePreset}" (pilihan: "GILA!", "ANTI GAGAL", ...)`. LLM mengartikan ini secara harfiah dan menyalin nama preset mentah tanpa konteks (misal Opsi 1: `"ANTI GAGAL!"`, Opsi 2: `"GILA!"`). Hal ini menghasilkan teks overlay yang hambar, kaku, berdaya pikat rendah, dan tidak memicu rasa penasaran penonton untuk mengklik video.
+- **Solusi Arsitektural**:
+  - `src/lib/promptGenerator.ts`:
+    - Membangun generator terpadu `buildThumbnailStudioPromptSection(videoConfig, isFunnel)`.
+    - Menyuntikkan aturan sakral: **`DILARANG KERAS hanya menulis kata template mentah`** (seperti "ANTI GAGAL", "GILA", "3 LANGKAH SAJA", "BOOYAH", "KAGET").
+    - Menanamkan formula emosional kontekstual 2–4 kata kapital tebal berbasis preset:
+      * `anti_gagal`: Loss Aversion & Solusi Pasti ("JANGAN DISIRAM!", "STOP CARA INI!", "TERNYATA SALAH?!", "RAHASIA 3 HARI").
+      * `gila`: Shocking Fact & Anomali Ekstrem ("HANCUR TOTAL?!", "BAHAYA BESAR!", "GAK MASUK AKAL!").
+      * `3_langkah`: Kemudahan & Kecepatan Ekstrem ("CUMA 1 MENIT!", "TRIK CEPAT INI", "TANPA MODAL?!").
+      * `booyah`: Kemenangan & Hasil Transformasi Spektakuler ("HASILNYA MELEDAK!", "TEMBUS 100X!", "AKHIRNYA BISA!").
+      * `kaget`: Mind-Blowing Open Loop ("SIAPA SANGKA?!", "KORBAN BERIKUTNYA?", "RAHASIA BOCOR!").
+    - Diintegrasikan secara konsisten pada Single Video Generator dan Long Pillar Funnel Pack.
+
+### 62.2 Klausul In-Image Typography untuk AI Gambar Eksternal (FLUX.1, Midjourney v6, Ideogram v2)
+- **Problem**:
+  Sebelumnya, prompt visual thumbnail untuk AI eksternal hanya menginstruksikan `clean dark negative space on the left third for text placement` tanpa instruksi tipografi di dalam gambar. Pengguna yang menyalin prompt ke Midjourney/FLUX hanya mendapatkan gambar dengan latar gelap kosong tanpa teks overlay yang menarik.
+- **Solusi Arsitektural**:
+  - `src/lib/promptGenerator.ts`:
+    - Menyuntikkan **`KLAUSUL TIPOGRAFI TERSEMAT (IN-IMAGE TYPOGRAPHY CLAUSE)`** ke dalam prompt visual bahasa Inggris:
+      `featuring bold stylized 3D typography text reading "[TEKS OVERLAY]" seamlessly rendered in the clean [left/right] third negative space, vibrant high-contrast color palette, thick dark outline sticker effect, volumetric drop shadow, professional YouTube click-worthy thumbnail typography aesthetics`.
+    - Memungkinkan AI eksternal (FLUX, Midjourney v6.1, Ideogram v2) langsung me-render gambar lengkap dengan tipografi clickbait yang estetik, menyatu, dan terbaca jelas.
+
+### 62.3 Perbaikan Simulator Mockup Layar HP (Shrink Test) & Pemilihan Opsi Interaktif
+- **Problem**:
+  Kotak simulasi HP di `ScenePromptStudioClient.tsx` berukuran sempit (`w-32`) dan menggunakan class `truncate`, sehingga teks overlay terpotong jelek menjadi `"ANTI GAG..."`. Selain itu, tampilannya hanya kotak hitam polos tanpa kemampuan berganti pratinjau antar-opsi.
+- **Solusi Arsitektural**:
+  - `src/app/[locale]/dashboard/scene-prompt/ScenePromptStudioClient.tsx`:
+    - Menghapus class `truncate` dan menerapkan `break-words text-center leading-tight max-w-full px-2 py-1` dengan styling badge high-contrast (gradien merah-amber dengan outline putih dan drop shadow).
+    - Menambahkan state `shrinkPreviewOption` dan tombol switcher interaktif (`Auto`, `Opsi 1`, `Opsi 2`, `SEO Hook`) untuk memverifikasi keterbacaan seluruh variasi overlay pada layar HP kecil.
+    - Menambahkan detail autentik feed smartphone (indikator 4K HD, durasi video `0:45`/`12:45`, dan estimasi views).
+    - Menambahkan hint informatif `externalAiPromptHint` pada kartu prompt visual Opsi 1 & Opsi 2.
+  - `messages/id.json` & `messages/en.json`: Menambahkan 6 key i18n baru dengan paritas 100%.
+
+### 62.4 Verifikasi Kualitas
+- Vitest Runner: 52 test files passed, 459 unit tests passed (termasuk 10 test baru di `src/lib/__tests__/thumbnailStudioPrompt.test.ts`).
+- `npx tsc --noEmit`: 0 errors (clean).
+- `npm run audit:i18n`: 100% key parity (1.806 keys id & en).
+- `npm run audit:design`: 95.7% token compliance (PASS).
+- `npm run build`: Production build success (58 routes generated).
+
+
 
 
 

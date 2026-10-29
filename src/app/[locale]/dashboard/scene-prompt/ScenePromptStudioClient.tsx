@@ -317,6 +317,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
   });
   const [ar, setAr] = useState("9:16");
   const [thumbAr, setThumbAr] = useState<"16:9" | "9:16">("16:9");
+  const [shrinkPreviewOption, setShrinkPreviewOption] = useState<"auto" | "o1" | "o2" | "seo">("auto");
   const [sref, setSref] = useState("");
   const [cref, setCref] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -2377,7 +2378,16 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
 
         {/* Mobile Screen Shrink Test Preview (YouTube 2026 Strategy) */}
         {(() => {
-          const testText = thumbnailData.seoText || thumbnailData.opsi1Overlay || thumbnailData.opsi2Overlay || "";
+          let testText = "";
+          if (shrinkPreviewOption === "o1" && thumbnailData.opsi1Overlay) {
+            testText = thumbnailData.opsi1Overlay;
+          } else if (shrinkPreviewOption === "o2" && thumbnailData.opsi2Overlay) {
+            testText = thumbnailData.opsi2Overlay;
+          } else if (shrinkPreviewOption === "seo" && thumbnailData.seoText) {
+            testText = thumbnailData.seoText;
+          } else {
+            testText = thumbnailData.opsi1Overlay || thumbnailData.seoText || thumbnailData.opsi2Overlay || "";
+          }
           const wordCount = testText.trim() ? testText.trim().split(/\s+/).length : 0;
           return (
             <div className="p-4 rounded-xl border border-purple-200 dark:border-purple-900/50 bg-gradient-to-r from-purple-500/5 via-indigo-500/5 to-purple-500/5 space-y-3">
@@ -2394,25 +2404,93 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
                     {wordCount <= 3 ? "✓ Lolos (1-3 Kata)" : `⚠️ ${wordCount} Kata (Disarankan Maks 3 Kata)`}
                   </span>
                 </div>
-                <p className="text-[10px] pg-text-muted">
-                  Uji keterbacaan dalam 0.5 detik pada layar smartphone kecil
-                </p>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-[10px] pg-text-muted">{t("previewOptionLabel")}:</span>
+                  <button
+                    type="button"
+                    onClick={() => setShrinkPreviewOption("auto")}
+                    className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-colors ${
+                      shrinkPreviewOption === "auto" ? "bg-purple-600 text-white" : "pg-surface-dim pg-text-sub hover:pg-surface"
+                    }`}
+                  >
+                    {t("previewOptionAuto")}
+                  </button>
+                  {thumbnailData.opsi1Overlay && (
+                    <button
+                      type="button"
+                      onClick={() => setShrinkPreviewOption("o1")}
+                      className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-colors ${
+                        shrinkPreviewOption === "o1" ? "bg-blue-600 text-white" : "pg-surface-dim pg-text-sub hover:pg-surface"
+                      }`}
+                    >
+                      {t("previewOption1")}
+                    </button>
+                  )}
+                  {thumbnailData.opsi2Overlay && (
+                    <button
+                      type="button"
+                      onClick={() => setShrinkPreviewOption("o2")}
+                      className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-colors ${
+                        shrinkPreviewOption === "o2" ? "bg-purple-600 text-white" : "pg-surface-dim pg-text-sub hover:pg-surface"
+                      }`}
+                    >
+                      {t("previewOption2")}
+                    </button>
+                  )}
+                  {thumbnailData.seoText && (
+                    <button
+                      type="button"
+                      onClick={() => setShrinkPreviewOption("seo")}
+                      className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-colors ${
+                        shrinkPreviewOption === "seo" ? "bg-amber-600 text-white" : "pg-surface-dim pg-text-sub hover:pg-surface"
+                      }`}
+                    >
+                      {t("previewOptionSeo")}
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Smartphone Simulator Preview Card */}
-              <div className="flex flex-wrap items-center gap-4">
-                <div className={`relative rounded-lg overflow-hidden border-2 border-slate-700 shadow-lg bg-slate-900 flex items-center justify-center p-3 text-center ${
-                  thumbAr === "16:9" ? "w-52 h-28" : "w-32 h-52"
+              <div className="flex flex-wrap items-center gap-5">
+                <div className={`relative rounded-xl overflow-hidden border-2 border-slate-700/80 shadow-2xl bg-slate-950 flex flex-col justify-between p-2.5 select-none ${
+                  thumbAr === "16:9" ? "w-56 h-32 sm:w-64 sm:h-36" : "w-36 h-60 sm:w-40 sm:h-64"
                 }`}>
-                  {/* Subtle simulated cinematic background */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/80 via-slate-950 to-black pointer-events-none" />
-                  <div className="absolute top-1.5 right-1.5 bg-black/80 text-[8px] font-bold text-white px-1 rounded z-10">
-                    HD
+                  {/* Subtle simulated dynamic background with spotlight */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-indigo-950/80 via-slate-900 to-black pointer-events-none" />
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_40%,rgba(59,130,246,0.25),transparent_70%)] pointer-events-none" />
+
+                  {/* Top Bar: Feed Indicator */}
+                  <div className="relative z-10 flex items-center justify-between w-full">
+                    <div className="flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                      <span className="text-[9px] font-black uppercase tracking-wider text-slate-300">
+                        {thumbAr === "16:9" ? "YOUTUBE" : "SHORTS"}
+                      </span>
+                    </div>
+                    <span className="bg-black/80 text-[8px] font-bold text-amber-400 px-1 py-0.2 rounded border border-amber-500/30">
+                      4K HD
+                    </span>
                   </div>
-                  {/* High contrast bold thumbnail text */}
-                  <p className="relative z-10 text-white font-black text-xs uppercase tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] bg-black/50 px-2 py-1 rounded border border-white/20 max-w-full truncate">
-                    {testText || "JUDUL PUNCHY"}
-                  </p>
+
+                  {/* Visual Center: Bold Thumbnail Text Badge (No Truncate) */}
+                  <div className="relative z-10 flex-1 flex flex-col justify-center my-1 pointer-events-none">
+                    <div className="self-center w-full px-1 flex justify-center">
+                      <p className="text-white font-black text-xs sm:text-[13px] uppercase tracking-wide drop-shadow-[0_3px_6px_rgba(0,0,0,0.95)] bg-gradient-to-r from-red-600 via-rose-600 to-amber-500 px-2 py-1 rounded-md border border-white/40 shadow-xl max-w-full break-words text-center leading-tight">
+                        {testText || "JUDUL PUNCHY"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Bottom Bar: Duration & Views simulation */}
+                  <div className="relative z-10 flex items-center justify-between w-full text-[8px] text-slate-400 font-medium">
+                    <span className="bg-black/90 text-white font-mono px-1 py-0.2 rounded font-bold">
+                      {thumbAr === "16:9" ? "12:45" : "0:45"}
+                    </span>
+                    <span className="text-[8px] text-slate-300 drop-shadow">
+                      1.4M views
+                    </span>
+                  </div>
                 </div>
 
                 <div className="space-y-1.5 text-xs pg-text-sub flex-1 min-w-[200px]">
@@ -2493,6 +2571,9 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
                   </div>
                   <p className="text-xs font-mono pg-text-sub pg-surface-dim rounded-lg p-3 leading-relaxed break-words border border-slate-200/50 dark:border-slate-700/50">
                     {buildThumbnailPrompt(thumbnailData.opsi1Prompt)}
+                  </p>
+                  <p className="text-[10px] text-blue-600 dark:text-blue-400 flex items-center gap-1">
+                    <span>💡</span> {t("externalAiPromptHint")}
                   </p>
                 </div>
 
@@ -2589,6 +2670,9 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
                   </div>
                   <p className="text-xs font-mono pg-text-sub pg-surface-dim rounded-lg p-3 leading-relaxed break-words border border-slate-200/50 dark:border-slate-700/50">
                     {buildThumbnailPrompt(thumbnailData.opsi2Prompt)}
+                  </p>
+                  <p className="text-[10px] text-purple-600 dark:text-purple-400 flex items-center gap-1">
+                    <span>💡</span> {t("externalAiPromptHint")}
                   </p>
                 </div>
 

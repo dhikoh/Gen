@@ -67,6 +67,48 @@
 > | `[#110]` | Fitur #110 (Bagian 59) | Funnel Multi-Platform SEO Isolation, GDrive Segments Leakage Fix, Smart Platform Adaptation & HTML Blog Hardening | 2026-10-24 |
 > | `[#111]` | Fitur #111 (Bagian 60) | Funnel Pack Timing Isolation, Numeric Input UX Fluidity & Auto Scene Pacing Calibration (6–8s Scene Economy) | 2026-10-29 |
 > | `[#112]` | Fitur #112 (Bagian 61) | Funnel Pack Scene & Duration Card Responsive Sizing, Native Spinner Suppression & Real-Time Pacing Feedback | 2026-10-29 |
+> | `[#113]` | Fitur #113 (Bagian 62) | Re-Engineering Thumbnail Overlay: Psychological Curiosity Gap, In-Image Typography Prompts untuk AI Eksternal (FLUX/Midjourney) & Perbaikan UI Shrink-Test | 2026-10-29 |
+
+---
+
+## [#113] — 2026-10-29 | Re-Engineering Thumbnail Overlay: Psychological Curiosity Gap, In-Image Typography Prompts untuk AI Eksternal (FLUX/Midjourney) & Perbaikan UI Shrink-Test
+
+### Problem
+1. **Penyalinan Mentah Nama Preset Tanpa Konteks (*AI Literal Copying*)**:
+   - Di `src/lib/promptGenerator.ts`, instruksi kaku `WAJIB gunakan formula template teks "${videoConfig.thumbnailStylePreset}" (pilihan: "GILA!", "ANTI GAGAL", ...)` menyebabkan LLM mengartikan preset secara harfiah.
+   - LLM hanya mengeluarkan kata mentah seperti `"ANTI GAGAL!"` (Opsi 1) dan `"GILA!"` (Opsi 2).
+   - Teks ini terasa klise, membosankan, dan tidak mengaitkan topik spesifik video (misal botani/tanaman: tidak ada rasa urgensi seperti *"JANGAN DISIRAM!"* atau *"STOP PUPUK INI!"*).
+2. **Ketiadaan Kemampuan AI Eksternal untuk Merender Tipografi/Overlay**:
+   - Visual prompt bahasa Inggris untuk Midjourney/FLUX hanya menuliskan `clean dark negative space on the left third for text placement` tanpa instruksi tipografi.
+   - Akibatnya, saat prompt dicopy ke Midjourney atau FLUX, AI eksternal hanya membuat foto orang dan objek dengan latar kosong gelap tanpa ada teks atau overlay sama sekali.
+3. **Bug Truncate & Kotak Polos pada Preview Layar HP (*Shrink Test*)**:
+   - Simulator HP di `ScenePromptStudioClient.tsx` berukuran sempit (`w-32` = 128px) dengan class CSS `truncate`.
+   - Kata `"ANTI GAGAL!"` terpotong jelek menjadi `"ANTI GAG..."`.
+   - Pengguna tidak dapat mengganti opsi pratinjau (terkunci hanya menampilkan teks pertama).
+
+### Solution
+1. **Rekayasa Ulang Generator Prompt Thumbnail (`src/lib/promptGenerator.ts`)**:
+   - Membuat generator terpadu `buildThumbnailStudioPromptSection(videoConfig, isFunnel)`.
+   - Menyuntikkan aturan keras: **`DILARANG KERAS hanya menulis kata template mentah`** (seperti "ANTI GAGAL", "GILA", "3 LANGKAH SAJA", "BOOYAH", "KAGET").
+   - Menetapkan formula psikologis bernilai tinggi 2–4 kata kapital tebal yang WAJIB mengintegrasikan kata kunci topik konten:
+     * `anti_gagal`: Loss Aversion & Peringatan Fatal ("JANGAN DISIRAM!", "STOP CARA INI!", "TERNYATA SALAH?!", "RAHASIA 3 HARI").
+     * `gila`: Shocking Fact & Anomali ("HANCUR TOTAL?!", "BAHAYA BESAR!", "GAK MASUK AKAL!").
+     * `3_langkah`: Kemudahan & Kecepatan ("CUMA 1 MENIT!", "TRIK CEPAT INI", "TANPA MODAL?!").
+     * `booyah`: Kemenangan & Hasil ("HASILNYA MELEDAK!", "TEMBUS 100X!", "AKHIRNYA BISA!").
+     * `kaget`: Mind-Blowing Curiosity ("SIAPA SANGKA?!", "KORBAN BERIKUTNYA?", "RAHASIA BOCOR!").
+   - Diintegrasikan penuh ke Single Video Mode dan Funnel Pack Long Pillar Mode.
+2. **Klausul Tipografi In-Image untuk AI Eksternal (FLUX.1 / Midjourney v6 / Ideogram v2)**:
+   - Menyuntikkan **`KLAUSUL TIPOGRAFI TERSEMAT (IN-IMAGE TYPOGRAPHY CLAUSE)`** langsung ke dalam prompt gambar AI:
+     `featuring bold stylized 3D typography text reading "[TEKS OVERLAY]" seamlessly rendered in the clean [left/right] third negative space, vibrant high-contrast color palette, thick dark outline sticker effect, volumetric drop shadow, professional YouTube click-worthy thumbnail typography aesthetics`.
+   - Mengaktifkan AI eksternal untuk langsung me-render teks tipografi clickbait yang tajam dan menyatu dengan gambar tanpa perlu edit manual di Canva.
+3. **Penyempurnaan Simulator Layar HP (*Shrink Test*) di `ScenePromptStudioClient.tsx`**:
+   - Menghapus class `truncate`, menggantinya dengan styling badge high-contrast multi-line (`break-words text-center leading-tight max-w-full px-2 py-1 bg-gradient-to-r from-red-600 via-rose-600 to-amber-500 text-white`).
+   - Menambahkan state `shrinkPreviewOption` dan tombol switcher interaktif (`Auto`, `Opsi 1`, `Opsi 2`, `SEO Hook`) untuk memverifikasi keterbacaan seluruh variasi overlay pada layar HP kecil.
+   - Menambahkan detail autentik feed smartphone (indikator 4K HD, durasi video `0:45`/`12:45`, dan estimasi views).
+   - Menambahkan petunjuk informatif `externalAiPromptHint` pada kartu visual prompt Opsi 1 & Opsi 2.
+4. **Sinkronisasi i18n & Test Suite**:
+   - Menambahkan 6 key i18n baru di `messages/id.json` & `messages/en.json` (paritas 100%, 1.806 keys).
+   - Menulis 10 unit test komprehensif di `src/lib/__tests__/thumbnailStudioPrompt.test.ts`.
 
 ---
 
