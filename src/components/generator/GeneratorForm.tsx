@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import toast from "react-hot-toast";
 import CompositionSliderGroup from "./CompositionSliderGroup";
+import NumericInputField from "./NumericInputField";
 import { PresetSelect, PresetOption } from "@/components/ui/PresetSelect";
 import { getVisualStyleOptions, mapVisualAestheticToKey } from "@/lib/visualStyleMap";
 import type { Prisma } from "@prisma/client";
@@ -1805,24 +1806,23 @@ export default function GeneratorForm({
       </div>
       <div>
        <label className="text-[11px] pg-text-muted block mb-1">Target Scene:</label>
-       <input
-        type="number"
+       <NumericInputField
         min={2}
         max={20}
+        step={1}
         value={short1Scenes}
-        onChange={(e) => setShort1Scenes(Math.max(2, Math.min(20, parseInt(e.target.value, 10) || 5)))}
-        className="w-full px-2.5 py-1 text-xs bg-slate-50 dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white"
+        onChange={setShort1Scenes}
        />
       </div>
       <div>
        <label className="text-[11px] pg-text-muted block mb-1">Target Durasi (Detik):</label>
-       <input
-        type="number"
+       <NumericInputField
         min={15}
         max={180}
+        step={5}
+        unit="detik"
         value={short1DurationSec}
-        onChange={(e) => setShort1DurationSec(Math.max(15, Math.min(180, parseInt(e.target.value, 10) || 45)))}
-        className="w-full px-2.5 py-1 text-xs bg-slate-50 dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white"
+        onChange={setShort1DurationSec}
        />
       </div>
      </div>
@@ -1835,24 +1835,23 @@ export default function GeneratorForm({
       </div>
       <div>
        <label className="text-[11px] pg-text-muted block mb-1">Target Scene:</label>
-       <input
-        type="number"
+       <NumericInputField
         min={2}
         max={20}
+        step={1}
         value={short2Scenes}
-        onChange={(e) => setShort2Scenes(Math.max(2, Math.min(20, parseInt(e.target.value, 10) || 5)))}
-        className="w-full px-2.5 py-1 text-xs bg-slate-50 dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white"
+        onChange={setShort2Scenes}
        />
       </div>
       <div>
        <label className="text-[11px] pg-text-muted block mb-1">Target Durasi (Detik):</label>
-       <input
-        type="number"
+       <NumericInputField
         min={15}
         max={180}
+        step={5}
+        unit="detik"
         value={short2DurationSec}
-        onChange={(e) => setShort2DurationSec(Math.max(15, Math.min(180, parseInt(e.target.value, 10) || 45)))}
-        className="w-full px-2.5 py-1 text-xs bg-slate-50 dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white"
+        onChange={setShort2DurationSec}
        />
       </div>
      </div>
@@ -1865,24 +1864,23 @@ export default function GeneratorForm({
       </div>
       <div>
        <label className="text-[11px] pg-text-muted block mb-1">Target Scene:</label>
-       <input
-        type="number"
+       <NumericInputField
         min={5}
         max={60}
+        step={1}
         value={longScenes}
-        onChange={(e) => setLongScenes(Math.max(5, Math.min(60, parseInt(e.target.value, 10) || 15)))}
-        className="w-full px-2.5 py-1 text-xs bg-slate-50 dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white"
+        onChange={setLongScenes}
        />
       </div>
       <div>
        <label className="text-[11px] pg-text-muted block mb-1">Target Durasi (Menit):</label>
-       <input
-        type="number"
+       <NumericInputField
         min={1}
         max={60}
+        step={1}
+        unit="menit"
         value={longDurationMinutes}
-        onChange={(e) => setLongDurationMinutes(Math.max(1, Math.min(60, parseInt(e.target.value, 10) || 10)))}
-        className="w-full px-2.5 py-1 text-xs bg-slate-50 dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white"
+        onChange={setLongDurationMinutes}
        />
       </div>
      </div>
@@ -2074,23 +2072,15 @@ export default function GeneratorForm({
   </button>
   ))}
   <div className="flex items-center gap-1">
-  <input
-  type="number"
-  min={MIN_TARGET_DURATION_SEC}
-  max={MAX_TARGET_DURATION_SEC}
-  value={videoConfig.targetDurationSec ?? DEFAULT_TARGET_DURATION_SEC}
-  onChange={(e) => {
-    const val = parseInt(e.target.value, 10);
-    if (Number.isFinite(val)) {
-      handleVideoConfigChange(
-        "targetDurationSec",
-        Math.max(MIN_TARGET_DURATION_SEC, Math.min(MAX_TARGET_DURATION_SEC, val))
-      );
-    }
-  }}
-  className="w-20 px-2 py-1 text-xs bg-white dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white"
+  <NumericInputField
+   min={MIN_TARGET_DURATION_SEC}
+   max={MAX_TARGET_DURATION_SEC}
+   step={5}
+   unit="detik"
+   value={videoConfig.targetDurationSec ?? DEFAULT_TARGET_DURATION_SEC}
+   onChange={(val) => handleVideoConfigChange("targetDurationSec", val)}
+   className="w-16 px-2 py-1 text-xs bg-white dark:bg-slate-700 border pg-border rounded-md outline-none dark:text-white text-center"
   />
-  <span className="text-xs pg-text-muted">detik</span>
   </div>
   </div>
  )}
@@ -2130,18 +2120,14 @@ export default function GeneratorForm({
    </button>
    </div>
    {sceneCountMode === "manual" && (
-   <input
-   type="number"
-   min={MIN_SCENE_COUNT}
-   max={MAX_SCENE_COUNT}
-   value={videoConfig.targetSceneCount ?? DEFAULT_SCENE_COUNT}
-   onChange={(e) => {
-     const clamped = clampSceneCount(e.target.value);
-     if (clamped !== null) {
-       handleVideoConfigChange("targetSceneCount", clamped);
-     }
-   }}
-   className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white"
+   <NumericInputField
+    min={MIN_SCENE_COUNT}
+    max={MAX_SCENE_COUNT}
+    step={1}
+    unit="scene"
+    value={videoConfig.targetSceneCount ?? DEFAULT_SCENE_COUNT}
+    onChange={(val) => handleVideoConfigChange("targetSceneCount", val)}
+    className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-700 border pg-border rounded-md focus:ring-1 focus:ring-blue-500 outline-none dark:text-white text-center"
    />
    )}
    {sceneCountMode === "auto" && (() => {

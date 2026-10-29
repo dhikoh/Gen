@@ -65,6 +65,58 @@
 > | `[#108]` | Fitur #108 (Bagian 57) | 1-Tombol Auto Publish Orchestrator, Dual-Source (Drive/Local), Resumable YouTube Upload & Adaptive Metadata Engine | 2026-10-23 |
 > | `[#109]` | Fitur #109 (Bagian 58) | Funnel Pack Title Extraction, GDrive Zero-Missing Fallback, Direct .txt Download & Channel Bundle Hardening | 2026-10-23 |
 > | `[#110]` | Fitur #110 (Bagian 59) | Funnel Multi-Platform SEO Isolation, GDrive Segments Leakage Fix, Smart Platform Adaptation & HTML Blog Hardening | 2026-10-24 |
+> | `[#111]` | Fitur #111 (Bagian 60) | Funnel Pack Timing Isolation, Numeric Input UX Fluidity & Auto Scene Pacing Calibration (6–8s Scene Economy) | 2026-10-29 |
+
+---
+
+## [#111] — 2026-10-29 | Funnel Pack Timing Isolation, Numeric Input UX Fluidity & Auto Scene Pacing Calibration (6–8s Scene Economy)
+
+### Problem
+1. **Injeksi Kontradiksi Prompt Funnel Pack (300 Detik / 9 Scene)**:
+   - Pada mode 3-in-1 Funnel Pack (Short 1: 10 scene/70s, Short 2: 10 scene/70s, Long Pillar: 30 scene/240s = Total 50 scene, 380s), sistem generator (`src/lib/promptGenerator.ts`) secara global menginjeksi blok template Single Video default di akhir prompt:
+     `Target Total Video Duration: 300 seconds (9 scenes) ~857 words (average ~95 words/scene) [STRICT REQUIREMENT]`.
+   - Hal ini memicu kontradiksi fatal 180 derajat bagi AI eksternal (ChatGPT/Claude/Gemini) yang bingung antara membuat 50 scene (~20 kata/scene) atau 9 scene (~95 kata/scene), menyebabkan pembuatan script gagal atau terdistorsi.
+2. **Kendala UX Input Angka (Backspace Macet & Partial Clamping Instan)**:
+   - Kolom durasi dan target scene di `GeneratorForm.tsx` (baik pada 6 field Funnel Pack manual maupun 2 field Single Video) menggunakan direct inline clamping `Math.max(min, ...)` dan fallback `parseInt(e.target.value, 10) || default` langsung pada event `onChange`.
+   - Mengosongkan kolom input menggunakan `Backspace` seketika memicu fallback nilai lama (kolom tidak bisa dihapus kosong).
+   - Mengetik angka multi-digit (misal ingin mengetik `70` pada min `15`): saat pengguna baru menekan digit pertama (`"7"`), fungsi clamping langsung memaksanya menjadi `15`, sehingga digit kedua menjadikannya `150`.
+3. **Mode Auto Scene Boros & Ketiadaan Heuristik Kebutuhan Adegan (Pacing Micro-Cut)**:
+   - Konstanta sweet-spot bawaan `AUTO_SWEET_SPOT_SEC = 5` detik di `src/lib/sceneLimits.ts` terlalu agresif (menghasilkan 12 scene untuk 60s, 60 scene untuk 300s).
+   - Framing instruksi AI bertuliskan `"Targetkan ~X scene"` membuat LLM menganggap kuota atas sebagai target minimal yang wajib dipenuhi.
+   - Prompt tidak memiliki kriteria kapan adegan wajib dipertahankan vs dipotong (*Scene Necessity Criteria*), sehingga pergantian tanda baca kecil selalu dipecah menjadi scene baru berdurasi 4–5 detik.
+
+### Solution
+1. **Isolasi Alokasi Waktu & Kuota Kata Segmen Funnel (`src/lib/promptGenerator.ts`)**:
+   - Menambahkan pengecekan `isFunnelBundle` pada blok panduan tempo/kuota kata (`[TEMPO, WORD COUNT BUDGET & SPEECH RATE GUIDELINES]`).
+   - Mengeliminasi total residu single video 300 detik / 9 scene saat Funnel Pack aktif.
+   - Menghasilkan alokasi kuota kata dan durasi mandiri yang deterministik per segmen:
+     - **Short 1**: target detik riil (~70s), jumlah scene riil (~10 scene), kuota kata riil (~200 kata, ~20 kata/scene).
+     - **Short 2**: target detik riil (~70s), jumlah scene riil (~10 scene), kuota kata riil (~200 kata, ~20 kata/scene).
+     - **Long Pillar**: target menit riil (~4m / 240s), jumlah scene riil (~30 scene), kuota kata riil (~686 kata, ~23 kata/scene).
+     - Menegaskan aturan `AUDIO & TTS SYNCHRONIZATION`: dilarang mencampuradukkan alokasi kata antar-video.
+2. **Komponen Modular `NumericInputField` & Fluid Input UX (`GeneratorForm.tsx` & `NumericInputField.tsx`)**:
+   - Menciptakan komponen reusable `NumericInputField` dengan pola *Uncommitted Typing Buffer*:
+     - Menyimpan state string lokal (`raw`) selama pengguna mengetik, memungkinkan penghapusan karakter hingga string kosong (`""`) tanpa mental.
+     - Pengetikan angka parsial (misal `"7"`) tidak di-clamp selama kursor masih berada di dalam input.
+     - Clamping matematis `Math.max(min, Math.min(max, parsed))` hanya dieksekusi saat event **`onBlur`** (kursor meninggalkan input) atau tombol `Enter` ditekan.
+     - Menyediakan tombol stepper terintegrasi (`−` dan `+`) dengan `tabIndex={-1}` untuk kemudahan penyesuaian nilai cepat 1-klik di desktop maupun mobile.
+   - Menggantikan 6 input manual Funnel Pack dan 2 input Single Video (`targetDurationSec`, `targetSceneCount`) dengan `NumericInputField`.
+3. **Kalibrasi Ulang Pacing Auto Scene & Heuristik Kebutuhan Adegan (`sceneLimits.ts` & `promptGenerator.ts`)**:
+   - Memperbarui konstanta `AUTO_SWEET_SPOT_SEC = 7` (dari sebelumnya 5 detik) dan `MAX_SEC_PER_SCENE = 12` (dari sebelumnya 10 detik).
+   - Menghasilkan jumlah scene yang proporsional dan nyaman (standar emas storytelling 6–8 detik per scene):
+     - Video 60 detik: turun dari 12 scene menjadi **~8–9 scene** (rentang wajar 5–15 scene).
+     - Video 30 detik: turun dari 6 scene menjadi **~4 scene**.
+     - Video 240 detik (4 menit): turun dari 48 scene menjadi **~34 scene**.
+     - Video 300 detik (5 menit): turun dari 60 scene menjadi **~43 scene**.
+   - Menyuntikkan aturan **`PRINSIP KEBUTUHAN & EFISIENSI SCENE (SCENE ECONOMY)`** pada prompt AI:
+     - Dilarang memotong scene hanya karena pergantian kalimat narasi.
+     - Mempertahankan kesatuan visual 6–8 detik selama subjek dan lingkungan latar masih relevan.
+     - Pembentukan scene baru dibatasi hanya untuk transisi fisik lokasi, perubahan kontras sudut kamera/subjek fokal, atau pergeseran dramatis emosi.
+     - Mengubah framing instruksi dari "Targetkan ~X scene" menjadi panduan fleksibel berbasis substansi konten.
+4. **Verifikasi & Type Safety Hardening**:
+   - Memperbarui test suite `src/lib/__tests__/sceneLimits.test.ts` (22 tests passed).
+   - Menambahkan unit test isolasi baru `src/lib/__tests__/promptGenerator.funnel.test.ts` (3 tests passed).
+   - Menjamin 0 TypeScript errors (`npx tsc --noEmit`), 100% i18n key parity (1.800 keys), dan 93.6% design token compliance.
 
 ---
 

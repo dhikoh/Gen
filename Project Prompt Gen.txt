@@ -2983,5 +2983,59 @@ BAGIAN 59: FUNNEL MULTI-PLATFORM SEO ISOLATION, GDRIVE SEGMENT LEAKAGE FIX, SMAR
   - `publishMetadataAdapter.test.ts` (3 tests)
   - `googleDrive.test.ts` (13 tests)
 
+================================================================================
+BAGIAN 60: FUNNEL PACK TIMING ISOLATION, FLUID NUMERIC INPUT UX & AUTO SCENE PACING CALIBRATION
+(Ditambahkan pada 2026-10-29 — Patch [#111])
+================================================================================
+
+### 60.1 Isolasi Alokasi Waktu & Kuota Kata Paket Funnel (Anti-Kontradiksi)
+- **Problem**:
+  Pada pembuatan Funnel Pack 3-in-1 (Short 1, Short 2, Long Pillar), fungsi `generateMasterPrompt` (`src/lib/promptGenerator.ts`) secara global menyisipkan blok template durasi Single Video default (300 detik / 9 scene, kuota ~857 kata, ~95 kata/scene) di akhir prompt. Hal ini memicu kontradiksi 180 derajat terhadap instruksi 50 scene di bagian atas, membingungkan AI eksternal (ChatGPT/Claude/Gemini) yang gagal mengeksekusi naskah secara akurat.
+- **Solusi Arsitektural**:
+  - `src/lib/promptGenerator.ts`:
+    - Menambahkan cabang `if (isFunnelBundle)` pada blok pembuatan tempo, word count budget, dan speech rate guidelines.
+    - Menghilangkan sepenuhnya template single video dari output prompt paket Funnel.
+    - Menghitung kuota kata spoken narasi secara mandiri per segmen berdasarkan durasi detik dan jumlah scene riil:
+      * Short 1: durasi riil (~70s), jumlah scene riil (~10 scene), alokasi kuota kata riil (~200 kata, ~20 kata/scene).
+      * Short 2: durasi riil (~70s), jumlah scene riil (~10 scene), alokasi kuota kata riil (~200 kata, ~20 kata/scene).
+      * Long Pillar: durasi riil (~4m / 240s), jumlah scene riil (~30 scene), alokasi kuota kata riil (~686 kata, ~23 kata/scene).
+    - Memuat klausul penegasan audio: dilarang mencampuradukkan alokasi kata antar-video dan field "DURASI:" per scene wajib sinkron dengan panjang kata narasi.
+
+### 60.2 Komponen Modular `NumericInputField` & UX Form Bebas Hambatan
+- **Problem**:
+  Input numerik di `GeneratorForm.tsx` (6 field manual Funnel Pack dan 2 field Single Video) menerapkan clamping langsung pada event `onChange` dengan `Math.max(min, ...)`. Akibatnya:
+  * Menekan `Backspace` untuk mengosongkan kolom input langsung mental kembali ke nilai default (`NaN || default`).
+  * Mengetik angka multi-digit (misal `"70"`) seketika ter-clamp saat baru menekan digit pertama `"7"` (berubah jadi `15` lalu `150`).
+- **Solusi Arsitektural**:
+  - `src/components/generator/NumericInputField.tsx`:
+    - Menerapkan pola *Uncommitted Typing Buffer*: menyimpan state `raw: string` lokal selama pengetikan aktif.
+    - Pengguna bebas menghapus seluruh isi kolom input hingga kosong (`""`) dan mengetik digit parsial tanpa clamping prematur.
+    - Clamping matematis `Math.max(min, Math.min(max, parsed))` hanya dieksekusi secara aman saat event `onBlur` (fokus berpindah) atau tombol `Enter` ditekan.
+    - Dilengkapi kontrol stepper terintegrasi (`−` dan `+`) dengan `tabIndex={-1}` untuk penyesuaian nilai cepat tanpa memicu keyboard di perangkat mobile.
+  - Diadopsi penuh pada `short1Scenes`, `short1DurationSec`, `short2Scenes`, `short2DurationSec`, `longScenes`, `longDurationMinutes`, `targetDurationSec`, dan `targetSceneCount`.
+
+### 60.3 Kalibrasi Pacing Auto Scene & Heuristik Efisiensi Adegan (Scene Economy)
+- **Problem**:
+  Konstanta default `AUTO_SWEET_SPOT_SEC = 5` detik di `src/lib/sceneLimits.ts` menghasilkan pemotongan scene yang terlalu agresif (misal 12 scene untuk 60 detik, 60 scene untuk 300 detik). Instruksi `"Targetkan ~X scene"` mendorong LLM mengambil jatah scene maksimal tanpa mempertimbangkan kebutuhan naratif, menghasilkan produksi scene yang boros dan melelahkan penonton.
+- **Solusi Arsitektural**:
+  - `src/lib/sceneLimits.ts`:
+    - Mengubah `AUTO_SWEET_SPOT_SEC` menjadi **`7`** detik (standar visual storytelling 6–8 detik/scene) dan `MAX_SEC_PER_SCENE` menjadi **`12`** detik.
+    - Menghasilkan rekomendasi proporsional: 60 detik → **~8–9 scene** (rentang 5–15), 30 detik → **~4 scene**, 240 detik (4 menit) → **~34 scene**.
+  - `src/lib/promptGenerator.ts`:
+    - Menyuntikkan aturan **`PRINSIP EFISIENSI & KEBUTUHAN SCENE (SCENE ECONOMY)`**:
+      1. Dilarang memotong ke scene baru hanya karena jeda kalimat narasi.
+      2. Wajib mempertahankan kesatuan visual dalam 1 scene matang (6–8 detik) selama subjek dan lingkungan masih relevan.
+      3. Scene baru hanya dibentuk jika terjadi transisi lokasi fisik, perubahan kontras sudut kamera/subjek fokal, atau pergeseran emosi dramatis.
+      4. Mengubah framing instruksi dari "Targetkan ~X scene" menjadi panduan fleksibel yang memprioritaskan efisiensi adegan.
+
+### 60.4 Verifikasi Kualitas & Jaminan Tanpa Celah
+- `npx tsc --noEmit`: Exit 0 (Zero TypeScript errors).
+- Vitest Suites:
+  - `src/lib/__tests__/sceneLimits.test.ts`: 22 passed.
+  - `src/lib/__tests__/promptGenerator.funnel.test.ts`: 3 passed (memvalidasi eliminasi kontradiksi 300s/9 scene dan berlakunya kuota Funnel terisolasi).
+- Audit Design Tokens (`npm run audit:design`): 93.6% compliance (2.725 token occurrences).
+- Audit i18n Parity (`npm run audit:i18n`): 100% key parity (1.800 keys id & en).
+
+
 
 

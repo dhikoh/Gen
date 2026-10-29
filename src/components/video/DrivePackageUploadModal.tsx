@@ -366,11 +366,11 @@ export function DrivePackageUploadModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
       <div
-        className="w-full max-w-3xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 max-h-[92vh] flex flex-col overflow-hidden"
+        className="w-full max-w-3xl pg-surface bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border pg-border max-h-[92vh] flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* ── Modal Header ── */}
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0 bg-slate-50/80 dark:bg-slate-900/80">
+        <div className="px-6 py-4 border-b pg-border flex items-center justify-between shrink-0 bg-slate-50/80 dark:bg-slate-900/80">
           <div className="flex items-center gap-2.5">
             <span className="text-xl">☁️</span>
             <div>

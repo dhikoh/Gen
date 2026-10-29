@@ -489,7 +489,7 @@ export function generateMasterPrompt(
 ): { masterPrompt: string; systemInstruction: string } {
 
   // ── Language & Archetype & Structural Resolution (Bagian 23) ───────────
-  const isEnglishOutput = Boolean(outputLanguage && /english|inggris/i.test(outputLanguage));
+  const isEnglishOutput = Boolean(outputLanguage && /english|inggris|^en$/i.test(outputLanguage));
   const effectiveArchetype = videoConfig?.contentArchetype || channel?.contentArchetype || null;
   const finalVoPreference = videoConfig?.voPreference !== undefined ? Boolean(videoConfig.voPreference) : Boolean(channel?.audioVO !== false);
   const effectiveNarrationMode = videoConfig?.narrationMode || effectiveArchetype?.narrationMode || "VOICE_OVER";
@@ -1336,12 +1336,35 @@ Jumlah bab ditentukan secara natural berdasarkan alur konten (biasanya 3-6 bab u
       ? "SCENE CONTEXT: [Concise narrative action/event of scene 2]"
       : "KONTEKS SCENE: [Konteks kejadian/aksi adegan kedua]";
 
-    // Patch #104: Guided-flexible scene instruction for auto mode,
-    // rigid exact count for manual mode.
+    // Patch #104 & #111: Guided-flexible scene instruction with natural 6-8s pacing and Scene Economy heuristics
     const sceneLimitInstruction = earlyTimingCalc.isAutoScene
       ? (isEnglishOutput
-        ? `\nSCENE RECOMMENDATION (GUIDED-FLEXIBLE — AUTO MODE):\n- Recommended: ~${sceneCount} scenes (acceptable range: ${earlyTimingCalc.sceneRange.min}–${earlyTimingCalc.sceneRange.max} scenes).\n- Each scene MUST have a natural duration of ${MIN_SEC_PER_SCENE}–${MAX_SEC_PER_SCENE} seconds. DO NOT create micro-scenes under ${MIN_SEC_PER_SCENE} seconds.\n- Scene count is a RECOMMENDATION — you MAY use fewer or more scenes as long as:\n  1. Total duration across all scenes EQUALS ${earlyTimingCalc.targetDurationSec} seconds (MANDATORY).\n  2. Every scene lasts ${MIN_SEC_PER_SCENE}–${MAX_SEC_PER_SCENE} seconds (MANDATORY).\n  3. Pacing feels natural for storytelling, NOT fragmented micro-cuts.\n- Use your judgment: topics needing deep explanation → fewer, longer scenes. Topics needing fast rhythm → more, shorter scenes.\n`
-        : `\nREKOMENDASI SCENE (GUIDED-FLEXIBLE — MODE AUTO):\n- Rekomendasi: ~${sceneCount} scene (rentang wajar: ${earlyTimingCalc.sceneRange.min}–${earlyTimingCalc.sceneRange.max} scene).\n- Setiap scene WAJIB berdurasi ${MIN_SEC_PER_SCENE}–${MAX_SEC_PER_SCENE} detik. DILARANG membuat micro-scene di bawah ${MIN_SEC_PER_SCENE} detik.\n- Jumlah scene bersifat REKOMENDASI — kamu BOLEH menyesuaikan lebih sedikit atau lebih banyak selama:\n  1. Total durasi seluruh scene TETAP = ${earlyTimingCalc.targetDurationSec} detik (WAJIB).\n  2. Setiap scene berdurasi ${MIN_SEC_PER_SCENE}–${MAX_SEC_PER_SCENE} detik (WAJIB).\n  3. Pacing terasa natural untuk storytelling, BUKAN fragmentasi mikro.\n- Gunakan pertimbanganmu: topik yang butuh penjelasan mendalam → scene lebih sedikit dan lebih panjang. Topik yang butuh ritme cepat → scene lebih banyak dan lebih pendek.\n`)
+        ? `\nSCENE RECOMMENDATION & PACING GUIDELINES (GUIDED-FLEXIBLE — AUTO MODE):
+- Estimated Scene Count: ~${sceneCount} scenes (natural range: ${earlyTimingCalc.sceneRange.min}–${earlyTimingCalc.sceneRange.max} scenes).
+- Natural Pacing Standard: Each scene SHOULD naturally last 6–8 seconds (minimum ${MIN_SEC_PER_SCENE}s, maximum ${MAX_SEC_PER_SCENE}s). DO NOT create micro-scenes under ${MIN_SEC_PER_SCENE} seconds.
+- Total Video Duration MUST EQUAL ${earlyTimingCalc.targetDurationSec} seconds across all scenes.
+
+SCENE ECONOMY & NECESSITY HEURISTICS:
+1. DO NOT create a new scene just because a narration sentence ends.
+2. Keep the camera and visual environment going in ONE continuous scene (6–8 seconds) as long as the subject focus and setting remain coherent.
+3. Only cut to a NEW SCENE when there is a genuine visual necessity:
+   - A physical change in location or setting,
+   - A distinct change in primary subject, focal object, or camera angle (e.g. wide establishing shot to macro close-up),
+   - A dramatic emotional shift or tonal turning point in the script.
+4. When narrative content is dense and requires calm visual grounding, prioritize FEWER scenes (~${earlyTimingCalc.sceneRange.min}–${sceneCount}) with richer temporal action rather than rapid distracting cuts.\n`
+        : `\nREKOMENDASI SCENE & PANDUAN PACING (GUIDED-FLEXIBLE — MODE AUTO):
+- Panduan Estimasi: ~${sceneCount} scene (rentang wajar: ${earlyTimingCalc.sceneRange.min}–${earlyTimingCalc.sceneRange.max} scene).
+- Standar Pacing Natural: Setiap scene SEBAIKNYA berdurasi 6–8 detik (minimal ${MIN_SEC_PER_SCENE} detik, maksimal ${MAX_SEC_PER_SCENE} detik). DILARANG membuat micro-scene di bawah ${MIN_SEC_PER_SCENE} detik.
+- Total durasi seluruh scene WAJIB TETAP = ${earlyTimingCalc.targetDurationSec} detik.
+
+PRINSIP EFISIENSI & KEBUTUHAN SCENE (SCENE ECONOMY):
+1. DILARANG memotong ke scene baru hanya karena ada pergantian kalimat narasi.
+2. Pertahankan alur visual dalam SATU scene yang matang (6–8 detik) selama subjek dan lingkungan latar masih berkesinambungan.
+3. Buat scene baru HANYA jika ada kebutuhan visual nyata:
+   - Terjadi transisi lokasi atau latar tempat secara fisik,
+   - Terjadi perubahan subjek utama, objek fokal, atau sudut kamera yang kontras (misal dari establishing shot ke macro close-up),
+   - Terjadi pergeseran emosi atau titik balik dramatis pada alur cerita.
+4. Jika materi narasi padat dan membutuhkan penjelasan visual yang tenang, prioritaskan jumlah scene LEBIH SEDIKIT (~${earlyTimingCalc.sceneRange.min}–${sceneCount} scene) dengan durasi lebih panjang, BUKAN memotong adegan menjadi mikro-klip yang melelahkan penonton.\n`)
       : (isEnglishOutput
         ? `\nSCENE LIMIT: Create EXACTLY ${sceneCount} scenes (SCENE 1 to SCENE ${sceneCount}). DO NOT create more than ${sceneCount} scenes. If content is insufficient, merge into existing scenes. If content is too long, prioritize the most important.\n`
         : `\nBATAS SCENE: Buat TEPAT ${sceneCount} scene (SCENE 1 sampai SCENE ${sceneCount}). DILARANG membuat lebih dari ${sceneCount} scene. Jika konten tidak cukup, gabungkan ke scene yang ada. Jika konten terlalu banyak, pilih yang paling penting.\n`);
@@ -1351,7 +1374,7 @@ Jumlah bab ditentukan secara natural berdasarkan alur konten (biasanya 3-6 bab u
 
     if (sceneCount && sceneCount > 2) {
       if (earlyTimingCalc.isAutoScene) {
-        formatOutputWajib += `\n...dan seterusnya. Targetkan ~${sceneCount} scene (boleh lebih sedikit atau lebih banyak dalam rentang ${earlyTimingCalc.sceneRange.min}–${earlyTimingCalc.sceneRange.max} sesuai kebutuhan konten), pastikan total durasi = ${earlyTimingCalc.targetDurationSec} detik dan setiap scene berdurasi ${MIN_SEC_PER_SCENE}–${MAX_SEC_PER_SCENE} detik.\n`;
+        formatOutputWajib += `\n...dan seterusnya. Targetkan secara efektif ~${sceneCount} scene (fleksibel dalam rentang ${earlyTimingCalc.sceneRange.min}–${earlyTimingCalc.sceneRange.max} sesuai kebutuhan konten dengan pacing 6–8 detik/scene), pastikan total durasi = ${earlyTimingCalc.targetDurationSec} detik dan setiap scene berdurasi ${MIN_SEC_PER_SCENE}–${MAX_SEC_PER_SCENE} detik.\n`;
       } else {
         formatOutputWajib += `\n...dan seterusnya hingga TEPAT SCENE ${sceneCount}. Kamu WAJIB menghasilkan TEPAT ${sceneCount} SCENE.\n`;
       }
@@ -1580,6 +1603,55 @@ ATURAN WAJIB:
 ${structural.pacingGuidelineSection}
 
 ${(() => {
+  if (isFunnelBundle) {
+    const fConf = videoConfig.funnelConfig;
+    const isManual = fConf?.sceneMode === "manual";
+    const s1ScenesNum = isManual ? (fConf?.short1Scenes || 5) : 5;
+    const s1DurSec = isManual ? (fConf?.short1DurationSec || 45) : 45;
+    const s2ScenesNum = isManual ? (fConf?.short2Scenes || 5) : 5;
+    const s2DurSec = isManual ? (fConf?.short2DurationSec || 45) : 45;
+    const longScenesNum = isManual ? (fConf?.longScenes || 15) : 15;
+    const longDurSec = isManual ? ((fConf?.longDurationMinutes || 10) * 60) : 600;
+
+    const s1Words = Math.round(s1DurSec / timingCalc.speechRateSec);
+    const s1Avg = Math.max(3, Math.round(s1Words / s1ScenesNum));
+    const s2Words = Math.round(s2DurSec / timingCalc.speechRateSec);
+    const s2Avg = Math.max(3, Math.round(s2Words / s2ScenesNum));
+    const longWords = Math.round(longDurSec / timingCalc.speechRateSec);
+    const longAvg = Math.max(3, Math.round(longWords / longScenesNum));
+    const totalFunnelWords = s1Words + s2Words + longWords;
+    const totalFunnelScenes = s1ScenesNum + s2ScenesNum + longScenesNum;
+    const totalFunnelDurSec = s1DurSec + s2DurSec + longDurSec;
+
+    if (isEnglishOutput) {
+      return `[TEMPO, WORD COUNT BUDGET & SPEECH RATE GUIDELINES (3-IN-1 FUNNEL PACK)]
+1. Speech Rate: ${timingCalc.rateLabel}.
+2. Overall Package Target: 3 distinct connected video scripts in one output (Combined ~${totalFunnelDurSec}s across ~${totalFunnelScenes} scenes).
+3. SPOKEN WORD COUNT & DURATION BUDGET PER SEGMENT (STRICT REQUIREMENT):
+   - [SEGMENT: SHORT 1]: Target ~${s1DurSec}s (~${s1ScenesNum} scenes) -> Total spoken words: ~${s1Words} words (average ~${s1Avg} words/scene, range: ${Math.round(s1Avg * 0.75)}–${Math.round(s1Avg * 1.25)} words/scene).
+   - [SEGMENT: SHORT 2]: Target ~${s2DurSec}s (~${s2ScenesNum} scenes) -> Total spoken words: ~${s2Words} words (average ~${s2Avg} words/scene, range: ${Math.round(s2Avg * 0.75)}–${Math.round(s2Avg * 1.25)} words/scene).
+   - [SEGMENT: LONG PILLAR]: Target ~${Math.round(longDurSec / 60)} minutes / ${longDurSec}s (~${longScenesNum} scenes) -> Total spoken words: ~${longWords} words (average ~${longAvg} words/scene, range: ${Math.round(longAvg * 0.75)}–${Math.round(longAvg * 1.25)} words/scene).
+   - TOTAL SPOKEN WORDS ACROSS ALL 3 SCRIPTS: ~${totalFunnelWords} words.
+4. AUDIO & TTS SYNCHRONIZATION:
+   - DO NOT cross-contaminate or mix narration word counts between segments. Each segment has its own independent timing and scene allocation.
+   - Ensure the "DURASI:" field in each scene accurately reflects narration length (words × ${timingCalc.speechRateSec} seconds).
+5. MANDATORY ENGLISH-ONLY ACTING TAGS: All acting cues and pause tags inside square brackets [...] MUST BE IN ENGLISH ONLY ([pause], [beat], [sigh], [whisper], [gasp], [chuckle], [clears throat]), regardless of output language.`;
+    } else {
+      return `[PANDUAN TEMPO, KUOTA KATA & KECEPATAN BICARA (PAKET 3-IN-1 FUNNEL PACK)]
+1. Kecepatan Bicara (Speech Rate): ${timingCalc.rateLabel}.
+2. Target Keseluruhan Paket: 3 naskah video terpisah yang saling terhubung dalam satu respons (Total gabungan ~${totalFunnelDurSec} detik, ~${totalFunnelScenes} scene).
+3. ALOKASI KUOTA KATA & DURASI PER SEGMEN (WAJIB DIPATUHI SECARA KETAT — JANGAN TERCAMPUR):
+   - [SEGMENT: SHORT 1]: Target ~${s1DurSec} detik (~${s1ScenesNum} scene) -> Total narasi: ~${s1Words} kata (rata-rata ~${s1Avg} kata/scene, rentang ideal: ${Math.round(s1Avg * 0.75)}–${Math.round(s1Avg * 1.25)} kata/scene).
+   - [SEGMENT: SHORT 2]: Target ~${s2DurSec} detik (~${s2ScenesNum} scene) -> Total narasi: ~${s2Words} kata (rata-rata ~${s2Avg} kata/scene, rentang ideal: ${Math.round(s2Avg * 0.75)}–${Math.round(s2Avg * 1.25)} kata/scene).
+   - [SEGMENT: LONG PILLAR]: Target ~${Math.round(longDurSec / 60)} menit / ${longDurSec} detik (~${longScenesNum} scene) -> Total narasi: ~${longWords} kata (rata-rata ~${longAvg} kata/scene, rentang ideal: ${Math.round(longAvg * 0.75)}–${Math.round(longAvg * 1.25)} kata/scene).
+   - TOTAL KUOTA KATA 3 NASKAH GABUNGAN: ~${totalFunnelWords} kata.
+4. SINKRONISASI AUDIO & TTS:
+   - DILARANG mencampurkan kuota kata antar video. Setiap video memiliki alokasi waktu dan scene masing-masing.
+   - Pastikan estimasi durasi pada field "DURASI:" di setiap scene mencerminkan panjang kata narasi scene tersebut (kata × ${timingCalc.speechRateSec} detik).
+5. STANDARISASI BAHASA TAG AKTING (WAJIB BAHASA INGGRIS): Seluruh cue akting, intonasi vokal, dan tag jeda dalam tanda kurung siku [...] WAJIB DITULIS DALAM BAHASA INGGRIS ([pause], [beat], [sigh], [whisper], [gasp], [chuckle], [clears throat]) MESKIPUN naskah narasi berbahasa Indonesia.`;
+    }
+  }
+
   if (isEnglishOutput) {
     if (isVoiceOver) {
       let modeNote = "";

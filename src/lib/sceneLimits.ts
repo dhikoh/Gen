@@ -25,8 +25,8 @@ export const DEFAULT_TARGET_DURATION_SEC = 60;
  * Contoh: 60s / 5s = 12 scene (bukan 6 scene lama yang 10s/scene).
  */
 export const MIN_SEC_PER_SCENE = 4;
-export const MAX_SEC_PER_SCENE = 10;
-export const AUTO_SWEET_SPOT_SEC = 5;
+export const MAX_SEC_PER_SCENE = 12;
+export const AUTO_SWEET_SPOT_SEC = 7;
 
 /**
  * Kalkulasi jumlah scene otomatis berdasarkan durasi target.
