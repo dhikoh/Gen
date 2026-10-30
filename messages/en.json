@@ -1109,6 +1109,7 @@
     "speechRateRelaxed": "0.40s (Relaxed)",
     "speechRateSlow": "0.50s (Slow)",
     "copy": "Copy",
+    "copied": "Copied",
     "platformContent": "Platform Content & 4-Platform SEO",
     "platformSeoSubtitle": "Tailored SEO metadata, captions, hashtags, and recommended keywords optimized for each platform.",
     "platformYoutube": "YouTube",

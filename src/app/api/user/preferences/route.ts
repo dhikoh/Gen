@@ -9,16 +9,16 @@ import { applyRateLimit } from "@/lib/rateLimit";
 // Fix 2.5: Explicit Zod schema for generatorPreferences payload
 // Each sub-key is namespaced to prevent collisions between GeneratorForm and ScenePromptStudio
 const videoConfigSchema = z.object({
-  targetPlatform: z.string().optional(),
-  targetDurationSec: z.number().optional(),
-  targetSceneCount: z.number().optional(),
-  aspectRatio: z.string().optional(),
-  narrativeLoopStyle: z.string().optional(),
-  visualLoopStyle: z.string().optional(),
-  pov: z.string().optional(),
-  speechRate: z.union([z.string(), z.number()]).optional(),
-  hookStyle: z.string().optional(),
-  endingStyle: z.string().optional(),
+  targetPlatform: z.string().optional().nullable(),
+  targetDurationSec: z.number().optional().nullable(),
+  targetSceneCount: z.number().optional().nullable(),
+  aspectRatio: z.string().optional().nullable(),
+  narrativeLoopStyle: z.string().optional().nullable(),
+  visualLoopStyle: z.string().optional().nullable(),
+  pov: z.string().optional().nullable(),
+  speechRate: z.union([z.string(), z.number()]).optional().nullable(),
+  hookStyle: z.string().optional().nullable(),
+  endingStyle: z.string().optional().nullable(),
   selectedProductId: z.string().optional().nullable(),
   composition: z.object({ education: z.number().optional().nullable(), entertainment: z.number().optional().nullable(), marketing: z.number().optional().nullable() }).optional().nullable(),
   includeHook: z.boolean().optional().nullable(),
@@ -37,75 +37,75 @@ const videoConfigSchema = z.object({
 }).passthrough();
 
 const imageConfigSchema = z.object({
-  aspectRatio: z.string().optional(),
+  aspectRatio: z.string().optional().nullable(),
   negativePrompt: z.string().optional().nullable(),
-  quality: z.string().optional(),
+  quality: z.string().optional().nullable(),
   // Image-specific fields
-  cameraType: z.string().optional(),
-  shotType: z.string().optional(),
-  lighting: z.string().optional(),
-  mood: z.string().optional(),
-  colorGrading: z.string().optional(),
-  visualStyle: z.string().optional(),
-  variations: z.number().optional(),
+  cameraType: z.string().optional().nullable(),
+  shotType: z.string().optional().nullable(),
+  lighting: z.string().optional().nullable(),
+  mood: z.string().optional().nullable(),
+  colorGrading: z.string().optional().nullable(),
+  visualStyle: z.string().optional().nullable(),
+  variations: z.number().optional().nullable(),
 }).passthrough();
 
 const generatorFormStateSchema = z.object({
-  type: z.enum(["VIDEO", "IMAGE"]).optional(),
-  channelId: z.string().optional(),
-  outputLanguage: z.string().optional(),
-  topic: z.string().max(500).optional(),
-  additionalContext: z.string().max(2000).optional(),
-  rolePOV: z.string().optional(),
-  customRolePOV: z.string().max(500).optional(),
-  toneOfVoice: z.string().optional(),
-  visualStyleKey: z.string().optional(),
-  hookStyleType: z.string().optional(),
-  customHookText: z.string().max(300).optional(),
-  musicPreference: z.boolean().optional(),
-  sfxPreference: z.boolean().optional(),
-  voPreference: z.boolean().optional(),
+  type: z.enum(["VIDEO", "IMAGE"]).optional().nullable(),
+  channelId: z.string().optional().nullable(),
+  outputLanguage: z.string().optional().nullable(),
+  topic: z.string().max(5000).optional().nullable(),
+  additionalContext: z.string().max(50000).optional().nullable(),
+  rolePOV: z.string().optional().nullable(),
+  customRolePOV: z.string().max(5000).optional().nullable(),
+  toneOfVoice: z.string().optional().nullable(),
+  visualStyleKey: z.string().optional().nullable(),
+  hookStyleType: z.string().optional().nullable(),
+  customHookText: z.string().max(3000).optional().nullable(),
+  musicPreference: z.boolean().optional().nullable(),
+  sfxPreference: z.boolean().optional().nullable(),
+  voPreference: z.boolean().optional().nullable(),
   narrationModeOverride: z.string().optional().nullable(),
-  cameraMovementEnabled: z.boolean().optional(),
-  cameraMovementPresets: z.array(z.string()).optional(),
-  cameraMovementCustom: z.string().max(300).optional(),
-  cameraMovementProMode: z.boolean().optional(),
-  affiliateAngle: z.boolean().optional(),
-  affiliateAngleMode: z.enum(["CTA", "SOFT"]).optional(),
+  cameraMovementEnabled: z.boolean().optional().nullable(),
+  cameraMovementPresets: z.array(z.string()).optional().nullable(),
+  cameraMovementCustom: z.string().max(3000).optional().nullable(),
+  cameraMovementProMode: z.boolean().optional().nullable(),
+  affiliateAngle: z.boolean().optional().nullable(),
+  affiliateAngleMode: z.enum(["CTA", "SOFT"]).optional().nullable(),
   affiliateMarketplaces: z.array(z.string()).optional().nullable(),
-  affiliateCustomUrl: z.string().max(500).optional().nullable(),
-  videoConfig: videoConfigSchema.optional(),
-  imageConfig: imageConfigSchema.optional(),
+  affiliateCustomUrl: z.string().max(2000).optional().nullable(),
+  videoConfig: videoConfigSchema.optional().nullable(),
+  imageConfig: imageConfigSchema.optional().nullable(),
   // Result state persistence (Section 14.4)
-  step: z.union([z.literal(1), z.literal(2)]).optional(),
-  generatedPrompt: z.string().max(50000).optional(),
-  aiResultJson: z.string().max(50000).optional(),
-  manualTitle: z.string().max(300).optional(),
+  step: z.union([z.number(), z.literal(1), z.literal(2)]).optional().nullable(),
+  generatedPrompt: z.string().max(500000).optional().nullable(),
+  aiResultJson: z.string().max(500000).optional().nullable(),
+  manualTitle: z.string().max(3000).optional().nullable(),
 }).passthrough();
 
 const scenePromptStateSchema = z.object({
-  rawText: z.string().max(150000).optional(),
-  selectedChannelId: z.string().optional(),
-  ar: z.string().optional(),
-  sref: z.string().max(5000).optional(),
-  cref: z.string().max(5000).optional(),
-  draftTitle: z.string().max(2000).optional(),
-  ttsVoice: z.string().optional(),
-  ttsModel: z.string().optional(),
-  ttsPitch: z.string().optional(),
-  ttsSpeed: z.number().optional(),
-  ttsStyleInstruction: z.string().max(1000).optional(),
-  ttsVoiceFilter: z.string().optional(),
-  favoriteVoices: z.array(z.string()).optional(),
+  rawText: z.string().max(500000).optional().nullable(),
+  selectedChannelId: z.string().optional().nullable(),
+  ar: z.string().optional().nullable(),
+  sref: z.string().max(10000).optional().nullable(),
+  cref: z.string().max(10000).optional().nullable(),
+  draftTitle: z.string().max(5000).optional().nullable(),
+  ttsVoice: z.string().optional().nullable(),
+  ttsModel: z.string().optional().nullable(),
+  ttsPitch: z.string().optional().nullable(),
+  ttsSpeed: z.union([z.number(), z.string().transform((v) => parseFloat(v) || 1.0)]).optional().nullable(),
+  ttsStyleInstruction: z.string().max(5000).optional().nullable(),
+  ttsVoiceFilter: z.string().optional().nullable(),
+  favoriteVoices: z.array(z.string()).optional().nullable(),
 }).passthrough();
 
 const preferencesSchema = z.object({
-  generatorFormState: generatorFormStateSchema.optional(),
-  channelFormStates: z.record(z.string(), generatorFormStateSchema).optional(),
-  scenePromptState: scenePromptStateSchema.optional(),
+  generatorFormState: generatorFormStateSchema.optional().nullable(),
+  channelFormStates: z.record(z.string(), generatorFormStateSchema).optional().nullable(),
+  scenePromptState: scenePromptStateSchema.optional().nullable(),
 }).passthrough();
 
-const MAX_PAYLOAD_BYTES = 250_000; // 250 KB max for multi-channel support
+const MAX_PAYLOAD_BYTES = 1_000_000; // 1 MB max for multi-channel & rich scene prompt states
 
 export async function GET() {
   try {
@@ -156,11 +156,13 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
 
-    // Fix 2.5.1: Validate with strict Zod schema
     const parsed = preferencesSchema.safeParse(body);
     if (!parsed.success) {
       console.error("PUT user/preferences validation error:", parsed.error.flatten());
-      return NextResponse.json({ error: "Invalid preferences structure" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid preferences structure", details: parsed.error.flatten() },
+        { status: 400 }
+      );
     }
 
     const existingUser = await prisma.user.findUnique({
