@@ -31,9 +31,6 @@ export default async function ScenePromptPage({ params, searchParams }: PageProp
       where: { userId: session.user.id, isLocked: false },
       orderBy: { lastUsedAt: "desc" },
       select: { id: true, channelName: true, niche: true, speechRate: true },
-    }).catch((err) => {
-      console.error("[ScenePromptPage] channels fetch failed:", err);
-      return [];
     }),
     prisma.user.findUnique({
       where: { id: session.user.id },
@@ -41,17 +38,11 @@ export default async function ScenePromptPage({ params, searchParams }: PageProp
         role: true,
         currentPlan: { select: { features: true } },
       },
-    }).catch((err) => {
-      console.error("[ScenePromptPage] user fetch failed:", err);
-      return null;
     }),
     draftId && typeof draftId === "string"
       ? prisma.draft.findUnique({
           where: { id: draftId, userId: session.user.id },
           select: { id: true, title: true, channelId: true, rawJson: true, parsedData: true, estimatedDurationSec: true, wordCount: true },
-        }).catch((err) => {
-          console.error("[ScenePromptPage] draft fetch failed:", err);
-          return null;
         })
       : Promise.resolve(null),
     prisma.parsedOutput.findMany({
@@ -59,9 +50,6 @@ export default async function ScenePromptPage({ params, searchParams }: PageProp
       orderBy: { createdAt: "desc" },
       take: 10,
       select: { id: true, rawInput: true, parsedResult: true, createdAt: true },
-    }).catch((err) => {
-      console.error("[ScenePromptPage] parsedOutput fetch failed:", err);
-      return [];
     }),
   ]);
 

@@ -53,27 +53,18 @@ export function cleanParsedValue(val: string): string {
 // ── Script Whitespace Auto-Healing ────────────────────────────────────────
 
 /**
- * Strips horizontal divider lines (e.g. ===..., ---..., ***..., ___...) to prevent ReDoS
- * and eliminate visual markdown noise before parsing.
- */
-export function stripHorizontalDividers(text: string): string {
-  if (!text || typeof text !== "string") return "";
-  return text.replace(/(?:^|\r?\n)[ \t]*[=\-*_]{3,}[ \t]*(?=\r?\n|$)/g, "\n");
-}
-
-/**
  * Normalizes and repairs script text where newline breaks may have been
  * lost, collapsed into spaces, or flattened (e.g. from clipboard copy,
  * json serialization/deserialization, or markdown renderers).
  */
 export function normalizeScriptWhitespace(raw: string): string {
   if (!raw || typeof raw !== "string") return "";
-  let s = stripHorizontalDividers(raw);
+  let s = raw;
 
   // 1. Newlines before [SOURCE AUDIT] and [SEGMENT: ...] if preceded by non-newline
-  s = s.replace(/([^\r\n#*=\-_ \t])[ \t]*(\[SOURCE\s*AUDIT\])/gi, "$1\n\n$2\n");
+  s = s.replace(/([^\r\n])\s*(\[SOURCE\s*AUDIT\])/gi, "$1\n\n$2\n");
   s = s.replace(
-    /([^\r\n#*=\-_ \t])[ \t]*(?:#{1,6}|\*{2,3}|={2,4})?[ \t]*(\[?SEGMENT[:\s]+(?:SHORT\s*\d|\d\s*[-:]\s*SHORT|LONG\s*PILLAR|LONG|\d\s*[-:]\s*LONG)[^\]]*\]?)/gi,
+    /([^\r\n])\s*(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(\[?SEGMENT[:\s]+(?:SHORT\s*\d|\d\s*[-:]\s*SHORT|LONG\s*PILLAR|LONG|\d\s*[-:]\s*LONG)[^\]]*\]?)/gi,
     "$1\n\n$2\n"
   );
 
@@ -84,22 +75,22 @@ export function normalizeScriptWhitespace(raw: string): string {
   );
 
   // 3. Newlines before chapters
-  s = s.replace(/([^\r\n#*=\-_ \t])[ \t]+(?:#{1,6}|\*{2,3}|={2,4})?[ \t]*(BAB|CHAPTER)\s+(\d+)\s*:\s*/gi, "$1\n\n## $2 $3: ");
+  s = s.replace(/([^\r\n])\s+(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(BAB|CHAPTER)\s+(\d+)\s*:\s*/gi, "$1\n\n## $2 $3: ");
 
   // 4. Newlines before and after SCENE headers:
-  // Case A: Preceded by non-newline and non-header, attached to a known scene opening field
+  // Case A: Preceded by non-newline, attached to a known scene opening field (e.g. "... detik SCENE 1KONTEKS SCENE:" or "... SCENE 1: KONTEKS")
   s = s.replace(
-    /([^\r\n#*=\-_ \t])[ \t]*(?:#{1,6}|\*{2,3}|={2,4})?[ \t]*(?:Scene|Adegan|Bagian|Part)\s*(\d+[a-zA-Z]?)\s*(?:[:\s\*\-=_]*)(KONTEKS|SCENE\s*CONTEXT|NARASI|NARRATION)/gi,
+    /([^\r\n])\s*(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:Scene|Adegan|Bagian|Part)\s*(\d+[a-zA-Z]?)\s*(?:[:\s\*\-=_]*)(KONTEKS|SCENE\s*CONTEXT|NARASI|NARRATION)/gi,
     "$1\n\n## SCENE $2\n$3"
   );
   // Case B: At start of string or preceded by newline, attached to next field (e.g. "\nSCENE 1KONTEKS SCENE:")
   s = s.replace(
-    /(?:^|\r?\n)[ \t]*(?:#{1,6}|\*{2,3}|={2,4})?[ \t]*(?:Scene|Adegan|Bagian|Part)\s*(\d+[a-zA-Z]?)\s*(?:[:\s\*\-=_]*)(KONTEKS|SCENE\s*CONTEXT|NARASI|NARRATION)/gi,
+    /(?:^|\r?\n)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:Scene|Adegan|Bagian|Part)\s*(\d+[a-zA-Z]?)\s*(?:[:\s\*\-=_]*)(KONTEKS|SCENE\s*CONTEXT|NARASI|NARRATION)/gi,
     "\n\n## SCENE $1\n$2"
   );
-  // Case C: Preceded by multiple spaces or tabs (collapsed newlines)
+  // Case C: Preceded by multiple spaces or tabs (collapsed newlines), e.g. "... detik   SCENE 2: "
   s = s.replace(
-    /([^\r\n#*=\-_ \t])(?:\s{2,}|\t)(?:#{1,6}|\*{2,3}|={2,4})?[ \t]*(?:Scene|Adegan|Bagian|Part)\s*(\d+[a-zA-Z]?)(?:[:\s\*\-=_]+)(?=[^\r\n])/gi,
+    /([^\r\n])(?:\s{2,}|\t)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:Scene|Adegan|Bagian|Part)\s*(\d+[a-zA-Z]?)(?:[:\s\*\-=_]+)(?=[^\r\n])/gi,
     "$1\n\n## SCENE $2\n"
   );
 
@@ -121,9 +112,9 @@ export function normalizeScriptWhitespace(raw: string): string {
   }
 
   // 6. Newlines before Studio, SEO, & Platforms
-  s = s.replace(/([^\r\n#*=\-_ \t])[ \t]+(?:#{1,6}|\*{2,3}|={2,4})?[ \t]*(THUMBNAIL\s*STUDIO)\s*(TEKS|OPSI)/gi, "$1\n\n## $2\n$3");
-  s = s.replace(/([^\r\n#*=\-_ \t])[ \t]+(?:#{1,6}|\*{2,3}|={2,4})?[ \t]*(METADATA\s*SEO[^\n\r:]*)\s*(TAG|DESKRIPSI)/gi, "$1\n\n## $2\n$3");
-  s = s.replace(/([^\r\n#*=\-_ \t])[ \t]+(?:#{1,6}|\*{2,3}|={2,4})?[ \t]*(KONTEN\s*PLATFORM[^\n\r]*)\s*(\[PLATFORM)/gi, "$1\n\n## $2\n$3");
+  s = s.replace(/([^\r\n])\s+(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(THUMBNAIL\s*STUDIO)\s*(TEKS|OPSI)/gi, "$1\n\n## $2\n$3");
+  s = s.replace(/([^\r\n])\s+(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(METADATA\s*SEO[^\n\r:]*)\s*(TAG|DESKRIPSI)/gi, "$1\n\n## $2\n$3");
+  s = s.replace(/([^\r\n])\s+(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(KONTEN\s*PLATFORM[^\n\r]*)\s*(\[PLATFORM)/gi, "$1\n\n## $2\n$3");
   s = s.replace(/([^\r\n])\s+(\[PLATFORM:[^\]]+\])\s*(DESKRIPSI|HASHTAGS|TAGS)/gi, "$1\n\n$2\n$3");
 
   // 7. Newlines before specific SEO sub-fields
@@ -147,15 +138,14 @@ export interface ThumbnailData {
 
 /** Extract structured thumbnail data from an AI-generated output string. */
 export function extractThumbnailData(text: string): ThumbnailData | null {
-  if (!text) return null;
   const match = text.match(
-    /(?:^|\r?\n|^)\s*(?:#{1,6}|\*{1,3}|={2,4})?\s*(?:THUMBNAIL STUDIO|IMAGE PROMPT|THUMBNAIL VISUAL PROMPT|THUMBNAIL PROMPT|THUMBNAIL)/i,
+    /(?:^|\r?\n|^)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:THUMBNAIL STUDIO|IMAGE PROMPT|THUMBNAIL VISUAL PROMPT|THUMBNAIL PROMPT|THUMBNAIL)/i,
   );
   const index = match?.index !== undefined ? match.index : -1;
   if (index === -1) return null;
 
   let thumbnailPart = text.substring(index).trim();
-  const stopMatch = thumbnailPart.match(/(?:\r?\n|^)\s*(?:#{1,6}|\*{1,3}|={2,4})?\s*(?:HTML\s*BLOG|REKOMENDASI\s*PRODUK)/i);
+  const stopMatch = thumbnailPart.match(/(?:\r?\n|^)\s*(?:#{1,6}\s*|\*{2,3}\s*|\b)(?:HTML\s*BLOG|REKOMENDASI\s*PRODUK)/i);
   if (stopMatch && stopMatch.index !== undefined && stopMatch.index > 0) {
     thumbnailPart = thumbnailPart.substring(0, stopMatch.index).trim();
   }
@@ -650,7 +640,7 @@ export function extractBlogPublishingPack(text: string): BlogPublishingPack {
   if (!text) return emptyResult;
 
   // Find the HTML BLOG section header (supports ## HTML BLOG, ## ARTIKEL BLOG, [HTML BLOG], etc.)
-  const match = text.match(/(?:^|\r?\n)\s*(?:#{1,6}|\*{1,3}|={2,4})?\s*(?:\[?(?:HTML\s*BLOG|BLOG\s*(?:POST|HTML|ARTICLE)|ARTIKEL\s*BLOG(?:\s*\(?HTML\)?)?|HTML\s*ARTICLE)\]?)/i);
+  const match = text.match(/(?:^|\r?\n)\s*(?:#{1,6}\s*|\*{1,3}\s*|={2,4}\s*)*(?:\[?(?:HTML\s*BLOG|BLOG\s*(?:POST|HTML|ARTICLE)|ARTIKEL\s*BLOG(?:\s*\(?HTML\)?)?|HTML\s*ARTICLE)\]?)/i);
   if (!match || match.index === undefined) return emptyResult;
 
   const startIdx = match.index + match[0].length;
@@ -1050,7 +1040,7 @@ export function parseScenes(rawText: string, speechRateSec: number = 0.35, idOff
 
   // Extract chapter markers: ## BAB N: Title or ## CHAPTER N: Title
   const chapterMarkers: { index: number; prefix: string; num: number; title: string }[] = [];
-  const chapterPattern = /(?:^|\r?\n)\s*(?:#{1,6}|\*{1,3}|={2,4})?\s*(BAB|CHAPTER)\s+(\d+)\s*:\s*(.+?)(?=\r?\n|$)/gi;
+  const chapterPattern = /(?:^|\r?\n)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(BAB|CHAPTER)\s+(\d+)\s*:\s*(.+?)(?=\r?\n|$)/gi;
   let chMatch;
   while ((chMatch = chapterPattern.exec(text)) !== null) {
     chapterMarkers.push({
@@ -1061,7 +1051,7 @@ export function parseScenes(rawText: string, speechRateSec: number = 0.35, idOff
     });
   }
 
-  const splitter = /(?:^|\r?\n)\s*(?:#{1,6}|\*{1,3}|={2,4})?\s*(?:Scene|Adegan|Bagian|Part)\s*([a-zA-Z0-9_\-]+)(?:[:\s\*\-=_]*)(?=\r?\n|$)/gi;
+  const splitter = /(?:^|\r?\n)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:Scene|Adegan|Bagian|Part)\s*([a-zA-Z0-9_\-]+)(?:[:\s\*\-=_]*)(?=\r?\n|$)/gi;
   const parts = text.split(splitter);
   const scenes: Scene[] = [];
   // CATATAN: string ini memakai empat backslash sehingga runtime-nya menjadi dua
@@ -1072,7 +1062,7 @@ export function parseScenes(rawText: string, speechRateSec: number = 0.35, idOff
   // Jangan menambah daftar ini tanpa memperbaiki escaping-nya lebih dulu, dan
   // jalankan tests/parsers.scenes.test.ts bila mengubahnya.
   const delimiters = "(?:Konteks\\s*Scene|Konteks\\s*Adegan|Scene\\s*Context|Konteks|Context|Narasi|Dialog|Voice\\s*Over|VO|Audio|Target\\s*Emosi(?:\\s*\\(VET\\))?|Emosi|Teknik\\s*(?:Editing(?:\\s*&\\s*Pacing)?|Pacing)|Pacing|Teks\\s*Overlay|Text\\s*Overlay|Overlay|Panduan\\s*Suara|Voice\\s*Guidelines|Setting\\s*Kamera|Camera\\s*Setup|Visual\\s*Prompt|Visual|Deskripsi\\s*Visual|Prompt|Komponen\\s*Remotion|Remotion\\s*Component|Motion\\s*Design|Elemen\\s*Visual|Animasi(?:\\s*&\\s*Spring)?|Spring(?:\\s*Animation)?|Transisi|Durasi|Time|Duration)";
-  const delimLookahead = `(?=(?:\\r?\\n)+(?:\\*\\*)?${delimiters}(?::\\s*\\*\\*|\\*\\*\\s*:|:)|\\r?\\n+[-*_]{3,}|\\r?\\n+\\s*(?:#{1,6}|\\*{1,3}|={2,4})?\\s*(?:Scene|Adegan|Bagian|Part)\\s+[a-zA-Z0-9_\\-]+|\\r?\\n+\\s*(?:#{1,6}|\\*{1,3}|={2,4})?\\s*(?:TOTAL|THUMBNAIL|METADATA|RINGKASAN|HASHTAG|CAPTION|KODE\\s*REMOTION|REMOTION\\s*CODE)|$)`;
+  const delimLookahead = `(?=(?:\\r?\\n)+(?:\\*\\*)?${delimiters}(?::\\s*\\*\\*|\\*\\*\\s*:|:)|\\r?\\n+[-*_]{3,}|\\r?\\n+(?:#{1,6}\\s*|\\*{2,3}\\s*|={2,4}\\s*)*(?:Scene|Adegan|Bagian|Part)\\s+[a-zA-Z0-9_\\-]+|\\r?\\n+(?:#{1,6}\\s*|\\*{2,3}\\s*|={2,4}\\s*)*(?:TOTAL|THUMBNAIL|METADATA|RINGKASAN|HASHTAG|CAPTION|KODE\\s*REMOTION|REMOTION\\s*CODE)|$)`;
 
   // Helper: find which chapter a given text offset belongs to
   function findChapterAt(offset: number): { prefix: string; num: number; title: string } | undefined {
@@ -1100,7 +1090,7 @@ export function parseScenes(rawText: string, speechRateSec: number = 0.35, idOff
       const sceneStartOffset = charOffset;
       charOffset += content.length;
 
-      const stop = /(?:^|\r?\n)\s*(?:#{1,6}|\*{1,3}|={2,4})?\s*(?:TOTAL\s*DURASI|TOTAL|RINGKASAN|THUMBNAIL|ARTIKEL|HASHTAG|CAPTION|JUDUL\s*TERPILIH|HTML\s*BLOG|REKOMENDASI|METADATA\s*SEO|KONTEN\s*PLATFORM|PLATFORM|KODE\s*REMOTION|REMOTION\s*CODE)/i;
+      const stop = /(?:^|\r?\n)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:TOTAL\s*DURASI|TOTAL|RINGKASAN|THUMBNAIL|ARTIKEL|HASHTAG|CAPTION|JUDUL\s*TERPILIH|HTML\s*BLOG|REKOMENDASI|METADATA\s*SEO|KONTEN\s*PLATFORM|PLATFORM|KODE\s*REMOTION|REMOTION\s*CODE)/i;
       const m = content.match(stop);
       const c = m ? content.slice(0, m.index) : content;
 
@@ -1217,7 +1207,7 @@ export function extractThreeTierSeo(text: string): ThreeTierSeoData | null {
   if (!text) return null;
 
   const match = text.match(
-    /(?:^|\r?\n|^)\s*(?:#{1,6}|\*{1,3}|={2,4})?\s*(?:METADATA\s*SEO\s*(?:YOUTUBE)?(?:\s*2026)?|SEO\s*METADATA)/i
+    /(?:^|\r?\n|^)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:METADATA\s*SEO\s*(?:YOUTUBE)?(?:\s*2026)?|SEO\s*METADATA)/i
   );
   if (!match || match.index === undefined) return null;
 
@@ -1225,7 +1215,7 @@ export function extractThreeTierSeo(text: string): ThreeTierSeoData | null {
   const afterSection = text.substring(startIdx);
   const firstNewline = afterSection.indexOf("\n");
   const rest = firstNewline !== -1 ? afterSection.substring(firstNewline + 1) : "";
-  const nextHeaderMatch = rest.search(/(?:\r?\n)\s*(?:#{1,6}|\*{1,3}|={2,4})?\s*(?:HTML\s*BLOG|REKOMENDASI|THUMBNAIL|SCENE|ADEGAN)/i);
+  const nextHeaderMatch = rest.search(/(?:\r?\n)(?:#{1,6}\s*|\*{2,3}\s*)*(?:HTML\s*BLOG|REKOMENDASI|THUMBNAIL|SCENE|ADEGAN)/i);
   const sectionRaw = nextHeaderMatch !== -1
     ? afterSection.substring(0, firstNewline + 1 + nextHeaderMatch).trim()
     : afterSection.trim();
@@ -1452,19 +1442,19 @@ export function extractMultiPlatformSeo(text: string, requireExplicitBlocks: boo
   }> = [
     {
       key: "youtube",
-      pattern: /(?:^|\r?\n)\s*(?:#{1,6}|\*{1,3}|={2,4})?\s*(?:\[?(?:PLATFORM\s*[:\-]\s*)?(?:1[\.\-]?\s*)?YOUTUBE(?:(?:\s*SHORTS)?(?:\s*SEO)?(?:(?:\s*2026)?)?)\]?)(?::\s*)?(?:\r?\n|$)/i,
+      pattern: /(?:^|\r?\n)(?:#{1,6}\s*|\*{1,3}\s*|={2,4}\s*)*(?:\[?(?:PLATFORM\s*[:\-]\s*)?(?:1[\.\-]?\s*)?YOUTUBE(?:(?:\s*SHORTS)?(?:\s*SEO)?(?:(?:\s*2026)?)?)\]?)(?::\s*)?(?:\r?\n|$)/i,
     },
     {
       key: "tiktok",
-      pattern: /(?:^|\r?\n)\s*(?:#{1,6}|\*{1,3}|={2,4})?\s*(?:\[?(?:PLATFORM\s*[:\-]\s*)?(?:2[\.\-]?\s*)?TIKTOK(?:(?:\s*SEO)?(?:(?:\s*2026)?)?)\]?)(?::\s*)?(?:\r?\n|$)/i,
+      pattern: /(?:^|\r?\n)(?:#{1,6}\s*|\*{1,3}\s*|={2,4}\s*)*(?:\[?(?:PLATFORM\s*[:\-]\s*)?(?:2[\.\-]?\s*)?TIKTOK(?:(?:\s*SEO)?(?:(?:\s*2026)?)?)\]?)(?::\s*)?(?:\r?\n|$)/i,
     },
     {
       key: "instagram",
-      pattern: /(?:^|\r?\n)\s*(?:#{1,6}|\*{1,3}|={2,4})?\s*(?:\[?(?:PLATFORM\s*[:\-]\s*)?(?:3[\.\-]?\s*)?(?:INSTAGRAM|IG)(?:(?:\s*REELS)?(?:\s*SEO)?(?:(?:\s*2026)?)?)\]?)(?::\s*)?(?:\r?\n|$)/i,
+      pattern: /(?:^|\r?\n)(?:#{1,6}\s*|\*{1,3}\s*|={2,4}\s*)*(?:\[?(?:PLATFORM\s*[:\-]\s*)?(?:3[\.\-]?\s*)?(?:INSTAGRAM|IG)(?:(?:\s*REELS)?(?:\s*SEO)?(?:(?:\s*2026)?)?)\]?)(?::\s*)?(?:\r?\n|$)/i,
     },
     {
       key: "facebook",
-      pattern: /(?:^|\r?\n)\s*(?:#{1,6}|\*{1,3}|={2,4})?\s*(?:\[?(?:PLATFORM\s*[:\-]\s*)?(?:4[\.\-]?\s*)?(?:FACEBOOK|FB)(?:(?:\s*REELS)?(?:\s*SEO)?(?:(?:\s*2026)?)?)\]?)(?::\s*)?(?:\r?\n|$)/i,
+      pattern: /(?:^|\r?\n)(?:#{1,6}\s*|\*{1,3}\s*|={2,4}\s*)*(?:\[?(?:PLATFORM\s*[:\-]\s*)?(?:4[\.\-]?\s*)?(?:FACEBOOK|FB)(?:(?:\s*REELS)?(?:\s*SEO)?(?:(?:\s*2026)?)?)\]?)(?::\s*)?(?:\r?\n|$)/i,
     },
   ];
 
@@ -1498,7 +1488,7 @@ export function extractMultiPlatformSeo(text: string, requireExplicitBlocks: boo
       if (i + 1 < matchedPositions.length) {
         endContent = matchedPositions[i + 1].index;
       } else {
-        const nextHeaderMatch = text.slice(startContent).search(/(?:\r?\n)\s*(?:#{1,6}|\*{1,3}|={2,4})?\s*(?:THUMBNAIL|SCENE|ADEGAN|SEGMENT|CHECKLIST|HTML\s*BLOG|REKOMENDASI|KODE\s*REMOTION)/i);
+        const nextHeaderMatch = text.slice(startContent).search(/(?:\r?\n)(?:#{1,6}\s*|\*{2,3}\s*)*(?:THUMBNAIL|SCENE|ADEGAN|SEGMENT|CHECKLIST|HTML\s*BLOG|REKOMENDASI|KODE\s*REMOTION)/i);
         if (nextHeaderMatch !== -1) {
           endContent = startContent + nextHeaderMatch;
         }
@@ -1752,9 +1742,9 @@ export function detectOutputStructure(rawText: string): "FUNNEL_BUNDLE" | "SINGL
   if (!rawText || typeof rawText !== "string") return "SINGLE";
   const text = normalizeScriptWhitespace(rawText);
 
-  const hasShort1 = /(?:^|\r?\n)\s*(?:#{1,6}|\*{1,3}|={2,4})?\s*(?:\[?SEGMENT[:\s]+(?:SHORT\s*1|1\s*[-:]\s*SHORT)\]?)/i.test(text);
-  const hasShort2 = /(?:^|\r?\n)\s*(?:#{1,6}|\*{1,3}|={2,4})?\s*(?:\[?SEGMENT[:\s]+(?:SHORT\s*2|2\s*[-:]\s*SHORT)\]?)/i.test(text);
-  const hasLong = /(?:^|\r?\n)\s*(?:#{1,6}|\*{1,3}|={2,4})?\s*(?:\[?SEGMENT[:\s]+(?:LONG\s*PILLAR|LONG|3\s*[-:]\s*LONG)\]?)/i.test(text);
+  const hasShort1 = /(?:^|\r?\n)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:\[?SEGMENT[:\s]+(?:SHORT\s*1|1\s*[-:]\s*SHORT)\]?)/i.test(text);
+  const hasShort2 = /(?:^|\r?\n)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:\[?SEGMENT[:\s]+(?:SHORT\s*2|2\s*[-:]\s*SHORT)\]?)/i.test(text);
+  const hasLong = /(?:^|\r?\n)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:\[?SEGMENT[:\s]+(?:LONG\s*PILLAR|LONG|3\s*[-:]\s*LONG)\]?)/i.test(text);
 
   let matchCount = 0;
   if (hasShort1) matchCount++;
@@ -1771,7 +1761,7 @@ export function extractSourceAudit(rawText: string): SourceAuditData | null {
   if (!rawText || typeof rawText !== "string") return null;
   const text = normalizeScriptWhitespace(rawText);
 
-  const headerRegex = /(?:^|\r?\n)\s*(?:#{1,6}|\*{1,3}|={2,4})?\s*(?:\[?SOURCE\s*AUDIT\]?|\[?AUDIT\s*(?:LINK\s*REFERENSI|DATA\s*SUMBER)\]?)[^\n]*/i;
+  const headerRegex = /(?:^|\r?\n)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:\[?SOURCE\s*AUDIT\]?|\[?AUDIT\s*(?:LINK\s*REFERENSI|DATA\s*SUMBER)\]?)[^\n]*/i;
   const match = text.match(headerRegex);
   if (!match || match.index === undefined) return null;
 
@@ -1779,7 +1769,7 @@ export function extractSourceAudit(rawText: string): SourceAuditData | null {
   const afterHeader = text.substring(startIndex);
 
   // Stop at the next major section (e.g. ### [SEGMENT: ..., ## SCENE, etc.)
-  const stopRegex = /(?:^|\r?\n)\s*(?:#{1,6}|\*{1,3}|={2,4})?\s*(?:\[?SEGMENT|SCENE\s*1|TAHAP\s*1)/i;
+  const stopRegex = /(?:^|\r?\n)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:\[?SEGMENT|SCENE\s*1|TAHAP\s*1)/i;
   const stopMatch = afterHeader.match(stopRegex);
   const auditSection = stopMatch && stopMatch.index !== undefined
     ? afterHeader.substring(0, stopMatch.index)
@@ -1849,9 +1839,9 @@ export function parseFunnelPack(rawText: string, speechRateSec: number = 0.35): 
   const sourceAudit = extractSourceAudit(text);
 
   // Delimiters for segments
-  const short1Regex = /(?:^|\r?\n)\s*(?:#{1,6}|\*{1,3}|={2,4})?\s*(?:\[?SEGMENT[:\s]+(?:SHORT\s*1|1\s*[-:]\s*SHORT)\]?)/i;
-  const short2Regex = /(?:^|\r?\n)\s*(?:#{1,6}|\*{1,3}|={2,4})?\s*(?:\[?SEGMENT[:\s]+(?:SHORT\s*2|2\s*[-:]\s*SHORT)\]?)/i;
-  const longRegex = /(?:^|\r?\n)\s*(?:#{1,6}|\*{1,3}|={2,4})?\s*(?:\[?SEGMENT[:\s]+(?:LONG\s*PILLAR|LONG|3\s*[-:]\s*LONG)\]?)/i;
+  const short1Regex = /(?:^|\r?\n)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:\[?SEGMENT[:\s]+(?:SHORT\s*1|1\s*[-:]\s*SHORT)\]?)/i;
+  const short2Regex = /(?:^|\r?\n)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:\[?SEGMENT[:\s]+(?:SHORT\s*2|2\s*[-:]\s*SHORT)\]?)/i;
+  const longRegex = /(?:^|\r?\n)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:\[?SEGMENT[:\s]+(?:LONG\s*PILLAR|LONG|3\s*[-:]\s*LONG)\]?)/i;
 
   const mS1 = text.match(short1Regex);
   const mS2 = text.match(short2Regex);
