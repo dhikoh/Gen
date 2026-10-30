@@ -232,48 +232,52 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
   // 1. initialDraft (navigating with ?draftId=)
   // 2. initialParsedOutputs[0] (latest parse from database memory)
   const defaultSource = useMemo(() => {
-    if (initialDraft?.rawJson) {
-      const isFunnel = detectOutputStructure(initialDraft.rawJson) === "FUNNEL_BUNDLE";
-      if (isFunnel) {
-        const fp = parseFunnelPack(initialDraft.rawJson, initialSpeechRate);
+    try {
+      if (initialDraft?.rawJson) {
+        const isFunnel = detectOutputStructure(initialDraft.rawJson) === "FUNNEL_BUNDLE";
+        if (isFunnel) {
+          const fp = parseFunnelPack(initialDraft.rawJson, initialSpeechRate);
+          return {
+            raw: initialDraft.rawJson,
+            parsed: fp.segments.short1.scenes,
+            id: initialDraft.id,
+            isDraft: true,
+            funnelPack: fp,
+          };
+        }
         return {
           raw: initialDraft.rawJson,
-          parsed: fp.segments.short1.scenes,
+          parsed: parseScenes(initialDraft.rawJson, initialSpeechRate),
           id: initialDraft.id,
           isDraft: true,
-          funnelPack: fp,
         };
       }
-      return {
-        raw: initialDraft.rawJson,
-        parsed: parseScenes(initialDraft.rawJson, initialSpeechRate),
-        id: initialDraft.id,
-        isDraft: true,
-      };
-    }
-    if (initialParsedOutputs.length > 0) {
-      const raw = initialParsedOutputs[0].rawInput;
-      const isFunnel = detectOutputStructure(raw) === "FUNNEL_BUNDLE";
-      if (isFunnel) {
-        const fp = parseFunnelPack(raw, initialSpeechRate);
+      if (initialParsedOutputs && initialParsedOutputs.length > 0) {
+        const raw = initialParsedOutputs[0].rawInput;
+        const isFunnel = detectOutputStructure(raw) === "FUNNEL_BUNDLE";
+        if (isFunnel) {
+          const fp = parseFunnelPack(raw, initialSpeechRate);
+          return {
+            raw,
+            parsed: fp.segments.short1.scenes,
+            id: initialParsedOutputs[0].id,
+            isDraft: false,
+            funnelPack: fp,
+          };
+        }
         return {
           raw,
-          parsed: fp.segments.short1.scenes,
+          parsed:
+            Array.isArray(initialParsedOutputs[0].parsedResult) &&
+            (initialParsedOutputs[0].parsedResult as unknown[]).length > 0
+              ? (initialParsedOutputs[0].parsedResult as Scene[])
+              : parseScenes(initialParsedOutputs[0].rawInput, initialSpeechRate),
           id: initialParsedOutputs[0].id,
           isDraft: false,
-          funnelPack: fp,
         };
       }
-      return {
-        raw,
-        parsed:
-          Array.isArray(initialParsedOutputs[0].parsedResult) &&
-          (initialParsedOutputs[0].parsedResult as unknown[]).length > 0
-            ? (initialParsedOutputs[0].parsedResult as Scene[])
-            : parseScenes(initialParsedOutputs[0].rawInput, initialSpeechRate),
-        id: initialParsedOutputs[0].id,
-        isDraft: false,
-      };
+    } catch (err) {
+      console.error("[ScenePromptStudioClient] Failed to resolve defaultSource:", err);
     }
     return null;
   }, [initialDraft, initialParsedOutputs, initialSpeechRate]);
