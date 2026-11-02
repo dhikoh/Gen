@@ -417,6 +417,16 @@ export function extractChosenTitle(text: string): string | null {
     const m = line.trim().match(pattern);
     if (m) return m[1].replace(/[[\]*#]/g, "").trim();
   }
+
+  // Fallback: AI output sometimes omits newlines between section headers, producing
+  // a single continuous line like "...VARIASI JUDULJUDUL TERPILIH: Judul...ANALISIS…".
+  // In that case the line-by-line loop above finds nothing because "^" never matches
+  // mid-string. This pattern searches anywhere in the text without a line-start anchor.
+  const fallbackPattern =
+    /(?:JUDUL\s+TERPILIH|SELECTED\s+TITLE|CHOSEN\s+TITLE)\s*(?:\*+\s*)?(?:🛑\s*)?:\s*(.+?)(?=\s{0,3}(?:[A-ZÁÉÍÓÚ]{3}[A-ZÁÉÍÓÚÑ\s]{3,}(?:&|\s*:))|[\r\n]|$)/iu;
+  const fm = text.match(fallbackPattern);
+  if (fm) return fm[1].replace(/[[\]*#]/g, "").trim();
+
   return null;
 }
 
