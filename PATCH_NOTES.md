@@ -70,6 +70,75 @@
 > | `[#113]` | Fitur #113 (Bagian 62) | Re-Engineering Thumbnail Overlay: Psychological Curiosity Gap, In-Image Typography Prompts untuk AI Eksternal (FLUX/Midjourney) & Perbaikan UI Shrink-Test | 2026-10-29 |
 > | `[#114]` | Fitur #114 (Bagian 63) | Web Motion Engine (HTML5+GSAP): Arsitektur 3 Tab, Integrasi Superadmin & User, Naskah Narasi Lengkap, Hardening Parser Stop-Boundary & Live In-Browser Preview | 2026-11-15 |
 > | `[#115]` | Pengujian #115 (Bagian 64) | Master E2E Integration Test Suite (7 Skenario), Zero-Gap & Zero-Duplication Verification (User vs Superadmin) & Bundle Ambient Sync | 2026-11-15 |
+> | `[#116]` | Keamanan & Audit #116 (Bagian 65) | Hardening CSP GSAP CDN, Iframe Sandbox Isolation (`allow-scripts`), dan Proteksi False-Positive Remotion HTML Evaluator | 2026-11-15 |
+
+---
+
+## [#116] — 2026-11-15 | Hardening CSP GSAP CDN, Iframe Sandbox Isolation (`allow-scripts`), dan Proteksi False-Positive Remotion HTML Evaluator
+
+### Problem & Latar Belakang
+1. **CSP Blocker pada Script GSAP CDN di Preview Web Motion**:
+   - Tag `<iframe srcDoc={...}>` mewarisi header Content Security Policy (CSP) dari dokumen induk.
+   - Pada `next.config.ts`, directive `script-src` hanya mengizinkan `'self' 'unsafe-inline' 'unsafe-eval'`.
+   - Akibatnya, saat kode Web Motion memuat GSAP dari CDN (`https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js`), browser memblokirnya dengan error: `Loading the script 'https://cdn.jsdelivr.net/...' violates Content Security Policy` sehingga memicu `Uncaught ReferenceError: gsap is not defined`.
+2. **Peringatan Keamanan Iframe Sandbox Escape**:
+   - Di `ScenePromptStudioClient.tsx`, atribut sandbox menggunakan `sandbox="allow-scripts allow-same-origin"`.
+   - Browser modern menampilkan security warning: `An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing`.
+3. **SyntaxError pada Evaluator Remotion Akibat False-Positive HTML**:
+   - Fungsi `extractRemotionCode` pada `parsers.ts` menggunakan regex case-insensitive `/(?:...|Composition)/i`.
+   - Kata umum dalam HTML/CSS seperti komentar *"camera composition"*, *"decomposition"*, atau class CSS menyebabkan dokumen HTML `<!DOCTYPE html>` diekstrak sebagai kode Remotion TSX.
+   - Saat dievaluasi di `LiveRemotionSandbox.tsx` via `new Function()`, engine melempar `SyntaxError: Invalid or unexpected token`.
+
+---
+
+### Solusi & Implementasi Teknis
+
+#### 1. Perluasan Content Security Policy (`next.config.ts`)
+- Memperbarui header CSP pada route `/:locale(id|en)/dashboard/:path*` dan `/dashboard/:path*`:
+  - `script-src`: Menambahkan `https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com`.
+  - `connect-src`: Menambahkan `https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com`.
+  - `style-src`: Menambahkan `https://cdn.jsdelivr.net https://cdnjs.cloudflare.com`.
+  - `img-src` & `frame-src`: Mendukung `blob:`, `data:`, dan `https:`.
+
+#### 2. Hardening Iframe Sandbox (`ScenePromptStudioClient.tsx`)
+- Mengubah atribut sandbox menjadi `sandbox="allow-scripts"` murni (tanpa `allow-same-origin`).
+- Player Web Motion sepenuhnya aman berjalan secara *in-memory* tanpa peringatan konsol browser.
+
+#### 3. Proteksi Bertingkat False-Positive Remotion HTML
+- `src/lib/parsers.ts`:
+  - Menambahkan guard eksplisit: `if (/^\s*<!DOCTYPE\s+html|^\s*<html[\s>]/i.test(rawContent)) continue;`.
+  - Memperketat regex pencocokan Remotion signature ke primitives JSX/hook spesifik (`<AbsoluteFill`, `<Sequence`, `<Composition`, `<Loop`, `<Series`, `useCurrentFrame()`, `useVideoConfig()`).
+- `src/app/api/remotion/transpile/route.ts`:
+  - Mengembalikan respon HTTP 400 informatif jika kode yang dikirimkan diawali tag `<!DOCTYPE html>` atau `<html`.
+- `src/components/remotion/LiveRemotionSandbox.tsx`:
+  - Mencegah eksekusi `new Function()` jika string kode adalah dokumen HTML Web Motion, menampilkan pesan panduan pengguna.
+- `src/components/remotion/RemotionStudioStandaloneClient.tsx`:
+  - Menampilkan toast informatif jika user tidak sengaja mengompilasi kode Web Motion HTML di Remotion Studio.
+
+#### 4. Pengujian Nyata dengan Output AI User (`tests/test_user_output.test.ts`)
+- Memverifikasi output riil AI (*"Your Organic Plants Are Carnivores: The Secret Bacterial Feast Inside Every Root Tip"*):
+  - Ekstraksi Web Motion HTML mandiri secara presisi (HTML5 + GSAP + #world).
+  - Kebal terhadap kata *"composition"* di dalam dokumen HTML.
+  - 13 adegan diparse tanpa kebocoran kode ke Scene 13.
+  - Ekstraksi multi-platform SEO & caption (YouTube, TikTok, Instagram, FB).
+  - Pembersihan narasi TTS (bracket cues stripped).
+  - Verifikasi kebebasan sandbox dari `allow-same-origin` dan perizinan CDN GSAP di CSP.
+
+---
+
+### File yang Dimodifikasi / Ditambahkan
+- `next.config.ts`: Perluasan CSP untuk mengizinkan CDN GSAP (`cdn.jsdelivr.net`, `cdnjs.cloudflare.com`, `unpkg.com`).
+- `src/app/[locale]/dashboard/scene-prompt/ScenePromptStudioClient.tsx`: Perbaikan atribut iframe sandbox menjadi `allow-scripts`.
+- `src/lib/parsers.ts`: Hardening `extractRemotionCode` terhadap dokumen HTML dan pengetatan token Remotion.
+- `src/app/api/remotion/transpile/route.ts`: Validasi tolak input Web Motion HTML dengan HTTP 400.
+- `src/components/remotion/LiveRemotionSandbox.tsx`: Early guard evaluasi HTML pada Remotion sandbox runtime.
+- `src/components/remotion/RemotionStudioStandaloneClient.tsx`: Toast feedback instan jika user menginput Web Motion HTML.
+- `tests/fixtures/sample_rhizophagy_output.txt`: Fixture output nyata AI dari user untuk verifikasi end-to-end.
+- `tests/test_user_output.test.ts`: Test suite baru berisikan 9 pengujian verifikasi mendalam.
+- `Project Prompt Gen.txt`: Penambahan addendum teknis Bagian 64 & Bagian 65.
+- `PATCH_NOTES.md`: Pencatatan entri kanonikal rilis [#116].
+
+---
 
 ---
 

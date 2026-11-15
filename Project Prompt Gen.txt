@@ -3175,6 +3175,60 @@ BAGIAN 60: FUNNEL PACK TIMING ISOLATION, FLUID NUMERIC INPUT UX & AUTO SCENE PAC
 - `npm run audit:i18n`: 100% key parity (1.831 keys id & en, zero missing keys).
 - Zero Regression pada seluruh alur Video Diffusion, Image Prompt, Channel Bundle, dan SEO.
 
+---
+
+## BAGIAN 64: MASTER E2E INTEGRATION TEST SUITE (7 SKENARIO), ZERO-GAP & ZERO-DUPLICATION VERIFICATION (USER VS SUPERADMIN) & BUNDLE AMBIENT SYNC
+
+### 64.1 Arsitektur Test Harness & Seed Fixtures Terpadu (`tests/e2e/testHarness.ts`)
+- Menyediakan fixtures deterministik untuk multi-role testing tanpa network overhead:
+  * `MOCK_SUPERADMIN`: Pengguna role `SUPERADMIN` dengan akses bypass penuh ke semua studio.
+  * `MOCK_PRO_USER`: Kreator dengan langganan paket PRO aktif (semua feature flag aktif).
+  * `MOCK_FREE_USER`: Pengguna gratisan dengan batasan fail-closed pada studio premium.
+  * `MOCK_TECH_CHANNEL` & `MOCK_FASHION_CHANNEL`: Profil channel terisolasi dengan produk dan audio preferences.
+
+### 64.2 Tujuh Skenario Master E2E (`tests/e2e/`)
+1. **01_triple_engine_generation_e2e.test.ts**: Membuktikan pemisahan mutlak 3 mode (`VIDEO`, `IMAGE`, `MOTION`) dan zero prompt clashing.
+2. **02_web_motion_parser_sandbox_e2e.test.ts**: Membuktikan ekstraksi HTML5+GSAP mandiri, isolasi stop-boundary adegan terakhir, dan render iframe.
+3. **03_admin_plan_gating_and_bypass_e2e.test.ts**: Membuktikan Superadmin bypass mutlak vs Pro User vs Free User gating.
+4. **04_state_isolation_autosave_dedup_e2e.test.ts**: Membuktikan isolasi form state antar channel, persistensi autosave, dan deduplikasi UsedTitle.
+5. **05_funnel_and_seo_three_tier_e2e.test.ts**: Membuktikan konsistensi Funnel Bundle 3 segmen dan SEO 3-Tier multi-platform.
+6. **06_bundle_portability_and_crypto_e2e.test.ts**: Membuktikan enkripsi AES-GCM v2 AAD, ekspor-impor bundle ekosistem, dan sinkronisasi `ambientPreference`.
+7. **07_auth_role_permissions_e2e.test.ts**: Membuktikan RBAC ketat pada seluruh endpoint API (Superadmin vs User vs Public).
+
+---
+
+## BAGIAN 65: SECURITY & RUNTIME STABILITY HARDENING (CSP GSAP CDN, IFRAME SANDBOX ISOLATION, & REMOTION FALSE-POSITIVE GUARD)
+
+### 65.1 Content Security Policy (CSP) untuk CDN GSAP (`next.config.ts`)
+- **Masalah**: Header CSP sebelumnya hanya mengizinkan `script-src 'self' 'unsafe-inline' 'unsafe-eval'`. Saat iframe memuat CDN GSAP (`https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js`), browser memblokirnya dengan pesan `violates CSP directive` sehingga memicu `Uncaught ReferenceError: gsap is not defined`.
+- **Solusi**: Memperluas cakupan CSP di `next.config.ts` untuk `/:locale(id|en)/dashboard/:path*` dan `/dashboard/:path*`:
+  * `script-src`: `'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com`
+  * `connect-src`: `'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com`
+  * `style-src`: `'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com`
+  * `img-src` & `frame-src`: Mengizinkan `blob:`, `data:`, dan `https:`.
+
+### 65.2 Iframe Sandbox Hardening (`ScenePromptStudioClient.tsx`)
+- **Masalah**: Atribut `sandbox="allow-scripts allow-same-origin"` memicu peringatan browser: `An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing`.
+- **Solusi**: Mengubah menjadi `sandbox="allow-scripts"` murni. Karena player Web Motion berjalan *in-memory* dan tidak memerlukan akses ke origin induk (cookies/local storage), isolasi ini sepenuhnya aman dan menghilangkan peringatan browser.
+
+### 65.3 Eliminasi False-Positive Remotion Evaluator (`parsers.ts`, `transpile/route.ts`, `LiveRemotionSandbox.tsx`)
+- **Masalah**: Regex `extractRemotionCode` menggunakan `/Composition/i` tanpa batas kata sehingga kata umum dalam HTML/CSS (misal komentar *"camera composition"*, class CSS) membuat dokumen HTML dideteksi sebagai kode Remotion TSX. Saat dokumen HTML dievaluasi dengan `new Function()`, engine melempar `SyntaxError: Invalid or unexpected token`.
+- **Solusi**:
+  1. `src/lib/parsers.ts`: Memeriksa `if (/^\s*<!DOCTYPE\s+html|^\s*<html[\s>]/i.test(rawContent)) continue;` dan memperketat signature Remotion menjadi primitives JSX/hook eksplisit (`<AbsoluteFill`, `<Sequence`, `<Composition`, `useCurrentFrame()`).
+  2. `src/app/api/remotion/transpile/route.ts`: Menolak input dokumen HTML dengan HTTP 400 dan pesan bantuan informatif.
+  3. `src/components/remotion/LiveRemotionSandbox.tsx`: Menolak evaluasi `new Function()` jika string diawali `<!DOCTYPE html>` atau `<html`.
+  4. `src/components/remotion/RemotionStudioStandaloneClient.tsx`: Menambahkan feedback toast langsung jika user menginput Web Motion HTML.
+
+### 65.4 Verifikasi Hasil Output Nyata Pengguna (`tests/test_user_output.test.ts`)
+- Menguji naskah nyata AI (*"Your Organic Plants Are Carnivores: The Secret Bacterial Feast Inside Every Root Tip"*):
+  * Ekstraksi Web Motion HTML mandiri secara presisi (HTML5 + GSAP + #world).
+  * `extractRemotionCode` kebal terhadap kata *"composition"* di dalam dokumen HTML.
+  * 13 Adegan lengkap berhasil di-parse tanpa kebocoran kode ke Scene 13.
+  * Ekstraksi SEO 3-tier, caption, dan hashtag multi-platform (YouTube, TikTok, Instagram, Facebook).
+  * Pembersihan cues narasi TTS (bracket cues stripped).
+  * Seluruh 62 test files (507 tests) lulus 100% tanpa regresi.
+
+
 
 
 
