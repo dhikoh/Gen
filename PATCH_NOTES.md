@@ -163,24 +163,18 @@
 ### File yang Dimodifikasi / Ditambahkan
 - `src/types/generator.ts`: Penambahan tipe `MotionStyleType`, `MotionBackgroundType`, `MotionPacingType`, update `GeneratorFormStateSnapshot` dan `videoProductionMode`.
 - `src/lib/planFeatures.ts`: Penambahan `webMotionStudio` ke `KNOWN_PLAN_FEATURES` & bidirectional fallback dengan `remotionStudio`.
-- `src/app/api/generate/route.ts`: Zod validation untuk `type: "MOTION"` dan parameter motion.
+- `src/app/api/generate/route.ts`: Zod validation untuk `type: "MOTION"` dan parameter motion, penegasan type guard `queryType` (`"VIDEO" | "IMAGE"`) untuk Prisma used titles & drafts deduplication, dan type casting aman `plan?.features`.
 - `src/app/api/user/preferences/route.ts`: Zod validation untuk persistensi autosave `type: "MOTION"` dan konfigurasi motion.
 - `src/lib/channelBundle.ts`: Penambahan dukungan tipe `"MOTION"` pada skema bundle ekosistem channel.
 - `src/lib/promptGenerator.ts`: Injeksi hukum sinematik bang-motion/lemo-opuscar, larangan kamera fisik, dan format standalone HTML5+GSAP.
 - `src/lib/parsers.ts`: Regex delimiters dan stop-boundary hardening, fungsi `extractWebMotionHtml`.
-- `src/components/generator/GeneratorForm.tsx`: Implementasi pemilih 3 Tab (`VIDEO`, `IMAGE`, `MOTION`), Card kontrol visual motion & background, filter form kamera fisik, dan autosave per-channel.
+- `src/components/generator/GeneratorForm.tsx`: Implementasi pemilih 3 Tab (`VIDEO`, `IMAGE`, `MOTION`), Card kontrol visual motion & background, filter form kamera fisik, autosave per-channel, dan pemetaan aman `type === "MOTION" ? "VIDEO" : type` saat menyimpan draft.
 - `src/app/[locale]/dashboard/scene-prompt/ScenePromptStudioClient.tsx`: Live interactive iframe player, download HTML, fullscreen preview, dan copy code.
 - `messages/id.json` & `messages/en.json`: Penambahan key i18n Web Motion & verifikasi paritas 1.831 keys.
 - `src/lib/__tests__/promptGenerator.webMotion.test.ts`: Unit test baru untuk Web Motion prompt generator.
 - `src/lib/__tests__/parsers.webMotionHtml.test.ts`: Unit test baru untuk ekstraksi HTML & stop boundary parser.
 - `tests/channelStateIsolation.test.ts`: Unit test baru untuk verifikasi isolasi & persistensi autosave Web Motion.
 - `Project Prompt Gen.txt`: Penambahan addendum dokumentasi teknis kanonikal Bagian 63.
-- `PATCH_NOTES.md`: Pencatatan entri kanonikal rilis [#114].
-- `src/components/generator/GeneratorForm.tsx`: Implementasi pemilih 3 Tab (`VIDEO`, `IMAGE`, `MOTION`), Card kontrol visual motion & background, filter form kamera fisik.
-- `src/app/[locale]/dashboard/scene-prompt/ScenePromptStudioClient.tsx`: Live interactive iframe player, download HTML, fullscreen preview, dan copy code.
-- `messages/id.json` & `messages/en.json`: Penambahan key i18n Web Motion & verifikasi paritas 1.831 keys.
-- `src/lib/__tests__/promptGenerator.webMotion.test.ts`: Unit test baru untuk Web Motion prompt generator.
-- `src/lib/__tests__/parsers.webMotionHtml.test.ts`: Unit test baru untuk ekstraksi HTML & stop boundary parser.
 - `PATCH_NOTES.md`: Pencatatan entri kanonikal rilis [#114].
 
 ---

@@ -1216,7 +1216,7 @@ export default function GeneratorForm({
 
  const payload: Record<string, unknown> = {
  channelId,
- type,
+ type: type === "MOTION" ? "VIDEO" : type,
  topic: effectiveTopic,
  rawJson: aiResultJson,
  speechRate: rateValue,

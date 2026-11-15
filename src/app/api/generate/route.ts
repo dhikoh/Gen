@@ -234,6 +234,13 @@ export async function POST(req: Request) {
         }
       }
 
+      // Validasi fitur Web Motion Engine
+      if (type === "MOTION" || (type === "VIDEO" && videoConfig?.videoProductionMode === "WEB_MOTION_HTML")) {
+        if (!getFeatureValue("webMotionStudio")) {
+          return NextResponse.json({ error: t("webMotionLocked") }, { status: 403 });
+        }
+      }
+
       // Resolusi entitlement Camera Movement Pro — BUKAN gate blokir, hanya menentukan versi instruksi.
       // Server WAJIB punya entitlement AND user harus opt-in via toggle PRO (cameraMovementProMode).
       // cameraMovementProMode dari client hanya sebagai INTENT — server tetap penentu akhir.
@@ -265,13 +272,14 @@ export async function POST(req: Request) {
 
     // Fix arsitektur: exclude titles dibaca dari UsedTitle (permanen) + Draft (historis)
     // Dual-source agar tidak ada gap selama masa transisi migrasi data
+    const queryType: "VIDEO" | "IMAGE" = type === "MOTION" ? "VIDEO" : type;
     const [usedTitleRecords, previousDrafts] = await Promise.all([
       prisma.usedTitle.findMany({
-        where: { channelId, type },
+        where: { channelId, type: queryType },
         select: { title: true }
       }),
       prisma.draft.findMany({
-        where: { channelId, type, title: { not: null } },
+        where: { channelId, type: queryType, title: { not: null } },
         select: { title: true }
       })
     ]);
@@ -348,9 +356,10 @@ export async function POST(req: Request) {
 
     if ((type === "VIDEO" || type === "MOTION") && videoConfig) {
       if (type === "MOTION") {
-        const hasMotionAccess = hasFeature(plan?.features, "webMotionStudio", session.user.role === "SUPERADMIN");
+        const rawFeatures = (plan?.features || {}) as Record<string, boolean>;
+        const hasMotionAccess = hasFeature(rawFeatures, "webMotionStudio", session.user.role === "SUPERADMIN");
         if (!hasMotionAccess) {
-          return NextResponse.json({ error: "Fitur Web Motion memerlukan paket PRO atau akses Superadmin." }, { status: 403 });
+          return NextResponse.json({ error: t("webMotionLocked") }, { status: 403 });
         }
       }
 
