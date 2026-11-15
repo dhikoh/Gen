@@ -14,7 +14,7 @@ export const bundleUsedTitleSchema = z.union([
   z.string().min(1).max(500),
   z.object({
     title: z.string().min(1).max(500),
-    type: z.enum(["VIDEO", "IMAGE"]).optional().default("VIDEO"),
+    type: z.enum(["VIDEO", "IMAGE", "MOTION"]).optional().default("VIDEO"),
   }),
 ]);
 
@@ -39,7 +39,7 @@ export const bundleGeneratorSettingsSchema = z.object({
   affiliateAngleMode: z.enum(["CTA", "SOFT"]).optional(),
   affiliateMarketplaces: z.array(z.string().max(100)).max(20).optional().nullable(),
   affiliateCustomUrl: z.string().max(500).optional().nullable(),
-  videoProductionMode: z.enum(["AI_VIDEO_GENERATOR", "REMOTION_CODE"]).optional(),
+  videoProductionMode: z.enum(["AI_VIDEO_GENERATOR", "DIFFUSION_AI", "WEB_MOTION_HTML", "REMOTION_CODE"]).optional(),
   videoConfig: z.object({
     targetPlatform: z.string().max(100).optional(),
     targetDurationSec: z.number().positive().max(3600).optional(),
@@ -156,7 +156,7 @@ export function buildChannelBundle(params: {
       affiliateAngleMode: raw.affiliateAngleMode === "CTA" || raw.affiliateAngleMode === "SOFT" ? raw.affiliateAngleMode : undefined,
       affiliateMarketplaces: Array.isArray(raw.affiliateMarketplaces) ? raw.affiliateMarketplaces.filter((x): x is string => typeof x === "string") : undefined,
       affiliateCustomUrl: typeof raw.affiliateCustomUrl === "string" ? raw.affiliateCustomUrl : undefined,
-      videoProductionMode: raw.videoProductionMode === "AI_VIDEO_GENERATOR" || raw.videoProductionMode === "REMOTION_CODE" ? raw.videoProductionMode : undefined,
+      videoProductionMode: raw.videoProductionMode === "AI_VIDEO_GENERATOR" || raw.videoProductionMode === "DIFFUSION_AI" || raw.videoProductionMode === "WEB_MOTION_HTML" || raw.videoProductionMode === "REMOTION_CODE" ? raw.videoProductionMode : undefined,
       videoConfig: isRecord(raw.videoConfig) ? {
         targetPlatform: typeof raw.videoConfig.targetPlatform === "string" ? raw.videoConfig.targetPlatform : undefined,
         targetDurationSec: typeof raw.videoConfig.targetDurationSec === "number" ? raw.videoConfig.targetDurationSec : undefined,
@@ -200,7 +200,7 @@ export function buildChannelBundle(params: {
     })),
     usedTitles: (params.usedTitles || []).map((t) => ({
       title: t.title,
-      type: t.type === "IMAGE" ? "IMAGE" : "VIDEO",
+      type: t.type === "IMAGE" ? "IMAGE" : t.type === "MOTION" ? "MOTION" : "VIDEO",
     })),
   };
 }

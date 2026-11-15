@@ -77,9 +77,12 @@ const videoConfigSchema = z.object({
   // SEO & Keyword Targets (vidIQ / YouTube Live)
   targetKeywords: z.union([z.array(z.string()), z.string()]).optional().nullable(),
   trendingAudio: z.string().max(200).optional().nullable(),
-  // Production Engine (Diffusion AI vs Remotion Code)
-  videoProductionMode: z.enum(["DIFFUSION_AI", "REMOTION_CODE"]).default("DIFFUSION_AI"),
+  // Production Engine (Diffusion AI vs Remotion Code vs Web Motion)
+  videoProductionMode: z.enum(["DIFFUSION_AI", "WEB_MOTION_HTML", "REMOTION_CODE"]).default("DIFFUSION_AI"),
   remotionTheme: z.enum(["modern", "cyberpunk", "documentary", "kinetic"]).optional().nullable(),
+  motionStyle: z.enum(["saas_explainer", "exploded_3d", "kinetic_typography", "vox_journalism", "narrative_collage"]).optional().nullable(),
+  motionBackground: z.enum(["auto", "glow_horizon", "grainy_gradient", "light_mesh", "vintage_paper", "blueprint_grid", "color_block"]).optional().nullable(),
+  motionPacing: z.enum(["snappy", "smooth", "narrative"]).optional().nullable(),
   // Funnel Pack (2 Short + 1 Long) & Link Content Audit Repurposing
   outputStructure: z.enum(["SINGLE", "FUNNEL_BUNDLE"]).default("SINGLE"),
   sourceUrl: z.string().max(1000).refine((v) => !v || /^https?:\/\//i.test(v), {
@@ -112,7 +115,7 @@ const imageConfigSchema = z.object({
 });
 
 const generateSchema = z.object({
-  type: z.enum(["VIDEO", "IMAGE"]),
+  type: z.enum(["VIDEO", "IMAGE", "MOTION"]),
   channelId: z.string().min(1),
   topic: z.string().optional().nullable(),
   additionalContext: z.string().optional().nullable(),
@@ -343,7 +346,14 @@ export async function POST(req: Request) {
       }
     }
 
-    if (type === "VIDEO" && videoConfig) {
+    if ((type === "VIDEO" || type === "MOTION") && videoConfig) {
+      if (type === "MOTION") {
+        const hasMotionAccess = hasFeature(plan?.features, "webMotionStudio", session.user.role === "SUPERADMIN");
+        if (!hasMotionAccess) {
+          return NextResponse.json({ error: "Fitur Web Motion memerlukan paket PRO atau akses Superadmin." }, { status: 403 });
+        }
+      }
+
       let selectedProduct;
       if (videoConfig.selectedProductId) {
         const found = channel.products.find((p) => p.id === videoConfig.selectedProductId);
@@ -419,6 +429,7 @@ export async function POST(req: Request) {
 
       const fullVideoConfig = {
         ...videoConfig,
+        videoProductionMode: type === "MOTION" ? ("WEB_MOTION_HTML" as const) : (videoConfig.videoProductionMode || "DIFFUSION_AI"),
         targetSceneCount: validatedSceneCount,
         pov: videoConfig.pov || channel.personaPov || null,
         contentArchetype: typedArchetype,

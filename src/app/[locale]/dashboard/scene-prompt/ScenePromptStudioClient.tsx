@@ -15,6 +15,7 @@ import {
   extractAffiliateRecommendations,
   parseScenes,
   extractRemotionCode,
+  extractWebMotionHtml,
   cleanNarasiForTts,
   countWords,
   estimateExpressivePauseSeconds,
@@ -333,6 +334,8 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
   const [htmlBlog, setHtmlBlog] = useState(() => (defaultSource?.raw ? extractHtmlBlog(defaultSource.raw) : ""));
   const [affiliateRecs, setAffiliateRecs] = useState<AffiliateRecommendation[]>(() => (defaultSource?.raw ? extractAffiliateRecommendations(defaultSource.raw) : []));
   const [detectedRemotionCode, setDetectedRemotionCode] = useState<string | null>(() => (defaultSource?.raw ? extractRemotionCode(defaultSource.raw) : null));
+  const [detectedWebMotionCode, setDetectedWebMotionCode] = useState<string | null>(() => (defaultSource?.raw ? extractWebMotionHtml(defaultSource.raw) : null));
+  const [webMotionViewMode, setWebMotionViewMode] = useState<"player" | "code">("player");
   const [completedChecklist, setCompletedChecklist] = useState<Record<number, boolean>>({});
   const [drivePackageModalOpen, setDrivePackageModalOpen] = useState(false);
   const [autoPublishModalOpen, setAutoPublishModalOpen] = useState(false);
@@ -1148,6 +1151,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
     setHtmlBlog(bp.html);
     setAffiliateRecs(extractAffiliateRecommendations(raw));
     setDetectedRemotionCode(extractRemotionCode(raw));
+    setDetectedWebMotionCode(extractWebMotionHtml(raw));
     setSelectedHistoryId(item.id);
     toast.success(t("historyLoadedSuccess"));
   }, [speechRate, t]);
@@ -1184,6 +1188,11 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
       setDetectedRemotionCode(remCode);
       if (remCode) {
         toast.success(t("remotionCodeDetectedToast"));
+      }
+      const webMotion = extractWebMotionHtml(rawText);
+      setDetectedWebMotionCode(webMotion);
+      if (webMotion) {
+        toast.success(t("webMotionCodeDetectedToast") || "Kode Web Motion HTML5 + GSAP Terdeteksi!");
       }
       try {
         const res = await fetch("/api/parsed-outputs", {
@@ -1228,6 +1237,11 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
     setDetectedRemotionCode(remCode);
     if (remCode) {
       toast.success(t("remotionCodeDetectedToast"));
+    }
+    const webMotion = extractWebMotionHtml(rawText);
+    setDetectedWebMotionCode(webMotion);
+    if (webMotion) {
+      toast.success(t("webMotionCodeDetectedToast") || "Kode Web Motion HTML5 + GSAP Terdeteksi!");
     }
     try {
       const res = await fetch("/api/parsed-outputs", {
@@ -1829,6 +1843,132 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
         )}
       </div>
     )}
+    {/* Detected Web Motion (HTML5 + GSAP) Live Sandbox Player */}
+    {detectedWebMotionCode && (
+      <div className="glass-panel p-4 sm:p-5 rounded-2xl border border-indigo-500/40 bg-gradient-to-br from-indigo-950/20 via-slate-900/40 to-indigo-900/10 shadow-lg space-y-4">
+        {/* Header Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-indigo-500/20">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl p-2.5 rounded-xl bg-indigo-500/20 text-indigo-400 shrink-0">🌐</span>
+            <div>
+              <h4 className="text-sm font-bold text-indigo-600 dark:text-indigo-300 flex items-center gap-2">
+                {t("webMotionPlayerTitle") || "Web Motion Video Player (HTML5 + GSAP)"}
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400 font-mono font-semibold">
+                  Standalone • Frame-Accurate
+                </span>
+              </h4>
+              <p className="text-[11px] pg-text-muted mt-0.5 leading-relaxed">
+                {t("webMotionPlayerDesc") || "Animasi berjalan secara instan dan mandiri di peramban tanpa server render eksternal."}
+              </p>
+            </div>
+          </div>
+
+          {/* Action Buttons & View Toggle */}
+          <div className="flex items-center gap-2 flex-wrap sm:shrink-0">
+            {/* Tab toggle: Player vs Code */}
+            <div className="flex items-center p-0.5 bg-slate-800/80 rounded-lg border border-slate-700 text-xs">
+              <button
+                type="button"
+                onClick={() => setWebMotionViewMode("player")}
+                className={`px-2.5 py-1 rounded-md transition-colors ${
+                  webMotionViewMode === "player"
+                    ? "bg-indigo-600 text-white font-medium"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                ▶️ {t("tabLivePlayer") || "Live Player"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setWebMotionViewMode("code")}
+                className={`px-2.5 py-1 rounded-md transition-colors ${
+                  webMotionViewMode === "code"
+                    ? "bg-indigo-600 text-white font-medium"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                💻 {t("tabSourceHtml") || "Kode HTML"}
+              </button>
+            </div>
+
+            {/* Download HTML Button */}
+            <button
+              type="button"
+              onClick={() => {
+                const blob = new Blob([detectedWebMotionCode], { type: "text/html;charset=utf-8" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `${(draftTitle || "web-motion-video").replace(/[^a-zA-Z0-9_-]/g, "_")}.html`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                toast.success("File HTML berhasil diunduh!");
+              }}
+              className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-xs"
+            >
+              <span>📥</span>
+              <span>{t("downloadHtmlBtn") || "Unduh HTML"}</span>
+            </button>
+
+            {/* Open in New Tab Button */}
+            <button
+              type="button"
+              onClick={() => {
+                const blob = new Blob([detectedWebMotionCode], { type: "text/html;charset=utf-8" });
+                const url = URL.createObjectURL(blob);
+                window.open(url, "_blank");
+              }}
+              className="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold transition-colors flex items-center gap-1.5"
+            >
+              <span>↗️</span>
+              <span>{t("openNewTabBtn") || "Tab Baru"}</span>
+            </button>
+
+            {/* Copy HTML Button */}
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText(detectedWebMotionCode);
+                toast.success(t("htmlCopiedToast") || "Kode HTML berhasil disalin!");
+              }}
+              className="px-3 py-1.5 rounded-lg bg-indigo-600/80 hover:bg-indigo-600 text-white text-xs font-semibold transition-colors flex items-center gap-1.5"
+            >
+              <span>📋</span>
+              <span>{t("copyHtmlBtn") || "Salin HTML"}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Player Container */}
+        {webMotionViewMode === "player" ? (
+          <div className="flex flex-col items-center justify-center p-3 sm:p-4 bg-slate-950/80 rounded-xl border border-slate-800">
+            <div className={`w-full flex justify-center ${ar === "16:9" ? "max-w-[854px]" : "max-w-[360px]"}`}>
+              <iframe
+                title="Web Motion Live Preview"
+                srcDoc={detectedWebMotionCode}
+                sandbox="allow-scripts allow-same-origin"
+                className={`w-full rounded-xl border border-slate-800 shadow-2xl bg-black ${
+                  ar === "16:9" ? "aspect-video h-[480px]" : "aspect-[9/16] h-[640px]"
+                }`}
+              />
+            </div>
+            <div className="mt-3 flex items-center gap-2 text-[11px] text-slate-400 text-center">
+              <span>⌨️</span>
+              <span>{t("webMotionShortcuts") || "Space: Play/Pause • R: Restart • ← / →: Mundur/Maju 1 Detik • F: Fullscreen"}</span>
+            </div>
+          </div>
+        ) : (
+          <div className="relative bg-slate-950 rounded-xl p-4 border border-slate-800">
+            <pre className="text-xs font-mono text-slate-200 overflow-x-auto max-h-[500px] leading-relaxed">
+              <code>{detectedWebMotionCode}</code>
+            </pre>
+          </div>
+        )}
+      </div>
+    )}
+
     {/* Detected Remotion Code Alert Banner */}
     {detectedRemotionCode && (
       <div className="glass-panel p-4 rounded-2xl border border-[var(--pg-brand)]/40 bg-gradient-to-r from-[var(--pg-brand)]/10 via-blue-500/10 to-indigo-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">

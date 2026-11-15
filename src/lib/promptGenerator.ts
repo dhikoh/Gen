@@ -100,9 +100,12 @@ export interface VideoConfigData {
   trendingAudio?: string | null;
   // Overlay Style & Chapter Structure
   overlayStyle?: "auto" | "chapter_titles" | "key_points" | "mixed" | "minimal" | string | null;
-  // Production Engine (Diffusion AI vs Remotion Code)
-  videoProductionMode?: "DIFFUSION_AI" | "REMOTION_CODE" | null;
+  // Production Engine (Diffusion AI vs Web Motion vs Remotion Code)
+  videoProductionMode?: "DIFFUSION_AI" | "WEB_MOTION_HTML" | "REMOTION_CODE" | null;
   remotionTheme?: "modern" | "cyberpunk" | "documentary" | "kinetic" | null;
+  motionStyle?: "saas_explainer" | "exploded_3d" | "kinetic_typography" | "vox_journalism" | "narrative_collage" | string | null;
+  motionBackground?: "auto" | "glow_horizon" | "grainy_gradient" | "light_mesh" | "vintage_paper" | "blueprint_grid" | "color_block" | string | null;
+  motionPacing?: "snappy" | "smooth" | "narrative" | string | null;
   // Funnel Pack (2 Short + 1 Long) & Link Content Audit Repurposing
   outputStructure?: "SINGLE" | "FUNNEL_BUNDLE" | null;
   sourceUrl?: string | null;
@@ -638,12 +641,24 @@ export function generateMasterPrompt(
     systemInstruction += `\nWAJIB: Mode konten adalah ${effectiveNarrationMode}. DILARANG menyisipkan narator/voice-over luar adegan. Seluruh audio wajib bersumber dari dalam visual adegan (diegetic audio).`;
   }
 
-  const isRemotionMode = videoConfig?.videoProductionMode === "REMOTION_CODE";
-  if (isRemotionMode) {
-    systemInstruction += `\nWAJIB: Mode Produksi Video adalah CODE-AS-VIDEO (REMOTION v4 REACT MOTION GRAPHICS).
-Video ini BUKAN diproduksi menggunakan AI video diffusion/kamera fotorealistik (seperti Kling, Runway, Sora, atau Midjourney).
-Video ini dirender 100% menggunakan kode pemrograman React Remotion v4 dengan komponen grafis, tipografi kinetik, kartu visual, icon SVG, dan animasi spring physics.
-DILARANG memberikan instruksi lensa kamera fisik (seperti 200mm, shallow DOF, photorealistic lighting). Rancanglah visual dan adegan sebagai komponen motion design yang dinamis, modern, dan presisi secara kode.`;
+  const isWebMotionMode = videoConfig?.videoProductionMode === "WEB_MOTION_HTML" || videoConfig?.videoProductionMode === "REMOTION_CODE";
+  const isRemotionMode = isWebMotionMode;
+  if (isWebMotionMode) {
+    const motionStyleName = videoConfig?.motionStyle || "saas_explainer";
+    const bgStyleName = videoConfig?.motionBackground || "auto";
+    systemInstruction += `\nWAJIB: Mode Produksi Video adalah CODE-AS-VIDEO (WEB MOTION ENGINE: STANDALONE HTML5 + CSS + GSAP).
+Video ini BUKAN diproduksi menggunakan AI video diffusion/kamera fotorealistik fisik (seperti Kling, Runway, Sora, atau Midjourney).
+Video ini dirender 100% menggunakan kode pemrograman web mandiri (HTML5 + CSS + GSAP 3.x) yang berjalan instan di browser.
+HUKUM SINEMATIK BANG-MOTION & LE-OPUSCAR:
+1. ANTI-PPT: DILARANG membuat slide deck dengan section yang di-fade in/out. Seluruh dunia dan kamera virtual (#world) bergerak kontinu menyusuri panggung (dolly push-through, pan, tilt, settle).
+2. DETERMINISTIK MUTLAK: Seluruh gerak animasi, partikel, angka counter, dan transisi wajib murni merupakan fungsi waktu timeline linear GSAP (tl.time()). DILARANG menggunakan Math.random() atau jam sistem (Date.now()).
+3. AKRESI PER FRASA: Informasi baru menambah elemen visual secara bertahap (maksimal 3-5 elemen terhubung per adegan), bukan menghapus elemen secara mendadak.
+4. GAYA VISUAL: ${motionStyleName}. Implementasikan elemen grafis khas (misal: exploded view 3D, mockup UI, grafik data SVG bergerak, tipografi kinetik).
+5. PERMUKAAN LATAR: ${bgStyleName}. Latar belakang minimal 2 lapis (warna dasar + glow/grain/blob), tidak boleh flat satu warna mati, dan bergerak halus tiap detik (never static). Di kantong teks, pastikan kontras tajam (luminance ≤ 25% atau ≥ 80%).
+6. LARANGAN KERAS: DILARANG memberikan instruksi lensa kamera fisik optik (seperti 200mm, 35mm, f/1.8, shallow DOF, photorealistic lighting, Unreal Engine, prompt Midjourney). Rancanglah adegan sebagai pergerakan kamera virtual (#world) dan komponen grafis web dinamis.`;
+  } else {
+    systemInstruction += `\nWAJIB: Mode Produksi Video adalah AI VIDEO DIFFUSION (CINEMATIC CAMERA).
+DILARANG menyertakan kode pemrograman web, tag HTML, atau instruksi CSS/JS di dalam naskah adegan. Rancang adegan menggunakan kaidah sinematografi kamera fisik dan lighting nyata.`;
   }
 
   const isFunnelBundle = videoConfig?.outputStructure === "FUNNEL_BUNDLE";
@@ -1368,6 +1383,9 @@ Contoh struktur:
 Jumlah bab ditentukan secara natural berdasarkan alur konten (biasanya 3-6 bab untuk konten panjang).`;
     }
 
+    const camFieldLabel = isWebMotionMode ? "PERGERAKAN KAMERA (#world)" : "SETTING KAMERA";
+    const visFieldLabel = isWebMotionMode ? "KOMPONEN GRAFIS & ANIMASI" : "VISUAL PROMPT";
+
     const syntaxGuide = isEnglishOutput
       ? `\n[STRICT MARKDOWN SYNTAX RULES — ALL AI MODELS (CHATGPT, CLAUDE, GEMINI)]
 1. SCENE HEADERS MUST BE EXACTLY: "## SCENE 1", "## SCENE 2", etc.
@@ -1380,8 +1398,8 @@ Jumlah bab ditentukan secara natural berdasarkan alur konten (biasanya 3-6 bab u
    - TEKNIK EDITING & PACING:
    - TEKS OVERLAY:
    - PANDUAN SUARA:
-   - SETTING KAMERA:
-   - VISUAL PROMPT:
+   - ${camFieldLabel}:
+   - ${visFieldLabel}:
    - DURASI:
    - DO NOT wrap the colon inside bold asterisks (write "NARASI:", not "**NARASI:**").\n`
       : `\n[ATURAN SINTAKS FORMAT WAJIB — SEMUA AI (CHATGPT, CLAUDE, GEMINI)]
@@ -1395,8 +1413,8 @@ Jumlah bab ditentukan secara natural berdasarkan alur konten (biasanya 3-6 bab u
    - TEKNIK EDITING & PACING:
    - TEKS OVERLAY:
    - PANDUAN SUARA:
-   - SETTING KAMERA:
-   - VISUAL PROMPT:
+   - ${camFieldLabel}:
+   - ${visFieldLabel}:
    - DURASI:
    - DILARANG menyisipkan titik dua di dalam tanda bintang tebal (tulis "NARASI:", bukan "**NARASI:**").\n`;
 
@@ -1441,8 +1459,22 @@ PRINSIP EFISIENSI & KEBUTUHAN SCENE (SCENE ECONOMY):
         ? `\nSCENE LIMIT: Create EXACTLY ${sceneCount} scenes (SCENE 1 to SCENE ${sceneCount}). DO NOT create more than ${sceneCount} scenes. If content is insufficient, merge into existing scenes. If content is too long, prioritize the most important.\n`
         : `\nBATAS SCENE: Buat TEPAT ${sceneCount} scene (SCENE 1 sampai SCENE ${sceneCount}). DILARANG membuat lebih dari ${sceneCount} scene. Jika konten tidak cukup, gabungkan ke scene yang ada. Jika konten terlalu banyak, pilih yang paling penting.\n`);
 
-    formatOutputWajib += `${syntaxGuide}${sceneLimitInstruction}\n## SCENE 1\n${scene1Context}\nNARASI: [${narasiExample}]\nTARGET EMOSI (VET): [Target emosi spesifik penonton: misal Rasa Ingin Tahu / Shock / Empati / Kelegaan / Urgensi]\nTEKNIK EDITING & PACING: [Instruksi pacing: misal Jump Cut (0s dead-air) / B-Roll Cutaway Overlay / Visual Beat Sync / Stabilized Flow]\nTEKS OVERLAY: [${overlayInstruction}]\nPANDUAN SUARA: [${panduanSuaraExample}]\nSETTING KAMERA: [${cameraSettingFieldHint}]\nVISUAL PROMPT: [${visualPromptInstruction}]${arSuffix}\nDURASI: [Estimasi durasi adegan dalam detik, contoh: 5 detik]\n`;
-    formatOutputWajib += `\n## SCENE 2\n${scene2Context}\nNARASI: [Narasi / dialog adegan kedua dengan tanda kurung siku cue akting bahasa Inggris [...] (contoh wajib bahasa Inggris: [beat], [pause], [sigh], [whisper], [gasp], [chuckle])]\nTARGET EMOSI (VET): [Target emosi adegan kedua]\nTEKNIK EDITING & PACING: [Instruksi pacing adegan kedua]\nTEKS OVERLAY: [${overlayStyle === "minimal" ? 'Overlay hanya jika sangat diperlukan, strip "—" jika tidak' : 'Teks overlay sesuai jenis yang dipilih di atas'}]\nPANDUAN SUARA: [${panduanSuaraExample}]\nSETTING KAMERA: [Setting kamera adegan kedua, format sama seperti SCENE 1]\nVISUAL PROMPT: [Tulis prompt visual adegan kedua secara TEMPORAL (klip berjalan, bukan snapshot): deskripsikan Subject Micro-Action, Environment Dynamics, dan Camera Movement + Timing, bahasa Inggris.]${arSuffix}\nDURASI: [Estimasi durasi]\n`;
+    const cameraFieldHint1 = isWebMotionMode
+      ? "[Pergerakan kamera virtual #world: Zoom, Pan menyusur teks, Settle, Tilt perspective 3D]"
+      : cameraSettingFieldHint;
+    const visualFieldHint1 = isWebMotionMode
+      ? "[Komponen grafis, Exploded layer 3D, SVG chart dinamis, Tipografi kinetik, Transisi GSAP]"
+      : `${visualPromptInstruction}${arSuffix}`;
+
+    const cameraFieldHint2 = isWebMotionMode
+      ? "[Pergerakan kamera adegan kedua: Settle, Dolly push-through, Orbit]"
+      : (isEnglishOutput ? "[Camera setup of scene 2, same format as SCENE 1]" : "[Setting kamera adegan kedua, format sama seperti SCENE 1]");
+    const visualFieldHint2 = isWebMotionMode
+      ? "[Komponen grafis adegan kedua: Elemen UI terangkat, teks kinetik, grafik SVG bertumbuh]"
+      : (isEnglishOutput ? `[Write visual prompt temporally: Subject Micro-Action, Environment Dynamics, and Camera Movement + Timing, English.]${arSuffix}` : `[Tulis prompt visual adegan kedua secara TEMPORAL (klip berjalan, bukan snapshot): deskripsikan Subject Micro-Action, Environment Dynamics, dan Camera Movement + Timing, bahasa Inggris.]${arSuffix}`);
+
+    formatOutputWajib += `${syntaxGuide}${sceneLimitInstruction}\n## SCENE 1\n${scene1Context}\nNARASI: [${narasiExample}]\nTARGET EMOSI (VET): [Target emosi spesifik penonton: misal Rasa Ingin Tahu / Shock / Empati / Kelegaan / Urgensi]\nTEKNIK EDITING & PACING: [Instruksi pacing: misal Jump Cut (0s dead-air) / B-Roll Cutaway Overlay / Visual Beat Sync / Stabilized Flow]\nTEKS OVERLAY: [${overlayInstruction}]\nPANDUAN SUARA: [${panduanSuaraExample}]\n${camFieldLabel}: ${cameraFieldHint1}\n${visFieldLabel}: ${visualFieldHint1}\nDURASI: [Estimasi durasi adegan dalam detik, contoh: 5 detik]\n`;
+    formatOutputWajib += `\n## SCENE 2\n${scene2Context}\nNARASI: [Narasi / dialog adegan kedua dengan tanda kurung siku cue akting bahasa Inggris [...] (contoh wajib bahasa Inggris: [beat], [pause], [sigh], [whisper], [gasp], [chuckle])]\nTARGET EMOSI (VET): [Target emosi adegan kedua]\nTEKNIK EDITING & PACING: [Instruksi pacing adegan kedua]\nTEKS OVERLAY: [${overlayStyle === "minimal" ? 'Overlay hanya jika sangat diperlukan, strip "—" jika tidak' : 'Teks overlay sesuai jenis yang dipilih di atas'}]\nPANDUAN SUARA: [${panduanSuaraExample}]\n${camFieldLabel}: ${cameraFieldHint2}\n${visFieldLabel}: ${visualFieldHint2}\nDURASI: [Estimasi durasi]\n`;
 
     if (sceneCount && sceneCount > 2) {
       if (earlyTimingCalc.isAutoScene) {
@@ -1464,32 +1496,52 @@ PRINSIP EFISIENSI & KEBUTUHAN SCENE (SCENE ECONOMY):
     formatOutputWajib += `\n## METADATA SEO YOUTUBE 2026\nTAG SPESIFIK: [5-8 kata kunci utama topik, pisahkan dengan koma TANPA tanda pagar #, contoh: reptile third eye, parietal eye lizard, tuatara facts]\nTAG UMUM: [3-5 kategori niche luas, pisahkan dengan koma TANPA tanda pagar #, contoh: exotic animals, wildlife facts, animal biology]\nTAG MAJEMUK (LONG-TAIL): [5-8 frasa pencarian alami 3-5 kata berniat tinggi, pisahkan dengan koma, contoh: why do lizards have a third eye, what is a parietal eye]\nDESKRIPSI YOUTUBE (SEO & EMPATI): [2-3 paragraf deskripsi video yang kaya kata kunci alami, ramah pembaca manusia, menyertakan ringkasan Value Promise video]\nCHECKLIST KESIAPAN AKHIR:\n- [ ] Audio bersih dari noise dengan Fade-in/Fade-out yang halus\n- [ ] Judul mengandung Long-tail Keyword yang dicari orang\n- [ ] Teks thumbnail (maks 1-3 kata) dan ekspresi wajah 60-80% terbaca jelas di layar HP kecil\n- [ ] Hook 3 detik pertama telah menyampaikan Janji Nilai (Value Promise) yang kuat\n`;
   }
 
-  // ── Remotion Code Output (Code-as-Video Paradigm) ──
-  if (isRemotionMode && hasScene) {
-    const { width, height } = getRemotionDimensions(ar === "16:9" ? "16:9" : "9:16");
-    formatOutputWajib += `\n## KODE REMOTION LENGKAP (REACT TSX)
-TARGET UTAMA: Di akhir naskah, kamu WAJIB menyertakan SATU BLOK KODE LENGKAP TypeScript (.tsx) siap pakai untuk Remotion v4 yang mengimplementasikan seluruh ${sceneCount} adegan di atas:
-\`\`\`tsx
-import React from 'react';
-import { AbsoluteFill, Sequence, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
-
-// Resolusi: ${width}x${height} (${ar}), FPS: 30
-// Tema Grafis: ${remotionThemeName} (${themeMeta.description})
-// WAJIB: Buat animasi visual bergerak dengan elemen SVG dinamis (path/shapes/diagram bergerak, morphing, atau ilustrasi topik visual) yang digerakkan oleh useCurrentFrame() & spring()!
-// JANGAN hanya membuat kartu teks statis.
-export const MainVideo: React.FC = () => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-
-  return (
-    <AbsoluteFill style={{ background: '#0b1220' }}>
-      {/* Seluruh adegan dirangkai berurutan menggunakan <Sequence> */}
-    </AbsoluteFill>
-  );
-};
-export default MainVideo;
+  // ── Web Motion / Remotion Code Output (Code-as-Video Paradigm) ──
+  if (isWebMotionMode && hasScene) {
+    const isLandscape = ar === "16:9";
+    const width = isLandscape ? 1920 : 1080;
+    const height = isLandscape ? 1080 : 1920;
+    formatOutputWajib += `\n## KODE WEB MOTION LENGKAP (STANDALONE HTML5 + GSAP)
+TARGET UTAMA: Di akhir naskah, kamu WAJIB menyertakan SATU BLOK KODE LENGKAP HTML (\`\`\`html ... \`\`\`) mandiri yang mengimplementasikan seluruh ${sceneCount} adegan di atas secara utuh dari awal sampai akhir:
+\`\`\`html
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Web Motion Video</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #05070f; display: flex; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; font-family: 'Inter', system-ui, sans-serif; }
+  #stage { width: ${width}px; height: ${height}px; position: relative; overflow: hidden; background: #0b1220; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7); }
+  #world { width: 100%; height: 100%; position: absolute; inset: 0; transform-origin: center center; }
+  /* CSS Styling untuk background 2-lapis, kantong teks, exploded layers, dan elemen SVG */
+</style>
+<!-- CDN GSAP 3.x Resmi -->
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+</head>
+<body>
+<div id="stage">
+  <div id="world">
+    <!-- Seluruh elemen grafis Scene 1 sampai ${sceneCount} dirancang di sini -->
+  </div>
+</div>
+<script>
+  const tl = gsap.timeline({ repeat: -1 });
+  // Rangkai seluruh ${sceneCount} adegan di atas ke dalam timeline GSAP secara sekuensial dan sinkron!
+  // Kontrol interaktif keyboard: Spasi = Pause/Play, R = Replay dari awal
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') { e.preventDefault(); tl.paused(!tl.paused()); }
+    if (e.code === 'KeyR') { tl.restart(); }
+  });
+</script>
+</body>
+</html>
 \`\`\`
-PENTING: Tulis kode secara LENGKAP dan deterministik tanpa placeholder agar video MP4 bisa langsung diputar dan dirender di Parse Engine browser. Jaga agar teks penjelasan naskah ringkas agar seluruh token mencukupi untuk kode TSX utuh.
+ATURAN KERAS OUTPUT:
+1. Tulis kode secara 100% LENGKAP DARI <!DOCTYPE html> SAMPAI </html>.
+2. DILARANG KERAS menggunakan placeholder, TODO, atau komentar pemotong seperti '// lanjutkan scene berikutnya di sini...'. Seluruh ${sceneCount} adegan wajib teranimasi nyata di dalam timeline GSAP.
+3. Jaga agar deskripsi narasi di atas tetap padat dan ringkas sehingga seluruh kuota token mencukupi untuk menghasilkan kode HTML utuh tanpa terpotong!
 `;
   }
 

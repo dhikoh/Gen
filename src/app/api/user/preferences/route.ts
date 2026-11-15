@@ -34,6 +34,10 @@ const videoConfigSchema = z.object({
   affiliateAngleMode: z.enum(["CTA", "SOFT"]).optional().nullable(),
   targetKeywords: z.union([z.array(z.string()), z.string()]).optional().nullable(),
   narrationModeOverride: z.string().optional().nullable(),
+  videoProductionMode: z.enum(["DIFFUSION_AI", "REMOTION_CODE", "WEB_MOTION_HTML"]).optional().nullable(),
+  motionStyle: z.string().optional().nullable(),
+  motionBackground: z.string().optional().nullable(),
+  motionPacing: z.string().optional().nullable(),
 }).passthrough();
 
 const imageConfigSchema = z.object({
@@ -51,7 +55,7 @@ const imageConfigSchema = z.object({
 }).passthrough();
 
 const generatorFormStateSchema = z.object({
-  type: z.enum(["VIDEO", "IMAGE"]).optional().nullable(),
+  type: z.enum(["VIDEO", "IMAGE", "MOTION"]).optional().nullable(),
   channelId: z.string().optional().nullable(),
   outputLanguage: z.string().optional().nullable(),
   topic: z.string().max(5000).optional().nullable(),

@@ -68,6 +68,122 @@
 > | `[#111]` | Fitur #111 (Bagian 60) | Funnel Pack Timing Isolation, Numeric Input UX Fluidity & Auto Scene Pacing Calibration (6–8s Scene Economy) | 2026-10-29 |
 > | `[#112]` | Fitur #112 (Bagian 61) | Funnel Pack Scene & Duration Card Responsive Sizing, Native Spinner Suppression & Real-Time Pacing Feedback | 2026-10-29 |
 > | `[#113]` | Fitur #113 (Bagian 62) | Re-Engineering Thumbnail Overlay: Psychological Curiosity Gap, In-Image Typography Prompts untuk AI Eksternal (FLUX/Midjourney) & Perbaikan UI Shrink-Test | 2026-10-29 |
+> | `[#114]` | Fitur #114 (Bagian 63) | Web Motion Engine (HTML5+GSAP): Arsitektur 3 Tab, Integrasi Superadmin & User, Naskah Narasi Lengkap, Hardening Parser Stop-Boundary & Live In-Browser Preview | 2026-11-15 |
+
+---
+
+## [#114] — 2026-11-15 | Web Motion Engine (HTML5+GSAP): Arsitektur 3 Tab, Integrasi Superadmin & User, Naskah Narasi Lengkap, Hardening Parser Stop-Boundary & Live In-Browser Preview
+
+### Problem & Latar Belakang
+1. **Beban Kompilasi & Keterbatasan React Remotion TSX**:
+   - Sistem animasi video berbasis kode sebelumnya mengandalkan React Remotion TSX yang memerlukan dependensi Node.js, bundler webpack/vite, serta server eksternal untuk preview dan render MP4.
+   - Hal ini memperlambat alur kerja kreator konten yang membutuhkan pratinjau cepat langsung di peramban tanpa harus menginstal dependensi lokal.
+2. **Instruksi Ganda / Benturan Kontradiksi Prompt (*Prompt Command Clashing*)**:
+   - Ketika kreator memilih video berbasis kode, AI kerap kali masih menyisipkan parameter lensa kamera optik fisik (misal: "35mm prime lens", "f/1.8 shallow depth of field", "photorealistic cinematic lighting", "Unreal Engine 5 render").
+   - Parameter kamera fisik tersebut membingungkan LLM dalam merancang animasi kode karena sistem grafis web browser tidak memiliki sensor optik atau lensa kamera nyata, melainkan digerakkan oleh koordinat CSS dan matriks transformasi GSAP (`#world`).
+3. **Kebutuhan Format Naskah Narasi Lengkap pada Konten Motion Graphic**:
+   - Konten explainer, SaaS product showcase, dan jurnalisme data bergaya Vox tetap membutuhkan naskah narasi (voice-over) yang utuh, busur emosi (VET), intonasi akting `[...]`, estimasi durasi kata, hook retensi, dan metadata SEO.
+   - Mengabaikan elemen naskah pada mode animasi akan menurunkan kualitas konten yang dihasilkan.
+4. **Resiko Kebocoran Kode HTML ke Parser Adegan (*Parser Stop-Boundary Bleed*)**:
+   - Kode HTML mandiri (`<!DOCTYPE html>...</html>`) yang panjang rentan terserap ke dalam field `VISUAL PROMPT` atau `NARASI` pada adegan terakhir jika stop-boundary parser regex hanya mengenali `KODE REMOTION`.
+
+---
+
+### Solusi & Arsitektur Implementasi
+
+#### 1. Arsitektur 3 Tab Terpisah (`VIDEO`, `IMAGE`, `MOTION`)
+- **Pemisahan Tingkat Atas di Generator Studio (`GeneratorForm.tsx`)**:
+  - Mengubah pemilih jenis prompt dari 2 tab menjadi 3 tab mandiri berbobot setara:
+    1. **🎬 Video Script (`type === "VIDEO"`)**: Naskah video sinematik untuk platform video diffusion (Kling, Runway Gen-3, Luma Dream Machine, Sora, Midjourney).
+    2. **🖼️ Image Prompt (`type === "IMAGE"`)**: Studio prompt gambar fotorealistik multi-platform (Midjourney v6, FLUX.1, DALL-E 3).
+    3. **✨ Web Motion (`type === "MOTION"`)**: Studio naskah narasi dan kode animasi mandiri (*Code-as-Video*) berbasis HTML5 + GSAP 3.x.
+  - **Kontrol Form Spesifik Web Motion**:
+    - **Gaya Visual Motion (`motionStyle`)**: SaaS & Product Explainer, Exploded 3D & Isometric, Kinetic Typography, Vox Data Journalism, Vintage Paper & Cutout Collage.
+    - **Background Surface Engine (`motionBackground`)**: Auto Match, Glow Horizon, Grainy Gradient, Light Mesh Grid, Vintage Paper, Blueprint CAD Grid, Dynamic Color-Block.
+    - **Motion Pacing & Easing (`motionPacing`)**: Snappy (0.4s fast, power3.out), Smooth & Flowing (expo.out), Narrative Accretion (sinkron per frasa kata VO).
+    - **Virtual `#world` Camera Notice**: Menjelaskan kendali kamera virtual berbasis transformasi GSAP timeline `#world` (scale, pan x/y, tilt depth) dan secara otomatis menyembunyikan opsi kamera fisik difusi.
+  - **Preservasi Kontrol Naskah Narasi Lengkap**:
+    - Mode Web Motion tetap menyertakan seluruh kontrol skrip: Target Platform, Persona/POV, Durasi & Target Scene, Speech Rate, Hook & CTA, Audio Cues (BGM/SFX/Ambient/VO), SEO 3-Tier, dan Produk Afiliasi.
+
+#### 2. Clean Branching & Prompt Generator Hardening (`src/lib/promptGenerator.ts`)
+- **Adaptasi Hukum Sinematik `bang-motion` & `lemo-opuscar`**:
+  - Menyuntikkan 4 hukum utama motion design:
+    1. *Anti-PPT*: Dilarang membuat slide deck fade in/out kaku. Kamera virtual `#world` bergerak kontinu (push, pan, tilt, settle).
+    2. *Deterministik Mutlak*: Seluruh gerak terikat pada waktu linear timeline GSAP (`tl.time()`). Dilarang memakai `Math.random()` atau `Date.now()`.
+    3. *Akresi per Frasa*: Elemen grafis bertambah dan terhubung secara bertahap seiring narasi (maksimal 3-5 elemen terkait).
+    4. *Gaya Visual & Background 2 Lapis*: Permukaan latar minimal 2 lapis bertekstur/bergerak halus dengan kontras teks tajam (luminance ≤ 25% atau ≥ 80%).
+- **Eliminasi Total Perintah Ganda (*Anti-Clashing Negative Directives*)**:
+  - Pada mode Web Motion: Diberikan larangan keras menyebut lensa optik fisik (35mm, f/1.8, DOF, raytracing) dan digantikan oleh `PERGERAKAN KAMERA (#world):` dan `KOMPONEN GRAFIS & ANIMASI:`.
+  - Pada mode Diffusion AI: Diberikan larangan keras menyertakan kode web/HTML/CSS dan dipertahankan kaidah sinematografi kamera fisik murni (`SETTING KAMERA:` dan `VISUAL PROMPT:`).
+- **Blok Output Kode Mandiri (*Standalone Single-File*)**:
+  - AI diwajibkan mengeluarkan dokumen HTML5 mandiri lengkap (`<!DOCTYPE html>...</html>`) tanpa placeholder, tanpa ellipsis `// ...`, memuat GSAP via CDN Cloudflare resmi, dan siap pakai langsung di peramban.
+
+#### 3. Hardening Regex Parser & Stop-Boundary (`src/lib/parsers.ts`)
+- **Pencegahan Kebocoran Kode ke Adegan Terakhir**:
+  - Memperbarui `delimLookahead`, `stop`, dan `nextHeaderMatch` regex dengan token:
+    `KODE\\s*WEB\\s*MOTION|WEB\\s*MOTION\\s*CODE|KODE\\s*HTML\\s*LENGKAP|KODE\\s*HTML|HTML\\s*CODE|KODE\\s*ANIMASI`.
+  - Memperbarui `normalizeScriptWhitespace` dan `delimiters` agar mengenali variasi field label:
+    `PERGERAKAN\\s*KAMERA(?:\\s*\\(#world\\))?` dan `KOMPONEN\\s*GRAFIS(?:\\s*&\\s*ANIMASI)?`.
+  - Menghadirkan fungsi ekstraksi aman `extractWebMotionHtml(text: string): string | null` yang mendukung fenced code block ````html ```` maupun fallback header langsung.
+
+#### 4. Live Interactive Iframe Sandbox Player (`ScenePromptStudioClient.tsx`)
+- **Pratinjau Langsung dalam Studio Adegan**:
+  - Saat kode Web Motion terdeteksi dalam script, sistem menampilkan banner interaktif dan Live Player container responsif (`w-[360px] h-[640px]` untuk 9:16 atau `aspect-video` untuk 16:9).
+  - Kode dieksekusi secara aman di dalam `<iframe sandbox="allow-scripts allow-same-origin" srcDoc={detectedWebMotionCode} />`.
+  - Fitur Akselerasi Kreator:
+    * 📥 **Unduh HTML**: Mengunduh file `.html` mandiri secara instan via Blob API.
+    * ↗️ **Buka Tab Baru / Fullscreen**: Membuka preview dalam tab baru browser secara penuh.
+    * 📋 **Salin Kode HTML**: Menyalin seluruh markup dan script GSAP ke clipboard.
+    * ⌨️ **Keyboard Shortcut Support**: Panduan shortcut interaktif (Space: Play/Pause, R: Restart, ←/→: Seek 1 detik, F: Fullscreen).
+    * 🔀 **Switcher View**: Beralih secara instan antara pratinjau visual player dan kode sumber HTML.
+
+#### 5. Integrasi Superadmin, Akses Paket & Autosave Multi-Layer
+- **Skema Lisensi Terpadu (`src/lib/planFeatures.ts`)**:
+  - Menambahkan feature flag kanonikal `webMotionStudio` ke dalam `KNOWN_PLAN_FEATURES`.
+  - Menghadirkan fallback dua arah (*bidirectional compatibility*) antara `webMotionStudio` dan `remotionStudio` sehingga pengguna paket PRO eksisting langsung mendapatkan akses Web Motion tanpa migrasi database manual.
+  - Menjamin bypass mutlak tanpa batas untuk Superadmin (`isSuperadmin === true`).
+  - Menyediakan penanda visual (badge `PRO 🔒`) pada tab Web Motion untuk pengguna paket gratis.
+- **Autosave End-to-End Realtime & Database Sync (`src/app/api/user/preferences/route.ts`)**:
+  - Memperbarui skema Zod `generatorFormStateSchema` (`type: z.enum(["VIDEO", "IMAGE", "MOTION"])`) dan `videoConfigSchema` (`videoProductionMode`, `motionStyle`, `motionBackground`, `motionPacing`).
+  - Menjamin setiap perubahan opsi pada Tab Web Motion tersimpan seketika di localStorage terisolasi per-channel dan tersinkronisasi otomatis ke database server (debounced 3s).
+
+#### 6. Sinkronisasi Internasionalisasi (i18n) & Pengujian Otomatis
+- **Paritas Sempurna i18n (`messages/id.json` & `messages/en.json`)**:
+  - Menambahkan seluruh key lokal untuk nama fitur, gaya visual, background surface, pacing, dan live player controls.
+  - Audit `npm run audit:i18n` mengonfirmasi 100% key parity (1.831 keys id = 1.831 keys en, zero missing keys).
+- **Pengujian Vitest Komprehensif Tanpa Regresi**:
+  - Membuat `src/lib/__tests__/promptGenerator.webMotion.test.ts` (3 tests).
+  - Membuat `src/lib/__tests__/parsers.webMotionHtml.test.ts` (4 tests).
+  - Memperbarui `src/lib/__tests__/promptGenerator.remotion.test.ts` (2 tests).
+  - Menambahkan pengujian persistensi Web Motion di `tests/channelStateIsolation.test.ts` (5 tests).
+  - Seluruh 54 file pengujian (467 tests) lulus 100% tanpa kegagalan (`zero regression`).
+
+---
+
+### File yang Dimodifikasi / Ditambahkan
+- `src/types/generator.ts`: Penambahan tipe `MotionStyleType`, `MotionBackgroundType`, `MotionPacingType`, update `GeneratorFormStateSnapshot` dan `videoProductionMode`.
+- `src/lib/planFeatures.ts`: Penambahan `webMotionStudio` ke `KNOWN_PLAN_FEATURES` & bidirectional fallback dengan `remotionStudio`.
+- `src/app/api/generate/route.ts`: Zod validation untuk `type: "MOTION"` dan parameter motion.
+- `src/app/api/user/preferences/route.ts`: Zod validation untuk persistensi autosave `type: "MOTION"` dan konfigurasi motion.
+- `src/lib/channelBundle.ts`: Penambahan dukungan tipe `"MOTION"` pada skema bundle ekosistem channel.
+- `src/lib/promptGenerator.ts`: Injeksi hukum sinematik bang-motion/lemo-opuscar, larangan kamera fisik, dan format standalone HTML5+GSAP.
+- `src/lib/parsers.ts`: Regex delimiters dan stop-boundary hardening, fungsi `extractWebMotionHtml`.
+- `src/components/generator/GeneratorForm.tsx`: Implementasi pemilih 3 Tab (`VIDEO`, `IMAGE`, `MOTION`), Card kontrol visual motion & background, filter form kamera fisik, dan autosave per-channel.
+- `src/app/[locale]/dashboard/scene-prompt/ScenePromptStudioClient.tsx`: Live interactive iframe player, download HTML, fullscreen preview, dan copy code.
+- `messages/id.json` & `messages/en.json`: Penambahan key i18n Web Motion & verifikasi paritas 1.831 keys.
+- `src/lib/__tests__/promptGenerator.webMotion.test.ts`: Unit test baru untuk Web Motion prompt generator.
+- `src/lib/__tests__/parsers.webMotionHtml.test.ts`: Unit test baru untuk ekstraksi HTML & stop boundary parser.
+- `tests/channelStateIsolation.test.ts`: Unit test baru untuk verifikasi isolasi & persistensi autosave Web Motion.
+- `Project Prompt Gen.txt`: Penambahan addendum dokumentasi teknis kanonikal Bagian 63.
+- `PATCH_NOTES.md`: Pencatatan entri kanonikal rilis [#114].
+- `src/components/generator/GeneratorForm.tsx`: Implementasi pemilih 3 Tab (`VIDEO`, `IMAGE`, `MOTION`), Card kontrol visual motion & background, filter form kamera fisik.
+- `src/app/[locale]/dashboard/scene-prompt/ScenePromptStudioClient.tsx`: Live interactive iframe player, download HTML, fullscreen preview, dan copy code.
+- `messages/id.json` & `messages/en.json`: Penambahan key i18n Web Motion & verifikasi paritas 1.831 keys.
+- `src/lib/__tests__/promptGenerator.webMotion.test.ts`: Unit test baru untuk Web Motion prompt generator.
+- `src/lib/__tests__/parsers.webMotionHtml.test.ts`: Unit test baru untuk ekstraksi HTML & stop boundary parser.
+- `PATCH_NOTES.md`: Pencatatan entri kanonikal rilis [#114].
+
+---
 
 ---
 

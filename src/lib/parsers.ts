@@ -103,7 +103,9 @@ export function normalizeScriptWhitespace(raw: string): string {
     "TEKS\\s*OVERLAY", "TEXT\\s*OVERLAY",
     "PANDUAN\\s*SUARA", "VOICE\\s*GUIDELINES",
     "SETTING\\s*KAMERA", "CAMERA\\s*SETUP",
+    "PERGERAKAN\\s*KAMERA(?:\\s*\\(#world\\))?", "CAMERA\\s*&\\s*WORLD(?:\\s*\\(#world\\))?", "GERAK\\s*KAMERA", "WORLD\\s*CAMERA",
     "VISUAL\\s*PROMPT", "DESKRIPSI\\s*VISUAL",
+    "KOMPONEN\\s*GRAFIS(?:\\s*&\\s*ANIMASI)?", "KOMPONEN\\s*MOTION", "GRAPHIC\\s*&\\s*ANIMATION(?:\\s*COMPONENTS)?",
     "DURASI", "DURATION",
   ];
   for (const f of sceneFields) {
@@ -1071,8 +1073,8 @@ export function parseScenes(rawText: string, speechRateSec: number = 0.35, idOff
   // lewat parameter `keys` pada matchField (escaping-nya benar di sana).
   // Jangan menambah daftar ini tanpa memperbaiki escaping-nya lebih dulu, dan
   // jalankan tests/parsers.scenes.test.ts bila mengubahnya.
-  const delimiters = "(?:Konteks\\s*Scene|Konteks\\s*Adegan|Scene\\s*Context|Konteks|Context|Narasi|Dialog|Voice\\s*Over|VO|Audio|Target\\s*Emosi(?:\\s*\\(VET\\))?|Emosi|Teknik\\s*(?:Editing(?:\\s*&\\s*Pacing)?|Pacing)|Pacing|Teks\\s*Overlay|Text\\s*Overlay|Overlay|Panduan\\s*Suara|Voice\\s*Guidelines|Setting\\s*Kamera|Camera\\s*Setup|Visual\\s*Prompt|Visual|Deskripsi\\s*Visual|Prompt|Komponen\\s*Remotion|Remotion\\s*Component|Motion\\s*Design|Elemen\\s*Visual|Animasi(?:\\s*&\\s*Spring)?|Spring(?:\\s*Animation)?|Transisi|Durasi|Time|Duration)";
-  const delimLookahead = `(?=(?:\\r?\\n)+(?:\\*\\*)?${delimiters}(?::\\s*\\*\\*|\\*\\*\\s*:|:)|\\r?\\n+[-*_]{3,}|\\r?\\n+(?:#{1,6}\\s*|\\*{2,3}\\s*|={2,4}\\s*)*(?:Scene|Adegan|Bagian|Part)\\s+[a-zA-Z0-9_\\-]+|\\r?\\n+(?:#{1,6}\\s*|\\*{2,3}\\s*|={2,4}\\s*)*(?:TOTAL|THUMBNAIL|METADATA|RINGKASAN|HASHTAG|CAPTION|KODE\\s*REMOTION|REMOTION\\s*CODE)|$)`;
+  const delimiters = "(?:Konteks\\s*Scene|Konteks\\s*Adegan|Scene\\s*Context|Konteks|Context|Narasi|Dialog|Voice\\s*Over|VO|Audio|Target\\s*Emosi(?:\\s*\\(VET\\))?|Emosi|Teknik\\s*(?:Editing(?:\\s*&\\s*Pacing)?|Pacing)|Pacing|Teks\\s*Overlay|Text\\s*Overlay|Overlay|Panduan\\s*Suara|Voice\\s*Guidelines|Setting\\s*Kamera|Camera\\s*Setup|Pergerakan\\s*Kamera(?:\\s*\\(#world\\))?|Camera\\s*&\\s*World(?:\\s*\\(#world\\))?|Kamera\\s*&\\s*Dunia|Gerak\\s*Kamera|World\\s*Camera|Visual\\s*Prompt|Visual|Deskripsi\\s*Visual|Prompt|Komponen\\s*Grafis(?:\\s*&\\s*Animasi)?|Desain\\s*&\\s*Komponen|Komponen\\s*Motion|Komponen\\s*Web|Komponen\\s*Remotion|Remotion\\s*Component|Motion\\s*Design|Elemen\\s*Visual|Animasi(?:\\s*&\\s*Spring)?|Spring(?:\\s*Animation)?|Transisi|Durasi|Time|Duration)";
+  const delimLookahead = `(?=(?:\\r?\\n)+(?:\\*\\*)?${delimiters}(?::\\s*\\*\\*|\\*\\*\\s*:|:)|\\r?\\n+[-*_]{3,}|\\r?\\n+(?:#{1,6}\\s*|\\*{2,3}\\s*|={2,4}\\s*)*(?:Scene|Adegan|Bagian|Part)\\s+[a-zA-Z0-9_\\-]+|\\r?\\n+(?:#{1,6}\\s*|\\*{2,3}\\s*|={2,4}\\s*)*(?:TOTAL|THUMBNAIL|METADATA|RINGKASAN|HASHTAG|CAPTION|KODE\\s*REMOTION|REMOTION\\s*CODE|KODE\\s*WEB\\s*MOTION|WEB\\s*MOTION\\s*CODE|KODE\\s*HTML\\s*LENGKAP|KODE\\s*HTML|HTML\\s*CODE|KODE\\s*ANIMASI)|$)`;
 
   // Helper: find which chapter a given text offset belongs to
   function findChapterAt(offset: number): { prefix: string; num: number; title: string } | undefined {
@@ -1100,7 +1102,7 @@ export function parseScenes(rawText: string, speechRateSec: number = 0.35, idOff
       const sceneStartOffset = charOffset;
       charOffset += content.length;
 
-      const stop = /(?:^|\r?\n)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:TOTAL\s*DURASI|TOTAL|RINGKASAN|THUMBNAIL|ARTIKEL|HASHTAG|CAPTION|JUDUL\s*TERPILIH|HTML\s*BLOG|REKOMENDASI|METADATA\s*SEO|KONTEN\s*PLATFORM|PLATFORM|KODE\s*REMOTION|REMOTION\s*CODE)/i;
+      const stop = /(?:^|\r?\n)(?:#{1,6}\s*|\*{2,3}\s*|={2,4}\s*)*(?:TOTAL\s*DURASI|TOTAL|RINGKASAN|THUMBNAIL|ARTIKEL|HASHTAG|CAPTION|JUDUL\s*TERPILIH|HTML\s*BLOG|REKOMENDASI|METADATA\s*SEO|KONTEN\s*PLATFORM|PLATFORM|KODE\s*REMOTION|REMOTION\s*CODE|KODE\s*WEB\s*MOTION|WEB\s*MOTION\s*CODE|KODE\s*HTML\s*LENGKAP|KODE\s*HTML|HTML\s*CODE|KODE\s*ANIMASI)/i;
       const m = content.match(stop);
       const c = m ? content.slice(0, m.index) : content;
 
@@ -1114,10 +1116,10 @@ export function parseScenes(rawText: string, speechRateSec: number = 0.35, idOff
       const emosi = matchField("Target\\s*Emosi(?:\\s*\\(VET\\))?|Emosi");
       const pacing = matchField("Teknik\\s*(?:Editing(?:\\s*&\\s*Pacing)?|Pacing)|Pacing");
       const overlay = matchField("Teks\\s*Overlay|Text\\s*Overlay|Overlay");
-      const vis = matchField("Visual\\s*Prompt|Visual|Deskripsi\\s*Visual|Prompt|Motion\\s*Design|Elemen\\s*Visual");
+      const vis = matchField("Visual\\s*Prompt|Visual|Deskripsi\\s*Visual|Prompt|Komponen\\s*Grafis(?:\\s*&\\s*Animasi)?|Desain\\s*&\\s*Komponen|Komponen\\s*Motion|Motion\\s*Design|Elemen\\s*Visual");
       const dur = matchField("Durasi|Time|Duration");
       const voi = matchField("Panduan\\s*Suara|Voice\\s*Guidelines");
-      const cam = matchField("Setting\\s*Kamera|Camera\\s*Setup|Komponen\\s*Remotion|Remotion\\s*Component|Animasi(?:\\s*&\\s*Spring)?|Spring(?:\\s*Animation)?|Transisi");
+      const cam = matchField("Setting\\s*Kamera|Camera\\s*Setup|Pergerakan\\s*Kamera(?:\\s*\\(#world\\))?|Kamera\\s*&\\s*Dunia|Gerak\\s*Kamera|World\\s*Camera|Komponen\\s*Remotion|Remotion\\s*Component|Animasi(?:\\s*&\\s*Spring)?|Spring(?:\\s*Animation)?|Transisi");
 
       let contextVal = context ? cleanParsedValue(context[1]) : "";
       if (contextVal.startsWith("[") && contextVal.endsWith("]")) {
@@ -1498,7 +1500,7 @@ export function extractMultiPlatformSeo(text: string, requireExplicitBlocks: boo
       if (i + 1 < matchedPositions.length) {
         endContent = matchedPositions[i + 1].index;
       } else {
-        const nextHeaderMatch = text.slice(startContent).search(/(?:\r?\n)(?:#{1,6}\s*|\*{2,3}\s*)*(?:THUMBNAIL|SCENE|ADEGAN|SEGMENT|CHECKLIST|HTML\s*BLOG|REKOMENDASI|KODE\s*REMOTION)/i);
+        const nextHeaderMatch = text.slice(startContent).search(/(?:\r?\n)(?:#{1,6}\s*|\*{2,3}\s*)*(?:THUMBNAIL|SCENE|ADEGAN|SEGMENT|CHECKLIST|HTML\s*BLOG|REKOMENDASI|KODE\s*REMOTION|REMOTION\s*CODE|KODE\s*WEB\s*MOTION|WEB\s*MOTION\s*CODE|KODE\s*HTML)/i);
         if (nextHeaderMatch !== -1) {
           endContent = startContent + nextHeaderMatch;
         }
@@ -1736,6 +1738,41 @@ export function extractRemotionCode(text: string): string | null {
     const candidate = (nextHeaderIdx !== -1 ? afterHeader.substring(0, nextHeaderIdx) : afterHeader).trim();
     const cleaned = candidate.replace(/^```[a-zA-Z0-9_\-]*\s*/i, "").replace(/```\s*$/i, "").trim();
     if (/(?:from\s+['"]remotion['"]|<AbsoluteFill|useCurrentFrame|useVideoConfig|Composition)/i.test(cleaned)) {
+      return cleaned;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Ekstrak blok kode HTML Web Motion (HTML5 + CSS + GSAP) dari teks naskah jika ada.
+ * Mendeteksi blok ```html yang memuat <!DOCTYPE html> atau tag <html ...> beserta script GSAP / #world / canvas.
+ */
+export function extractWebMotionHtml(text: string): string | null {
+  if (!text || !text.trim()) return null;
+
+  // Pola 1: Iterasi blok kode terpagar ```html atau ```htm
+  const codeBlockRegex = /```(?:html|htm)?\s*([\s\S]*?)```/gi;
+  let blockMatch: RegExpExecArray | null;
+  while ((blockMatch = codeBlockRegex.exec(text)) !== null) {
+    const rawContent = blockMatch[1]?.trim();
+    if (!rawContent) continue;
+    const isHtml = /<!DOCTYPE\s+html|<html[\s>]|<style[\s>]|<div\s+id=["'](?:stage|world)["']/i.test(rawContent);
+    const hasMotionEngine = /(?:gsap|timeline|#world|canvas)/i.test(rawContent);
+    if (isHtml && hasMotionEngine) {
+      return rawContent;
+    }
+  }
+
+  // Pola 2: Fallback jika diletakkan di bawah header ## KODE WEB MOTION / ## KODE HTML LENGKAP tanpa backticks
+  const headerMatch = text.match(/(?:##\s*|###\s*|\*\*\s*|\b)(?:KODE\s*WEB\s*MOTION|WEB\s*MOTION\s*CODE|KODE\s*HTML\s*LENGKAP|KODE\s*HTML)[^\n]*\n([\s\S]*)/i);
+  if (headerMatch && headerMatch[1]) {
+    const afterHeader = headerMatch[1].trim();
+    const nextHeaderIdx = afterHeader.search(/\n##\s+/);
+    const candidate = (nextHeaderIdx !== -1 ? afterHeader.substring(0, nextHeaderIdx) : afterHeader).trim();
+    const cleaned = candidate.replace(/^```[a-zA-Z0-9_\-]*\s*/i, "").replace(/```\s*$/i, "").trim();
+    if (/<!DOCTYPE\s+html|<html[\s>]|<div\s+id=["'](?:stage|world)["']/i.test(cleaned)) {
       return cleaned;
     }
   }

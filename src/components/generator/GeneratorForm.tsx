@@ -13,6 +13,9 @@ import type {
   GeneratorFormStateSnapshot,
   ContentArchetypeIncludedSections,
   ContentArchetypeCompositionCategory,
+  MotionStyleType,
+  MotionBackgroundType,
+  MotionPacingType,
 } from "@/types/generator";
 import { getUserItem, setUserItem, useStorageGuard } from "@/lib/clientStorage";
 import {
@@ -75,6 +78,7 @@ interface GeneratorFormProps {
     youtubeLongStudio?: boolean;
     retentionPacingPro?: boolean;
     remotionStudio?: boolean;
+    webMotionStudio?: boolean;
   };
   userId: string;
 }
@@ -92,14 +96,18 @@ const ALL_MARKETPLACE_KEYS = MARKETPLACE_OPTIONS.map((m) => m.key);
 export default function GeneratorForm({
   channels,
   promptSettings,
-  planFeatures = { imagePromptStudio: true, htmlBlogExport: true, cameraMovementPro: false, youtubeLongStudio: false, retentionPacingPro: false, remotionStudio: false },
+  planFeatures = { imagePromptStudio: true, htmlBlogExport: true, cameraMovementPro: false, youtubeLongStudio: false, retentionPacingPro: false, remotionStudio: false, webMotionStudio: false },
   userId,
 }: GeneratorFormProps) {
  const router = useRouter();
  const searchParams = useSearchParams();
  const t = useTranslations("Generator");
 
- const [type, setType] = useState<"VIDEO" | "IMAGE">("VIDEO");
+ const [type, setType] = useState<"VIDEO" | "IMAGE" | "MOTION">("VIDEO");
+ const [motionStyle, setMotionStyle] = useState<MotionStyleType>("saas_explainer");
+ const [motionBackground, setMotionBackground] = useState<MotionBackgroundType>("auto");
+ const [motionPacing, setMotionPacing] = useState<MotionPacingType>("snappy");
+ const hasWebMotionAccess = Boolean(planFeatures?.webMotionStudio || planFeatures?.remotionStudio);
  const [channelId, setChannelId] = useState(channels.length > 0 ? channels[0].id : "");
  const currentChannel = useMemo(() => channels.find((c) => c.id === channelId), [channels, channelId]);
  const [topic, setTopic] = useState("");
@@ -258,8 +266,11 @@ export default function GeneratorForm({
 
  // Video specific fields
  const [videoConfig, setVideoConfig] = useState({
-  videoProductionMode: "DIFFUSION_AI" as "DIFFUSION_AI" | "REMOTION_CODE",
+  videoProductionMode: "DIFFUSION_AI" as "DIFFUSION_AI" | "REMOTION_CODE" | "WEB_MOTION_HTML",
   remotionTheme: "modern" as "modern" | "cyberpunk" | "documentary" | "kinetic",
+  motionStyle: "saas_explainer" as MotionStyleType,
+  motionBackground: "auto" as MotionBackgroundType,
+  motionPacing: "snappy" as MotionPacingType,
   pov: "Expert Storyteller (Edukasi & Inspirasi)",
  targetPlatform: "TikTok",
  aspectRatio: "9:16",
@@ -371,7 +382,12 @@ export default function GeneratorForm({
       short2DurationSec,
       longScenes,
       longDurationMinutes,
-      videoConfig,
+      videoConfig: {
+        ...videoConfig,
+        motionStyle,
+        motionBackground,
+        motionPacing,
+      },
       imageConfig,
       step,
       generatedPrompt,
@@ -430,6 +446,9 @@ export default function GeneratorForm({
     longScenes,
     longDurationMinutes,
     videoConfig,
+    motionStyle,
+    motionBackground,
+    motionPacing,
     imageConfig,
     step,
     generatedPrompt,
@@ -512,8 +531,11 @@ export default function GeneratorForm({
       setVideoConfig((prev) => ({
         ...prev,
         ...(savedState.videoConfig || {}),
-        videoProductionMode: (savedState.videoConfig?.videoProductionMode as "DIFFUSION_AI" | "REMOTION_CODE") ?? prev.videoProductionMode ?? "DIFFUSION_AI",
+        videoProductionMode: (savedState.videoConfig?.videoProductionMode as "DIFFUSION_AI" | "REMOTION_CODE" | "WEB_MOTION_HTML") ?? prev.videoProductionMode ?? "DIFFUSION_AI",
         remotionTheme: (savedState.videoConfig?.remotionTheme as "modern" | "cyberpunk" | "documentary" | "kinetic") ?? prev.remotionTheme ?? "modern",
+        motionStyle: (savedState.videoConfig?.motionStyle as MotionStyleType) ?? prev.motionStyle ?? "saas_explainer",
+        motionBackground: (savedState.videoConfig?.motionBackground as MotionBackgroundType) ?? prev.motionBackground ?? "auto",
+        motionPacing: (savedState.videoConfig?.motionPacing as MotionPacingType) ?? prev.motionPacing ?? "snappy",
         targetPlatform: ch.targetPlatform || "TikTok",
         pov: ch.personaPov || "Expert Storyteller (Edukasi & Inspirasi)",
         speechRate: ch.speechRate ?? 0.35,
@@ -536,6 +558,16 @@ export default function GeneratorForm({
         negativePrompt: savedState.imageConfig?.negativePrompt ?? prev.negativePrompt,
         visualStyle: channelVisualStyle || prev.visualStyle || "Cinematic Dark Mode (Sleek & Professional)",
       }));
+
+      if (savedState.videoConfig?.motionStyle) {
+        setMotionStyle(savedState.videoConfig.motionStyle as MotionStyleType);
+      }
+      if (savedState.videoConfig?.motionBackground) {
+        setMotionBackground(savedState.videoConfig.motionBackground as MotionBackgroundType);
+      }
+      if (savedState.videoConfig?.motionPacing) {
+        setMotionPacing(savedState.videoConfig.motionPacing as MotionPacingType);
+      }
 
       if (savedState.step && savedState.generatedPrompt && savedState.aiResultJson) {
         setStep(savedState.step as 1 | 2);
@@ -840,7 +872,7 @@ export default function GeneratorForm({
         if (ignore || !resData.success || !resData.data) return;
         const draft = resData.data;
 
-        if (draft.type && (draft.type === "VIDEO" || draft.type === "IMAGE")) {
+        if (draft.type && (draft.type === "VIDEO" || draft.type === "IMAGE" || draft.type === "MOTION")) {
           setType(draft.type);
         }
         if (draft.channelId && channels.some((c) => c.id === draft.channelId)) {
@@ -984,8 +1016,8 @@ export default function GeneratorForm({
    (archCompCategories.length > 0 &&
      archCompCategories.some((cat) => Boolean(cat && cat.required)));
 
- // Pre-validation komposisi kategori pada sisi client
- if (type === "VIDEO" && archHasRequiredComp && archCompCategories.length > 0) {
+  // Pre-validation komposisi kategori pada sisi client
+  if ((type === "VIDEO" || type === "MOTION") && archHasRequiredComp && archCompCategories.length > 0) {
    for (const cat of archCompCategories) {
      if (cat && cat.required) {
        const labelLower = (cat.label || "").toLowerCase();
@@ -1042,8 +1074,12 @@ export default function GeneratorForm({
  outputLanguage,
  topic: effectiveTopic,
  additionalContext,
- videoConfig: type === "VIDEO" ? {
- ...videoConfig,
+  videoConfig: (type === "VIDEO" || type === "MOTION") ? {
+  ...videoConfig,
+  videoProductionMode: type === "MOTION" ? "WEB_MOTION_HTML" : videoConfig.videoProductionMode,
+  motionStyle: type === "MOTION" ? motionStyle : undefined,
+  motionBackground: type === "MOTION" ? motionBackground : undefined,
+  motionPacing: type === "MOTION" ? motionPacing : undefined,
  sceneCountMode,
  targetSceneCount: sceneCountMode === "auto"
    ? autoSceneCount(
@@ -1184,8 +1220,8 @@ export default function GeneratorForm({
  topic: effectiveTopic,
  rawJson: aiResultJson,
  speechRate: rateValue,
- targetDurationSec: type === "VIDEO" ? Number(videoConfig.targetDurationSec) : undefined,
- targetSceneCount: type === "VIDEO"
+ targetDurationSec: (type === "VIDEO" || type === "MOTION") ? Number(videoConfig.targetDurationSec) : undefined,
+ targetSceneCount: (type === "VIDEO" || type === "MOTION")
    ? (sceneCountMode === "auto"
        ? autoSceneCount(
            videoConfig.targetDurationSec ?? DEFAULT_TARGET_DURATION_SEC,
@@ -1193,8 +1229,8 @@ export default function GeneratorForm({
          )
        : (Number(videoConfig.targetSceneCount) || DEFAULT_SCENE_COUNT))
    : undefined,
- narrativeLoopStyle: type === "VIDEO" ? videoConfig.narrativeLoopStyle : undefined,
- visualLoopStyle: type === "VIDEO" ? videoConfig.visualLoopStyle : undefined,
+ narrativeLoopStyle: (type === "VIDEO" || type === "MOTION") ? videoConfig.narrativeLoopStyle : undefined,
+ visualLoopStyle: (type === "VIDEO" || type === "MOTION") ? videoConfig.visualLoopStyle : undefined,
  };
  if (manualTitle.trim()) {
  payload.title = manualTitle;
@@ -1410,12 +1446,12 @@ export default function GeneratorForm({
  <label className="block text-sm font-medium pg-text-sub mb-2">
  {t("promptType")}
  </label>
- <div className="flex space-x-4">
+ <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
  <label
- className={`flex-1 flex items-center justify-center p-3 border rounded-lg cursor-pointer transition-colors ${
+ className={`flex items-center justify-center p-3 border rounded-lg cursor-pointer transition-colors ${
  type === "VIDEO"
- ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
- : "pg-border"
+ ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 ring-1 ring-blue-500"
+ : "pg-border hover:pg-surface-dim"
  }`}
  >
  <input
@@ -1426,15 +1462,18 @@ export default function GeneratorForm({
  onChange={() => setType("VIDEO")}
  className="sr-only"
  />
- <span>{t("videoScript")}</span>
+ <div className="flex flex-col items-center text-center">
+ <span className="font-semibold text-sm">{t("videoScript")}</span>
+ <span className="text-[10px] pg-text-muted mt-0.5">Diffusion & Production</span>
+ </div>
  </label>
  <label
- className={`flex-1 flex items-center justify-center p-3 border rounded-lg transition-colors ${
+ className={`flex items-center justify-center p-3 border rounded-lg transition-colors ${
  !planFeatures.imagePromptStudio
- ? "opacity-50 cursor-not-allowed pg-border pg-surface-dim /50"
+ ? "opacity-50 cursor-not-allowed pg-border pg-surface-dim/50"
  : type === "IMAGE"
- ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 cursor-pointer"
- : "pg-border cursor-pointer"
+ ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 ring-1 ring-blue-500 cursor-pointer"
+ : "pg-border cursor-pointer hover:pg-surface-dim"
  }`}
  >
  <input
@@ -1448,13 +1487,51 @@ export default function GeneratorForm({
  }}
  className="sr-only"
  />
- <div className="flex flex-col items-center">
- <span>{t("imagePrompt")}</span>
- {!planFeatures.imagePromptStudio && (
+ <div className="flex flex-col items-center text-center">
+ <span className="font-semibold text-sm">{t("imagePrompt")}</span>
+ {!planFeatures.imagePromptStudio ? (
  <span className="text-[10px] text-[var(--pg-warning)] font-semibold mt-0.5">
  🔒 Upgrade Required
  </span>
+ ) : (
+ <span className="text-[10px] pg-text-muted mt-0.5">Midjourney & DALL-E</span>
  )}
+ </div>
+ </label>
+ <label
+ className={`flex items-center justify-center p-3 border rounded-lg transition-colors ${
+ !hasWebMotionAccess
+ ? "opacity-60 cursor-not-allowed pg-border pg-surface-dim/50"
+ : type === "MOTION"
+ ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 ring-1 ring-indigo-500 cursor-pointer"
+ : "pg-border cursor-pointer hover:pg-surface-dim"
+ }`}
+ >
+ <input
+ type="radio"
+ name="type"
+ value="MOTION"
+ checked={type === "MOTION"}
+ disabled={!hasWebMotionAccess}
+ onChange={() => {
+ if (hasWebMotionAccess) {
+ setType("MOTION");
+ } else {
+ toast.error(t("webMotionLocked") || "Fitur Web Motion memerlukan paket PRO");
+ }
+ }}
+ className="sr-only"
+ />
+ <div className="flex flex-col items-center text-center">
+ <span className="font-semibold text-sm flex items-center gap-1">
+ {t("webMotion")}
+ {!hasWebMotionAccess && (
+ <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 font-bold">
+ PRO 🔒
+ </span>
+ )}
+ </span>
+ <span className="text-[10px] pg-text-muted mt-0.5">HTML5 + GSAP Engine</span>
  </div>
  </label>
  </div>
@@ -1568,17 +1645,128 @@ export default function GeneratorForm({
  </div>
  </div>
 
- {/* Video Specific Settings */}
- {type === "VIDEO" && (
+ {/* Video & Web Motion Specific Settings */}
+ {(type === "VIDEO" || type === "MOTION") && (
  <div className="pt-4 border-t pg-border space-y-5">
  <div>
   <h3 className="font-semibold pg-text-heading">
-   {t("videoSettings")} & Presisi Presets
+   {type === "MOTION" ? t("webMotionStudioTitle") : t("videoSettings")} & Presisi Presets
   </h3>
   <p className="text-xs pg-text-muted mt-0.5">
-   {t("videoEngineSubtitle")}
+   {type === "MOTION" ? t("webMotionStudioDesc") : t("videoEngineSubtitle")}
   </p>
  </div>
+
+ {/* 🎨 Dedicated Web Motion Configuration Card */}
+ {type === "MOTION" && (
+   <div className="p-4 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-950/25 space-y-4 shadow-sm">
+     <div className="flex items-center justify-between">
+       <label className="text-xs font-semibold text-indigo-950 dark:text-indigo-200 flex items-center gap-1.5">
+         <span>✨</span>
+         <span>Konfigurasi Web Motion (Bang Motion & Lemo Opuscar)</span>
+       </label>
+       <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
+         Standalone HTML5 + GSAP
+       </span>
+     </div>
+
+     {/* 1. Gaya Visual Motion */}
+     <div className="space-y-1.5">
+       <label className="block text-xs font-medium pg-text-heading flex items-center gap-1">
+         <span>🎨</span>
+         <span>{t("motionStyleLabel")}</span>
+       </label>
+       <p className="text-[10px] pg-text-muted">{t("motionStyleDesc")}</p>
+       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 pt-1">
+         {[
+           { value: "saas_explainer", label: "🚀 SaaS & Product Explainer", desc: "Dark mode modern, sleek glow cards, floating UI" },
+           { value: "exploded_3d", label: "🧩 Exploded 3D & Isometric", desc: "Layered depth, schematic component breakdown" },
+           { value: "kinetic_typography", label: "⚡ Kinetic Typography", desc: "Heavy punch, phrase accretion, ultra energetic" },
+           { value: "vox_data_journalism", label: "📊 Vox Data Journalism", desc: "Visual counter, data instrument, split timeline" },
+           { value: "vintage_paper_collage", label: "📜 Vintage Paper & Collage", desc: "Torn paper texture, analog riso, mixed media" },
+         ].map((style) => (
+           <button
+             key={style.value}
+             type="button"
+             onClick={() => setMotionStyle(style.value as MotionStyleType)}
+             className={`p-2.5 rounded-lg border text-left text-xs transition-all flex flex-col justify-between ${
+               motionStyle === style.value
+                 ? "border-indigo-500 bg-white dark:bg-slate-800 shadow-sm ring-1 ring-indigo-500 text-indigo-700 dark:text-indigo-300"
+                 : "border-slate-200 dark:border-slate-700 hover:border-slate-300 bg-white/70 dark:bg-slate-800/60 pg-text-sub"
+             }`}
+           >
+             <span className="font-semibold text-xs">{style.label}</span>
+             <span className="text-[10px] pg-text-muted mt-1 leading-tight">{style.desc}</span>
+           </button>
+         ))}
+       </div>
+     </div>
+
+     {/* 2. Background Surface Engine (#world) */}
+     <div className="space-y-1.5 pt-2 border-t border-indigo-100 dark:border-indigo-900/50">
+       <label className="block text-xs font-medium pg-text-heading flex items-center gap-1">
+         <span>🌌</span>
+         <span>{t("motionBgLabel")}</span>
+       </label>
+       <p className="text-[10px] pg-text-muted">{t("motionBgDesc")}</p>
+       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+         {[
+           { value: "auto", label: "🪄 Auto Match", desc: "Sesuai gaya visual" },
+           { value: "glow_horizon", label: "🌅 Glow Horizon", desc: "Radial ambient glow" },
+           { value: "grainy_gradient", label: "🌫️ Grainy Gradient", desc: "Film noise gradient" },
+           { value: "light_mesh", label: "🌐 Light Mesh", desc: "Tech blueprint grid" },
+           { value: "vintage_paper", label: "📜 Vintage Paper", desc: "Organic paper fiber" },
+           { value: "blueprint_grid", label: "📐 Blueprint Grid", desc: "CAD engineering grid" },
+           { value: "dynamic_color_block", label: "🎨 Color Block", desc: "Bold chromatic panels" },
+         ].map((bg) => (
+           <button
+             key={bg.value}
+             type="button"
+             onClick={() => setMotionBackground(bg.value as MotionBackgroundType)}
+             className={`p-2 rounded-lg border text-left text-xs transition-all flex flex-col justify-between ${
+               motionBackground === bg.value
+                 ? "border-indigo-500 bg-white dark:bg-slate-800 shadow-sm ring-1 ring-indigo-500 text-indigo-700 dark:text-indigo-300"
+                 : "border-slate-200 dark:border-slate-700 hover:border-slate-300 bg-white/70 dark:bg-slate-800/60 pg-text-sub"
+             }`}
+           >
+             <span className="font-semibold text-[11px] truncate">{bg.label}</span>
+             <span className="text-[9px] pg-text-muted mt-0.5 leading-tight">{bg.desc}</span>
+           </button>
+         ))}
+       </div>
+     </div>
+
+     {/* 3. Motion Pacing & Easing */}
+     <div className="space-y-1.5 pt-2 border-t border-indigo-100 dark:border-indigo-900/50">
+       <label className="block text-xs font-medium pg-text-heading flex items-center gap-1">
+         <span>⏱️</span>
+         <span>{t("motionPacingLabel")}</span>
+       </label>
+       <p className="text-[10px] pg-text-muted">{t("motionPacingDesc")}</p>
+       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+         {[
+           { value: "snappy", label: "⚡ Snappy (0.4s Fast)", desc: "power3.out, transisi tegas & energetic" },
+           { value: "smooth", label: "🌊 Smooth & Flowing", desc: "expo.out, luncuran dinamis berkesinambungan" },
+           { value: "narrative", label: "📖 Narrative Accretion", desc: "Sinkron per frasa kata VO, build up natural" },
+         ].map((pacing) => (
+           <button
+             key={pacing.value}
+             type="button"
+             onClick={() => setMotionPacing(pacing.value as MotionPacingType)}
+             className={`p-2 rounded-lg border text-left text-xs transition-all flex flex-col justify-between ${
+               motionPacing === pacing.value
+                 ? "border-indigo-500 bg-white dark:bg-slate-800 shadow-sm ring-1 ring-indigo-500 text-indigo-700 dark:text-indigo-300"
+                 : "border-slate-200 dark:border-slate-700 hover:border-slate-300 bg-white/70 dark:bg-slate-800/60 pg-text-sub"
+             }`}
+           >
+             <span className="font-semibold text-[11px]">{pacing.label}</span>
+             <span className="text-[9px] pg-text-muted mt-0.5 leading-tight">{pacing.desc}</span>
+           </button>
+         ))}
+       </div>
+     </div>
+   </div>
+ )}
 
  {/* 🚀 Output Script Structure: Single Video vs Funnel Pack (2 Short + 1 Long) */}
  <div className="p-4 rounded-xl border pg-border bg-slate-50/70 dark:bg-slate-800/40 space-y-3">
@@ -1937,7 +2125,8 @@ export default function GeneratorForm({
   </div>
  )}
 
- {/* Dual-Engine Video Production Mode Switcher */}
+ {/* Dual-Engine Video Production Mode Switcher (Khusus Tab Video Script) */}
+ {type === "VIDEO" && (
  <div className="p-4 rounded-xl border pg-border bg-slate-50/70 dark:bg-slate-800/40 space-y-3">
   <div className="flex items-center justify-between">
    <label className="text-xs font-semibold pg-text-heading flex items-center gap-1.5">
@@ -2031,6 +2220,7 @@ export default function GeneratorForm({
    </div>
   )}
  </div>
+ )}
 
  {/* Platform & Persona PresetSelect */}
  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2428,7 +2618,8 @@ export default function GeneratorForm({
  )}
  </div>
 
- {/* ── Push Enrichment: Visual Style Preset ── */}
+ {/* ── Push Enrichment: Visual Style Preset (Khusus AI Diffusion) ── */}
+ {type !== "MOTION" && (
  <div>
  <label className="block text-xs font-medium pg-text-sub mb-1">
  🎨 Visual Style Preset
@@ -2461,6 +2652,7 @@ export default function GeneratorForm({
  </div>
  )}
  </div>
+ )}
 
 
  {/* ── Push Enrichment: Tone of Voice ── */}
@@ -2772,7 +2964,21 @@ export default function GeneratorForm({
   </div>
 
  {/* ── Camera Movement Section ── */}
- {videoConfig.videoProductionMode === "REMOTION_CODE" ? (
+ {type === "MOTION" || videoConfig.videoProductionMode === "WEB_MOTION_HTML" ? (
+  <div className="pt-2 border-t pg-border">
+   <div className="p-3 rounded-lg bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800 flex items-start gap-2.5">
+    <span className="text-base leading-none">🌐</span>
+    <div className="space-y-1">
+     <p className="text-xs font-semibold text-indigo-900 dark:text-indigo-200">
+      {t("virtualWorldCameraTitle")}
+     </p>
+     <p className="text-[11px] text-indigo-700/90 dark:text-indigo-300/90 leading-relaxed">
+      {t("virtualWorldCameraDesc")}
+     </p>
+    </div>
+   </div>
+  </div>
+ ) : videoConfig.videoProductionMode === "REMOTION_CODE" ? (
   <div className="pt-2 border-t pg-border">
    <div className="p-3 rounded-lg bg-purple-50/60 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800 flex items-start gap-2.5">
     <span className="text-base leading-none">⚛️</span>
@@ -3683,7 +3889,7 @@ export default function GeneratorForm({
  />
  </div>
  <div className="flex flex-wrap gap-2">
- {type === "VIDEO" ? (
+ {type === "VIDEO" || type === "MOTION" ? (
  videoConfig.videoProductionMode === "REMOTION_CODE" ? (
  <button
  type="button"
@@ -3711,9 +3917,13 @@ export default function GeneratorForm({
  } catch(e) { console.error(e); }
  router.push(`/${document.documentElement.lang || "id"}/dashboard/scene-prompt`);
  }}
- className="flex-1 min-w-[140px] px-3 py-2 text-sm font-medium text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-300 dark:border-indigo-700 hover:bg-indigo-100 dark:hover:bg-indigo-800/50 rounded-md transition-colors flex items-center justify-center gap-1.5"
+ className={`flex-1 min-w-[140px] px-3 py-2 text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-1.5 ${
+ type === "MOTION"
+ ? "text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm"
+ : "text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-300 dark:border-indigo-700 hover:bg-indigo-100 dark:hover:bg-indigo-800/50"
+ }`}
  >
- {t("continueToSceneStudioBtn")}
+ {type === "MOTION" ? "🌐 Lanjut ke Scene & Web Motion Studio" : t("continueToSceneStudioBtn")}
  </button>
  )
  ) : (

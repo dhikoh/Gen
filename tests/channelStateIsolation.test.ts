@@ -30,7 +30,7 @@ const videoConfigSchema = z.object({
 }).passthrough();
 
 const generatorFormStateSchema = z.object({
-  type: z.enum(["VIDEO", "IMAGE"]).optional(),
+  type: z.enum(["VIDEO", "IMAGE", "MOTION"]).optional(),
   channelId: z.string().optional(),
   outputLanguage: z.string().optional(),
   topic: z.string().max(500).optional(),
@@ -213,5 +213,34 @@ describe("Per-Channel State Isolation & Preferences Sync (Section 32)", () => {
     expect(cleanConfig.pov).toBe("Casual Friend (Santai & Relatable)");
     expect(cleanConfig.speechRate).toBe(0.30);
     expect(cleanConfig.selectedProductId).toBe("");
+  });
+
+  it("persists Web Motion specific configuration (type: MOTION, motionStyle, motionBackground, motionPacing)", () => {
+    const payload = {
+      channelFormStates: {
+        "channel-motion-1": {
+          type: "MOTION",
+          channelId: "channel-motion-1",
+          topic: "SaaS Explainer Database Modern",
+          videoConfig: {
+            videoProductionMode: "WEB_MOTION_HTML",
+            motionStyle: "saas_explainer",
+            motionBackground: "glow_horizon",
+            motionPacing: "snappy",
+            targetDurationSec: 45,
+          },
+        },
+      },
+    };
+
+    const result = preferencesSchema.safeParse(payload);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const state = result.data.channelFormStates?.["channel-motion-1"];
+      expect(state?.type).toBe("MOTION");
+      expect((state?.videoConfig as Record<string, unknown>)?.motionStyle).toBe("saas_explainer");
+      expect((state?.videoConfig as Record<string, unknown>)?.motionBackground).toBe("glow_horizon");
+      expect((state?.videoConfig as Record<string, unknown>)?.motionPacing).toBe("snappy");
+    }
   });
 });

@@ -15,6 +15,24 @@ export interface SourceAuditData {
   disclaimer?: string;
 }
 
+export type MotionStyleType =
+  | "saas_explainer"
+  | "exploded_3d"
+  | "kinetic_typography"
+  | "vox_journalism"
+  | "narrative_collage";
+
+export type MotionBackgroundType =
+  | "auto"
+  | "glow_horizon"
+  | "grainy_gradient"
+  | "light_mesh"
+  | "vintage_paper"
+  | "blueprint_grid"
+  | "color_block";
+
+export type MotionPacingType = "snappy" | "smooth" | "narrative";
+
 export interface FunnelConfigSnapshot {
   sceneMode: "auto" | "manual";
   short1Scenes?: number;
@@ -97,8 +115,11 @@ export interface GeneratorVideoConfigSnapshot {
   affiliateAngleMode?: "CTA" | "SOFT" | null;
   targetKeywords?: string[] | string | null;
   narrationModeOverride?: string | null;
-  videoProductionMode?: "DIFFUSION_AI" | "REMOTION_CODE" | null;
+  videoProductionMode?: "DIFFUSION_AI" | "WEB_MOTION_HTML" | "REMOTION_CODE" | null;
   remotionTheme?: "modern" | "cyberpunk" | "documentary" | "kinetic" | null;
+  motionStyle?: MotionStyleType | string | null;
+  motionBackground?: MotionBackgroundType | string | null;
+  motionPacing?: MotionPacingType | string | null;
   outputStructure?: "SINGLE" | "FUNNEL_BUNDLE" | null;
   sourceUrl?: string | null;
   sourceSnippet?: string | null;
@@ -121,7 +142,7 @@ export interface GeneratorImageConfigSnapshot {
 }
 
 export interface GeneratorFormStateSnapshot {
-  type?: "VIDEO" | "IMAGE";
+  type?: "VIDEO" | "IMAGE" | "MOTION";
   channelId?: string;
   outputLanguage?: string;
   topic?: string;
@@ -160,8 +181,11 @@ export interface GeneratorFormStateSnapshot {
   targetKeywordsLongTail?: string;
   audioFadeInOut?: boolean;
   audioBeatSync?: boolean;
-  videoProductionMode?: "DIFFUSION_AI" | "REMOTION_CODE";
+  videoProductionMode?: "DIFFUSION_AI" | "WEB_MOTION_HTML" | "REMOTION_CODE";
   remotionTheme?: "modern" | "cyberpunk" | "documentary" | "kinetic";
+  motionStyle?: MotionStyleType | string | null;
+  motionBackground?: MotionBackgroundType | string | null;
+  motionPacing?: MotionPacingType | string | null;
   outputStructure?: "SINGLE" | "FUNNEL_BUNDLE";
   sourceUrl?: string;
   sourceSnippet?: string;

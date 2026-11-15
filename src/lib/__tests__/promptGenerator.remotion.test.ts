@@ -14,15 +14,17 @@ const channel = {
 } as ChannelArg;
 
 describe("generateMasterPrompt — videoProductionMode", () => {
-  it("ketika videoProductionMode = REMOTION_CODE, menghasilkan instruksi Remotion motion graphics dan blok KODE REMOTION LENGKAP", () => {
+  it("ketika videoProductionMode = REMOTION_CODE atau WEB_MOTION_HTML, menghasilkan instruksi Web Motion Engine dan blok KODE WEB MOTION LENGKAP", () => {
     const videoConfig = {
       targetPlatform: "YouTube Shorts",
       targetDurationSec: 45,
       targetSceneCount: 5,
       aspectRatio: "9:16",
       speechRate: 0.35,
-      videoProductionMode: "REMOTION_CODE",
-      remotionTheme: "cyberpunk",
+      videoProductionMode: "WEB_MOTION_HTML",
+      motionStyle: "saas_explainer",
+      motionBackground: "glow_horizon",
+      motionPacing: "snappy",
     } as VideoArg;
 
     const result = generateMasterPrompt(
@@ -38,10 +40,14 @@ describe("generateMasterPrompt — videoProductionMode", () => {
 
     const text = typeof result === "string" ? result : JSON.stringify(result);
 
-    // Memverifikasi instruksi Remotion
-    expect(text).toContain("KODE REMOTION LENGKAP (REACT TSX)");
-    expect(text).toContain("REACT MOTION GRAPHICS");
-    expect(text).toContain("cyberpunk");
+    // Memverifikasi instruksi Web Motion Engine (Bang Motion & Lemo Opuscar)
+    expect(text).toContain("WEB MOTION ENGINE: STANDALONE HTML5 + CSS + GSAP");
+    expect(text).toContain("KODE WEB MOTION LENGKAP (STANDALONE HTML5 + GSAP)");
+    expect(text).toContain("<!DOCTYPE html>");
+    expect(text).toContain("HUKUM SINEMATIK BANG-MOTION & LE-OPUSCAR");
+    expect(text).toContain("saas_explainer");
+    expect(text).toContain("glow_horizon");
+    expect(text).toContain("PERGERAKAN KAMERA (#world)");
   });
 
   it("ketika videoProductionMode = DIFFUSION_AI atau undefined, mempertahankan prompt kamera fisik difusi", () => {

@@ -61,6 +61,11 @@ export const KNOWN_PLAN_FEATURES: PlanFeatureDefinition[] = [
     defaultValue: false   // fail-closed: premium feature (React Remotion Studio)
   },
   {
+    key: "webMotionStudio",
+    labelKey: "featureWebMotionStudio",
+    defaultValue: false   // fail-closed: premium feature (Web Motion HTML+GSAP Studio)
+  },
+  {
     key: "googleDriveUpload",
     labelKey: "featureGoogleDriveUpload",
     defaultValue: false   // fail-closed: premium feature, requires Google OAuth config
@@ -86,6 +91,15 @@ export function hasFeature(
   if (isSuperadmin) return true;
   const rawFeatures = features ?? {};
   if (typeof rawFeatures[key] === "boolean") return rawFeatures[key];
+
+  // Backward compatibility alias: webMotionStudio <-> remotionStudio
+  if (key === "webMotionStudio" && typeof rawFeatures["remotionStudio"] === "boolean") {
+    return rawFeatures["remotionStudio"];
+  }
+  if (key === "remotionStudio" && typeof rawFeatures["webMotionStudio"] === "boolean") {
+    return rawFeatures["webMotionStudio"];
+  }
+
   // Kunci tidak ditemukan — cek defaultValue dari KNOWN_PLAN_FEATURES
   const knownFeature = KNOWN_PLAN_FEATURES.find((f) => f.key === key);
   // FAIL-OPEN: jika tidak dikenal sama sekali, return true (tidak memblokir fitur baru)
