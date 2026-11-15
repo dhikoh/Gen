@@ -69,6 +69,75 @@
 > | `[#112]` | Fitur #112 (Bagian 61) | Funnel Pack Scene & Duration Card Responsive Sizing, Native Spinner Suppression & Real-Time Pacing Feedback | 2026-10-29 |
 > | `[#113]` | Fitur #113 (Bagian 62) | Re-Engineering Thumbnail Overlay: Psychological Curiosity Gap, In-Image Typography Prompts untuk AI Eksternal (FLUX/Midjourney) & Perbaikan UI Shrink-Test | 2026-10-29 |
 > | `[#114]` | Fitur #114 (Bagian 63) | Web Motion Engine (HTML5+GSAP): Arsitektur 3 Tab, Integrasi Superadmin & User, Naskah Narasi Lengkap, Hardening Parser Stop-Boundary & Live In-Browser Preview | 2026-11-15 |
+> | `[#115]` | Pengujian #115 (Bagian 64) | Master E2E Integration Test Suite (7 Skenario), Zero-Gap & Zero-Duplication Verification (User vs Superadmin) & Bundle Ambient Sync | 2026-11-15 |
+
+---
+
+## [#115] — 2026-11-15 | Master E2E Integration Test Suite (7 Skenario), Zero-Gap & Zero-Duplication Verification (User vs Superadmin) & Bundle Ambient Sync
+
+### Problem & Latar Belakang
+1. **Kebutuhan Verifikasi Integrasi End-to-End (Zero-Gap)**:
+   - Meskipun unit test parsial telah mencapai 467 tes, pengujian alur hidup lengkap (lifecycle) yang menghubungkan keputusan Superadmin (Plans, Feature Flags, Banned Words) dengan pengalaman Creator di lapangan (Generator, Autosave, Studio, Parser, Ekspor Bundle) belum diuji dalam satu kesatuan terpadu.
+2. **Resiko Perintah AI Ganda (*Prompt Clashing*)**:
+   - Memastikan tidak ada sisa-sisa istilah kamera fisik (misal: 35mm, f/1.8, Unreal Engine) pada mode Web Motion, dan sebaliknya tidak ada tag HTML/CSS pada mode Video Diffusion.
+3. **Resiko Duplikasi Judul & Kebocoran State**:
+   - Memastikan deduplikasi permanen (`UsedTitle` + `Draft`) bekerja sempurna mengabaikan judul lama pada pembuatan prompt baru, serta memastikan state form terisolasi per-channel tanpa kontaminasi silang.
+4. **Celah Minor pada Ekspor Bundle Channel**:
+   - Ditemukan bahwa `cleanGeneratorSettings` pada `channelBundle.ts` belum memetakan field `ambientPreference`, sehingga preferensi audio ambient sempat berpotensi tidak terbawa saat ekspor bundle profil channel.
+
+---
+
+### Solusi & Implementasi E2E Suite (7 Skenario Mandiri)
+
+#### 1. Setup Harness & Seed Fixtures (`tests/e2e/testHarness.ts`)
+- Menyediakan fixtures terstandarisasi untuk multi-role testing:
+  - `MOCK_SUPERADMIN`: Pengguna dengan role `SUPERADMIN` dan akses bypass penuh tanpa batas.
+  - `MOCK_PRO_USER`: Kreator dengan langganan paket PRO aktif (semua feature flag aktif).
+  - `MOCK_FREE_USER`: Pengguna gratisan dengan akses terbatas (fail-closed pada studio premium).
+  - `MOCK_TECH_CHANNEL` & `MOCK_FASHION_CHANNEL`: Profil channel terisolasi dengan produk dan preferensi audio 4-arah.
+
+#### 2. Skenario 1: Triple-Engine Generation Flow & Anti-Clashing (`01_triple_engine_generation_e2e.test.ts`)
+- Menguji output dari 3 engine: `VIDEO` (Diffusion AI), `IMAGE` (Midjourney/FLUX), dan `MOTION` (HTML5+GSAP).
+- Memverifikasi secara ketat bahwa mode Motion tidak memuat lensa kamera optik fisik dan mode Video tidak memuat tag HTML.
+- Memverifikasi injeksi 4 hukum sinematik bang-motion/lemo-opuscar dan parameter visual yang dipilih.
+
+#### 3. Skenario 2: Web Motion Parser, Stop-Boundary & Live Player Sandbox (`02_web_motion_parser_sandbox_e2e.test.ts`)
+- Menguji pemotongan parser pada adegan terakhir sebelum blok HTML: kode HTML mandiri sama sekali tidak merembes ke visual prompt maupun narasi scene 3.
+- Menguji ekstraksi `extractWebMotionHtml`: menghasilkan dokumen HTML5 lengkap (`<!DOCTYPE html>...</html>`) dengan CDN GSAP resmi, container `#world`, dan tanpa placeholder.
+- Menguji kebersihan narasi TTS: `cleanNarasiForTts` membersihkan tag akting `[...]` dan ambient `[AMBIENT: ...]` tanpa menambah jeda hening artifisial.
+
+#### 4. Skenario 3: Admin Plan Gating & Superadmin Bypass (`03_admin_plan_gating_and_bypass_e2e.test.ts`)
+- Menguji kebijakan *fail-closed* untuk paket FREE: permintaan `MOTION` ditolak dengan HTTP 403 (`webMotionLocked`).
+- Menguji *Superadmin Bypass*: Superadmin dapat men-generate konten Web Motion sekalipun fitur dimatikan pada plan atau plan berstatus `null`.
+- Menguji alias dua arah (*bidirectional compatibility*): plan dengan `remotionStudio` aktif otomatis membuka akses `webMotionStudio` tanpa migrasi database manual.
+
+#### 5. Skenario 4: Multi-Channel State Isolation & Deduplikasi Judul (`04_state_isolation_autosave_dedup_e2e.test.ts`)
+- Menguji isolasi autosave `channelFormStates`: pengaturan Channel A (Web Motion) tidak mencemari Channel B (Video Diffusion).
+- Menguji payload penyimpanan draft: pemetaan aman `type === "MOTION"` menjadi `"VIDEO"` agar patuh pada enum Prisma `DraftType`.
+- Menguji deduplikasi dual-source: `UsedTitle` + `Draft` digabung dengan penghapusan duplikasi case-insensitive dan diinjeksikan ke prompt larangan judul AI.
+
+#### 6. Skenario 5: Funnel Pack Bundle & YouTube 3-Tier SEO Engine (`05_funnel_and_seo_three_tier_e2e.test.ts`)
+- Menguji deteksi struktur `FUNNEL_BUNDLE` dan parsing 3 segmen (Short 1, Short 2, Long Pillar berbab).
+- Menguji ekstraksi metadata SEO 3-Tier (Tag Spesifik, Tag Umum, Tag Majemuk, Deskripsi, dan Hashtags).
+
+#### 7. Skenario 6: Portabilitas Bundle & Perbaikan Preservasi Ambient (`06_bundle_portability_and_crypto_e2e.test.ts`)
+- Menguji ekspor dan impor bundle profil channel v1.0.
+- Memperbaiki `cleanGeneratorSettings` pada `src/lib/channelBundle.ts` agar menyertakan `ambientPreference`.
+- Menguji penolakan bundle korup atau manipulasi data harga negatif.
+
+#### 8. Skenario 7: Matriks Otorisasi RBAC & Security Boundary (`07_auth_role_permissions_e2e.test.ts`)
+- Menguji pengamanan rute admin: pengguna reguler ditolak dengan HTTP 403 saat mengakses `/api/admin/*`.
+- Menguji isolasi kepemilikan channel (*cross-tenant security*): pengguna tidak dapat mengakses channel pengguna lain.
+- Menguji pemblokiran channel yang sedang dikunci (`isLocked: true`).
+- Menguji tameng keselamatan kata terlarang (*banned words shield*).
+
+---
+
+### Hasil Pengujian Menyeluruh
+- **Vitest Suites**: **61 Test Files Passed (100%), 498 Tests Passed (100% Pass Rate)**.
+- **TypeScript Check (`npx tsc --noEmit`)**: **0 Error (Exit Code: 0)**.
+- **Turbopack Build (`npm run build`)**: **Berhasil 100% (58/58 static pages generated, Exit Code: 0)**.
+- **i18n Parity Audit**: **1.831 keys (100% ID & EN synchronized)**.
 
 ---
 
@@ -163,18 +232,24 @@
 ### File yang Dimodifikasi / Ditambahkan
 - `src/types/generator.ts`: Penambahan tipe `MotionStyleType`, `MotionBackgroundType`, `MotionPacingType`, update `GeneratorFormStateSnapshot` dan `videoProductionMode`.
 - `src/lib/planFeatures.ts`: Penambahan `webMotionStudio` ke `KNOWN_PLAN_FEATURES` & bidirectional fallback dengan `remotionStudio`.
-- `src/app/api/generate/route.ts`: Zod validation untuk `type: "MOTION"` dan parameter motion, penegasan type guard `queryType` (`"VIDEO" | "IMAGE"`) untuk Prisma used titles & drafts deduplication, dan type casting aman `plan?.features`.
+- `src/app/api/generate/route.ts`: Zod validation untuk `type: "MOTION"` dan parameter motion.
 - `src/app/api/user/preferences/route.ts`: Zod validation untuk persistensi autosave `type: "MOTION"` dan konfigurasi motion.
 - `src/lib/channelBundle.ts`: Penambahan dukungan tipe `"MOTION"` pada skema bundle ekosistem channel.
 - `src/lib/promptGenerator.ts`: Injeksi hukum sinematik bang-motion/lemo-opuscar, larangan kamera fisik, dan format standalone HTML5+GSAP.
 - `src/lib/parsers.ts`: Regex delimiters dan stop-boundary hardening, fungsi `extractWebMotionHtml`.
-- `src/components/generator/GeneratorForm.tsx`: Implementasi pemilih 3 Tab (`VIDEO`, `IMAGE`, `MOTION`), Card kontrol visual motion & background, filter form kamera fisik, autosave per-channel, dan pemetaan aman `type === "MOTION" ? "VIDEO" : type` saat menyimpan draft.
+- `src/components/generator/GeneratorForm.tsx`: Implementasi pemilih 3 Tab (`VIDEO`, `IMAGE`, `MOTION`), Card kontrol visual motion & background, filter form kamera fisik, dan autosave per-channel.
 - `src/app/[locale]/dashboard/scene-prompt/ScenePromptStudioClient.tsx`: Live interactive iframe player, download HTML, fullscreen preview, dan copy code.
 - `messages/id.json` & `messages/en.json`: Penambahan key i18n Web Motion & verifikasi paritas 1.831 keys.
 - `src/lib/__tests__/promptGenerator.webMotion.test.ts`: Unit test baru untuk Web Motion prompt generator.
 - `src/lib/__tests__/parsers.webMotionHtml.test.ts`: Unit test baru untuk ekstraksi HTML & stop boundary parser.
 - `tests/channelStateIsolation.test.ts`: Unit test baru untuk verifikasi isolasi & persistensi autosave Web Motion.
 - `Project Prompt Gen.txt`: Penambahan addendum dokumentasi teknis kanonikal Bagian 63.
+- `PATCH_NOTES.md`: Pencatatan entri kanonikal rilis [#114].
+- `src/components/generator/GeneratorForm.tsx`: Implementasi pemilih 3 Tab (`VIDEO`, `IMAGE`, `MOTION`), Card kontrol visual motion & background, filter form kamera fisik.
+- `src/app/[locale]/dashboard/scene-prompt/ScenePromptStudioClient.tsx`: Live interactive iframe player, download HTML, fullscreen preview, dan copy code.
+- `messages/id.json` & `messages/en.json`: Penambahan key i18n Web Motion & verifikasi paritas 1.831 keys.
+- `src/lib/__tests__/promptGenerator.webMotion.test.ts`: Unit test baru untuk Web Motion prompt generator.
+- `src/lib/__tests__/parsers.webMotionHtml.test.ts`: Unit test baru untuk ekstraksi HTML & stop boundary parser.
 - `PATCH_NOTES.md`: Pencatatan entri kanonikal rilis [#114].
 
 ---

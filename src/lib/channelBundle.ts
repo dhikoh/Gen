@@ -147,6 +147,7 @@ export function buildChannelBundle(params: {
       customHookText: typeof raw.customHookText === "string" ? raw.customHookText : undefined,
       musicPreference: typeof raw.musicPreference === "boolean" ? raw.musicPreference : undefined,
       sfxPreference: typeof raw.sfxPreference === "boolean" ? raw.sfxPreference : undefined,
+      ambientPreference: typeof raw.ambientPreference === "boolean" ? raw.ambientPreference : undefined,
       voPreference: typeof raw.voPreference === "boolean" ? raw.voPreference : undefined,
       cameraMovementEnabled: typeof raw.cameraMovementEnabled === "boolean" ? raw.cameraMovementEnabled : undefined,
       cameraMovementPresets: Array.isArray(raw.cameraMovementPresets) ? raw.cameraMovementPresets.filter((x): x is string => typeof x === "string") : undefined,
