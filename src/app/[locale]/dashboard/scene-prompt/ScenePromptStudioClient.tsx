@@ -1948,7 +1948,7 @@ export default function ScenePromptStudioClient({ channels, locale, planFeatures
               <iframe
                 title="Web Motion Live Preview"
                 srcDoc={detectedWebMotionCode}
-                sandbox="allow-scripts allow-same-origin"
+                sandbox="allow-scripts"
                 className={`w-full rounded-xl border border-slate-800 shadow-2xl bg-black ${
                   ar === "16:9" ? "aspect-video h-[480px]" : "aspect-[9/16] h-[640px]"
                 }`}

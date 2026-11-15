@@ -57,6 +57,15 @@ export const LiveRemotionSandbox = forwardRef<
         return { comp: null as React.ComponentType | null, error: null as string | null };
       }
 
+      // Early guard: Cegah evaluasi jika input adalah dokumen HTML Web Motion
+      if (/^\s*<!DOCTYPE\s+html|^\s*<html[\s>]/i.test(jsCode.trim())) {
+        return {
+          comp: null,
+          error:
+            "Kode terdeteksi sebagai dokumen Web Motion HTML5 + GSAP, bukan komponen Remotion React. Silakan gunakan tab Web Motion Player.",
+        };
+      }
+
       try {
         const win: { __RemotionComponent?: React.ComponentType } = {};
         const factory = new Function(

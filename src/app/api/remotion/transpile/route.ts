@@ -62,6 +62,17 @@ export async function POST(req: Request) {
       }
     }
 
+    // Tolak jika kode yang diberikan merupakan dokumen Web Motion HTML5 (bukan Remotion TSX)
+    if (/^\s*<!DOCTYPE\s+html|^\s*<html[\s>]/i.test(cleanCode)) {
+      return NextResponse.json(
+        {
+          error:
+            "Kode yang Anda masukkan adalah dokumen Web Motion HTML5 + GSAP, bukan komponen Remotion (React/TSX). Silakan gunakan tab Web Motion Player.",
+        },
+        { status: 400 }
+      );
+    }
+
     // Pre-normalize common LLM syntax anomalies before feeding to TypeScript compiler
     cleanCode = cleanCode.replace(/export\s+default\s+const\s+(\w+)\s*=/g, "const $1 = ");
 

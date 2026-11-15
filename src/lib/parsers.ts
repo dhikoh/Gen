@@ -1717,15 +1717,20 @@ export function buildSegmentMultiPlatformSeo(opts: {
 export function extractRemotionCode(text: string): string | null {
   if (!text || !text.trim()) return null;
 
+  // Remotion signature: harus memuat import 'remotion', komponen Remotion JSX, atau hook Remotion
+  const remotionSignature =
+    /(?:from\s+['"]remotion['"]|<AbsoluteFill|<Sequence|<Composition|<Loop|<Series|useCurrentFrame\s*\(|useVideoConfig\s*\(|\bComposition\s+from)/;
+
   // Pola 1: Iterasi seluruh blok kode terpagar (fenced code blocks)
   const codeBlockRegex = /```(?:[a-zA-Z0-9_\-]+)?\s*([\s\S]*?)```/g;
   let blockMatch: RegExpExecArray | null;
   while ((blockMatch = codeBlockRegex.exec(text)) !== null) {
     const rawContent = blockMatch[1]?.trim();
     if (!rawContent) continue;
-    const isRemotion =
-      /(?:from\s+['"]remotion['"]|<AbsoluteFill|useCurrentFrame|useVideoConfig|Composition)/i.test(rawContent);
-    if (isRemotion) {
+    // JANGAN PERNAH menganggap dokumen HTML sebagai kode Remotion
+    if (/^\s*<!DOCTYPE\s+html|^\s*<html[\s>]/i.test(rawContent)) continue;
+
+    if (remotionSignature.test(rawContent)) {
       return rawContent;
     }
   }
@@ -1737,7 +1742,7 @@ export function extractRemotionCode(text: string): string | null {
     const nextHeaderIdx = afterHeader.search(/\n##\s+/);
     const candidate = (nextHeaderIdx !== -1 ? afterHeader.substring(0, nextHeaderIdx) : afterHeader).trim();
     const cleaned = candidate.replace(/^```[a-zA-Z0-9_\-]*\s*/i, "").replace(/```\s*$/i, "").trim();
-    if (/(?:from\s+['"]remotion['"]|<AbsoluteFill|useCurrentFrame|useVideoConfig|Composition)/i.test(cleaned)) {
+    if (!/^\s*<!DOCTYPE\s+html|^\s*<html[\s>]/i.test(cleaned) && remotionSignature.test(cleaned)) {
       return cleaned;
     }
   }

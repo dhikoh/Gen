@@ -201,6 +201,13 @@ export default function RemotionStudioStandaloneClient({
         return;
       }
 
+      if (/^\s*<!DOCTYPE\s+html|^\s*<html[\s>]/i.test(code.trim())) {
+        toast.error(
+          "Kode yang Anda masukkan adalah dokumen Web Motion HTML5 + GSAP, bukan komponen Remotion React. Silakan gunakan tab Web Motion Player."
+        );
+        return;
+      }
+
       setIsCompiling(true);
       setIsPlaying(false);
       setCurrentFrame(0);
